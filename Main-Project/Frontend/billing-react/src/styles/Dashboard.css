@@ -1116,3 +1116,552 @@ Palette: Burnt Copper & Parchment (User Specified)
 }
 
 }
+
+/* ==========================================================
+   Outstanding Invoice and Bill Management System Dashboard
+   Strict Brown Palette (NO BLACK):
+   - Deep Chocolate Brown: #5C2E14
+   - Chestnut Brown: #74371F
+   - Burnt Copper Brown: #9A4F2F
+   - Warm Hazelnut Brown: #8C5E43
+   - Sand Tan Brown (Borders): #D9BBA0
+   - Soft Cream Brown (Bg): #F4E8DC
+   - Parchment Light Brown: #FDFAF6
+   ========================================================== */
+
+.ob-dashboard-container {
+  padding: 8px 4px 32px;
+  background-color: transparent;
+}
+
+.ob-dashboard-header {
+  margin-bottom: 20px;
+}
+
+.ob-header-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.ob-primary-action-btn {
+  background: #9A4F2F;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(154, 79, 47, 0.28);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ob-primary-action-btn:hover {
+  background: #74371F;
+  box-shadow: 0 4px 14px rgba(116, 55, 31, 0.35);
+  transform: translateY(-1px);
+}
+
+.ob-dashboard-title {
+  font-size: clamp(1.5rem, 2.2vw, 1.95rem);
+  font-family: inherit, 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  color: #5C2E14;
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+
+.ob-dashboard-sub {
+  font-size: 0.86rem;
+  color: #8C5E43;
+  max-width: 850px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Time Tabs Bar */
+.ob-tabs-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border: 1.5px solid #D9BBA0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(92, 46, 20, 0.05);
+}
+
+.ob-tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 8px;
+  background: #ffffff;
+  border: none;
+  border-right: 1.5px solid #D9BBA0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 54px;
+}
+
+.ob-tab-btn:last-child {
+  border-right: none;
+}
+
+.ob-tab-btn:hover {
+  background: #FDFAF6;
+}
+
+.ob-tab-btn.active {
+  background: #F4E8DC;
+  border-bottom: 3px solid #9A4F2F;
+}
+
+.ob-tab-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #5C2E14;
+  display: block;
+}
+
+.ob-tab-btn.active .ob-tab-label {
+  color: #9A4F2F;
+}
+
+.ob-tab-sublabel {
+  font-size: 0.72rem;
+  color: #8C5E43;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Top KPI Grid */
+.ob-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ob-kpi-card {
+  border: 1.5px solid #D9BBA0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(92, 46, 20, 0.05);
+  min-height: 155px;
+}
+
+.ob-kpi-header {
+  background: #9A4F2F;
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 7px 12px;
+  letter-spacing: 0.01em;
+}
+
+.ob-kpi-body {
+  padding: 16px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: #ffffff;
+}
+
+/* KPI 1: Tracked Hours */
+.ob-time-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #8C5E43;
+  margin-bottom: 6px;
+}
+
+.ob-time-row.unbilled {
+  color: #9A4F2F;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.ob-time-num {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #5C2E14;
+}
+
+.ob-time-row.unbilled .ob-time-num {
+  color: #9A4F2F;
+}
+
+.ob-time-unbilled-lbl {
+  font-size: 0.72rem;
+  color: #8C5E43;
+  font-weight: 600;
+}
+
+/* KPI 2: Cash Flow */
+.ob-cash-net {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #5C2E14;
+  margin-bottom: 12px;
+}
+
+.ob-cash-split {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.ob-cash-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ob-cash-received {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #9A4F2F;
+}
+
+.ob-cash-sent {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #8C5E43;
+}
+
+.ob-cash-sublbl {
+  font-size: 0.7rem;
+  color: #8C5E43;
+  margin-top: 2px;
+}
+
+/* KPI 3: Pending Invoices */
+.ob-pending-total {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #5C2E14;
+  margin-bottom: 6px;
+}
+
+.ob-pending-donut-wrap {
+  width: 54px;
+  height: 54px;
+  margin: 2px auto 6px;
+}
+
+.ob-pending-donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ob-pending-overdue {
+  font-size: 0.75rem;
+  color: #8C5E43;
+  font-weight: 600;
+}
+
+.ob-pending-overdue-val {
+  color: #9A4F2F;
+  font-weight: 700;
+}
+
+/* KPI 4: Expenses */
+.ob-expenses-val {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #9A4F2F;
+  letter-spacing: -0.01em;
+}
+
+/* Middle Section: Bar Chart */
+.ob-chart-card {
+  border: 1.5px solid #D9BBA0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px 24px 16px;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(92, 46, 20, 0.05);
+}
+
+.ob-chart-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ob-chart-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ob-chart-heading {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #5C2E14;
+}
+
+.ob-chart-sub {
+  font-size: 0.74rem;
+  color: #8C5E43;
+}
+
+.ob-chart-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ob-chart-filter-lbl {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #8C5E43;
+}
+
+.ob-chart-period-select {
+  background: #F4E8DC;
+  border: 1.5px solid #D9BBA0;
+  color: #5C2E14;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ob-chart-period-select:focus {
+  border-color: #9A4F2F;
+  box-shadow: 0 0 0 2px rgba(154, 79, 47, 0.15);
+}
+
+.ob-chart-main {
+  display: flex;
+  height: 190px;
+  position: relative;
+}
+
+.ob-chart-y-axis {
+  width: 60px;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  padding-right: 12px;
+  border-right: 1.5px solid #D9BBA0;
+  position: relative;
+}
+
+.ob-y-axis-title {
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: rotate(-90deg) translateX(-50%);
+  transform-origin: left top;
+  font-size: 0.74rem;
+  color: #8C5E43;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ob-y-tick {
+  font-size: 0.74rem;
+  color: #8C5E43;
+  font-weight: 600;
+}
+
+.ob-chart-bars-area {
+  flex: 1;
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1.5px solid #D9BBA0;
+  position: relative;
+}
+
+.ob-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #F4E8DC;
+  pointer-events: none;
+}
+
+.ob-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.ob-bar-rect {
+  width: 80%;
+  max-width: 48px;
+  background: #9A4F2F;
+  border-radius: 2px 2px 0 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.ob-bar-rect:hover {
+  background: #74371F;
+}
+
+.ob-x-labels-row {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 60px;
+  padding-right: 16px;
+  margin-top: 8px;
+}
+
+.ob-x-label {
+  flex: 1;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #8C5E43;
+  font-weight: 600;
+}
+
+.ob-chart-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 0.76rem;
+  color: #8C5E43;
+  font-weight: 600;
+}
+
+.ob-legend-square {
+  width: 10px;
+  height: 10px;
+  background: #9A4F2F;
+  border-radius: 2px;
+}
+
+/* Bottom Tables Grid */
+.ob-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ob-table-card {
+  border: 1.5px solid #D9BBA0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(92, 46, 20, 0.05);
+}
+
+.ob-table-header {
+  background: #74371F;
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 7px 12px;
+  letter-spacing: 0.01em;
+}
+
+.ob-table-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #ffffff;
+}
+
+.ob-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid #F4E8DC;
+}
+
+.ob-table-row:last-child {
+  border-bottom: none;
+}
+
+.ob-table-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ob-row-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F4E8DC;
+  border: 1.5px solid #D9BBA0;
+  color: #9A4F2F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ob-row-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ob-row-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #5C2E14;
+}
+
+.ob-row-date {
+  font-size: 0.72rem;
+  color: #8C5E43;
+  margin-top: 1px;
+}
+
+.ob-row-amount-red {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #9A4F2F;
+  font-family: monospace;
+}
+
+.ob-row-amount-dark {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #5C2E14;
+  font-family: monospace;
+}

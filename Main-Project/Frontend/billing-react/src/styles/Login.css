@@ -1,10 +1,10 @@
 /* ==========================================================
-   BillSmart Modern Split-Screen Login Styles
+   invoice.billing Modern Split-Screen Login Styles
    Fixed-to-screen layout (No scrolling up/down)
    Matching media_1788437091898.png
    ========================================================== */
 
-.billsmart-login-page {
+.billing-auth-login-page {
   position: fixed;
   top: 0;
   left: 0;
@@ -23,7 +23,7 @@
 }
 
 /* --- Top Right Floating Home Button --- */
-.billsmart-home-btn {
+.billing-auth-home-btn {
   position: absolute !important;
   top: clamp(14px, 2.5vh, 24px) !important;
   right: clamp(16px, 2.5vw, 28px) !important;
@@ -41,7 +41,7 @@
   transition: all 0.2s ease !important;
 }
 
-.billsmart-home-btn:hover {
+.billing-auth-home-btn:hover {
   background: #ffffff !important;
   color: #9A4F2F !important;
   border-color: #9A4F2F !important;
@@ -50,7 +50,7 @@
 }
 
 /* --- Left Hero Panel --- */
-.billsmart-hero-side {
+.billing-auth-hero-side {
   flex: 1.05;
   height: 100vh;
   max-height: 100vh;
@@ -66,7 +66,7 @@
   box-sizing: border-box;
 }
 
-.billsmart-hero-side::before {
+.billing-auth-hero-side::before {
   content: '';
   position: absolute;
   top: 0;
@@ -77,7 +77,7 @@
   pointer-events: none;
 }
 
-.billsmart-hero-top {
+.billing-auth-hero-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -86,20 +86,20 @@
   flex-shrink: 0;
 }
 
-.billsmart-brand-wrap {
+.billing-auth-brand-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.billsmart-brand-text {
+.billing-auth-brand-text {
   font-size: clamp(1.15rem, 1.8vw, 1.35rem);
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.02em;
 }
 
-.billsmart-secure-tag {
+.billing-auth-secure-tag {
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -107,7 +107,7 @@
   text-transform: uppercase;
 }
 
-.billsmart-hero-content {
+.billing-auth-hero-content {
   position: relative;
   z-index: 2;
   max-width: 520px;
@@ -117,7 +117,7 @@
   justify-content: center;
 }
 
-.billsmart-eyebrow {
+.billing-auth-eyebrow {
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -127,7 +127,7 @@
   display: block;
 }
 
-.billsmart-hero-heading {
+.billing-auth-hero-heading {
   font-size: clamp(2rem, 3.4vw, 3.2rem);
   font-weight: 800;
   line-height: 1.15;
@@ -136,14 +136,14 @@
   margin: 0 0 clamp(10px, 1.8vh, 16px) 0;
 }
 
-.billsmart-story-accent {
+.billing-auth-story-accent {
   font-style: italic;
   font-family: Georgia, 'Playfair Display', serif;
   color: #DFA24B;
   font-weight: 700;
 }
 
-.billsmart-hero-sub {
+.billing-auth-hero-sub {
   font-size: clamp(0.88rem, 1.1vw, 1rem);
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.78);
@@ -152,7 +152,7 @@
 }
 
 /* Floating Invoice Card Mockup */
-.billsmart-inv-card {
+.billing-auth-inv-card {
   background: rgba(18, 14, 12, 0.90);
   border: 1px solid rgba(231, 216, 203, 0.16);
   border-radius: 16px;
@@ -163,14 +163,14 @@
   -webkit-backdrop-filter: blur(14px);
 }
 
-.billsmart-card-top {
+.billing-auth-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: clamp(10px, 1.6vh, 16px);
 }
 
-.billsmart-card-brand {
+.billing-auth-card-brand {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -179,7 +179,7 @@
   color: #ffffff;
 }
 
-.billsmart-card-inv-id {
+.billing-auth-card-inv-id {
   font-family: monospace;
   font-size: 0.7rem;
   font-weight: 700;
@@ -188,24 +188,24 @@
   text-transform: uppercase;
 }
 
-.billsmart-card-lines {
+.billing-auth-card-lines {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: clamp(12px, 1.8vh, 18px);
 }
 
-.billsmart-card-line {
+.billing-auth-card-line {
   height: 5px;
   background: rgba(255, 255, 255, 0.18);
   border-radius: 99px;
 }
 
-.billsmart-card-line.l-long { width: 75%; }
-.billsmart-card-line.l-med { width: 48%; opacity: 0.75; }
-.billsmart-card-line.l-short { width: 32%; opacity: 0.5; }
+.billing-auth-card-line.l-long { width: 75%; }
+.billing-auth-card-line.l-med { width: 48%; opacity: 0.75; }
+.billing-auth-card-line.l-short { width: 32%; opacity: 0.5; }
 
-.billsmart-card-bottom {
+.billing-auth-card-bottom {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -213,26 +213,26 @@
   padding-top: clamp(10px, 1.5vh, 14px);
 }
 
-.billsmart-card-due-lbl {
+.billing-auth-card-due-lbl {
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.55);
   display: block;
   font-weight: 500;
 }
 
-.billsmart-card-due-group {
+.billing-auth-card-due-group {
   display: flex;
   flex-direction: column;
 }
 
-.billsmart-card-amt-group {
+.billing-auth-card-amt-group {
   text-align: right;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 }
 
-.billsmart-card-amount {
+.billing-auth-card-amount {
   font-family: monospace;
   font-size: 1.18rem;
   font-weight: 900;
@@ -240,7 +240,7 @@
   letter-spacing: -0.01em;
 }
 
-.billsmart-card-status-pill {
+.billing-auth-card-status-pill {
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -249,7 +249,7 @@
 }
 
 /* --- Right Form Panel --- */
-.billsmart-form-side {
+.billing-auth-form-side {
   flex: 1;
   height: 100vh;
   max-height: 100vh;
@@ -264,7 +264,7 @@
   box-sizing: border-box;
 }
 
-.billsmart-card {
+.billing-auth-card {
   width: 100%;
   max-width: 420px;
   background: rgba(255, 253, 250, 0.97);
@@ -279,7 +279,7 @@
   box-sizing: border-box;
 }
 
-.billsmart-card-badge {
+.billing-auth-card-badge {
   width: 34px;
   height: 34px;
   background: #F5ECE3;
@@ -291,7 +291,7 @@
   margin-bottom: clamp(10px, 1.6vh, 16px);
 }
 
-.billsmart-form-title {
+.billing-auth-form-title {
   font-size: clamp(1.5rem, 2.2vw, 1.75rem) !important;
   font-weight: 800 !important;
   color: #2D211C !important;
@@ -299,13 +299,13 @@
   margin-bottom: 3px !important;
 }
 
-.billsmart-form-subtitle {
+.billing-auth-form-subtitle {
   font-size: 0.84rem !important;
   color: #7D6E66 !important;
   margin-bottom: clamp(14px, 2.2vh, 20px) !important;
 }
 
-.billsmart-input-label {
+.billing-auth-input-label {
   font-size: 0.78rem;
   font-weight: 700;
   color: #2D211C;
@@ -313,35 +313,35 @@
   display: block;
 }
 
-.billsmart-input {
+.billing-auth-input {
   background: #ffffff !important;
   border-radius: 9px !important;
 }
 
-.billsmart-input .MuiOutlinedInput-root {
+.billing-auth-input .MuiOutlinedInput-root {
   border-radius: 9px !important;
   background: #ffffff !important;
   font-size: 0.88rem !important;
 }
 
-.billsmart-input .MuiOutlinedInput-input {
+.billing-auth-input .MuiOutlinedInput-input {
   padding: 9.5px 12px !important;
 }
 
-.billsmart-input .MuiOutlinedInput-notchedOutline {
+.billing-auth-input .MuiOutlinedInput-notchedOutline {
   border-color: #E7D8CB !important;
 }
 
-.billsmart-input:hover .MuiOutlinedInput-notchedOutline {
+.billing-auth-input:hover .MuiOutlinedInput-notchedOutline {
   border-color: #9A4F2F !important;
 }
 
-.billsmart-input.Mui-focused .MuiOutlinedInput-notchedOutline {
+.billing-auth-input.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: #9A4F2F !important;
   border-width: 2px !important;
 }
 
-.billsmart-options-row {
+.billing-auth-options-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -349,13 +349,13 @@
   margin-bottom: clamp(12px, 1.8vh, 18px);
 }
 
-.billsmart-remember-label {
+.billing-auth-remember-label {
   font-size: 0.8rem !important;
   color: #574840 !important;
   font-weight: 500 !important;
 }
 
-.billsmart-forgot-link {
+.billing-auth-forgot-link {
   color: #9A4F2F !important;
   font-weight: 700 !important;
   font-size: 0.8rem !important;
@@ -366,12 +366,12 @@
   padding: 0;
 }
 
-.billsmart-forgot-link:hover {
+.billing-auth-forgot-link:hover {
   text-decoration: underline !important;
   color: #74371F !important;
 }
 
-.billsmart-submit-btn {
+.billing-auth-submit-btn {
   background: #9A4F2F !important;
   color: #ffffff !important;
   font-size: 0.92rem !important;
@@ -383,20 +383,20 @@
   transition: all 0.2s ease !important;
 }
 
-.billsmart-submit-btn:hover {
+.billing-auth-submit-btn:hover {
   background: #74371F !important;
   box-shadow: 0 6px 18px rgba(116, 55, 31, 0.35) !important;
   transform: translateY(-1px);
 }
 
-.billsmart-footer-text {
+.billing-auth-footer-text {
   text-align: center;
   margin-top: clamp(12px, 1.8vh, 18px);
   font-size: 0.82rem;
   color: #7D6E66;
 }
 
-.billsmart-create-link {
+.billing-auth-create-link {
   color: #9A4F2F;
   font-weight: 700;
   text-decoration: none;
@@ -404,13 +404,13 @@
   margin-left: 4px;
 }
 
-.billsmart-create-link:hover {
+.billing-auth-create-link:hover {
   text-decoration: underline;
   color: #74371F;
 }
 
 /* --- Register / Create Account Specific Elements --- */
-.billsmart-step-tag {
+.billing-auth-step-tag {
   font-size: 0.7rem;
   font-weight: 800;
   color: #16a34a;
@@ -420,14 +420,14 @@
   display: block;
 }
 
-.billsmart-feature-list {
+.billing-auth-feature-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-top: 8px;
 }
 
-.billsmart-feature-item {
+.billing-auth-feature-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -436,19 +436,19 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-.billsmart-feature-check {
+.billing-auth-feature-check {
   color: #84cc16;
   font-weight: 800;
   font-size: 1.05rem;
 }
 
-.billsmart-hero-copyright {
+.billing-auth-hero-copyright {
   font-size: 0.76rem;
   color: rgba(255, 255, 255, 0.45);
   font-weight: 500;
 }
 
-.billsmart-back-link {
+.billing-auth-back-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -464,11 +464,11 @@
   transition: color 0.15s ease;
 }
 
-.billsmart-back-link:hover {
+.billing-auth-back-link:hover {
   color: #9A4F2F;
 }
 
-.billsmart-pwd-hint {
+.billing-auth-pwd-hint {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -478,47 +478,114 @@
   margin-bottom: 2px;
 }
 
-.billsmart-terms-label {
+/* --- Inline OTP and Verification Styles --- */
+.otp-input-group {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin: 14px 0 16px;
+}
+
+.otp-digit-input {
+  width: 44px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: monospace;
+  color: #2D211C;
+  background: #ffffff;
+  border: 1.5px solid #E7D8CB;
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.otp-digit-input:focus {
+  border-color: #9A4F2F;
+  box-shadow: 0 0 0 3px rgba(154, 79, 47, 0.15);
+  background: #ffffff;
+}
+
+.otp-digit-input:disabled {
+  background: #f8f6f3;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.otp-timer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: #7D6E66;
+  margin-top: 2px;
+  margin-bottom: 18px;
+}
+
+.otp-resend-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #9A4F2F;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.otp-resend-btn:hover:not(:disabled) {
+  text-decoration: underline;
+  color: #74371F;
+}
+
+.otp-resend-btn:disabled {
+  color: #b5a59c;
+  cursor: not-allowed;
+}
+
+.billing-auth-terms-label {
   font-size: 0.76rem !important;
   color: #574840 !important;
 }
 
-.billsmart-terms-link {
+.billing-auth-terms-link {
   color: #9A4F2F;
   font-weight: 700;
   text-decoration: none;
 }
 
-.billsmart-terms-link:hover {
+.billing-auth-terms-link:hover {
   text-decoration: underline;
   color: #74371F;
 }
 
-.billsmart-card.register-card {
+.billing-auth-card.register-card {
   max-width: 440px;
   padding: clamp(20px, 2.8vh, 28px) clamp(24px, 2.8vw, 32px);
 }
 
 /* --- Responsive Adaptations for smaller screens / tablets --- */
 @media (max-width: 960px) {
-  .billsmart-login-page {
+  .billing-auth-login-page {
     position: relative;
     height: auto;
     max-height: none;
     overflow-y: auto;
     flex-direction: column;
   }
-  .billsmart-hero-side {
+  .billing-auth-hero-side {
     height: auto;
     max-height: none;
     padding: 36px 24px;
   }
-  .billsmart-form-side {
+  .billing-auth-form-side {
     height: auto;
     max-height: none;
     padding: 36px 20px;
   }
-  .billsmart-inv-card {
+  .billing-auth-inv-card {
     display: none;
   }
 }

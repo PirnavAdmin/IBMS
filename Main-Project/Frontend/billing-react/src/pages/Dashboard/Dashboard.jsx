@@ -45,6 +45,8 @@ import {
   ErrorOutline,
   CreditCard,
   AccountBalance,
+  Receipt,
+  LocalShipping,
 } from '@mui/icons-material';
 import {
   SIDEBAR_SECTIONS,
@@ -54,6 +56,13 @@ import {
   EXPENSES_DATA,
   BANK_ACCOUNTS_DATA,
   TOP_CUSTOMERS_DATA,
+  OVERDUE_DASHBOARD_TABS,
+  OVERDUE_KPI_METRICS,
+  TRACKED_HOURS_BARS,
+  OVERDUE_INVOICES,
+  OVERDUE_BILLS,
+  CUSTOMER_BALANCES,
+  REVENUE_PERIODS,
 } from './dashboardData';
 import '../../styles/Dashboard.css';
 
@@ -83,6 +92,8 @@ export const Dashboard = () => {
   const [activePLPeriod, setActivePLPeriod] = useState('This month');
   const [activeExpPeriod, setActiveExpPeriod] = useState('This month');
   const [activeCustPeriod, setActiveCustPeriod] = useState('This year');
+  const [selectedTimeTab, setSelectedTimeTab] = useState('overview');
+  const [revenuePeriod, setRevenuePeriod] = useState('year');
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -288,6 +299,9 @@ export const Dashboard = () => {
                     <button
                       key={pill.id}
                       className={`qb-action-pill ${pill.primary ? 'primary' : ''}`}
+                      onClick={() => {
+                        if (pill.id === 'create-invoice') navigate('/invoices/new');
+                      }}
                     >
                       {pill.label}
                     </button>
@@ -305,335 +319,248 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* SECTION HEADER: BUSINESS AT A GLANCE */}
-          <div className="qb-section-header">
-            <Typography variant="h5" className="qb-section-title">
-              Business at a glance
-            </Typography>
-
-            <div className="qb-section-controls">
-              <Tooltip title="Customize Widgets">
-                <IconButton size="small" className="qb-tool-btn">
-                  <Tune fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={isBalanceHidden ? 'Show Balances' : 'Hide Balances'}>
-                <IconButton
-                  size="small"
-                  onClick={() => setIsBalanceHidden(!isBalanceHidden)}
-                  className="qb-tool-btn"
-                >
-                  {isBalanceHidden ? <Visibility fontSize="small" /> : <VisibilityOff fontSize="small" />}
-                </IconButton>
-              </Tooltip>
+          {/* ================= OUTSTANDING INVOICE AND BILL MANAGEMENT SYSTEM DASHBOARD ================= */}
+          <div className="ob-dashboard-container">
+            {/* Header */}
+            <div className="ob-dashboard-header">
+              <div className="ob-header-main-row">
+                <div>
+                  <h1 className="ob-dashboard-title">
+                    Invoice &amp; Bill Management
+                  </h1>
+                  <p className="ob-dashboard-sub">
+                    Real-time overview of cash flow, billable hours, receivables, and overdue balances.
+                  </p>
+                </div>
+                <div className="ob-header-actions">
+                  <button className="ob-primary-action-btn" onClick={() => navigate('/invoices/new')}>
+                    + New Invoice
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* 2-COLUMN DASHBOARD GRID */}
-          <div className="qb-dashboard-grid">
-            {/* LEFT MAJOR COLUMN (~68%) */}
-            <div className="qb-grid-left-col">
-              {/* 1. SALES & GET PAID FUNNEL */}
-              <div className="qb-card qb-funnel-card">
-                <div className="qb-card-header">
-                  <span className="qb-card-title">SALES &amp; GET PAID FUNNEL</span>
-                  <div className="qb-card-dropdown">
-                    <span>{activeFunnelPeriod}</span>
-                    <KeyboardArrowDown sx={{ fontSize: 16 }} />
+            {/* Time Tabs Bar */}
+            <div className="ob-tabs-bar">
+              {OVERDUE_DASHBOARD_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`ob-tab-btn ${selectedTimeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setSelectedTimeTab(tab.id)}
+                >
+                  <span className="ob-tab-label">{tab.label}</span>
+                  {tab.sublabel && <span className="ob-tab-sublabel">{tab.sublabel}</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* Top 4 KPI Cards */}
+            <div className="ob-kpi-grid">
+              {/* Card 1: Tracked hours */}
+              <div className="ob-kpi-card">
+                <div className="ob-kpi-header">Tracked hours</div>
+                <div className="ob-kpi-body">
+                  <div className="ob-time-row">
+                    <span>Hrs.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.hrs}</span>
+                    <span>:</span>
+                    <span>Min.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.min}</span>
+                    <span>:</span>
+                    <span>Sec.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.sec}</span>
                   </div>
+                  <div className="ob-time-row unbilled">
+                    <span>Hrs.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.hrs}</span>
+                    <span>:</span>
+                    <span>Min.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.min}</span>
+                    <span>:</span>
+                    <span>Sec.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.sec}</span>
+                  </div>
+                  <span className="ob-time-unbilled-lbl">Unbilled Hours</span>
                 </div>
+              </div>
 
-                <div className="qb-funnel-stages-row">
-                  {/* Stage 1: Action */}
-                  <div className="funnel-stage-box stage-action">
-                    <span className="stage-action-title">
-                      {FUNNEL_DATA.stages[0].title}
-                    </span>
-                    <span className="stage-action-link">
-                      {FUNNEL_DATA.stages[0].linkText}
-                    </span>
-                    <button className="stage-action-btn">
-                      <span>{FUNNEL_DATA.stages[0].actionLabel}</span>
-                      <KeyboardArrowDown sx={{ fontSize: 16 }} />
-                    </button>
-                  </div>
-
-                  {/* Stage 2: Not paid */}
-                  <div className="funnel-stage-box stage-metric">
-                    <div className="stage-indicator-bar bar-amber" />
-                    <span className="stage-label">{FUNNEL_DATA.stages[1].label}</span>
-                    <span className="stage-amount">{maskValue(FUNNEL_DATA.stages[1].amount)}</span>
-                    <div className="stage-chip chip-warning">
-                      <WarningAmber sx={{ fontSize: 13, mr: 0.5 }} />
-                      <span>{FUNNEL_DATA.stages[1].chipText}</span>
+              {/* Card 2: Cash flow */}
+              <div className="ob-kpi-card">
+                <div className="ob-kpi-header">Cash flow</div>
+                <div className="ob-kpi-body">
+                  <span className="ob-cash-net">{maskValue(OVERDUE_KPI_METRICS.cashFlow.net)}</span>
+                  <div className="ob-cash-split">
+                    <div className="ob-cash-col">
+                      <span className="ob-cash-received">{maskValue(OVERDUE_KPI_METRICS.cashFlow.received)}</span>
+                      <span className="ob-cash-sublbl">Payments received</span>
                     </div>
-                  </div>
-
-                  {/* Stage 3: Paid */}
-                  <div className="funnel-stage-box stage-metric">
-                    <div className="stage-indicator-bar bar-cyan" />
-                    <span className="stage-label">{FUNNEL_DATA.stages[2].label}</span>
-                    <span className="stage-amount">{maskValue(FUNNEL_DATA.stages[2].amount)}</span>
-                    <div className="stage-chip chip-alert">
-                      <ErrorOutline sx={{ fontSize: 13, mr: 0.5 }} />
-                      <span>{FUNNEL_DATA.stages[2].chipText}</span>
-                    </div>
-                  </div>
-
-                  {/* Stage 4: Deposited */}
-                  <div className="funnel-stage-box stage-metric">
-                    <div className="stage-indicator-bar bar-green" />
-                    <span className="stage-label">{FUNNEL_DATA.stages[3].label}</span>
-                    <span className="stage-amount">{maskValue(FUNNEL_DATA.stages[3].amount)}</span>
-                    <div className="stage-chip chip-success">
-                      <CheckCircleOutline sx={{ fontSize: 13, mr: 0.5 }} />
-                      <span>{FUNNEL_DATA.stages[3].chipText}</span>
+                    <div className="ob-cash-col">
+                      <span className="ob-cash-sent">{maskValue(OVERDUE_KPI_METRICS.cashFlow.sent)}</span>
+                      <span className="ob-cash-sublbl">Payments sent</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 2. SPLIT ROW: PROFIT & LOSS + EXPENSES */}
-              <div className="qb-split-row">
-                {/* PROFIT & LOSS CARD */}
-                <div className="qb-card qb-pl-card">
-                  <div className="qb-card-header">
-                    <span className="qb-card-title">PROFIT &amp; LOSS</span>
-                    <div className="qb-card-dropdown">
-                      <span>{activePLPeriod}</span>
-                      <KeyboardArrowDown sx={{ fontSize: 16 }} />
-                    </div>
+              {/* Card 3: Pending invoices */}
+              <div className="ob-kpi-card">
+                <div className="ob-kpi-header">Pending invoices</div>
+                <div className="ob-kpi-body">
+                  <span className="ob-pending-total">{maskValue(OVERDUE_KPI_METRICS.pendingInvoices.total)}</span>
+                  <div className="ob-pending-donut-wrap">
+                    <svg viewBox="0 0 36 36" className="ob-pending-donut">
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="#F4E8DC" strokeWidth="6" />
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="14"
+                        fill="none"
+                        stroke="#9A4F2F"
+                        strokeWidth="6"
+                        strokeDasharray="72 28"
+                        strokeDashoffset="25"
+                      />
+                    </svg>
                   </div>
-
-                  <span className="qb-card-subtitle">{PROFIT_LOSS_DATA.subtitle}</span>
-
-                  <div className="pl-profit-headline">
-                    <span className="pl-profit-val">{maskValue(PROFIT_LOSS_DATA.netProfit)}</span>
-                    <span className="pl-info-pill">
-                      <InfoOutlined sx={{ fontSize: 14, mr: 0.3 }} />
-                      <span>{PROFIT_LOSS_DATA.profitPercent}</span>
-                    </span>
-                  </div>
-
-                  <div className="pl-trend-row">
-                    <ArrowUpward sx={{ fontSize: 14, color: '#10B981', mr: 0.5 }} />
-                    <span>{PROFIT_LOSS_DATA.trendText}</span>
-                  </div>
-
-                  {/* Income Progress Bar */}
-                  <div className="pl-metric-section">
-                    <div className="pl-metric-label-row">
-                      <span className="pl-metric-val">{maskValue(PROFIT_LOSS_DATA.income.amount)}</span>
-                      <span className="pl-review-link">{PROFIT_LOSS_DATA.income.reviewText}</span>
-                    </div>
-                    <span className="pl-bar-tag">Income</span>
-                    <div className="pl-bar-container">
-                      <div className="pl-bar-fill fill-income" style={{ width: `${PROFIT_LOSS_DATA.income.percent}%` }} />
-                      <div className="pl-bar-hatched hatched-income" />
-                    </div>
-                  </div>
-
-                  {/* Expense Progress Bar */}
-                  <div className="pl-metric-section">
-                    <div className="pl-metric-label-row">
-                      <span className="pl-metric-val">{maskValue(PROFIT_LOSS_DATA.expense.amount)}</span>
-                      <span className="pl-review-link">{PROFIT_LOSS_DATA.expense.reviewText}</span>
-                    </div>
-                    <span className="pl-bar-tag">Expense</span>
-                    <div className="pl-bar-container">
-                      <div className="pl-bar-fill fill-expense" style={{ width: `${PROFIT_LOSS_DATA.expense.percent}%` }} />
-                      <div className="pl-bar-hatched hatched-expense" />
-                    </div>
-                  </div>
-
-                  <div className="qb-card-footer">
-                    <span className="qb-card-link">{PROFIT_LOSS_DATA.footerLink}</span>
-                    <IconButton size="small"><MoreVert fontSize="small" /></IconButton>
-                  </div>
-                </div>
-
-                {/* EXPENSES DONUT CARD */}
-                <div className="qb-card qb-expenses-card">
-                  <div className="qb-card-header">
-                    <span className="qb-card-title">EXPENSES</span>
-                    <div className="qb-card-dropdown">
-                      <span>{activeExpPeriod}</span>
-                      <KeyboardArrowDown sx={{ fontSize: 16 }} />
-                    </div>
-                  </div>
-
-                  <span className="qb-card-subtitle">{EXPENSES_DATA.subtitle}</span>
-
-                  <div className="pl-profit-headline">
-                    <span className="pl-profit-val">{maskValue(EXPENSES_DATA.totalSpending)}</span>
-                    <span className="pl-info-pill">
-                      <InfoOutlined sx={{ fontSize: 14, mr: 0.3 }} />
-                      <span>{EXPENSES_DATA.spendingPercent}</span>
-                    </span>
-                  </div>
-
-                  <div className="pl-trend-row trend-amber">
-                    <ArrowUpward sx={{ fontSize: 14, color: '#F59E0B', mr: 0.5 }} />
-                    <span>{EXPENSES_DATA.trendText}</span>
-                  </div>
-
-                  {/* Donut Chart & Category Legend */}
-                  <div className="exp-chart-layout">
-                    {/* SVG Donut Chart */}
-                    <div className="exp-donut-wrapper">
-                      <svg viewBox="0 0 42 42" className="exp-donut-svg">
-                        <circle cx="21" cy="21" r="15.91549430918954" fill="#ffffff" />
-                        <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#F5ECE3" strokeWidth="6" />
-                        {/* Segment 1: Rent & lease 38% */}
-                        <circle
-                          cx="21" cy="21" r="15.91549430918954" fill="transparent"
-                          stroke="#2563EB" strokeWidth="6" strokeDasharray="38 62" strokeDashoffset="25"
-                        />
-                        {/* Segment 2: Inventory 26% */}
-                        <circle
-                          cx="21" cy="21" r="15.91549430918954" fill="transparent"
-                          stroke="#06B6D4" strokeWidth="6" strokeDasharray="26 74" strokeDashoffset="-13"
-                        />
-                        {/* Segment 3: Automotive 16% */}
-                        <circle
-                          cx="21" cy="21" r="15.91549430918954" fill="transparent"
-                          stroke="#8B5CF6" strokeWidth="6" strokeDasharray="16 84" strokeDashoffset="-39"
-                        />
-                        {/* Segment 4: Salary & wages 12% */}
-                        <circle
-                          cx="21" cy="21" r="15.91549430918954" fill="transparent"
-                          stroke="#F97316" strokeWidth="6" strokeDasharray="12 88" strokeDashoffset="-55"
-                        />
-                        {/* Segment 5: Other 8% */}
-                        <circle
-                          cx="21" cy="21" r="15.91549430918954" fill="transparent"
-                          stroke="#DC2626" strokeWidth="6" strokeDasharray="8 92" strokeDashoffset="-67"
-                        />
-                      </svg>
-                    </div>
-
-                    {/* Category List */}
-                    <div className="exp-categories-list">
-                      {EXPENSES_DATA.categories.map((cat, idx) => (
-                        <div key={idx} className="exp-category-row">
-                          <span className="cat-dot" style={{ backgroundColor: cat.color }} />
-                          <span className="cat-name">{cat.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="qb-card-footer">
-                    <span className="qb-card-link">{EXPENSES_DATA.footerLink}</span>
-                    <IconButton size="small"><MoreVert fontSize="small" /></IconButton>
-                  </div>
+                  <span className="ob-pending-overdue">
+                    Overdue : <strong className="ob-pending-overdue-val">{maskValue(OVERDUE_KPI_METRICS.pendingInvoices.overdue)}</strong>
+                  </span>
                 </div>
               </div>
 
-              {/* 3. TOP CUSTOMERS CARD */}
-              <div className="qb-card qb-customers-card">
-                <div className="qb-card-header">
-                  <span className="qb-card-title">TOP CUSTOMERS</span>
-                  <div className="qb-card-dropdown">
-                    <span>{activeCustPeriod}</span>
-                    <KeyboardArrowDown sx={{ fontSize: 16 }} />
-                  </div>
+              {/* Card 4: Expenses */}
+              <div className="ob-kpi-card">
+                <div className="ob-kpi-header">Expenses</div>
+                <div className="ob-kpi-body">
+                  <span className="ob-expenses-val">{maskValue(OVERDUE_KPI_METRICS.expenses)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Section: Revenue Received (Month-wise) Bar Chart */}
+            <div className="ob-chart-card">
+              <div className="ob-chart-top-bar">
+                <div className="ob-chart-title-group">
+                  <span className="ob-chart-heading">Revenue Received (Month-wise)</span>
+                  <span className="ob-chart-sub">Monthly breakdown of received customer payments</span>
+                </div>
+                <div className="ob-chart-filter-group">
+                  <label htmlFor="rev-period-select" className="ob-chart-filter-lbl">Period:</label>
+                  <select
+                    id="rev-period-select"
+                    className="ob-chart-period-select"
+                    value={revenuePeriod}
+                    onChange={(e) => setRevenuePeriod(e.target.value)}
+                  >
+                    <option value="year">Full Year 2026 (All Months)</option>
+                    <option value="q1">Q1 (Jan - Mar)</option>
+                    <option value="q2">Q2 (Apr - Jun)</option>
+                    <option value="q3">Q3 (Jul - Sep)</option>
+                    <option value="q4">Q4 (Oct - Dec)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="ob-chart-main">
+                <div className="ob-chart-y-axis">
+                  <span className="ob-y-axis-title">Revenue (₹)</span>
+                  <span className="ob-y-tick">₹120k</span>
+                  <span className="ob-y-tick">₹90k</span>
+                  <span className="ob-y-tick">₹60k</span>
+                  <span className="ob-y-tick">₹30k</span>
+                  <span className="ob-y-tick">₹0</span>
                 </div>
 
-                <div className="customers-list-stack">
-                  {TOP_CUSTOMERS_DATA.map((cust) => (
-                    <div key={cust.id} className="cust-row-item">
-                      <div className="cust-info-block">
-                        <span className="cust-name">{cust.name}</span>
-                        <span className="cust-invoices">{cust.invoices} invoices</span>
+                <div className="ob-chart-bars-area">
+                  {/* Grid lines */}
+                  <div className="ob-grid-line" style={{ bottom: '25%' }} />
+                  <div className="ob-grid-line" style={{ bottom: '50%' }} />
+                  <div className="ob-grid-line" style={{ bottom: '75%' }} />
+                  <div className="ob-grid-line" style={{ bottom: '100%' }} />
+
+                  {/* Monthly Revenue Bars */}
+                  {(REVENUE_PERIODS[revenuePeriod] || REVENUE_PERIODS.year).map((bar, bIdx) => {
+                    const heightPercent = Math.min(100, Math.round((bar.amount / 125000) * 100));
+                    return (
+                      <div
+                        key={bIdx}
+                        className="ob-bar-col"
+                        title={`${bar.month}: ₹${bar.amount.toLocaleString('en-IN')} received`}
+                      >
+                        <div className="ob-bar-rect" style={{ height: `${heightPercent}%` }} />
                       </div>
-                      <div className="cust-bar-wrapper">
-                        <div className="cust-bar-track">
-                          <div className="cust-bar-fill" style={{ width: `${cust.share}%` }} />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="ob-x-labels-row">
+                {(REVENUE_PERIODS[revenuePeriod] || REVENUE_PERIODS.year).map((bar, bIdx) => (
+                  <span key={bIdx} className="ob-x-label">{bar.month}</span>
+                ))}
+              </div>
+
+              <div className="ob-chart-footer">
+                <span className="ob-legend-square" />
+                <span>Monthly revenue received</span>
+              </div>
+            </div>
+
+            {/* Bottom Row: 3 Green-Header Cards */}
+            <div className="ob-tables-grid">
+              {/* Table 1: Overdue invoices */}
+              <div className="ob-table-card">
+                <div className="ob-table-header">Overdue invoices</div>
+                <div className="ob-table-body">
+                  {OVERDUE_INVOICES.map((inv, idx) => (
+                    <div key={idx} className="ob-table-row">
+                      <div className="ob-table-left">
+                        <div className="ob-row-icon-circle">
+                          <Receipt sx={{ fontSize: 16 }} />
+                        </div>
+                        <div className="ob-row-info">
+                          <span className="ob-row-title">{inv.id}</span>
+                          <span className="ob-row-date">{inv.date}</span>
                         </div>
                       </div>
-                      <span className="cust-amount">{maskValue(cust.volume)}</span>
+                      <span className="ob-row-amount-red">{maskValue(inv.amount)}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* RIGHT COLUMN (~32%): BANK ACCOUNTS */}
-            <div className="qb-grid-right-col">
-              <div className="qb-card qb-bank-card">
-                <div className="qb-card-header">
-                  <span className="qb-card-title">BANK ACCOUNTS</span>
-                  <span className="qb-card-meta">{BANK_ACCOUNTS_DATA.asOf}</span>
+              {/* Table 2: Overdue bills */}
+              <div className="ob-table-card">
+                <div className="ob-table-header">Overdue bills</div>
+                <div className="ob-table-body">
+                  {OVERDUE_BILLS.map((bill, idx) => (
+                    <div key={idx} className="ob-table-row">
+                      <div className="ob-table-left">
+                        <div className="ob-row-icon-circle">
+                          <LocalShipping sx={{ fontSize: 16 }} />
+                        </div>
+                        <div className="ob-row-info">
+                          <span className="ob-row-title">{bill.id}</span>
+                          <span className="ob-row-date">{bill.date}</span>
+                        </div>
+                      </div>
+                      <span className="ob-row-amount-red">{maskValue(bill.amount)}</span>
+                    </div>
+                  ))}
                 </div>
+              </div>
 
-                <span className="qb-card-subtitle">{BANK_ACCOUNTS_DATA.subtitle}</span>
-                <span className="qb-total-bank-val">{maskValue(BANK_ACCOUNTS_DATA.totalBalance)}</span>
-
-                {/* Accounts List */}
-                <div className="bank-accounts-stack">
-                  {/* Account 1: Checking (1234) */}
-                  <div className="bank-account-item">
-                    <div className="bank-avatar-icon avatar-blue">
-                      <AccountBalance sx={{ fontSize: 20, color: '#0052cc' }} />
+              {/* Table 3: Customer balance */}
+              <div className="ob-table-card">
+                <div className="ob-table-header">Customer balance</div>
+                <div className="ob-table-body">
+                  {CUSTOMER_BALANCES.map((cust, idx) => (
+                    <div key={idx} className="ob-table-row">
+                      <div className="ob-table-left">
+                        <div className="ob-row-icon-circle">
+                          <AccountCircle sx={{ fontSize: 18 }} />
+                        </div>
+                        <div className="ob-row-info">
+                          <span className="ob-row-title">{cust.name}</span>
+                        </div>
+                      </div>
+                      <span className="ob-row-amount-dark">{maskValue(cust.amount)}</span>
                     </div>
-                    <div className="bank-account-details">
-                      <div className="bank-account-title-row">
-                        <span className="bank-account-name">{BANK_ACCOUNTS_DATA.accounts[0].name}</span>
-                        <span className="bank-balance-num">{maskValue(BANK_ACCOUNTS_DATA.accounts[0].bankBalance)}</span>
-                      </div>
-                      <div className="bank-account-sub-row">
-                        <span className="portal-balance-lbl">Bank balance</span>
-                        <span className="portal-balance-val">in invoice.billing {maskValue(BANK_ACCOUNTS_DATA.accounts[0].portalBalance)}</span>
-                      </div>
-                      <div className="bank-account-footer-row">
-                        <span className="bank-sync-time">{BANK_ACCOUNTS_DATA.accounts[0].updated}</span>
-                        <span className="bank-review-link">{BANK_ACCOUNTS_DATA.accounts[0].reviewText}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Account 2: Mastercard (0987) */}
-                  <div className="bank-account-item">
-                    <div className="bank-avatar-icon avatar-navy">
-                      <CreditCard sx={{ fontSize: 20, color: '#003366' }} />
-                    </div>
-                    <div className="bank-account-details">
-                      <div className="bank-account-title-row">
-                        <span className="bank-account-name">{BANK_ACCOUNTS_DATA.accounts[1].name}</span>
-                        <span className="bank-balance-num">{maskValue(BANK_ACCOUNTS_DATA.accounts[1].bankBalance)}</span>
-                      </div>
-                      <div className="bank-account-sub-row">
-                        <span className="portal-balance-lbl">Bank balance</span>
-                        <span className="portal-balance-val">in invoice.billing {maskValue(BANK_ACCOUNTS_DATA.accounts[1].portalBalance)}</span>
-                      </div>
-                      <div className="bank-account-footer-row">
-                        <span className="bank-sync-time">{BANK_ACCOUNTS_DATA.accounts[1].updated}</span>
-                        <span className="bank-review-link">{BANK_ACCOUNTS_DATA.accounts[1].reviewText}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Account 3: Working Capital Offer Card */}
-                  <div className="bank-account-item bank-offer-item">
-                    <div className="bank-avatar-icon avatar-green">
-                      <span className="qb-mini-logo">qb</span>
-                    </div>
-                    <div className="bank-account-details">
-                      <div className="bank-account-title-row">
-                        <span className="bank-account-name">{BANK_ACCOUNTS_DATA.workingCapital.title}</span>
-                        <button className="bank-apply-btn">
-                          {BANK_ACCOUNTS_DATA.workingCapital.actionText}
-                        </button>
-                      </div>
-                      <span className="bank-offer-sub">{BANK_ACCOUNTS_DATA.workingCapital.subtitle}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="qb-card-footer">
-                  <span className="qb-card-link">{BANK_ACCOUNTS_DATA.footerLink}</span>
-                  <IconButton size="small"><MoreVert fontSize="small" /></IconButton>
+                  ))}
                 </div>
               </div>
             </div>

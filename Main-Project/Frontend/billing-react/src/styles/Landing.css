@@ -77,9 +77,9 @@
 .mockup-bill-total { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.95rem; color: #2D211C; }
 .total-highlight { color: #9A4F2F; font-family: monospace; font-size: 1.15rem; }
 .whatsapp-sent-bubble { display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 99px; margin-top: 14px; width: fit-content; }
-.hero-phone-mockup { position: absolute; right: -10px; bottom: -20px; background: #2D211C; border-radius: 28px; padding: 10px; box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.35); width: 210px; z-index: 2; border: 3px solid #2D211C; }
-.phone-screen { background: #ffffff; border-radius: 20px; padding: 20px 14px; text-align: center; }
-.phone-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #DFA24B; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35); }
+.hero-phone-mockup { position: absolute; right: -10px; bottom: -20px; background: #9A4F2F; border-radius: 28px; padding: 10px; box-shadow: 0 25px 50px -10px rgba(154, 79, 47, 0.35), 0 10px 20px -5px rgba(45, 33, 28, 0.2); width: 210px; z-index: 2; border: 2.5px solid #853E21; }
+.phone-screen { background: #ffffff; border-radius: 20px; padding: 20px 14px; text-align: center; border: 1px solid rgba(231, 216, 203, 0.7); }
+.phone-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #DFA24B; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 6px 16px rgba(223, 162, 75, 0.35); }
 .phone-success-title { font-weight: 800 !important; color: #2D211C !important; font-size: 0.85rem !important; }
 .phone-success-amount { font-weight: 900 !important; color: #9A4F2F !important; font-size: 1.15rem !important; font-family: monospace !important; margin: 4px 0 10px !important; }
 .phone-payment-method { font-size: 0.65rem; font-weight: 700; color: #9A4F2F; background: #F5ECE3; border: 1px solid #F5ECE3; padding: 3px 8px; border-radius: 6px; display: inline-block; }

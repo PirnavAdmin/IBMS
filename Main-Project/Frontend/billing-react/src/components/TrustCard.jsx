@@ -4,7 +4,7 @@ import { CheckCircle } from '@mui/icons-material';
 const LIVE_FLASHCARDS = [
   { brand: 'Asian Paints', event: 'Invoice #8942 Settled', amount: '₹1,24,500', icon: '🎨' },
   { brand: 'ICICI Bank', event: 'Auto-Reconciled 100%', amount: '0.4s', icon: '🏦' },
-  { brand: 'HSBC Global', event: 'Multi-Currency Cleared', amount: '$48,200', icon: '🛡️' },
+  { brand: 'HSBC Global', event: 'Multi-Currency Cleared', amount: '₹48,200', icon: '🛡️' },
   { brand: 'Kotak Bank', event: 'Virtual Payout Settled', amount: 'Instant', icon: '⚡' },
   { brand: 'HDFC Bank', event: 'E-Invoice Validated', amount: 'NIC Live', icon: '🏛️' },
   { brand: 'Stripe Pay', event: 'Batch Reconciled', amount: '₹88,400', icon: '💳' },

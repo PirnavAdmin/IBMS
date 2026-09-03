@@ -6,6 +6,7 @@ import { ForgotPassword } from '../pages/ForgotPassword/ForgotPassword';
 import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';
 import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
 import { Dashboard } from '../pages/Dashboard/Dashboard';
+import { CreateInvoice } from '../pages/CreateInvoice/CreateInvoice';
 
 export const AppRoutes = () => (
   <Routes>
@@ -16,6 +17,9 @@ export const AppRoutes = () => (
     <Route path="/verify-otp" element={<VerifyOtp />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/dashboard" element={<Dashboard />} />
+    <Route path="/invoices" element={<CreateInvoice />} />
+    <Route path="/invoices/new" element={<CreateInvoice />} />
+    <Route path="/invoices/create" element={<CreateInvoice />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
