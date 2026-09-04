@@ -1,0 +1,18 @@
+# .NET
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# Node
+node_modules/
+
+# Visual Studio Code
+.vscode/
+
+# Environment / secrets
+.env
+
+# Vite
+.vite/

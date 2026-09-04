@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="Billing.API/Billing.API.csproj" />
+  <Project Path="Billing.Application/Billing.Application.csproj" />
+  <Project Path="Billing.Contracts/Billing.Contracts.csproj" />
+  <Project Path="Billing.Domain/Billing.Domain.csproj" />
+  <Project Path="Billing.Infrastructure/Billing.Infrastructure.csproj" />
+  <Project Path="Billing.Tests.Integration/Billing.Tests.Integration.csproj" />
+  <Project Path="Billing.Tests.Unit/Billing.Tests.Unit.csproj" />
+  <Project Path="Billing.Worker/Billing.Worker.csproj" />
+</Solution>
