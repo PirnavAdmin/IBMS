@@ -409,6 +409,14 @@
   color: #74371F;
 }
 
+.billing-auth-route-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
 /* --- Register / Create Account Specific Elements --- */
 .billing-auth-step-tag {
   font-size: 0.7rem;
@@ -476,6 +484,11 @@
   color: #7D6E66;
   margin-top: 3px;
   margin-bottom: 2px;
+}
+
+.billing-auth-password-checks {
+  margin: 0;
+  line-height: 1.45;
 }
 
 /* --- Inline OTP and Verification Styles --- */

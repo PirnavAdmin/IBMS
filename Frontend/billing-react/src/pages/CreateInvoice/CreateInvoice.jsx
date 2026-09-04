@@ -13,6 +13,7 @@ import {
   Business,
 } from '@mui/icons-material';
 import '../../styles/CreateInvoice.css';
+import { saveInvoice } from '../../data/billingStore';
 
 const CLIENT_PRESETS = [
   {
@@ -173,11 +174,40 @@ export const CreateInvoice = () => {
   }, 0);
   const grandTotal = taxableAmount + taxAmount + Number(shippingFee || 0);
 
+  const buildInvoice = (status) => ({
+    id: invoiceNumber.trim() || `INV-${Date.now()}`,
+    customer: clientName.trim() || 'Unnamed customer',
+    company: clientCompany.trim(),
+    email: clientEmail.trim(),
+    issueDate: invoiceDate,
+    dueDate,
+    total: Number(grandTotal.toFixed(2)),
+    status: status === 'sent' && dueDate && new Date(`${dueDate}T23:59:59`) < new Date() ? 'overdue' : status,
+    items: lineItems,
+    notes,
+    terms,
+    updatedAt: new Date().toISOString(),
+  });
+
   const handleSaveDraft = () => {
+    if (!invoiceNumber.trim()) {
+      showToast('Add an invoice number before saving.');
+      return;
+    }
+    saveInvoice(buildInvoice('draft'));
     showToast(`Invoice ${invoiceNumber} saved as draft successfully!`);
   };
 
   const handleSendInvoice = () => {
+    if (!clientName.trim() || !clientEmail.trim()) {
+      showToast('Add the customer name and email before issuing the invoice.');
+      return;
+    }
+    if (!invoiceNumber.trim()) {
+      showToast('Add an invoice number before issuing the invoice.');
+      return;
+    }
+    saveInvoice(buildInvoice('sent'));
     showToast(`Invoice ${invoiceNumber} issued and sent to ${clientEmail}!`);
     setTimeout(() => navigate('/dashboard'), 1500);
   };

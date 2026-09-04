@@ -165,6 +165,7 @@ export const Login = () => {
     handleSubmit,
     setValue,
     getValues,
+    clearErrors,
     formState: {
       errors,
       isSubmitting,
@@ -183,6 +184,14 @@ export const Login = () => {
 
     mode: 'onTouched',
   });
+
+  const openRegister = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearErrors();
+    setApiError(null);
+    navigate('/register');
+  };
 
   // ==========================================================
   // PREFILL EMAIL
@@ -374,7 +383,9 @@ export const Login = () => {
 
   const handleOpenForgot = (event) => {
     event.preventDefault();
+    event.stopPropagation();
 
+    clearErrors();
     setApiError(null);
     setRecoveryError(null);
     setRecoverySuccess(null);
@@ -974,6 +985,7 @@ export const Login = () => {
           ================================================== */}
 
           {authStep === 'login' && (
+            <>
             <Box
               component="form"
               onSubmit={handleSubmit(onSubmitLogin)}
@@ -1131,6 +1143,7 @@ export const Login = () => {
 
                   <button
                     type="button"
+                    onPointerDown={handleOpenForgot}
                     onClick={handleOpenForgot}
                     className="billing-auth-forgot-link"
                   >
@@ -1159,23 +1172,21 @@ export const Login = () => {
                 </Button>
 
               </Stack>
-
-              {/* REGISTER */}
-
-              <div className="billing-auth-footer-text">
-
-                New to invoice.billing?{' '}
-
-                <RouterLink
-                  to="/register"
-                  className="billing-auth-create-link"
-                >
-                  Create an account
-                </RouterLink>
-
-              </div>
-
             </Box>
+
+            {/* Kept outside the login form so this link can never submit it. */}
+            <div className="billing-auth-footer-text">
+              New to invoice.billing?{' '}
+              <button
+                type="button"
+                className="billing-auth-create-link billing-auth-route-button"
+                onPointerDown={openRegister}
+                onClick={openRegister}
+              >
+                Create an account
+              </button>
+            </div>
+            </>
           )}
 
           {/* ==================================================

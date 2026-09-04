@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -65,6 +65,7 @@ import {
   REVENUE_PERIODS,
 } from './dashboardData';
 import '../../styles/Dashboard.css';
+import { formatCurrency, formatDate, getInvoices } from '../../data/billingStore';
 
 const ICON_MAP = {
   Dashboard: DashboardIcon,
@@ -94,6 +95,30 @@ export const Dashboard = () => {
   const [activeCustPeriod, setActiveCustPeriod] = useState('This year');
   const [selectedTimeTab, setSelectedTimeTab] = useState('overview');
   const [revenuePeriod, setRevenuePeriod] = useState('year');
+  const [searchQuery, setSearchQuery] = useState('');
+  const invoices = useMemo(() => getInvoices(), []);
+  const today = new Date();
+  const visibleInvoices = useMemo(() => invoices.filter((invoice) => {
+    const invoiceDate = new Date(`${invoice.issueDate}T00:00:00`);
+    if (selectedTimeTab === 'this-month') return invoiceDate.getMonth() === today.getMonth() && invoiceDate.getFullYear() === today.getFullYear();
+    if (selectedTimeTab === 'last-30') return (today - invoiceDate) / 86400000 <= 30;
+    if (selectedTimeTab === 'this-quarter') return Math.floor(invoiceDate.getMonth() / 3) === Math.floor(today.getMonth() / 3) && invoiceDate.getFullYear() === today.getFullYear();
+    if (selectedTimeTab === 'this-year') return invoiceDate.getFullYear() === today.getFullYear();
+    return true;
+  }), [invoices, selectedTimeTab]);
+  const filteredInvoices = useMemo(() => visibleInvoices.filter((invoice) =>
+    `${invoice.id} ${invoice.customer} ${invoice.status}`.toLowerCase().includes(searchQuery.toLowerCase())
+  ), [visibleInvoices, searchQuery]);
+  const overdueInvoices = filteredInvoices.filter((invoice) => invoice.status === 'overdue');
+  const pendingInvoices = filteredInvoices.filter((invoice) => ['sent', 'overdue'].includes(invoice.status));
+  const paidInvoices = filteredInvoices.filter((invoice) => invoice.status === 'paid');
+  const pendingTotal = pendingInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const overdueTotal = overdueInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const receivedTotal = paidInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const customerBalanceRows = Object.entries(pendingInvoices.reduce((result, invoice) => {
+    result[invoice.customer] = (result[invoice.customer] || 0) + invoice.total;
+    return result;
+  }, {})).map(([name, amount]) => ({ name, amount })).sort((a, b) => b.amount - a.amount).slice(0, 3);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -118,6 +143,10 @@ export const Dashboard = () => {
   };
 
   const maskValue = (val) => (isBalanceHidden ? '••••••' : val);
+  const handleNav = (itemId) => {
+    if (itemId === 'invoices') navigate('/invoices');
+    else setActiveTab(itemId);
+  };
 
   return (
     <div className="qb-dashboard-container">
@@ -157,6 +186,8 @@ export const Dashboard = () => {
             type="text"
             className="qb-search-input"
             placeholder="Search, jump to, or ask a question"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
           />
         </div>
 
@@ -236,7 +267,7 @@ export const Dashboard = () => {
                       <button
                         key={item.id}
                         className={`qb-enterprise-nav-item ${activeTab === item.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => handleNav(item.id)}
                       >
                         <div className="qb-item-left">
                           <IconComponent sx={{ fontSize: 18 }} className="qb-nav-glyph" />
@@ -361,20 +392,12 @@ export const Dashboard = () => {
                 <div className="ob-kpi-header">Tracked hours</div>
                 <div className="ob-kpi-body">
                   <div className="ob-time-row">
-                    <span>Hrs.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.hrs}</span>
-                    <span>:</span>
-                    <span>Min.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.min}</span>
-                    <span>:</span>
-                    <span>Sec.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.billed.sec}</span>
+                    <span>Invoices</span> <span className="ob-time-num">{filteredInvoices.length}</span>
                   </div>
                   <div className="ob-time-row unbilled">
-                    <span>Hrs.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.hrs}</span>
-                    <span>:</span>
-                    <span>Min.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.min}</span>
-                    <span>:</span>
-                    <span>Sec.</span> <span className="ob-time-num">{OVERDUE_KPI_METRICS.trackedHours.unbilled.sec}</span>
+                    <span>Drafts</span> <span className="ob-time-num">{filteredInvoices.filter((invoice) => invoice.status === 'draft').length}</span>
                   </div>
-                  <span className="ob-time-unbilled-lbl">Unbilled Hours</span>
+                  <span className="ob-time-unbilled-lbl">Invoices in the selected period</span>
                 </div>
               </div>
 
@@ -382,15 +405,15 @@ export const Dashboard = () => {
               <div className="ob-kpi-card">
                 <div className="ob-kpi-header">Cash flow</div>
                 <div className="ob-kpi-body">
-                  <span className="ob-cash-net">{maskValue(OVERDUE_KPI_METRICS.cashFlow.net)}</span>
+                  <span className="ob-cash-net">{maskValue(formatCurrency(receivedTotal - overdueTotal))}</span>
                   <div className="ob-cash-split">
                     <div className="ob-cash-col">
-                      <span className="ob-cash-received">{maskValue(OVERDUE_KPI_METRICS.cashFlow.received)}</span>
+                      <span className="ob-cash-received">{maskValue(formatCurrency(receivedTotal))}</span>
                       <span className="ob-cash-sublbl">Payments received</span>
                     </div>
                     <div className="ob-cash-col">
-                      <span className="ob-cash-sent">{maskValue(OVERDUE_KPI_METRICS.cashFlow.sent)}</span>
-                      <span className="ob-cash-sublbl">Payments sent</span>
+                      <span className="ob-cash-sent">{maskValue(formatCurrency(overdueTotal))}</span>
+                      <span className="ob-cash-sublbl">Outstanding receivables</span>
                     </div>
                   </div>
                 </div>
@@ -400,7 +423,7 @@ export const Dashboard = () => {
               <div className="ob-kpi-card">
                 <div className="ob-kpi-header">Pending invoices</div>
                 <div className="ob-kpi-body">
-                  <span className="ob-pending-total">{maskValue(OVERDUE_KPI_METRICS.pendingInvoices.total)}</span>
+                  <span className="ob-pending-total">{maskValue(formatCurrency(pendingTotal))}</span>
                   <div className="ob-pending-donut-wrap">
                     <svg viewBox="0 0 36 36" className="ob-pending-donut">
                       <circle cx="18" cy="18" r="14" fill="none" stroke="#F4E8DC" strokeWidth="6" />
@@ -411,13 +434,13 @@ export const Dashboard = () => {
                         fill="none"
                         stroke="#9A4F2F"
                         strokeWidth="6"
-                        strokeDasharray="72 28"
+                        strokeDasharray={`${pendingTotal ? Math.round((overdueTotal / pendingTotal) * 100) : 0} ${pendingTotal ? 100 - Math.round((overdueTotal / pendingTotal) * 100) : 100}`}
                         strokeDashoffset="25"
                       />
                     </svg>
                   </div>
                   <span className="ob-pending-overdue">
-                    Overdue : <strong className="ob-pending-overdue-val">{maskValue(OVERDUE_KPI_METRICS.pendingInvoices.overdue)}</strong>
+                    Overdue : <strong className="ob-pending-overdue-val">{maskValue(formatCurrency(overdueTotal))}</strong>
                   </span>
                 </div>
               </div>
@@ -426,7 +449,8 @@ export const Dashboard = () => {
               <div className="ob-kpi-card">
                 <div className="ob-kpi-header">Expenses</div>
                 <div className="ob-kpi-body">
-                  <span className="ob-expenses-val">{maskValue(OVERDUE_KPI_METRICS.expenses)}</span>
+                  <span className="ob-expenses-val">{maskValue(formatCurrency(0))}</span>
+                  <span className="ob-cash-sublbl">Expense tracking coming next</span>
                 </div>
               </div>
             </div>
@@ -506,20 +530,20 @@ export const Dashboard = () => {
               <div className="ob-table-card">
                 <div className="ob-table-header">Overdue invoices</div>
                 <div className="ob-table-body">
-                  {OVERDUE_INVOICES.map((inv, idx) => (
-                    <div key={idx} className="ob-table-row">
+                  {overdueInvoices.length ? overdueInvoices.slice(0, 3).map((inv) => (
+                    <div key={inv.id} className="ob-table-row">
                       <div className="ob-table-left">
                         <div className="ob-row-icon-circle">
                           <Receipt sx={{ fontSize: 16 }} />
                         </div>
                         <div className="ob-row-info">
-                          <span className="ob-row-title">{inv.id}</span>
-                          <span className="ob-row-date">{inv.date}</span>
+                          <span className="ob-row-title">{inv.id} · {inv.customer}</span>
+                          <span className="ob-row-date">Due {formatDate(inv.dueDate)}</span>
                         </div>
                       </div>
-                      <span className="ob-row-amount-red">{maskValue(inv.amount)}</span>
+                      <span className="ob-row-amount-red">{maskValue(formatCurrency(inv.total))}</span>
                     </div>
-                  ))}
+                  )) : <div className="ob-table-row"><span className="ob-row-date">No overdue invoices for this view.</span></div>}
                 </div>
               </div>
 
@@ -548,8 +572,8 @@ export const Dashboard = () => {
               <div className="ob-table-card">
                 <div className="ob-table-header">Customer balance</div>
                 <div className="ob-table-body">
-                  {CUSTOMER_BALANCES.map((cust, idx) => (
-                    <div key={idx} className="ob-table-row">
+                  {customerBalanceRows.length ? customerBalanceRows.map((cust) => (
+                    <div key={cust.name} className="ob-table-row">
                       <div className="ob-table-left">
                         <div className="ob-row-icon-circle">
                           <AccountCircle sx={{ fontSize: 18 }} />
@@ -558,9 +582,9 @@ export const Dashboard = () => {
                           <span className="ob-row-title">{cust.name}</span>
                         </div>
                       </div>
-                      <span className="ob-row-amount-dark">{maskValue(cust.amount)}</span>
+                      <span className="ob-row-amount-dark">{maskValue(formatCurrency(cust.amount))}</span>
                     </div>
-                  ))}
+                  )) : <div className="ob-table-row"><span className="ob-row-date">No customer balances for this view.</span></div>}
                 </div>
               </div>
             </div>

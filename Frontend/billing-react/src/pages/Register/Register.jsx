@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -39,7 +39,14 @@ const InvoiceBillingLogo = ({ size = 26 }) => (
 const registerSchema = yup.object({
   fullName: yup.string().trim().required('Full name is required'),
   email: yup.string().trim().email('Please enter a valid work email').required('Work email is required'),
-  password: yup.string().min(8, 'Use 8 or more characters with letters and numbers').required('Password is required'),
+  password: yup
+    .string()
+    .min(8, 'Use 8 or more characters with letters and numbers')
+    .matches(/[a-z]/, 'Include a lowercase letter')
+    .matches(/[A-Z]/, 'Include an uppercase letter')
+    .matches(/\d/, 'Include a number')
+    .matches(/[^A-Za-z0-9]/, 'Include a special character')
+    .required('Password is required'),
   confirmPassword: yup
     .string()
     .oneOf([yup.ref('password')], 'Passwords must match')
@@ -57,6 +64,8 @@ export const Register = () => {
   const {
     register,
     handleSubmit,
+    watch,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(registerSchema),
@@ -69,6 +78,22 @@ export const Register = () => {
     },
     mode: 'onTouched',
   });
+  const passwordValue = watch('password', '');
+  const checks = {
+    lower: /[a-z]/.test(passwordValue),
+    upper: /[A-Z]/.test(passwordValue),
+    number: /\d/.test(passwordValue),
+    special: /[^A-Za-z0-9]/.test(passwordValue),
+    length: passwordValue.length >= 8,
+  };
+  const textOutput = `${checks.lower ? '✓' : '✗'} lowercase, ${checks.upper ? '✓' : '✗'} uppercase, ${checks.number ? '✓' : '✗'} number, ${checks.special ? '✓' : '✗'} special char, ${checks.length ? '✓' : '✗'} 8 chars`;
+  const openLogin = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearErrors();
+    setApiError(null);
+    navigate('/login');
+  };
 
   const onSubmit = async (formData) => {
     try {
@@ -143,7 +168,8 @@ export const Register = () => {
           {/* Back to Sign In Link */}
           <button
             type="button"
-            onClick={() => navigate('/login')}
+            onPointerDown={openLogin}
+            onClick={openLogin}
             className="billing-auth-back-link"
           >
             &larr; Back to sign in
@@ -300,7 +326,7 @@ export const Register = () => {
                   }}
                 />
                 <div className="billing-auth-pwd-hint">
-                  <span>&#10003; Use 8 or more characters with letters and numbers.</span>
+                  <p className="billing-auth-password-checks" aria-live="polite">{textOutput}</p>
                 </div>
               </Box>
 
@@ -345,14 +371,20 @@ export const Register = () => {
                 {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create free account \u2192'}
               </Button>
             </Stack>
-
-            <div className="billing-auth-footer-text" style={{ marginTop: 14 }}>
-              Already have an account?{' '}
-              <RouterLink to="/login" className="billing-auth-create-link">
-                Sign in
-              </RouterLink>
-            </div>
           </Box>
+
+          {/* Kept outside the registration form so this link can never submit it. */}
+          <div className="billing-auth-footer-text" style={{ marginTop: 14 }}>
+            Already have an account?{' '}
+            <button
+              type="button"
+              className="billing-auth-create-link billing-auth-route-button"
+              onPointerDown={openLogin}
+              onClick={openLogin}
+            >
+              Sign in
+            </button>
+          </div>
         </div>
       </Box>
     </Box>
