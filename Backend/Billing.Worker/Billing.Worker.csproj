@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Billing.Worker-bc8df2bb-974c-42ff-97f5-9e300090c255</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Billing.Application\Billing.Application.csproj" />
+    <ProjectReference Include="..\Billing.Infrastructure\Billing.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
