@@ -299,6 +299,11 @@ export const Login = () => {
     } catch (error) {
       console.error('Login failed:', error);
 
+      if (error?.userMessage === 'Network Error' || error?.message === 'Network Error') {
+        setApiError('Network Error');
+        return;
+      }
+
       const status = error?.response?.status;
 
       // ------------------------------------------------------
@@ -357,9 +362,7 @@ export const Login = () => {
       // ------------------------------------------------------
 
       if (status >= 500) {
-        setApiError(
-          'Server error. Please try again later.'
-        );
+        setApiError('Network Error');
 
         return;
       }

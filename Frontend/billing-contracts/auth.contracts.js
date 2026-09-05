@@ -56,14 +56,14 @@ export const parseLoginResponse = (response) => {
 export const parseAuthError = (error, fallbackMessage = 'An unexpected authentication error occurred.') => {
   if (!error) return fallbackMessage;
 
+  if (error.userMessage === 'Network Error' || error.message === 'Network Error') return 'Network Error';
+
   if (error.response) {
     const status = error.response.status;
     const data = error.response.data;
 
     if (typeof data === 'string') {
-      if (data.includes('ERR_NGROK_3200') || data.includes('offline')) {
-        return 'The backend ngrok tunnel (pediatric-astrology-outrank.ngrok-free.dev) is offline (ERR_NGROK_3200). Please ensure your backend is running on http://localhost:44334 and ngrok is active.';
-      }
+      if (data.includes('ERR_NGROK') || data.toLowerCase().includes('ngrok') || data.toLowerCase().includes('offline')) return 'Network Error';
       return data.trim() || `Server error (${status})`;
     }
 
@@ -93,12 +93,10 @@ export const parseAuthError = (error, fallbackMessage = 'An unexpected authentic
     if (status === 403) return 'You do not have permission to access this resource.';
     if (status === 404) return 'The requested account or resource was not found.';
     if (status === 409) return 'An account with this email address already exists.';
-    if (status >= 500) return 'The server encountered an error. Please try again later.';
+    if (status >= 500) return 'Network Error';
   }
 
-  if (error.request || error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-    return 'Unable to reach the authentication server. The backend ngrok tunnel is offline (ERR_NGROK_3200) or unreachable.';
-  }
+  if (error.request || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') return 'Network Error';
 
   return error.message || fallbackMessage;
 };

@@ -1,0 +1,3 @@
+import { Skeleton } from '@mui/material';
+
+export const DashboardSkeleton = () => <main className="bd-shell bd-skeleton-page" aria-label="Loading dashboard"><div className="bd-header"><Skeleton variant="rounded" width="36%" height={44} /><Skeleton variant="rounded" width={280} height={44} /></div><div className="bd-main"><Skeleton width={300} height={56} /><div className="bd-kpi-grid">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} variant="rounded" height={130} />)}</div><div className="bd-chart-grid">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} variant="rounded" height={310} />)}</div></div></main>;

@@ -579,6 +579,33 @@
   padding: clamp(20px, 2.8vh, 28px) clamp(24px, 2.8vw, 32px);
 }
 
+/* Keep the complete registration form usable within short laptop viewports. */
+.billing-auth-form-side.register-form-side {
+  align-items: center;
+  padding: 14px 28px;
+  overflow-y: auto;
+}
+.billing-auth-card.register-card {
+  width: min(100%, 520px);
+  max-width: 520px;
+  max-height: none;
+  padding: clamp(14px, 2vh, 20px) clamp(22px, 2.5vw, 30px);
+}
+.register-card .billing-auth-back-link { margin-bottom: 7px; }
+.register-card .billing-auth-form-title { margin-bottom: 1px !important; }
+.register-card .billing-auth-form-subtitle { margin-bottom: clamp(8px, 1.2vh, 12px) !important; }
+.register-card .billing-auth-input-label { margin-bottom: 3px; }
+.register-card .billing-auth-input .MuiOutlinedInput-root { min-height: 46px; }
+.register-card .billing-auth-pwd-hint { margin-top: 2px; margin-bottom: 0; }
+.register-card .billing-auth-password-checks { line-height: 1.25; }
+.register-card .billing-auth-submit-btn { padding: 9px !important; }
+.register-card .billing-auth-footer-text { margin-top: 8px !important; }
+@media (max-height: 720px) and (min-width: 961px) {
+  .billing-auth-form-side.register-form-side { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+  .billing-auth-card.register-card { padding-top: 10px; padding-bottom: 10px; }
+  .register-card .billing-auth-input .MuiOutlinedInput-root { min-height: 43px; }
+}
+
 /* --- Responsive Adaptations for smaller screens / tablets --- */
 @media (max-width: 960px) {
   .billing-auth-login-page {

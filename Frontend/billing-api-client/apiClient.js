@@ -29,61 +29,33 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const safeValidationMessage = (data) => {
+  if (typeof data === 'string') return data.length <= 180 && !data.includes('<html') ? data : 'Something went wrong';
+  if (data?.message) return data.message;
+  if (data?.title) return data.title;
+  if (data?.errors) {
+    const messages = Object.values(data.errors).flat();
+    if (messages.length) return messages.join(' ');
+  }
+  return 'Something went wrong';
+};
+
+export const getUserFriendlyError = (error) => {
+  const status = error?.response?.status;
+  const responseText = typeof error?.response?.data === 'string' ? error.response.data : '';
+  if (!error?.response || status >= 500 || responseText.includes('ERR_NGROK') || responseText.toLowerCase().includes('ngrok') || responseText.toLowerCase().includes('offline')) return 'Network Error';
+  return safeValidationMessage(error.response.data);
+};
+
 apiClient.interceptors.response.use(
   (response) => response.data,
-  async (error) => {
-    if (error.response) {
-      const data = error.response.data;
-      let message = 'An unexpected server error occurred.';
-      if (typeof data === 'string') {
-        if (data.includes('ERR_NGROK_3200') || data.includes('offline')) {
-          message = 'The backend ngrok tunnel (pediatric-astrology-outrank.ngrok-free.dev) is offline (ERR_NGROK_3200). Please ensure your backend is running on http://localhost:44334 and ngrok is active.';
-        } else {
-          message = data;
-        }
-      } else if (data?.message) {
-        message = data.message;
-      } else if (data?.title) {
-        message = data.title;
-      } else if (data?.errors) {
-        const errorList = Object.values(data.errors).flat();
-        if (errorList.length > 0) message = errorList.join(' ');
-      }
-      return Promise.reject(new Error(message));
-    } else if (error.request) {
-      if (typeof window !== 'undefined' && error.config && !error.config._retryProxy && error.config.baseURL !== '') {
-        try {
-          const retryConfig = {
-            ...error.config,
-            baseURL: '',
-            _retryProxy: true,
-          };
-          const res = await axios(retryConfig);
-          return res.data;
-        } catch (retryError) {
-          if (retryError.response) {
-            const rData = retryError.response.data;
-            let rMsg = 'Server returned error ' + retryError.response.status;
-            if (typeof rData === 'string' && (rData.includes('ERR_NGROK_3200') || rData.includes('offline'))) {
-              rMsg = 'The backend ngrok tunnel (pediatric-astrology-outrank.ngrok-free.dev) is offline (ERR_NGROK_3200). Please ensure your backend is running on http://localhost:44334 and ngrok is active.';
-            } else if (rData?.message) {
-              rMsg = rData.message;
-            } else if (rData?.errors) {
-              const errs = Object.values(rData.errors).flat();
-              if (errs.length) rMsg = errs.join(' ');
-            }
-            return Promise.reject(new Error(rMsg));
-          }
-        }
-      }
-
-      return Promise.reject(
-        new Error(
-          'Unable to connect to https://pediatric-astrology-outrank.ngrok-free.dev. The ngrok tunnel is currently offline (ERR_NGROK_3200) or unreachable.'
-        )
-      );
-    }
-    return Promise.reject(error);
+  (error) => {
+    const message = getUserFriendlyError(error);
+    const normalizedError = new Error(message);
+    normalizedError.userMessage = message;
+    normalizedError.code = error?.code;
+    if (message !== 'Network Error') normalizedError.response = error?.response;
+    return Promise.reject(normalizedError);
   }
 );
 

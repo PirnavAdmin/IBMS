@@ -163,7 +163,7 @@ export const Register = () => {
       </Box>
 
       {/* ================= RIGHT FORM PANEL ================= */}
-      <Box className="billing-auth-form-side">
+      <Box className="billing-auth-form-side register-form-side">
         <div className="billing-auth-card register-card">
           {/* Back to Sign In Link */}
           <button
