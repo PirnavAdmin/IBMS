@@ -11,6 +11,7 @@ import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { Payments } from '../pages/Payments/Payments';
 import { Invoices } from '../pages/Invoices/Invoices';
+import { Taxes } from '../pages/Taxes/Taxes';
 
 export const AppRoutes = () => (
   <Routes>
@@ -31,7 +32,7 @@ export const AppRoutes = () => (
       <Route path="/credit-notes" element={<ModulePlaceholder />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />
       <Route path="/expenses" element={<ModulePlaceholder />} />
-      <Route path="/taxes" element={<ModulePlaceholder />} />
+      <Route path="/taxes/*" element={<Taxes />} />
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
       <Route path="/templates-branding" element={<ModulePlaceholder />} />
