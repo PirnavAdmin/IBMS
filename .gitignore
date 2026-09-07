@@ -1,2 +1,26 @@
-.vs/
+# .NET
+**/bin/
+**/obj/
 
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / local secrets
+.env
+.env.*
+!.env.example
+
+# Local application settings
+appsettings.Local.json

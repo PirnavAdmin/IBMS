@@ -1,4 +1,4 @@
-﻿using Billing.Application.Interfaces;
+using Billing.Application.Interfaces;
 using Billing.Domain.Entities;
 using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,12 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users
             .FirstOrDefaultAsync(x => x.Email == email);
+    }
+
+    public async Task<User?> GetByIdAsync(int id)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task AddAsync(User user)

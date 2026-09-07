@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Billing.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bc217e2a6d6957c9539492b7c5048cf7655bec28")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70769e31f65961f7613236d0ece817d3d9935bfa")]
 [assembly: System.Reflection.AssemblyProductAttribute("Billing.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Billing.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
