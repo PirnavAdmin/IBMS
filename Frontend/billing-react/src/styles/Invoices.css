@@ -1,0 +1,42 @@
+.invoice-module { min-height: 100vh; background: #faf7f2; color: #241e1a; }
+.inv-main { padding: 18px 24px 32px; }
+.inv-breadcrumb { display: flex; align-items: center; gap: 18px; font-size: 12px; margin-bottom: 18px; }
+.inv-breadcrumb button { border: 0; background: none; color: #754d37; padding: 0; cursor: pointer; }
+.inv-heading,.inv-heading-copy,.inv-actions { display: flex; align-items: center; gap: 16px; }
+.inv-heading { justify-content: space-between; margin-bottom: 22px; }
+.inv-heading h1 { font-size: 32px; line-height: 1.2; margin: 0 0 4px; letter-spacing: -.8px; }
+.inv-heading p { margin: 0; font-size: 13px; }
+.inv-title-icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 9px; background: #f0e4d8; color: #66391f; }
+.inv-title-icon svg { font-size: 36px; }
+.inv-main button,.inv-main input,.inv-main select { font: inherit; }
+.inv-actions button,.inv-filters > button,.inv-bulk button,.inv-pagination button,.inv-pagination select { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #e7ddd4; background: #fffdfa; border-radius: 6px; padding: 9px 14px; font-size: 12px; cursor: pointer; color: #492c1d; }
+.inv-main .inv-primary { background: #70472f; color: white; border-color: #70472f; }
+.inv-main button:disabled { opacity: .45; cursor: default; }
+.inv-main button:focus-visible,.inv-main input:focus-visible,.inv-main select:focus-visible { outline: 2px solid #9a653f; outline-offset: 2px; }
+.inv-summary { display: grid; grid-template-columns: repeat(6,minmax(155px,1fr)); gap: 10px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 3px; }
+.inv-summary-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px 12px; background: #fffdfb; border: 1px solid #eee6de; border-radius: 7px; text-align: left; cursor: pointer; color: inherit; }
+.inv-summary-card > span:last-child { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.inv-summary-card strong { font-size: 25px; line-height: 1.2; }
+.inv-summary-card small { font-size: 12px; white-space: nowrap; }
+.inv-summary-icon { flex: 0 0 45px; height: 48px; display: grid; place-items: center; border-radius: 6px; }
+.inv-summary-icon svg { font-size: 30px; }
+.inv-summary-icon.sand { color: #704326; background: #f1e6da; }.inv-summary-icon.amber { color: #de8200; background: #fff0cf; }.inv-summary-icon.blue { color: #0878ee; background: #deecff; }.inv-summary-icon.red { color: #ef3029; background: #ffe0dd; }.inv-summary-icon.green { color: #008f55; background: #ddf5e7; }
+.inv-panel { border: 1px solid #eee5dc; border-radius: 7px; background: #fffdfb; overflow: hidden; }
+.inv-tabs { display: flex; gap: 5px; border-bottom: 1px solid #ece3db; overflow-x: auto; padding: 6px 0 0; }
+.inv-tabs button { white-space: nowrap; padding: 12px 14px; background: #f8f5f1; border: 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 12px; border-radius: 5px 5px 0 0; }
+.inv-tabs button.active { background: white; color: #68371f; border-bottom-color: #754a30; font-weight: 700; }
+.inv-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 15px; }
+.inv-filters label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #5e5751; flex: 1 1 120px; }
+.inv-filters input,.inv-filters select { height: 36px; border: 1px solid #e5ddd5; border-radius: 5px; background: white; padding: 7px 9px; min-width: 0; width: 100%; font-size: 12px; color: #24222a; box-sizing: border-box; }
+.inv-filters .inv-search { flex: 2 1 260px; position: relative; }.inv-search svg { position: absolute; left: 10px; top: 8px; font-size: 20px; color: #70472f; }.inv-search input { padding-left: 36px; }
+.inv-table-scroll { overflow-x: auto; margin: 0 15px; border: 1px solid #eee7e0; border-radius: 5px; }
+.inv-table-scroll table { width: 100%; min-width: 1060px; border-collapse: collapse; font-size: 12px; text-align: left; }
+.inv-table-scroll th { background: #f5eee7; padding: 11px 10px; white-space: nowrap; font-size: 11px; }
+.inv-table-scroll th button { border: 0; background: none; padding: 0; cursor: pointer; font-weight: 700; }.inv-table-scroll th button span { margin-left: 5px; }
+.inv-table-scroll td { border-top: 1px solid #f0e9e2; padding: 10px; }.inv-table-scroll td small { display: block; color: #827a73; margin-top: 3px; font-size: 10px; }.inv-table-scroll tbody tr:hover { background: #fcf8f2; }
+.inv-table-scroll input { accent-color: #70472f; }.inv-amount { white-space: nowrap; }.inv-link { border: 0; background: none; text-decoration: underline; color: #27394b; cursor: pointer; padding: 0; white-space: nowrap; }
+.inv-badge { display: inline-block; min-width: 65px; padding: 6px 9px; border-radius: 4px; font-size: 11px; background: #f3eae0; color: #67422b; white-space: nowrap; }.inv-badge.issued,.inv-badge.sent { color: #0065db; background: #deedff; }.inv-badge.paid { color: #00814d; background: #dcf6e6; }.inv-badge.overdue { color: #e5292b; background: #ffe0e1; }.inv-badge.partially-paid { color: #bd6500; background: #fff0d1; }.inv-badge.not-paid,.inv-badge.cancelled,.inv-badge.void { background: #ececef; color: #66616d; }
+.inv-more { background: none; border: 0; cursor: pointer; }.inv-empty { text-align: center; height: 180px; color: #827368; }
+.inv-pagination { padding: 22px 15px; display: flex; justify-content: space-between; gap: 14px; align-items: center; font-size: 12px; }.inv-pagination > div { display: flex; gap: 5px; }.inv-pagination button { min-width: 32px; padding: 7px 10px; }.inv-pagination select { margin-left: 10px; }
+.inv-bulk { margin: 0 15px; border-top: 1px solid #ece3db; padding: 16px 0; display: flex; align-items: center; gap: 12px; font-size: 12px; }.inv-bulk svg { font-size: 18px; }.inv-detail p { margin: 12px 0; }
+@media (max-width: 760px) { .inv-main { padding: 16px 12px; }.inv-heading { align-items: flex-start; flex-direction: column; }.inv-heading h1 { font-size: 27px; }.inv-pagination { align-items: flex-start; flex-direction: column; }.inv-pagination > div { flex-wrap: wrap; }.inv-bulk { flex-wrap: wrap; } }

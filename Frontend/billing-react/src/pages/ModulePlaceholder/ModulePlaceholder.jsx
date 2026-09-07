@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
 
-const titles = { payments: 'Payments', customers: 'Customers', products: 'Products & Services', 'credit-notes': 'Credit Notes', 'recurring-billing': 'Recurring Billing', expenses: 'Expenses', taxes: 'Taxes & GST', reports: 'Reports', 'audit-activity': 'Audit Activity', settings: 'Settings', support: 'Help & Support' };
+const titles = { payments: 'Payments', customers: 'Customers', products: 'Products & Services', 'credit-notes': 'Credit Notes', 'recurring-billing': 'Recurring Billing', expenses: 'Expenses', taxes: 'Taxes & GST', reports: 'Reports', 'templates-branding': 'Templates & Branding', 'invoice-numbering': 'Invoice Numbering', 'audit-activity': 'Audit Activity', 'integration-settings': 'Integration Settings', settings: 'Settings / Administration', support: 'Help & Support' };
 
 export const ModulePlaceholder = () => {
   const module = useLocation().pathname.split('/')[1];

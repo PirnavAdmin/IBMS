@@ -16,16 +16,24 @@ export const dashboardNavigation = [
   {
     label: 'Operations',
     items: [
-      { id: 'recurring', label: 'Recurring Billing', icon: 'recurring' },
-      { id: 'expenses', label: 'Expenses', icon: 'expense' },
       { id: 'taxes', label: 'Taxes & GST', icon: 'tax' },
+      { id: 'recurring', label: 'Recurring Billing', icon: 'recurring' },
     ],
   },
   {
     label: 'Insights',
     items: [
       { id: 'reports', label: 'Reports', icon: 'report' },
+    ],
+  },
+  {
+    label: 'Configuration & Administration',
+    items: [
+      { id: 'templates', label: 'Templates & Branding', icon: 'template' },
+      { id: 'numbering', label: 'Invoice Numbering', icon: 'numbering' },
       { id: 'activity', label: 'Audit Activity', icon: 'activity' },
+      { id: 'integrations', label: 'Integration Settings', icon: 'integration' },
+      { id: 'settings', label: 'Settings / Administration', icon: 'settings' },
     ],
   },
 ];

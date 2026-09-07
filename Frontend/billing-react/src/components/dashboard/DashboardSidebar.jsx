@@ -1,5 +1,7 @@
 import {
-  AccountBalanceWalletOutlined,
+  BrandingWatermarkOutlined,
+  FormatListNumberedOutlined,
+  IntegrationInstructionsOutlined,
   AssessmentOutlined,
   AutorenewOutlined,
   ChevronRight,
@@ -24,7 +26,10 @@ const iconMap = {
   product: Inventory2Outlined,
   credit: RequestQuoteOutlined,
   recurring: AutorenewOutlined,
-  expense: AccountBalanceWalletOutlined,
+  template: BrandingWatermarkOutlined,
+  numbering: FormatListNumberedOutlined,
+  integration: IntegrationInstructionsOutlined,
+  settings: SettingsOutlined,
   tax: ReceiptOutlined,
   report: AssessmentOutlined,
   activity: HistoryOutlined,
@@ -50,7 +55,6 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
         </div>)}
       </nav>
       <div className="bd-sidebar-footer">
-        <button onClick={() => onSelect('settings')}><SettingsOutlined />Settings</button>
         <button onClick={() => onSelect('support')}><SupportAgentOutlined />Help & Support</button>
         <p>Workspace</p><strong>Acme Business India</strong>
       </div>

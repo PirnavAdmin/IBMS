@@ -10,6 +10,7 @@ import { CreateInvoice } from '../pages/CreateInvoice/CreateInvoice';
 import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { Payments } from '../pages/Payments/Payments';
+import { Invoices } from '../pages/Invoices/Invoices';
 
 export const AppRoutes = () => (
   <Routes>
@@ -21,7 +22,7 @@ export const AppRoutes = () => (
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route element={<AppLayout />}>
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/invoices" element={<CreateInvoice />} />
+      <Route path="/invoices" element={<Invoices />} />
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
       <Route path="/payments" element={<Payments />} />
@@ -33,6 +34,9 @@ export const AppRoutes = () => (
       <Route path="/taxes" element={<ModulePlaceholder />} />
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
+      <Route path="/templates-branding" element={<ModulePlaceholder />} />
+      <Route path="/invoice-numbering" element={<ModulePlaceholder />} />
+      <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<ModulePlaceholder />} />
       <Route path="/support" element={<ModulePlaceholder />} />
     </Route>

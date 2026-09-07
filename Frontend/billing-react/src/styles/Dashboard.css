@@ -98,4 +98,11 @@
 .bd-user-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bd-avatar { flex-shrink: 0; }
 .bd-user-copy span { display: block; }
+/* Keep dashboard charts together as zoom reduces the available width. */
+.bd-chart-grid {
+  grid-template-columns: minmax(320px, 1.35fr) minmax(300px, 1fr) minmax(300px, .9fr);
+  overflow-x: auto;
+}
+.bd-chart-grid > :last-child { grid-column: auto; }
+
 @media (prefers-reduced-motion: reduce) { .bd-spin { animation: none; }.bd-stat { transition: none; }.bd-stat:hover { transform: none; } }
