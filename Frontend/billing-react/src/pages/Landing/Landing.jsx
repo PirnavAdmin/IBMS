@@ -129,9 +129,6 @@ export const Landing = () => {
                 <span className="secure-dot" />
                 <span>100% Safe &amp; GST Ready</span>
               </div>
-              <Button variant="text" onClick={handleSignIn} className="nav-login-btn">
-                Login
-              </Button>
               <Button variant="contained" onClick={handleSignIn} endIcon={<ArrowForward sx={{ fontSize: 16 }} />} className="nav-signup-btn">
                 Sign In Free
               </Button>

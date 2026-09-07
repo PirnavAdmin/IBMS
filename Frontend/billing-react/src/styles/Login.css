@@ -24,6 +24,10 @@
 
 /* --- Top Right Floating Home Button --- */
 .billing-auth-home-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  line-height: 1.75;
   position: absolute !important;
   top: clamp(14px, 2.5vh, 24px) !important;
   right: clamp(16px, 2.5vw, 28px) !important;
@@ -581,12 +585,16 @@
 
 /* Keep the complete registration form usable within short laptop viewports. */
 .billing-auth-form-side.register-form-side {
+  flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   padding: 14px 28px;
   overflow-y: auto;
 }
 .billing-auth-card.register-card {
   width: min(100%, 520px);
+  flex-shrink: 0;
+  margin-block: auto;
   max-width: 520px;
   max-height: none;
   padding: clamp(14px, 2vh, 20px) clamp(22px, 2.5vw, 30px);
@@ -601,7 +609,7 @@
 .register-card .billing-auth-submit-btn { padding: 9px !important; }
 .register-card .billing-auth-footer-text { margin-top: 8px !important; }
 @media (max-height: 720px) and (min-width: 961px) {
-  .billing-auth-form-side.register-form-side { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+  .billing-auth-form-side.register-form-side { padding-top: 10px; padding-bottom: 10px; }
   .billing-auth-card.register-card { padding-top: 10px; padding-bottom: 10px; }
   .register-card .billing-auth-input .MuiOutlinedInput-root { min-height: 43px; }
 }

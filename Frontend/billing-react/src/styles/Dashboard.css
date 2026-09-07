@@ -63,3 +63,39 @@
 .module-placeholder > div { width: min(720px,100%); padding: clamp(26px,4vw,48px); background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 .module-placeholder span { color: var(--secondary); font-weight: 800; font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }.module-placeholder h1 { margin-top: 8px; font-size: clamp(1.8rem,4vw,2.8rem); }.module-placeholder p { margin-top: 10px; color: var(--text-secondary); }
 @media (max-width: 1179px) { .app-layout > .bd-sidebar { position: fixed; height: 100vh; }.app-layout-menu { display: grid; place-items: center; position: fixed; left: 14px; top: 14px; width: 42px; height: 42px; border: 1px solid var(--border); border-radius: 10px; color: var(--primary); background: white; box-shadow: var(--shadow-card); z-index: 110; cursor: pointer; }.app-layout-main .bd-header { padding-left: 68px; } }
+
+/* Semantic KPI palette shared by all StatCard instances. */
+.bd-tone-sand { --kpi-card: #FFF8EF; --kpi-icon-bg: #F2DFC9; --kpi-icon: #6B2A0B; }
+.bd-tone-mint { --kpi-card: #ECFBF2; --kpi-icon-bg: #D7F5E3; --kpi-icon: #159447; }
+.bd-tone-cream { --kpi-card: #FFF7E9; --kpi-icon-bg: #FFE4B8; --kpi-icon: #C46B12; }
+.bd-tone-rose { --kpi-card: #FFF0F1; --kpi-icon-bg: #FFDADD; --kpi-icon: #E53935; }
+.bd-tone-lavender { --kpi-card: #F6F1FF; --kpi-icon-bg: #E8DCFF; --kpi-icon: #6D35B1; }
+.bd-tone-teal { --kpi-card: #ECFAF5; --kpi-icon-bg: #D3F4E7; --kpi-icon: #11845B; }
+.bd-kpi-grid { grid-template-columns: repeat(6, minmax(140px, 1fr)); gap: clamp(8px, 1vw, 14px); overflow-x: auto; padding: 3px 0 12px; }
+.bd-kpi-grid .bd-stat { padding: clamp(10px, 1vw, 20px); }
+.bd-kpi-grid .bd-stat-copy strong { font-size: clamp(18px, 1.45vw, 28px); }
+.bd-stat { background: var(--kpi-card, #FFF8EF); padding: 20px; min-height: 196px; border-radius: 16px; border: 1px solid rgba(0,0,0,.04); flex-direction: column; gap: 12px; box-shadow: 0 6px 20px rgba(69,39,20,.06); transition: transform .2s ease, box-shadow .2s ease; }
+.bd-stat:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(69,39,20,.10); }
+.bd-stat-icon { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: var(--kpi-icon-bg); color: var(--kpi-icon); }
+.bd-stat-copy { width: 100%; overflow: visible; }
+.bd-stat-copy > span { min-height: 0; overflow-wrap: anywhere; }
+.bd-stat-copy strong { font-size: clamp(22px,1.8vw,30px); letter-spacing: -.04em; overflow: hidden; text-overflow: ellipsis; }
+.bd-stat-copy small { margin-top: auto; overflow-wrap: anywhere; }
+.bd-stat-skeleton > * { flex-shrink: 0; }
+.bd-section-skeleton { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.bd-refresh:disabled { opacity: .55; cursor: wait; }
+.bd-spin { animation: bd-spin 1s linear infinite; }
+@keyframes bd-spin { to { transform: rotate(360deg); } }
+.bd-dashboard-error { min-height: 520px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; padding: 32px 16px; text-align: center; background: #FFF8EF; border-radius: 16px; }
+.bd-dashboard-error h2 { font-size: clamp(22px,2.2vw,28px); font-weight: 700; color: #2A211C; }
+.bd-dashboard-error p { max-width: 580px; color: #75675F; }
+.bd-error-illustration { color: #6B2A0B; padding: 20px; border-radius: 32px; background: #F2DFC9; }
+.bd-error-illustration > svg { font-size: 58px; color: #C46B12; }
+.bd-error-illustration > div svg { font-size: 78px; }
+.bd-retry { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 165px; padding: 12px 24px; border: 0; border-radius: 10px; background: #5A2508; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.bd-retry:hover { background: #6B2A0B; }
+.bd-user-copy { min-width: 0; max-width: 200px; }
+.bd-user-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-avatar { flex-shrink: 0; }
+.bd-user-copy span { display: block; }
+@media (prefers-reduced-motion: reduce) { .bd-spin { animation: none; }.bd-stat { transition: none; }.bd-stat:hover { transform: none; } }

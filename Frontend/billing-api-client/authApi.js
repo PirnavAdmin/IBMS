@@ -27,9 +27,8 @@ export const authApi = {
       const { token, user } = parseLoginResponse(response);
       if (token && typeof localStorage !== 'undefined') {
         localStorage.setItem('billing_auth_token', token);
-        if (user) {
-          localStorage.setItem('billing_auth_user', JSON.stringify(user));
-        }
+        // Preserve the existing profile and use the submitted email when no profile is returned.
+        localStorage.setItem('billing_auth_user', JSON.stringify({ email: data.email?.trim(), ...user }));
       }
       return response;
     } catch (err) {

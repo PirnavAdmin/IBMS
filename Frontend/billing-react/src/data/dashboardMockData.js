@@ -5,7 +5,7 @@ export const dashboardMockData = {
     outstanding: { id: 'outstanding', label: 'Outstanding', value: 265300, meta: '21 invoices', icon: 'wallet', tone: 'cream' },
     overdue: { id: 'overdue', label: 'Overdue', value: 84500, meta: '8 invoices', icon: 'warning', tone: 'rose' },
     drafts: { id: 'drafts', label: 'Draft Invoices', value: 14, valueType: 'number', meta: '₹1,36,000', icon: 'draft', tone: 'lavender' },
-    paymentsReceived: { id: 'payments', label: 'Payments Received', value: 342000, meta: '36 transactions', icon: 'card', tone: 'mint' },
+    paymentsReceived: { id: 'payments', label: 'Payments Received', value: 342000, meta: '36 transactions', icon: 'card', tone: 'teal' },
   },
   revenue: [
     { label: 'Jan', invoiced: 90000, collected: 50000 }, { label: 'Feb', invoiced: 150000, collected: 100000 }, { label: 'Mar', invoiced: 165000, collected: 105000 },

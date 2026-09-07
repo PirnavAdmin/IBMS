@@ -1,4 +1,5 @@
 import { PaymentsOutlined, Refresh } from '@mui/icons-material';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { usePayments } from '../../hooks/usePayments';
 import '../../styles/Payments.css';
 
@@ -14,7 +15,7 @@ export const Payments = () => {
     </header>
 
     {loading && <div className="payments-state" role="status"><span className="payments-spinner" />Loading payments...</div>}
-    {!loading && error && <div className="payments-error" role="alert"><strong>Network Error</strong><button onClick={retry}>Retry</button></div>}
+    {!loading && error && <DashboardErrorState onRetry={retry} />}
     {!loading && !error && payments.length === 0 && <div className="payments-state">No payments found</div>}
     {!loading && !error && payments.length > 0 && <section className="payments-card">
       <div className="payments-card-title"><span><PaymentsOutlined /> Payment records</span><small>{payments.length} transactions</small></div>

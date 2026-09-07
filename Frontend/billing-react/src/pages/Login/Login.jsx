@@ -286,7 +286,7 @@ export const Login = () => {
       if (user) {
         localStorage.setItem(
           'billing_auth_user',
-          JSON.stringify(user)
+          JSON.stringify({ email: data.email.trim(), ...user })
         );
       }
 
@@ -690,13 +690,16 @@ export const Login = () => {
           HOME BUTTON
       ====================================================== */}
 
-      <Button
-        component={RouterLink}
+      <RouterLink
         to="/"
         className="billing-auth-home-btn"
+        onClick={() => {
+          clearErrors();
+          setApiError(null);
+        }}
       >
         &larr; Home
-      </Button>
+      </RouterLink>
 
       {/* ======================================================
           LEFT HERO PANEL
@@ -1015,7 +1018,6 @@ export const Login = () => {
                     type="email"
                     placeholder="name@company.com"
                     autoComplete="email"
-                    autoFocus
                     disabled={isSubmitting}
                     {...register('email')}
                     error={Boolean(errors.email)}
