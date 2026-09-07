@@ -1,4 +1,4 @@
-﻿namespace Billing.Tests.Integration;
+namespace Billing.Tests.Integration;
 
 public class UnitTest1
 {

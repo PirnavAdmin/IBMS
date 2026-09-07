@@ -1,0 +1,46 @@
+@Backend_HostAddress = http://localhost:5271
+
+### Register
+POST {{Backend_HostAddress}}/api/Auth/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "testuser@example.com",
+  "password": "Password123!",
+  "confirmPassword": "Password123!"
+}
+
+### Login
+POST {{Backend_HostAddress}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Password123!"
+}
+
+### Current User (Protected)
+GET {{Backend_HostAddress}}/api/Auth/me
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Refresh Token
+POST {{Backend_HostAddress}}/api/Auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout
+POST {{Backend_HostAddress}}/api/Auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout All Sessions
+POST {{Backend_HostAddress}}/api/Auth/logout-all
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+

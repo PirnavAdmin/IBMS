@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.API\\Billing.API.csproj": {}
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.API\\Billing.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.API\\Billing.API.csproj": {
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.API\\Billing.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.API\\Billing.API.csproj",
+        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.API\\Billing.API.csproj",
         "projectName": "Billing.API",
-        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.API\\Billing.API.csproj",
+        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.API\\Billing.API.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.API\\obj\\",
+        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -33,14 +33,14 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj"
               },
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj"
               },
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj"
               }
             }
           }
@@ -62,11 +62,7 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
-            "MailKit": {
-              "target": "Package",
-              "version": "[4.17.0, )"
-            },
-            "Microsoft.AspNetCore.OpenApi": {
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[10.0.9, )"
             },
@@ -518,14 +514,14 @@
         }
       }
     },
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj",
+        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj",
         "projectName": "Billing.Application",
-        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj",
+        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\obj\\",
+        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -547,11 +543,11 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj"
               },
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj"
               }
             }
           }
@@ -576,6 +572,14 @@
             "BCrypt.Net-Next": {
               "target": "Package",
               "version": "[4.2.0, )"
+            },
+            "Microsoft.Extensions.Configuration.Abstractions": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[8.14.0, )"
             }
           },
           "imports": [
@@ -872,14 +876,14 @@
         }
       }
     },
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
+        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
         "projectName": "Billing.Contracts",
-        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
+        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\obj\\",
+        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1213,14 +1217,14 @@
         }
       }
     },
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj",
         "projectName": "Billing.Domain",
-        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj",
+        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\obj\\",
+        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1554,14 +1558,14 @@
         }
       }
     },
-    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj": {
+    "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj",
         "projectName": "Billing.Infrastructure",
-        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj",
+        "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\Billing.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Infrastructure\\obj\\",
+        "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -1583,11 +1587,11 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Application\\Billing.Application.csproj"
               },
-              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
-                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj"
+              "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj": {
+                "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Domain\\Billing.Domain.csproj"
               }
             }
           }
@@ -1609,6 +1613,10 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "dependencies": {
+            "MailKit": {
+              "target": "Package",
+              "version": "[4.17.0, )"
+            },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",

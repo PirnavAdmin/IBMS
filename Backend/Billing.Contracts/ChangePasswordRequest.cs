@@ -1,4 +1,4 @@
-﻿namespace Billing.Contracts;
+namespace Billing.Contracts;
 
 public class ChangePasswordRequest
 {

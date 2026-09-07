@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
+      "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
       "projectName": "Billing.Contracts",
-      "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
+      "projectPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\Billing.Contracts.csproj",
       "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\Backend\\Billing.Contracts\\obj\\",
+      "outputPath": "C:\\Users\\ADMIN\\source\\repos\\IBMS\\IBMS\\Backend\\Billing.Contracts\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -1,16 +1,18 @@
 <Solution>
-  <Folder Name="/IBMS/" />
-  <Folder Name="/IBMS/backend/">
-    <Project Path="Backend/Billing.API/Billing.API.csproj" DefaultStartup="true" />
+  <Folder Name="/Backend/">
+    <File Path="Backend/appsettings.Development.json" />
+    <File Path="Backend/appsettings.json" />
+    <File Path="Backend/Backend.http" />
+    <File Path="Backend/global.json" />
+    <File Path="Backend/Program.cs" />
+    <Project Path="Backend/Backend.csproj" DefaultStartup="true" />
+    <Project Path="Backend/Billing.API/Billing.API.csproj" />
     <Project Path="Backend/Billing.Application/Billing.Application.csproj" />
     <Project Path="Backend/Billing.Contracts/Billing.Contracts.csproj" />
     <Project Path="Backend/Billing.Domain/Billing.Domain.csproj" />
     <Project Path="Backend/Billing.Infrastructure/Billing.Infrastructure.csproj" />
-    <Project Path="Backend/Billing.Tests.Integration/Billing.Tests.Integration.csproj" />
-    <Project Path="Backend/Billing.Tests.Unit/Billing.Tests.Unit.csproj" />
     <Project Path="Backend/Billing.Worker/Billing.Worker.csproj" />
-  </Folder>
-  <Folder Name="/IBMS/frontend/">
-    <Project Path="Frontend/IBMS.Frontend/IBMS.Frontend.csproj" />
+    <Project Path="Backend/Billing.Tests.Unit/Billing.Tests.Unit.csproj" />
+    <Project Path="Backend/Billing.Tests.Integration/Billing.Tests.Integration.csproj" />
   </Folder>
 </Solution>
