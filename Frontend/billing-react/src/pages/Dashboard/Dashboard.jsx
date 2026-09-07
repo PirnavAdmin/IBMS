@@ -21,6 +21,7 @@ export const Dashboard = () => {
     const matches = (row) => Object.values(row).some((value) => String(value).toLowerCase().includes(query));
     return { ...data, recentInvoices: data.recentInvoices.filter(matches), recentPayments: data.recentPayments.filter(matches), topCustomers: data.topCustomers.filter(matches), overdueInvoices: data.overdueInvoices.filter(matches), recentActivity: data.recentActivity.filter(matches) };
   }, [data, searchQuery]);
+  
   const signOut = () => {
     localStorage.removeItem('billing_auth_token');
     localStorage.removeItem('billing_auth_user');
@@ -30,7 +31,7 @@ export const Dashboard = () => {
   return <div className="bd-shell">
     <DashboardHeader searchQuery={searchQuery} onSearch={setSearchQuery} onSignOut={signOut} />
     <main className="bd-main">
-      <div className="bd-title-row"><div><h1>Billing Dashboard</h1><p>Overview of your billing performance and financial activity</p></div><DashboardFilters values={filters} onChange={setFilters} onRefresh={loadDashboardData} isRefreshing={isLoading} onCreate={() => navigate('/invoices/new')} /></div>
+      <div className="bd-title-row"><div><h1>Billing Dashboard</h1><p>Overview of your billing performance and financial activity  .</p></div><DashboardFilters values={filters} onChange={setFilters} onRefresh={loadDashboardData} isRefreshing={isLoading} onCreate={() => navigate('/invoices/new')} /></div>
       {isLoading ? <DashboardSkeleton /> : error ? <DashboardErrorState onRetry={loadDashboardData} /> : isEmpty ? <div className="bd-empty"><h2>No dashboard activity yet</h2><p>Create your first invoice to start seeing billing insights here.</p><Button variant="contained" onClick={() => navigate('/invoices/new')}>Create invoice</Button></div> : <>
       <section className="bd-kpi-grid" aria-label="Billing summary">{Object.values(filteredData.summary).map((stat) => <StatCard key={stat.id} data={stat} />)}</section>
       <section className="bd-chart-grid"><RevenueChart data={filteredData.revenue} /><InvoiceStatusChart data={filteredData.invoiceStatus} /><OutstandingAging data={filteredData.outstandingAging} /></section>
