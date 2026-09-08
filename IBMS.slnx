@@ -1,7 +1,8 @@
 <Solution>
   <Folder Name="/IBMS/" />
   <Folder Name="/IBMS/backend/">
-    <Project Path="Backend/Billing.API/Billing.API.csproj" DefaultStartup="true" />
+    <Project Path="Backend/Backend.csproj" DefaultStartup="true" />
+    <Project Path="Backend/Billing.API/Billing.API.csproj" />
     <Project Path="Backend/Billing.Application/Billing.Application.csproj" />
     <Project Path="Backend/Billing.Contracts/Billing.Contracts.csproj" />
     <Project Path="Backend/Billing.Domain/Billing.Domain.csproj" />
