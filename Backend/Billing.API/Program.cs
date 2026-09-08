@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Billing.API.Services;
 using Billing.Application;
@@ -14,6 +15,17 @@ using Microsoft.OpenApi;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // JWT Settings
 var jwtSettings = new JwtSettings();
@@ -35,10 +47,13 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 // Authentication & JWT Validation
 builder.Services.AddAuthentication(options =>
@@ -60,6 +75,25 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var userSessionRepo = context.HttpContext.RequestServices.GetRequiredService<IUserSessionRepository>();
+            var sidClaim = context.Principal?.FindFirst("sessionId")?.Value
+                           ?? context.Principal?.FindFirst(ClaimTypes.Sid)?.Value
+                           ?? context.Principal?.FindFirst("sid")?.Value;
+
+            if (Guid.TryParse(sidClaim, out var sessionId))
+            {
+                var session = await userSessionRepo.GetByIdAsync(sessionId);
+                if (session == null || session.IsRevoked || session.SessionExpiresAtUtc <= DateTime.UtcNow)
+                {
+                    context.Fail("Session has been revoked or expired.");
+                }
+            }
+        }
     };
 });
 
@@ -122,9 +156,12 @@ app.UseSwaggerUI(c =>
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/swagger", () => Results.Redirect("/"));
 app.MapControllers();
 
 app.Run();

@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="Billing.API/Billing.API.csproj" />
+  <Project Path="Billing.API/Billing.API.csproj" DefaultStartup="true" />
   <Project Path="Billing.Application/Billing.Application.csproj" />
   <Project Path="Billing.Contracts/Billing.Contracts.csproj" />
   <Project Path="Billing.Domain/Billing.Domain.csproj" />

@@ -15,7 +15,8 @@ public class User
 
     public string PasswordHash { get; set; } = string.Empty;
 
-    public string TenantId { get; set; } = "tenant-default";
+    public int? TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
 
     public string ApplicationId { get; set; } = "IBMS";
 

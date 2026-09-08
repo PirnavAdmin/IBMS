@@ -44,8 +44,10 @@ public class JwtTokenService : IJwtTokenService
             new("username", string.IsNullOrWhiteSpace(user.Username) ? user.Email : user.Username),
 
             // Multi-tenancy & Application claims
-            new("TenantId", string.IsNullOrWhiteSpace(user.TenantId) ? "tenant-default" : user.TenantId),
-            new("tenant_id", string.IsNullOrWhiteSpace(user.TenantId) ? "tenant-default" : user.TenantId),
+            new("TenantId", user.TenantId?.ToString() ?? ""),
+            new("tenant_id", user.TenantId?.ToString() ?? ""),
+            new("tenant_code", user.Tenant?.TenantCode ?? ""),
+            new("tenant_name", user.Tenant?.Name ?? ""),
             new("ApplicationId", string.IsNullOrWhiteSpace(user.ApplicationId) ? _jwtSettings.ApplicationId : user.ApplicationId),
             new("app_id", string.IsNullOrWhiteSpace(user.ApplicationId) ? _jwtSettings.ApplicationId : user.ApplicationId),
 
@@ -63,12 +65,13 @@ public class JwtTokenService : IJwtTokenService
         var roles = user.Roles;
         if (!roles.Any())
         {
-            roles = new List<string> { "User" };
+            roles = new List<string> { "Customer" };
         }
 
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("role", role));
             claims.Add(new Claim("Roles", role));
         }
 

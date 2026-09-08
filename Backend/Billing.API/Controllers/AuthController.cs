@@ -56,7 +56,8 @@ public class AuthController : ControllerBase
 
     // LOGOUT (Current Session)
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] LogoutRequest? request)
+    public async Task<IActionResult> Logout(
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] LogoutRequest? request = null)
     {
         Guid? sessionId = null;
         var sidClaim = User.FindFirst("sessionId") ??
@@ -68,7 +69,16 @@ public class AuthController : ControllerBase
             sessionId = guid;
         }
 
-        var response = await _authService.LogoutAsync(request?.RefreshToken, sessionId);
+        var refreshToken = string.Equals(request?.RefreshToken?.Trim(), "string", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : request?.RefreshToken;
+
+        var response = await _authService.LogoutAsync(refreshToken, sessionId);
+        if (!response.Success && sessionId == null && string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return BadRequest(new { success = false, message = "Please provide an active Bearer token or a valid RefreshToken to logout." });
+        }
+
         return Ok(response);
     }
 
@@ -219,5 +229,78 @@ public class AuthController : ControllerBase
         }
 
         return Ok(response);
+    }
+
+    // REGISTER COMPANY (Onboard new Tenant and Company Owner)
+    [HttpPost("register-company")]
+    public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
+    {
+        var response = await _authService.RegisterCompanyAsync(request);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    // REGISTER CUSTOMER (Company owner creates customer under their tenant)
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPost("register-customer")]
+    public async Task<IActionResult> RegisterCustomer([FromBody] RegisterRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("tenant_id") ?? User.FindFirst("TenantId");
+        if (tenantIdClaim == null || !int.TryParse(tenantIdClaim.Value, out var tenantId))
+        {
+            return BadRequest(new { success = false, message = "Could not determine tenant from caller claims." });
+        }
+
+        var response = await _authService.RegisterCustomerAsync(request, tenantId);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    // ROLE-PROTECTED TEST ENDPOINTS
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "TenantAdmin")]
+    [HttpGet("company-dashboard")]
+    public IActionResult GetCompanyDashboard()
+    {
+        var tenantName = User.FindFirst("tenant_name")?.Value ?? "Company";
+        var tenantCode = User.FindFirst("tenant_code")?.Value ?? "";
+        return Ok(new
+        {
+            message = $"Welcome to {tenantName} Owner Dashboard",
+            tenantCode,
+            role = "TenantAdmin"
+        });
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Customer")]
+    [HttpGet("customer-dashboard")]
+    public IActionResult GetCustomerDashboard()
+    {
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+        return Ok(new
+        {
+            message = $"Welcome Customer ({email})",
+            role = "Customer"
+        });
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin")]
+    [HttpGet("platform-dashboard")]
+    public IActionResult GetPlatformDashboard()
+    {
+        return Ok(new
+        {
+            message = "Welcome Platform SuperAdmin",
+            role = "SuperAdmin"
+        });
     }
 }

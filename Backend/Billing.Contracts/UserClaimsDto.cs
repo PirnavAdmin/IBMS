@@ -10,7 +10,10 @@ public class UserClaimsDto
 
     public string Email { get; set; } = string.Empty;
 
-    public string TenantId { get; set; } = string.Empty;
+    public string? TenantId { get; set; }
+    public string? TenantCode { get; set; }
+    public string? TenantName { get; set; }
+    public string Role { get; set; } = string.Empty;
 
     public string ApplicationId { get; set; } = string.Empty;
 

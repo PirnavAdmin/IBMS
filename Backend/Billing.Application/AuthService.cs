@@ -13,6 +13,7 @@ public class AuthService
     private readonly IUserSessionRepository _userSessionRepository;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly JwtSettings _jwtSettings;
+    private readonly ITenantRepository? _tenantRepository;
 
     // Temporary OTP storage
     private static readonly Dictionary<string, (string Otp, DateTime Expiry)>
@@ -25,12 +26,14 @@ public class AuthService
         IUserRepository userRepository,
         IUserSessionRepository userSessionRepository,
         IJwtTokenService jwtTokenService,
-        JwtSettings jwtSettings)
+        JwtSettings jwtSettings,
+        ITenantRepository? tenantRepository = null)
     {
         _userRepository = userRepository;
         _userSessionRepository = userSessionRepository;
         _jwtTokenService = jwtTokenService;
         _jwtSettings = jwtSettings;
+        _tenantRepository = tenantRepository;
     }
 
     // REGISTER
@@ -89,9 +92,9 @@ public class AuthService
             Email = email,
             PasswordHash =
                 BCrypt.Net.BCrypt.HashPassword(request.Password),
-            TenantId = "tenant-default",
+            TenantId = 1,
             ApplicationId = _jwtSettings.ApplicationId,
-            Roles = new List<string> { "User" },
+            Roles = new List<string> { "Customer" },
             Permissions = new List<string> { "billing.view", "billing.create" },
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
@@ -115,17 +118,14 @@ public class AuthService
         string? userAgent = null,
         string? deviceInfo = null)
     {
-        // Support identifier from Email or Username
-        var identifier = !string.IsNullOrWhiteSpace(request.Username)
-            ? request.Username.Trim().ToLower()
-            : request.Email.Trim().ToLower();
+        var identifier = request.Email.Trim().ToLower();
 
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
             return new LoginResponse
             {
                 Success = false,
-                Message = "Email/Username and password are required"
+                Message = "Email and password are required"
             };
         }
 
@@ -146,6 +146,15 @@ public class AuthService
             {
                 Success = false,
                 Message = "Account is inactive or disabled"
+            };
+        }
+
+        if (user.Tenant != null && !user.Tenant.IsActive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
             };
         }
 
@@ -194,13 +203,17 @@ public class AuthService
         // 4. Generate JWT Access Token with claims
         var (accessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, sessionId);
 
+        var primaryRole = user.Roles.FirstOrDefault() ?? "Customer";
         var claimsDto = new UserClaimsDto
         {
             UserId = user.Id,
             Name = user.Name,
             Username = user.Username,
             Email = user.Email,
-            TenantId = user.TenantId,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = primaryRole,
             ApplicationId = user.ApplicationId,
             Roles = user.Roles,
             Permissions = user.Permissions,
@@ -354,7 +367,10 @@ public class AuthService
             Name = user.Name,
             Username = user.Username,
             Email = user.Email,
-            TenantId = user.TenantId,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = user.Roles.FirstOrDefault() ?? "User",
             ApplicationId = user.ApplicationId,
             Roles = user.Roles,
             Permissions = user.Permissions,
@@ -394,17 +410,21 @@ public class AuthService
 
         if (sessionId.HasValue)
         {
-            await _userSessionRepository.RevokeSessionAsync(sessionId.Value, "User logged out");
-            return new LoginResponse
+            var session = await _userSessionRepository.GetByIdAsync(sessionId.Value);
+            if (session != null)
             {
-                Success = true,
-                Message = "Logged out successfully"
-            };
+                await _userSessionRepository.RevokeSessionAsync(sessionId.Value, "User logged out");
+                return new LoginResponse
+                {
+                    Success = true,
+                    Message = "Logged out successfully"
+                };
+            }
         }
 
         return new LoginResponse
         {
-            Success = true,
+            Success = false,
             Message = "Session was already closed or not found"
         };
     }
@@ -453,13 +473,17 @@ public class AuthService
         if (user == null)
             return null;
 
+        var primaryRole = user.Roles.FirstOrDefault() ?? "Customer";
         return new UserClaimsDto
         {
             UserId = user.Id,
             Name = user.Name,
             Username = user.Username,
             Email = user.Email,
-            TenantId = user.TenantId,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = primaryRole,
             ApplicationId = user.ApplicationId,
             Roles = user.Roles,
             Permissions = user.Permissions,
@@ -707,5 +731,163 @@ public class AuthService
         }
 
         return errors;
+    }
+
+    // REGISTER COMPANY (Onboard new Tenant and Company Owner)
+    public async Task<LoginResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
+    {
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(request.CompanyName))
+            errors.Add("Company name is required");
+        if (string.IsNullOrWhiteSpace(request.TenantCode))
+            errors.Add("Tenant code is required");
+        errors.AddRange(ValidateName(request.OwnerName));
+        errors.AddRange(ValidateEmail(request.Email));
+        errors.AddRange(ValidatePassword(request.Password));
+
+        if (errors.Any())
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Validation failed",
+                Errors = errors
+            };
+        }
+
+        var normalizedCode = request.TenantCode.Trim().ToLower();
+        if (_tenantRepository != null && await _tenantRepository.ExistsByCodeAsync(normalizedCode))
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company tenant code is already taken"
+            };
+        }
+
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Email already registered"
+            };
+        }
+
+        var tenant = new Tenant
+        {
+            Name = request.CompanyName.Trim(),
+            TenantCode = normalizedCode,
+            CompanyEmail = request.Email.Trim().ToLower(),
+            Phone = request.Phone,
+            TaxId = request.TaxId,
+            Address = request.Address,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        if (_tenantRepository != null)
+        {
+            await _tenantRepository.CreateAsync(tenant);
+        }
+
+        var owner = new User
+        {
+            Name = request.OwnerName.Trim(),
+            Username = request.Email.Trim().ToLower(),
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            TenantId = tenant.Id > 0 ? tenant.Id : null,
+            Tenant = tenant,
+            Roles = new List<string> { "TenantAdmin" },
+            Permissions = new List<string> { "billing.admin", "billing.view", "billing.create", "billing.manage_customers" },
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(owner);
+
+        return new LoginResponse
+        {
+            Success = true,
+            Message = "Company registered successfully",
+            User = new UserClaimsDto
+            {
+                UserId = owner.Id,
+                Name = owner.Name,
+                Email = owner.Email,
+                TenantId = owner.TenantId?.ToString(),
+                TenantCode = tenant.TenantCode,
+                TenantName = tenant.Name,
+                Role = "TenantAdmin",
+                Roles = owner.Roles,
+                Permissions = owner.Permissions
+            }
+        };
+    }
+
+    // REGISTER CUSTOMER (Company owner creates customer under their tenant)
+    public async Task<LoginResponse> RegisterCustomerAsync(RegisterRequest request, int tenantId)
+    {
+        var errors = new List<string>();
+        errors.AddRange(ValidateName(request.Name));
+        errors.AddRange(ValidateEmail(request.Email));
+        if (request.Password != request.ConfirmPassword)
+        {
+            errors.Add("Passwords do not match");
+        }
+        errors.AddRange(ValidatePassword(request.Password));
+
+        if (errors.Any())
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Validation failed",
+                Errors = errors
+            };
+        }
+
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Email already registered"
+            };
+        }
+
+        var customer = new User
+        {
+            Name = request.Name.Trim(),
+            Username = request.Email.Trim().ToLower(),
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            TenantId = tenantId,
+            Roles = new List<string> { "Customer" },
+            Permissions = new List<string> { "billing.view" },
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(customer);
+
+        return new LoginResponse
+        {
+            Success = true,
+            Message = "Customer registered successfully",
+            User = new UserClaimsDto
+            {
+                UserId = customer.Id,
+                Name = customer.Name,
+                Email = customer.Email,
+                TenantId = customer.TenantId?.ToString(),
+                Role = "Customer",
+                Roles = customer.Roles,
+                Permissions = customer.Permissions
+            }
+        };
     }
 }

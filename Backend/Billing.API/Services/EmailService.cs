@@ -1,4 +1,4 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
 using MimeKit;
 
 namespace Billing.API.Services;
@@ -16,11 +16,12 @@ public class EmailService
     {
         var email = new MimeMessage();
 
-        email.From.Add(
-            MailboxAddress.Parse(
-                _configuration["EmailSettings:Email"]
-            )
-        );
+        var fromEmail = _configuration["EmailSettings:Email"] 
+            ?? throw new InvalidOperationException("EmailSettings:Email is not configured.");
+        var appPassword = _configuration["EmailSettings:AppPassword"] 
+            ?? throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
+
+        email.From.Add(MailboxAddress.Parse(fromEmail));
 
         email.To.Add(MailboxAddress.Parse(toEmail));
 
@@ -40,8 +41,8 @@ public class EmailService
         );
 
         await smtp.AuthenticateAsync(
-            _configuration["EmailSettings:Email"],
-            _configuration["EmailSettings:AppPassword"]
+            fromEmail,
+            appPassword
         );
 
         await smtp.SendAsync(email);

@@ -17,6 +17,7 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByIdAsync(int id)
     {
         return await _context.Users
+            .Include(u => u.Tenant)
             .Include(u => u.Sessions)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
@@ -24,12 +25,14 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await _context.Users
+            .Include(u => u.Tenant)
             .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
     }
 
     public async Task<User?> GetByUsernameAsync(string username)
     {
         return await _context.Users
+            .Include(u => u.Tenant)
             .FirstOrDefaultAsync(x => x.Username.ToLower() == username.ToLower());
     }
 
@@ -37,6 +40,7 @@ public class UserRepository : IUserRepository
     {
         var lower = identifier.Trim().ToLower();
         return await _context.Users
+            .Include(u => u.Tenant)
             .FirstOrDefaultAsync(x => x.Email.ToLower() == lower || x.Username.ToLower() == lower);
     }
 
