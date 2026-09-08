@@ -1,11 +1,10 @@
 export const dashboardMockData = {
   summary: {
-    totalInvoiced: { id: 'invoiced', label: 'Total Invoiced', value: 1245800, meta: '12.5% this month', trend: 'up', icon: 'invoice', tone: 'sand' },
-    totalPaid: { id: 'paid', label: 'Total Paid', value: 980500, meta: '8.2% this month', trend: 'up', icon: 'paid', tone: 'mint' },
+    totalInvoiced: { id: 'invoiced', label: 'Total Invoiced', value: 1245800, meta: 'Sample issued invoices', icon: 'invoice', tone: 'sand' },
+    totalPaid: { id: 'paid', label: 'Total Paid', value: 980500, meta: 'Sample collected payments', icon: 'paid', tone: 'mint' },
     outstanding: { id: 'outstanding', label: 'Outstanding', value: 265300, meta: '21 invoices', icon: 'wallet', tone: 'cream' },
     overdue: { id: 'overdue', label: 'Overdue', value: 84500, meta: '8 invoices', icon: 'warning', tone: 'rose' },
     drafts: { id: 'drafts', label: 'Draft Invoices', value: 14, valueType: 'number', meta: '₹1,36,000', icon: 'draft', tone: 'lavender' },
-    paymentsReceived: { id: 'payments', label: 'Payments Received', value: 342000, meta: '36 transactions', icon: 'card', tone: 'teal' },
   },
   revenue: [
     { label: 'Jan', invoiced: 90000, collected: 50000 }, { label: 'Feb', invoiced: 150000, collected: 100000 }, { label: 'Mar', invoiced: 165000, collected: 105000 },
@@ -14,8 +13,8 @@ export const dashboardMockData = {
   ],
   invoiceStatus: [42, 78, 53, 106, 89, 136, 116, 154].map((value, index) => ({ label: `M${index + 1}`, value })),
   outstandingAging: [
-    { label: 'Current', value: 120000, color: '#6f2f0d' }, { label: '1–30 Days', value: 72000, color: '#dea071' }, { label: '31–60 Days', value: 38500, color: '#f4c18e' },
-    { label: '61–90 Days', value: 22000, color: '#ff934c' }, { label: '90+ Days', value: 12800, color: '#ff5252' },
+    { label: 'Current', value: 180800, color: '#6f2f0d' }, { label: '1–30 Days', value: 40000, color: '#dea071' }, { label: '31–60 Days', value: 22000, color: '#f4c18e' },
+    { label: '61–90 Days', value: 15000, color: '#ff934c' }, { label: '90+ Days', value: 7500, color: '#ff5252' },
   ],
   recentInvoices: [
     { invoice: 'INV-1045', customer: 'TechNova Pvt Ltd', date: '03 Sep 2026', dueDate: '15 Sep 2026', amount: 45000, status: 'Sent' },

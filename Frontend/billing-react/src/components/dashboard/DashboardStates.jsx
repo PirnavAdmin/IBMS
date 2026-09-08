@@ -7,9 +7,9 @@ const SectionSkeleton = ({ title, chart = false }) => <section className="bd-car
 </section>;
 
 export const DashboardSkeleton = () => <div className="bd-dashboard-skeleton" role="status" aria-label="Loading dashboard" aria-busy="true">
-  <section className="bd-kpi-grid" aria-label="Loading billing summary">{Array.from({ length: 6 }, (_, index) => <div className="bd-stat bd-stat-skeleton" key={index}><Skeleton variant="rounded" width={44} height={44} /><Skeleton width="75%" height={26} /><Skeleton width="90%" height={36} /><Skeleton width="65%" height={20} /></div>)}</section>
-  <div className="bd-chart-grid">{['Revenue Overview', 'Invoice Status', 'Outstanding Aging'].map((title) => <SectionSkeleton key={title} title={title} chart />)}</div>
-  <div className="bd-detail-grid">{['Recent Invoices', 'Recent Payments', 'Top Customers', 'Overdue Invoices', 'Recent Activity', 'Quick Actions'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
+  <section className="bd-kpi-grid" aria-label="Loading billing summary">{Array.from({ length: 5 }, (_, index) => <div className="bd-stat bd-stat-skeleton" key={index}><Skeleton variant="rounded" width={44} height={44} /><Skeleton width="75%" height={26} /><Skeleton width="90%" height={36} /><Skeleton width="65%" height={20} /></div>)}</section>
+  <div className="bd-chart-grid">{['Revenue Trend', 'Outstanding Aging'].map((title) => <SectionSkeleton key={title} title={title} chart />)}</div>
+  <div className="bd-detail-grid">{['Recent Payments', 'Top Customers'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
 </div>;
 
 export const DashboardErrorState = ({ onRetry }) => <section className="bd-dashboard-error" role="alert">

@@ -11,7 +11,7 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu }) =>
   const role = 'Admin';
   return <header className="bd-header">
     {onMenu && <button className="bd-mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu /></button>}
-    <label className="bd-search"><Search /><input value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search invoices, customers, products..." aria-label="Search dashboard" /></label>
+    <label className="bd-search"><Search /><input value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search displayed records..." aria-label="Search dashboard" /></label>
     <div className="bd-profile-area">
       <button className="bd-icon-button bd-notification" aria-label="Notifications"><NotificationsNone /></button>
       <button className="bd-icon-button" aria-label="Help"><HelpOutline /></button>

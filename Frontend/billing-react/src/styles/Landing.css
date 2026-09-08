@@ -63,8 +63,8 @@
 .hero-trust-bar { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: #7D6E66; }
 .trust-heart { font-size: 1rem; }
 /* Hero Visual Mockup */
-.hero-mockup-wrapper { position: relative; max-width: 480px; margin: 0 auto; min-height: 420px; display: flex; justify-content: center; align-items: center; }
-.hero-card-invoice { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 24px 50px -12px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0,0,0,0.02); width: 320px; position: relative; z-index: 1; transition: transform 0.3s; }
+.hero-mockup-wrapper { position: relative; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; align-items: center; width: 100%; }
+.hero-card-invoice { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 24px 50px -12px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0,0,0,0.02); width: 100%; max-width: 380px; box-sizing: border-box; position: relative; z-index: 1; transition: transform 0.3s; }
 .hero-card-invoice:hover { transform: translateY(-4px); }
 .mockup-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .mockup-brand-tag { font-weight: 900; color: #9A4F2F; font-size: 1.1rem; }
@@ -77,7 +77,7 @@
 .mockup-bill-total { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.95rem; color: #2D211C; }
 .total-highlight { color: #9A4F2F; font-family: monospace; font-size: 1.15rem; }
 .whatsapp-sent-bubble { display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 99px; margin-top: 14px; width: fit-content; }
-.hero-phone-mockup { position: absolute; right: -10px; bottom: -20px; background: #9A4F2F; border-radius: 28px; padding: 10px; box-shadow: 0 25px 50px -10px rgba(154, 79, 47, 0.35), 0 10px 20px -5px rgba(45, 33, 28, 0.2); width: 210px; z-index: 2; border: 2.5px solid #853E21; }
+.hero-phone-mockup { position: relative; background: #9A4F2F; border-radius: 28px; padding: 10px; box-shadow: 0 25px 50px -10px rgba(154, 79, 47, 0.35), 0 10px 20px -5px rgba(45, 33, 28, 0.2); width: 100%; max-width: 280px; box-sizing: border-box; z-index: 2; border: 2.5px solid #853E21; }
 .phone-screen { background: #ffffff; border-radius: 20px; padding: 20px 14px; text-align: center; border: 1px solid rgba(231, 216, 203, 0.7); }
 .phone-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #DFA24B; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 6px 16px rgba(223, 162, 75, 0.35); }
 .phone-success-title { font-weight: 800 !important; color: #2D211C !important; font-size: 0.85rem !important; }
@@ -243,3 +243,20 @@
 .footer-bottom-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 0.78rem; }
 .footer-copyright { color: #7D6E66 !important; font-size: 0.8rem !important; }
 .footer-badge { color: #cbd5e1; font-weight: 600; }
+
+/* Keep in-page navigation and previews clear of the fixed navbar. */
+.landing-root section[id] { scroll-margin-top: 100px; }
+.selected-invoice-preview { display: flex !important; flex-direction: column; gap: 24px; align-items: center; padding-bottom: 24px; }
+.selected-invoice-preview .tax-invoice-sheet { width: 100%; box-sizing: border-box; }
+.cta-buttons-row { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+.mockup-bill-line, .mockup-bill-total, .mockup-card-header { gap: 12px; }
+@media (max-width: 600px) {
+  .swipe-brand { gap: 8px; }
+  .swipe-brand-icon { width: 32px; height: 32px; flex-shrink: 0; }
+  .swipe-brand-title { font-size: 1rem !important; }
+  .swipe-brand-caption { font-size: 0.5rem !important; }
+  .nav-signup-btn { padding: 8px 12px !important; white-space: nowrap; }
+  .hero-card-invoice { padding: 20px; }
+  .hero-cta-row > a { width: 100%; }
+  .selected-invoice-preview .invoice-sheet-top { flex-wrap: wrap; gap: 12px; }
+}

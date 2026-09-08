@@ -28,7 +28,6 @@ import {
   LockOutlined,
   Visibility,
   VisibilityOff,
-  ReceiptOutlined,
   SendOutlined,
   VpnKeyOutlined,
   LockResetOutlined,
@@ -38,47 +37,13 @@ import { authApi } from 'billing-api-client';
 import { OtpInputGroup } from '../../components/OtpInputGroup';
 
 import '../../styles/Login.css';
+import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 
 // ============================================================
 // INVOICE.BILLING LOGO
 // ============================================================
 
-const InvoiceBillingLogo = ({ size = 26 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="3"
-      y="11"
-      width="4.2"
-      height="10"
-      rx="2.1"
-      fill="#84cc16"
-    />
 
-    <rect
-      x="9.9"
-      y="6"
-      width="4.2"
-      height="15"
-      rx="2.1"
-      fill="#84cc16"
-    />
-
-    <rect
-      x="16.8"
-      y="2"
-      width="4.2"
-      height="19"
-      rx="2.1"
-      fill="#84cc16"
-    />
-  </svg>
-);
 
 // ============================================================
 // LOGIN VALIDATION
@@ -711,10 +676,10 @@ export const Login = () => {
 
           <div className="billing-auth-brand-wrap">
 
-            <InvoiceBillingLogo size={28} />
+            <InvoiceBillingLogo tone="auth" size={28} />
 
             <span className="billing-auth-brand-text">
-              invoice.billing
+              INVOICE.BILLING
             </span>
 
           </div>
@@ -756,10 +721,10 @@ export const Login = () => {
 
               <div className="billing-auth-card-brand">
 
-                <InvoiceBillingLogo size={20} />
+                <InvoiceBillingLogo tone="auth" size={20} />
 
                 <span>
-                  invoice.billing
+                  INVOICE.BILLING
                 </span>
 
               </div>
@@ -818,21 +783,40 @@ export const Login = () => {
 
       <Box className="billing-auth-form-side">
 
+        <div className="login-form-stack">
+          {authStep !== 'login' && (
+            <button
+              type="button"
+              onClick={() => {
+                setRecoveryError(null);
+                setRecoverySuccess(null);
+
+                if (authStep === 'otp') {
+                  setAuthStep('forgot');
+                } else if (authStep === 'reset') {
+                  setAuthStep('otp');
+                } else {
+                  setAuthStep('login');
+                }
+              }}
+              className="billing-auth-back-link recovery-back-link"
+            >
+              &larr;{' '}
+              {authStep === 'otp'
+                ? 'Change email'
+                : 'Back to sign in'}
+            </button>
+          )}
         <div className="billing-auth-card">
 
           {/* ==================================================
               CARD ICON
           ================================================== */}
 
-          <div className="billing-auth-card-badge">
+          <div className={`billing-auth-card-badge ${authStep === 'login' ? 'billing-auth-logo-badge' : ''}`}>
 
             {authStep === 'login' && (
-              <ReceiptOutlined
-                sx={{
-                  fontSize: 20,
-                  color: '#9A4F2F',
-                }}
-              />
+              <InvoiceBillingLogo tone="auth" size={20} />
             )}
 
             {authStep === 'forgot' && (
@@ -868,29 +852,7 @@ export const Login = () => {
               BACK LINK
           ================================================== */}
 
-          {authStep !== 'login' && (
-            <button
-              type="button"
-              onClick={() => {
-                setRecoveryError(null);
-                setRecoverySuccess(null);
 
-                if (authStep === 'otp') {
-                  setAuthStep('forgot');
-                } else if (authStep === 'reset') {
-                  setAuthStep('otp');
-                } else {
-                  setAuthStep('login');
-                }
-              }}
-              className="billing-auth-back-link"
-            >
-              &larr;{' '}
-              {authStep === 'otp'
-                ? 'Change email'
-                : 'Back to sign in'}
-            </button>
-          )}
 
           {/* ==================================================
               TITLE
@@ -1181,7 +1143,7 @@ export const Login = () => {
 
             {/* Kept outside the login form so this link can never submit it. */}
             <div className="billing-auth-footer-text">
-              New to invoice.billing?{' '}
+              New to INVOICE.BILLING?{' '}
               <button
                 type="button"
                 className="billing-auth-create-link billing-auth-route-button"
@@ -1542,6 +1504,7 @@ export const Login = () => {
             </Box>
           )}
 
+        </div>
         </div>
 
       </Box>

@@ -16,6 +16,7 @@ import {
   SettingsOutlined,
   SupportAgentOutlined,
 } from '@mui/icons-material';
+import { InvoiceBillingLogo } from '../InvoiceBillingLogo';
 import { dashboardNavigation } from '../../data/dashboardNavigation';
 
 const iconMap = {
@@ -40,8 +41,8 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
     <button className={`bd-sidebar-backdrop ${open ? 'is-open' : ''}`} onClick={onClose} aria-label="Close navigation" />
     <aside className={`bd-sidebar ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
       <button className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')}>
-        <span><ReceiptLongOutlined /></span>
-        <strong>invoice<span>.</span>billing</strong>
+        <InvoiceBillingLogo size={20} />
+        <strong>INVOICE<span>.</span>BILLING</strong>
       </button>
       <nav className="bd-sidebar-nav">
         {dashboardNavigation.map((section) => <div className="bd-nav-section" key={section.label}>

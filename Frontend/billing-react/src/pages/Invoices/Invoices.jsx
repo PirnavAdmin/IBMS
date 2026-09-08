@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Add, DownloadOutlined, ReceiptLongOutlined, SendOutlined, PieChartOutline, WarningAmberOutlined, CheckCircleOutline, Search, FilterList, MoreVert } from '@mui/icons-material';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
@@ -15,8 +15,9 @@ const initialFilters = { search: '', start: '', end: '', customer: '', status: '
 
 export const Invoices = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [invoices] = useState(getInvoices);
-  const [tab, setTab] = useState('All Invoices');
+  const [tab, setTab] = useState(() => statuses.includes(searchParams.get('status')) ? searchParams.get('status') : 'All Invoices');
   const [filters, setFilters] = useState(initialFilters);
   const [selected, setSelected] = useState([]);
   const [page, setPage] = useState(1);
