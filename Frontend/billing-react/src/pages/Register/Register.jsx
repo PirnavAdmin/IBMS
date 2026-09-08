@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -26,15 +26,9 @@ import {
 } from '@mui/icons-material';
 import { authApi } from 'billing-api-client';
 import '../../styles/Login.css';
+import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 
-// 3-Bar Chart Icon matching invoice.billing Logo in user's image
-const InvoiceBillingLogo = ({ size = 26 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="11" width="4.2" height="10" rx="2.1" fill="#84cc16" />
-    <rect x="9.9" y="6" width="4.2" height="15" rx="2.1" fill="#84cc16" />
-    <rect x="16.8" y="2" width="4.2" height="19" rx="2.1" fill="#84cc16" />
-  </svg>
-);
+
 
 const registerSchema = yup.object({
   fullName: yup.string().trim().required('Full name is required'),
@@ -65,7 +59,6 @@ export const Register = () => {
     register,
     handleSubmit,
     watch,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(registerSchema),
@@ -87,13 +80,7 @@ export const Register = () => {
     length: passwordValue.length >= 8,
   };
   const textOutput = `${checks.lower ? '✓' : '✗'} lowercase, ${checks.upper ? '✓' : '✗'} uppercase, ${checks.number ? '✓' : '✗'} number, ${checks.special ? '✓' : '✗'} special char, ${checks.length ? '✓' : '✗'} 8 chars`;
-  const openLogin = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    clearErrors();
-    setApiError(null);
-    navigate('/login');
-  };
+
 
   const onSubmit = async (formData) => {
     try {
@@ -123,8 +110,8 @@ export const Register = () => {
       <Box className="billing-auth-hero-side">
         <div className="billing-auth-hero-top">
           <div className="billing-auth-brand-wrap">
-            <InvoiceBillingLogo size={28} />
-            <span className="billing-auth-brand-text">invoice.billing</span>
+            <InvoiceBillingLogo tone="auth" size={28} />
+            <span className="billing-auth-brand-text">INVOICE.BILLING</span>
           </div>
         </div>
 
@@ -157,24 +144,23 @@ export const Register = () => {
 
         <div className="billing-auth-hero-footer">
           <span className="billing-auth-hero-copyright">
-            &copy; 2026 invoice.billing. Built for better business.
+            &copy; 2026 INVOICE.BILLING. Built for better business.
           </span>
         </div>
       </Box>
 
       {/* ================= RIGHT FORM PANEL ================= */}
       <Box className="billing-auth-form-side register-form-side">
-        <div className="billing-auth-card register-card">
+        <div className="register-form-stack">
           {/* Back to Sign In Link */}
-          <button
-            type="button"
-            onPointerDown={openLogin}
-            onClick={openLogin}
-            className="billing-auth-back-link"
+          <RouterLink
+            to="/login"
+            className="billing-auth-back-link register-back-link"
           >
             &larr; Back to sign in
-          </button>
+          </RouterLink>
 
+        <div className="billing-auth-card register-card">
           {/* Step Tag */}
           <span className="billing-auth-step-tag">STEP 1 OF 1</span>
 
@@ -209,7 +195,6 @@ export const Register = () => {
                   size="small"
                   id="fullName"
                   placeholder="Your full name"
-                  autoFocus
                   disabled={isSubmitting}
                   {...register('fullName')}
                   error={Boolean(errors.fullName)}
@@ -346,7 +331,7 @@ export const Register = () => {
                 }
                 label={
                   <span className="billing-auth-terms-label">
-                    I agree to invoice.billing's{' '}
+                    I agree to INVOICE.BILLING's{' '}
                     <span className="billing-auth-terms-link">Terms</span> and{' '}
                     <span className="billing-auth-terms-link">Privacy Policy</span>.
                   </span>
@@ -368,7 +353,7 @@ export const Register = () => {
                 className="billing-auth-submit-btn"
                 sx={{ mt: 1 }}
               >
-                {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create free account \u2192'}
+                {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create Account \u2192'}
               </Button>
             </Stack>
           </Box>
@@ -376,15 +361,11 @@ export const Register = () => {
           {/* Kept outside the registration form so this link can never submit it. */}
           <div className="billing-auth-footer-text" style={{ marginTop: 14 }}>
             Already have an account?{' '}
-            <button
-              type="button"
-              className="billing-auth-create-link billing-auth-route-button"
-              onPointerDown={openLogin}
-              onClick={openLogin}
-            >
+            <RouterLink to="/login" className="billing-auth-create-link billing-auth-route-button">
               Sign in
-            </button>
+            </RouterLink>
           </div>
+        </div>
         </div>
       </Box>
     </Box>

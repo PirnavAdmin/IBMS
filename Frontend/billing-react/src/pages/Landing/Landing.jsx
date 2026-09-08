@@ -12,7 +12,6 @@ import {
 import {
   ArrowForward,
   CheckCircle,
-  ReceiptLong,
   CreditCard,
   AccountBalance,
   QrCode2,
@@ -24,6 +23,7 @@ import {
   AccountBalanceWallet,
 } from '@mui/icons-material';
 import { useAuthNav } from 'billing-react';
+import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 import { HeroMockup } from './HeroMockup';
 import { TaxInvoiceSheet } from './TaxInvoiceSheet';
 import {
@@ -52,7 +52,7 @@ const CHANNEL_ICONS = {
 export const Landing = () => {
   const { handleNav, isExiting } = useAuthNav();
   const [selectedPayment, setSelectedPayment] = useState('upi');
-  const [selectedTemplate, setSelectedTemplate] = useState('tata');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showNavbar, setShowNavbar] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -104,12 +104,10 @@ export const Landing = () => {
         <Container maxWidth="lg">
           <Toolbar disableGutters className="swipe-toolbar">
             <Box className="swipe-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <div className="swipe-brand-icon">
-                <ReceiptLong sx={{ color: '#ffffff', fontSize: 24 }} />
-              </div>
+              <InvoiceBillingLogo />
               <Box>
                 <Typography variant="h6" className="swipe-brand-title">
-                  invoice<span className="brand-dot">.</span>billing
+                  INVOICE<span className="brand-dot">.</span>BILLING
                 </Typography>
                 <Typography variant="caption" className="swipe-brand-caption">
                   GST INVOICING &amp; PAYMENTS
@@ -130,7 +128,7 @@ export const Landing = () => {
                 <span>100% Safe &amp; GST Ready</span>
               </div>
               <Button variant="contained" onClick={handleSignIn} endIcon={<ArrowForward sx={{ fontSize: 16 }} />} className="nav-signup-btn">
-                Sign In Free
+                Sign in
               </Button>
             </Box>
           </Toolbar>
@@ -160,16 +158,16 @@ export const Landing = () => {
                 <Button
                   variant="contained"
                   size="large"
-                  onClick={handleSignIn}
+                  href="#payments"
                   endIcon={<ArrowForward />}
                   className="hero-main-btn"
                 >
-                  Sign In for Free
+                  Explore Payments
                 </Button>
                 <Button
                   variant="outlined"
                   size="large"
-                  onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
+                  href="#templates"
                   className="hero-secondary-btn"
                 >
                   View Sample Invoices &rarr;
@@ -224,7 +222,7 @@ export const Landing = () => {
               Professional GST Invoices for Every Business
             </Typography>
             <Typography variant="body1" className="section-main-sub">
-              Pre-configured, government-compliant invoice designs formatted for GST, dynamic UPI QR codes, HSN breakdowns, and digital signatures. Hover to inspect or click to select.
+              Pre-configured, government-compliant invoice designs formatted for GST, dynamic UPI QR codes, HSN breakdowns, and digital signatures. Select a company to view its invoice.
             </Typography>
           </div>
 
@@ -233,6 +231,9 @@ export const Landing = () => {
             {INVOICE_TEMPLATES.map((t) => (
               <button
                 key={t.id}
+                type="button"
+                aria-pressed={selectedTemplate === t.id}
+                aria-controls="invoice-preview"
                 className={`template-tab-btn ${selectedTemplate === t.id ? 'active' : ''}`}
                 onClick={() => setSelectedTemplate(t.id)}
               >
@@ -244,7 +245,15 @@ export const Landing = () => {
         </Container>
 
         {/* Continuous Moving Invoices Marquee Track */}
-        <div className="invoices-marquee-container">
+        {selectedTemplate ? (
+          <Container maxWidth="sm" id="invoice-preview" className="selected-invoice-preview" aria-live="polite">
+            <TaxInvoiceSheet inv={INVOICE_TEMPLATES.find((inv) => inv.id === selectedTemplate)} isSelected />
+            <Button onClick={() => setSelectedTemplate(null)} className="hero-secondary-btn">
+              Show all invoices
+            </Button>
+          </Container>
+        ) : (
+        <div id="invoice-preview" className="invoices-marquee-container">
           <div className="invoices-marquee-track">
             {INVOICE_TEMPLATES.concat(INVOICE_TEMPLATES).map((inv, idx) => (
               <div key={`${inv.id}-${idx}`} className="invoice-carousel-item">
@@ -257,6 +266,7 @@ export const Landing = () => {
             ))}
           </div>
         </div>
+        )}
       </Box>
 
       {/* 5. Feature Block: Record Payments Effortlessly (Inspired by Swipe Image 4) */}
@@ -287,13 +297,6 @@ export const Landing = () => {
                 </div>
               </div>
 
-              <Button
-                variant="contained"
-                onClick={handleSignIn}
-                className="feature-action-btn"
-              >
-                Try for Free &rarr;
-              </Button>
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -380,13 +383,6 @@ export const Landing = () => {
                 </div>
               </div>
 
-              <Button
-                variant="contained"
-                onClick={handleSignIn}
-                className="feature-action-btn"
-              >
-                Sign In to Start Sharing &rarr;
-              </Button>
             </Grid>
           </Grid>
         </Container>
@@ -420,13 +416,6 @@ export const Landing = () => {
                 </div>
               </div>
 
-              <Button
-                variant="contained"
-                onClick={handleSignIn}
-                className="feature-action-btn"
-              >
-                Explore Reconciliation &rarr;
-              </Button>
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -495,17 +484,6 @@ export const Landing = () => {
             <Typography variant="body1" className="cta-bold-sub">
               Create professional GST invoices, share bills directly on WhatsApp, and collect payments with automated bank reconciliation today.
             </Typography>
-            <div className="cta-buttons-row">
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleSignIn}
-                endIcon={<ArrowForward />}
-                className="cta-action-btn"
-              >
-                Sign In to Portal &rarr;
-              </Button>
-            </div>
             <div className="cta-footer-trust">
               <span>✓ 100% Free Trial</span>
               <span>&bull;</span>
@@ -522,9 +500,7 @@ export const Landing = () => {
         <Container maxWidth="lg">
           <div className="footer-top-row">
             <Box className="footer-brand">
-              <div className="swipe-brand-icon small">
-                <ReceiptLong sx={{ color: '#ffffff', fontSize: 18 }} />
-              </div>
+              <InvoiceBillingLogo size={18} />
               <span className="footer-brand-name">invoice.billing</span>
             </Box>
             <div className="footer-nav-links">

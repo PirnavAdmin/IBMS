@@ -637,3 +637,26 @@
     display: none;
   }
 }
+
+/* Keep registration navigation above the card in the same responsive column. */
+.register-form-stack { width: min(100%, 520px); margin-block: auto; flex-shrink: 0; }
+.register-form-stack .register-card { width: 100%; margin-block: 0; }
+.register-form-stack .register-back-link {
+  display: inline-flex; align-items: center; padding: 10px 16px;
+  margin: 0 0 12px; border: 1px solid #E7D8CB; border-radius: 10px;
+  background: #F5ECE3; color: #74371F; font-weight: 700;
+}
+.register-form-stack .register-back-link:hover { background: #E7D8CB; }
+.register-form-stack .register-back-link:focus-visible { outline: 2px solid #9A4F2F; outline-offset: 3px; }
+
+.login-form-stack { width: 100%; max-width: 420px; min-width: 0; margin-block: auto; }
+.billing-auth-form-side:has(.login-form-stack) { overflow-y: auto; }
+.billing-auth-logo-badge { width: 36px; height: 36px; border: 0; background: transparent; }
+.recovery-back-link {
+  display: inline-flex; padding: 10px 16px; margin: 0 0 12px;
+  border: 1px solid #E7D8CB; border-radius: 10px;
+  background: #F5ECE3; color: #74371F; font-weight: 700;
+}
+.recovery-back-link:hover { background: #E7D8CB; }
+.recovery-back-link:focus-visible { outline: 2px solid #9A4F2F; outline-offset: 3px; }
+.register-back-link, .billing-auth-route-button { text-decoration: none; }
