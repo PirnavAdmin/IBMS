@@ -17,6 +17,11 @@ public class FakeCustomerRepository : ICustomerRepository
         return Task.FromResult(match);
     }
 
+    public Task<Customer?> GetByIdForUpdateAsync(int id, int? tenantId = null)
+    {
+        return GetByIdAsync(id, tenantId);
+    }
+
     public Task<Customer?> GetByEmailAsync(string email, int? tenantId = null)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();

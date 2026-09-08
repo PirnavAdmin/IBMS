@@ -7,6 +7,8 @@ public interface ICustomerRepository
 {
     Task<Customer?> GetByIdAsync(int id, int? tenantId = null);
 
+    Task<Customer?> GetByIdForUpdateAsync(int id, int? tenantId = null);
+
     Task<Customer?> GetByEmailAsync(string email, int? tenantId = null);
 
     Task<Customer?> GetByCodeAsync(string customerCode, int? tenantId = null);

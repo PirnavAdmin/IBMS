@@ -6,19 +6,7 @@ public class LoginResponse
 
     public string Message { get; set; } = string.Empty;
 
-    /// <summary>
-    /// JWT Access Token (alias for Token)
-    /// </summary>
     public string? AccessToken { get; set; }
-
-    /// <summary>
-    /// Backward-compatible alias for AccessToken
-    /// </summary>
-    public string? Token
-    {
-        get => AccessToken;
-        set => AccessToken = value;
-    }
 
     public string? RefreshToken { get; set; }
 

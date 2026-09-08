@@ -63,7 +63,6 @@ public class BillingDbContext : DbContext
             entity.Property(c => c.Website).HasMaxLength(256);
             entity.Property(c => c.Notes).HasMaxLength(1000);
             entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("USD");
-            entity.Property(c => c.PaymentTerms).HasMaxLength(64);
             entity.Property(c => c.RowVersion).IsRowVersion();
 
             entity.HasOne(c => c.Tenant)

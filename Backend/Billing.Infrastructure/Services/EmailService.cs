@@ -1,7 +1,8 @@
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.Configuration;
 using MimeKit;
 
-namespace Billing.API.Services;
+namespace Billing.Infrastructure.Services;
 
 public class EmailService
 {

@@ -30,6 +30,20 @@ public class CustomerRepository : ICustomerRepository
         return await query.FirstOrDefaultAsync();
     }
 
+    public async Task<Customer?> GetByIdForUpdateAsync(int id, int? tenantId = null)
+    {
+        var query = _context.Customers
+            .Include(c => c.Addresses)
+            .Where(c => c.Id == id);
+
+        if (tenantId.HasValue && tenantId.Value > 0)
+        {
+            query = query.Where(c => c.TenantId == tenantId.Value);
+        }
+
+        return await query.FirstOrDefaultAsync();
+    }
+
     public async Task<Customer?> GetByEmailAsync(string email, int? tenantId = null)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
@@ -112,13 +126,46 @@ public class CustomerRepository : ICustomerRepository
     public async Task AddAsync(Customer customer)
     {
         await _context.Customers.AddAsync(customer);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
+        {
+            throw new Billing.Application.Common.DuplicateCustomerCodeException(
+                $"Customer with code '{customer.CustomerCode}' already exists for this tenant.", ex);
+        }
     }
 
     public async Task UpdateAsync(Customer customer)
     {
-        _context.Customers.Update(customer);
-        await _context.SaveChangesAsync();
+        var entry = _context.Entry(customer);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.Customers.Update(customer);
+        }
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new Billing.Application.Common.ConcurrencyConflictException(
+                "The customer record has been modified by another process. Please reload and try again.", ex);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
+        {
+            throw new Billing.Application.Common.DuplicateCustomerCodeException(
+                $"Customer with code '{customer.CustomerCode}' already exists for this tenant.", ex);
+        }
+    }
+
+    private static bool IsDuplicateKeyException(DbUpdateException ex)
+    {
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("IX_Customers_TenantId_CustomerCode", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<bool> ExistsAsync(int id, int? tenantId = null)

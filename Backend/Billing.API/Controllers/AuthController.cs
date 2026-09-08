@@ -1,4 +1,4 @@
-using Billing.API.Services;
+using Billing.Infrastructure.Services;
 using Billing.Application;
 using Billing.Contracts;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +22,8 @@ public class AuthController : ControllerBase
 
     // LOGIN
     [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();

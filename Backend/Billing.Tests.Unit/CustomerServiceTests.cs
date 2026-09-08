@@ -549,4 +549,286 @@ public class CustomerServiceTests
     }
 
     #endregion
+
+    #region IBMSBE-009: Tenant Filtering Tests
+
+    [Fact]
+    public async Task GetCustomers_TenantIsolation_ReturnsOnlyOwnTenantCustomers()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 101, TenantId = 1, CustomerCode = "C-T1", Name = "Tenant 1 Cust", Email = "c1@t1.com" });
+        _fakeRepo.Customers.Add(new Customer { Id = 102, TenantId = 2, CustomerCode = "C-T2", Name = "Tenant 2 Cust", Email = "c2@t2.com" });
+
+        // Act - Admin A (Tenant 1)
+        var responseA = await _service.GetCustomersAsync(new CustomerQueryParameters(), tenantId: 1);
+
+        // Assert
+        Assert.True(responseA.Success);
+        Assert.Single(responseA.Data!.Items);
+        Assert.Equal("C-T1", responseA.Data.Items[0].CustomerCode);
+    }
+
+    [Fact]
+    public async Task GetCustomers_SuperAdminCrossTenant_ReturnsAllTenantsCustomers()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 101, TenantId = 1, CustomerCode = "C-T1", Name = "Tenant 1 Cust", Email = "c1@t1.com" });
+        _fakeRepo.Customers.Add(new Customer { Id = 102, TenantId = 2, CustomerCode = "C-T2", Name = "Tenant 2 Cust", Email = "c2@t2.com" });
+
+        // Act - SuperAdmin with null tenantId
+        var response = await _service.GetCustomersAsync(new CustomerQueryParameters(), tenantId: null);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Equal(2, response.Data!.Items.Count);
+    }
+
+    [Fact]
+    public async Task GetCustomerById_CrossTenantAccess_ReturnsNotFound()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 10, TenantId = 1, CustomerCode = "C-T1", Name = "Tenant 1 Cust", Email = "c10@t1.com" });
+
+        // Act - Tenant 2 tries to access Customer 10
+        var response = await _service.GetCustomerByIdAsync(10, tenantId: 2);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer not found", response.Message);
+    }
+
+    [Fact]
+    public async Task UpdateCustomer_CrossTenantAccess_ReturnsNotFound()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 10, TenantId = 1, CustomerCode = "C-T1", Name = "Tenant 1 Cust", Email = "c10@t1.com" });
+
+        var updateRequest = new UpdateCustomerRequest { Name = "Hacked Name", Email = "hacked@t2.com" };
+
+        // Act - Tenant 2 tries to update Customer 10
+        var response = await _service.UpdateCustomerAsync(10, updateRequest, tenantId: 2);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer not found", response.Message);
+    }
+
+    #endregion
+
+    #region IBMSBE-010: Customer Code Uniqueness Tests
+
+    [Fact]
+    public async Task CreateCustomer_SameCodeInSameTenant_ReturnsConflict()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "CUST-001", Name = "Cust 1", Email = "c1@t1.com" });
+
+        var request = new CreateCustomerRequest
+        {
+            CustomerCode = "CUST-001",
+            Name = "Cust 2",
+            Email = "c2@t1.com"
+        };
+
+        // Act
+        var response = await _service.CreateCustomerAsync(request, tenantId: 1);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer code conflict", response.Message);
+    }
+
+    [Fact]
+    public async Task CreateCustomer_SameCodeInDifferentTenants_ReturnsSuccess()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "CUST-001", Name = "Cust 1", Email = "c1@t1.com" });
+
+        var request = new CreateCustomerRequest
+        {
+            CustomerCode = "CUST-001",
+            Name = "Cust Tenant 2",
+            Email = "c1@t2.com"
+        };
+
+        // Act - Create with same code in Tenant 2
+        var response = await _service.CreateCustomerAsync(request, tenantId: 2);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Equal("CUST-001", response.Data!.CustomerCode);
+        Assert.Equal(2, response.Data.TenantId);
+    }
+
+    [Fact]
+    public async Task UpdateCustomer_WithoutChangingCode_ReturnsSuccess()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "CUST-001", Name = "Original Name", Email = "orig@t1.com" });
+
+        var updateRequest = new UpdateCustomerRequest
+        {
+            CustomerCode = "CUST-001",
+            Name = "Updated Name",
+            Email = "orig@t1.com"
+        };
+
+        // Act
+        var response = await _service.UpdateCustomerAsync(1, updateRequest, tenantId: 1);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Equal("Updated Name", response.Data!.Name);
+        Assert.Equal("CUST-001", response.Data.CustomerCode);
+    }
+
+    [Fact]
+    public async Task UpdateCustomer_ChangingToExistingCodeInSameTenant_ReturnsConflict()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "CUST-001", Name = "Cust 1", Email = "c1@t1.com" });
+        _fakeRepo.Customers.Add(new Customer { Id = 2, TenantId = 1, CustomerCode = "CUST-002", Name = "Cust 2", Email = "c2@t1.com" });
+
+        var updateRequest = new UpdateCustomerRequest
+        {
+            CustomerCode = "CUST-002",
+            Name = "Cust 1 Renamed",
+            Email = "c1@t1.com"
+        };
+
+        // Act - Customer 1 tries to change code to CUST-002 (already taken by Cust 2)
+        var response = await _service.UpdateCustomerAsync(1, updateRequest, tenantId: 1);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer code conflict", response.Message);
+    }
+
+    #endregion
+
+    #region IBMSBE-011: Deactivate Customer Tests
+
+    [Fact]
+    public async Task DeactivateCustomer_ActiveCustomer_SetsIsActiveFalse()
+    {
+        // Arrange
+        var customer = new Customer { Id = 1, TenantId = 1, CustomerCode = "C-ACTIVE", Name = "Active Cust", Email = "act@t1.com", IsActive = true };
+        _fakeRepo.Customers.Add(customer);
+
+        // Act
+        var response = await _service.DeactivateCustomerAsync(1, tenantId: 1);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.False(response.Data!.IsActive);
+        Assert.False(customer.IsActive);
+    }
+
+    [Fact]
+    public async Task DeactivateCustomer_CrossTenant_ReturnsNotFound()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "C-T1", Name = "T1 Cust", Email = "t1@t1.com", IsActive = true });
+
+        // Act - Tenant 2 tries to deactivate Tenant 1's customer
+        var response = await _service.DeactivateCustomerAsync(1, tenantId: 2);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer not found", response.Message);
+        Assert.True(_fakeRepo.Customers[0].IsActive);
+    }
+
+    #endregion
+
+    #region IBMSBE-012: Customer Details Supporting Services Tests
+
+    [Fact]
+    public async Task GetCustomerDetails_ValidId_ReturnsProfileAddressesAndFinancialSummary()
+    {
+        // Arrange
+        var customer = new Customer
+        {
+            Id = 1,
+            TenantId = 1,
+            CustomerCode = "CUST-VIP",
+            Name = "VIP Customer",
+            Email = "vip@corp.com",
+            Currency = "USD",
+            Addresses = new List<CustomerAddress>
+            {
+                new() { Id = 10, CustomerId = 1, TenantId = 1, AddressType = "Billing", AddressLine1 = "100 Bill St", City = "New York", Country = "USA", IsDefault = true },
+                new() { Id = 20, CustomerId = 1, TenantId = 1, AddressType = "Shipping", AddressLine1 = "200 Ship Way", City = "New York", Country = "USA", IsDefault = true }
+            }
+        };
+        _fakeRepo.Customers.Add(customer);
+
+        // Act
+        var response = await _service.GetCustomerDetailsAsync(1, tenantId: 1);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal("VIP Customer", response.Data.Customer.Name);
+        Assert.NotNull(response.Data.BillingAddress);
+        Assert.Equal("100 Bill St", response.Data.BillingAddress!.AddressLine1);
+        Assert.NotNull(response.Data.ShippingAddress);
+        Assert.Equal("200 Ship Way", response.Data.ShippingAddress!.AddressLine1);
+        Assert.Equal(2, response.Data.Addresses.Count);
+        Assert.NotNull(response.Data.FinancialSummary);
+        Assert.Equal(0.00m, response.Data.FinancialSummary.OutstandingBalance);
+        Assert.Equal("USD", response.Data.FinancialSummary.Currency);
+    }
+
+    [Fact]
+    public async Task GetCustomerDetails_CrossTenant_ReturnsNotFound()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 5, TenantId = 1, CustomerCode = "C-T1", Name = "Cust", Email = "c@t1.com" });
+
+        // Act - Tenant 2 tries to get details of Tenant 1 customer
+        var response = await _service.GetCustomerDetailsAsync(5, tenantId: 2);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal("Customer not found", response.Message);
+    }
+
+    #endregion
+
+    #region IBMSBE-013: History Protection Tests
+
+    [Fact]
+    public async Task DeactivateCustomer_PreservesCustomerAndAddressesInDatabase()
+    {
+        // Arrange
+        var customer = new Customer
+        {
+            Id = 99,
+            TenantId = 1,
+            CustomerCode = "CUST-HIST",
+            Name = "Historical Customer",
+            Email = "hist@t1.com",
+            IsActive = true,
+            Addresses = new List<CustomerAddress>
+            {
+                new() { Id = 901, CustomerId = 99, TenantId = 1, AddressType = "Billing", AddressLine1 = "Old St", City = "Old City", Country = "USA" }
+            }
+        };
+        _fakeRepo.Customers.Add(customer);
+
+        // Act - Deactivate customer
+        var response = await _service.DeactivateCustomerAsync(99, tenantId: 1);
+
+        // Assert
+        Assert.True(response.Success);
+        // Customer record still exists in repository
+        var existing = _fakeRepo.Customers.FirstOrDefault(c => c.Id == 99);
+        Assert.NotNull(existing);
+        Assert.False(existing.IsActive);
+        Assert.Single(existing.Addresses);
+        Assert.Equal("Old St", existing.Addresses.First().AddressLine1);
+    }
+
+    #endregion
 }

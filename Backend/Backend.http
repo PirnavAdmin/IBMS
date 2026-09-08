@@ -1,0 +1,51 @@
+@Backend_HostAddress = https://localhost:7117
+
+### Super Admin Login
+POST {{Backend_HostAddress}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "email": "superadmin@ibms.com",
+  "password": "SuperAdmin@123!"
+}
+
+### Current User Profile (Protected)
+GET {{Backend_HostAddress}}/api/Auth/me
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Register Company (Tenant Onboarding)
+POST {{Backend_HostAddress}}/api/Auth/register-company
+Content-Type: application/json
+
+{
+  "companyName": "Acme Corp",
+  "tenantCode": "acme",
+  "ownerName": "Alice Acme",
+  "email": "alice@acme.local",
+  "password": "Password123!"
+}
+
+### Refresh Token
+POST {{Backend_HostAddress}}/api/Auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout Current Session
+POST {{Backend_HostAddress}}/api/Auth/logout
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout All Sessions
+POST {{Backend_HostAddress}}/api/Auth/logout-all
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Get Customers (Protected, Tenant-Scoped)
+GET {{Backend_HostAddress}}/api/Customers?pageNumber=1&pageSize=10
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE

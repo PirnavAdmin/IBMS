@@ -106,7 +106,7 @@ public class AuthService
         {
             Success = true,
             Message = "Registration successful",
-            Token = null,
+            AccessToken = null,
             Errors = null
         };
     }

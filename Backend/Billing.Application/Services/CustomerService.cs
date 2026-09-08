@@ -24,15 +24,19 @@ public class CustomerService : ICustomerService
 
     public async Task<ApiResponse<CustomerDto>> CreateCustomerAsync(CreateCustomerRequest request, int tenantId)
     {
+        if (tenantId <= 0)
+        {
+            return ApiResponse<CustomerDto>.Fail("Invalid tenant identifier", "A valid positive Tenant ID is required.");
+        }
+
         var errors = ValidateCreateRequest(request);
         if (errors.Any())
         {
             return ApiResponse<CustomerDto>.Fail("Validation failed", errors);
         }
 
-        var resolvedTenantId = tenantId <= 0 ? 1 : tenantId;
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        var existingCustomer = await _customerRepository.GetByEmailAsync(normalizedEmail, resolvedTenantId);
+        var existingCustomer = await _customerRepository.GetByEmailAsync(normalizedEmail, tenantId);
         if (existingCustomer != null)
         {
             return ApiResponse<CustomerDto>.Fail("Customer with this email already exists", "A customer with the email address '" + normalizedEmail + "' already exists.");
@@ -42,7 +46,7 @@ public class CustomerService : ICustomerService
             ? $"CUST-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}"
             : request.CustomerCode.Trim().ToUpperInvariant();
 
-        var existingWithCode = await _customerRepository.GetByCodeAsync(customerCode, resolvedTenantId);
+        var existingWithCode = await _customerRepository.GetByCodeAsync(customerCode, tenantId);
         if (existingWithCode != null)
         {
             return ApiResponse<CustomerDto>.Fail("Customer code conflict", $"Customer with code '{customerCode}' already exists for this tenant.");
@@ -50,7 +54,7 @@ public class CustomerService : ICustomerService
 
         var customer = new Customer
         {
-            TenantId = resolvedTenantId,
+            TenantId = tenantId,
             CustomerCode = customerCode,
             Name = request.Name.Trim(),
             Email = normalizedEmail,
@@ -67,7 +71,8 @@ public class CustomerService : ICustomerService
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency.Trim().ToUpperInvariant(),
             PaymentTerms = string.IsNullOrWhiteSpace(request.PaymentTerms) ? null : request.PaymentTerms.Trim(),
             IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
         };
 
         if (request.Addresses != null && request.Addresses.Any())
@@ -76,7 +81,7 @@ public class CustomerService : ICustomerService
             {
                 customer.Addresses.Add(new CustomerAddress
                 {
-                    TenantId = resolvedTenantId,
+                    TenantId = tenantId,
                     AddressType = string.IsNullOrWhiteSpace(addr.AddressType) ? "Billing" : addr.AddressType.Trim(),
                     AddressLine1 = addr.AddressLine1?.Trim() ?? string.Empty,
                     AddressLine2 = addr.AddressLine2?.Trim(),
@@ -93,7 +98,7 @@ public class CustomerService : ICustomerService
         {
             customer.Addresses.Add(new CustomerAddress
             {
-                TenantId = resolvedTenantId,
+                TenantId = tenantId,
                 AddressType = "Billing",
                 AddressLine1 = string.IsNullOrWhiteSpace(request.Address) ? "N/A" : request.Address.Trim(),
                 City = string.IsNullOrWhiteSpace(request.City) ? "N/A" : request.City.Trim(),
@@ -105,17 +110,23 @@ public class CustomerService : ICustomerService
             });
         }
 
-        await _customerRepository.AddAsync(customer);
+        try
+        {
+            await _customerRepository.AddAsync(customer);
+        }
+        catch (Billing.Application.Common.DuplicateCustomerCodeException ex)
+        {
+            return ApiResponse<CustomerDto>.Fail("Customer code conflict", ex.Message);
+        }
 
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer created successfully.");
     }
 
-    public async Task<ApiResponse<PagedResult<CustomerDto>>> GetCustomersAsync(CustomerQueryParameters query, int tenantId)
+    public async Task<ApiResponse<PagedResult<CustomerDto>>> GetCustomersAsync(CustomerQueryParameters query, int? tenantId)
     {
         query ??= new CustomerQueryParameters();
-        var resolvedTenantId = tenantId <= 0 ? 1 : tenantId;
 
-        var (items, totalCount) = await _customerRepository.GetPagedListAsync(resolvedTenantId, query);
+        var (items, totalCount) = await _customerRepository.GetPagedListAsync(tenantId, query);
 
         var dtos = items.Select(MapToDto).ToList();
         var result = new PagedResult<CustomerDto>(dtos, totalCount, query.PageNumber, query.PageSize);
@@ -123,15 +134,14 @@ public class CustomerService : ICustomerService
         return ApiResponse<PagedResult<CustomerDto>>.Ok(result, "Customers retrieved successfully.");
     }
 
-    public async Task<ApiResponse<CustomerDto>> GetCustomerByIdAsync(int id, int tenantId)
+    public async Task<ApiResponse<CustomerDto>> GetCustomerByIdAsync(int id, int? tenantId)
     {
         if (id <= 0)
         {
             return ApiResponse<CustomerDto>.Fail("Invalid customer identifier", "Customer ID must be greater than zero.");
         }
 
-        var resolvedTenantId = tenantId <= 0 ? 1 : tenantId;
-        var customer = await _customerRepository.GetByIdAsync(id, resolvedTenantId);
+        var customer = await _customerRepository.GetByIdAsync(id, tenantId);
         if (customer == null)
         {
             return ApiResponse<CustomerDto>.Fail("Customer not found", $"Customer with ID {id} was not found.");
@@ -140,15 +150,14 @@ public class CustomerService : ICustomerService
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer details retrieved successfully.");
     }
 
-    public async Task<ApiResponse<CustomerDto>> UpdateCustomerAsync(int id, UpdateCustomerRequest request, int tenantId)
+    public async Task<ApiResponse<CustomerDto>> UpdateCustomerAsync(int id, UpdateCustomerRequest request, int? tenantId)
     {
         if (id <= 0)
         {
             return ApiResponse<CustomerDto>.Fail("Invalid customer identifier", "Customer ID must be greater than zero.");
         }
 
-        var resolvedTenantId = tenantId <= 0 ? 1 : tenantId;
-        var customer = await _customerRepository.GetByIdAsync(id, resolvedTenantId);
+        var customer = await _customerRepository.GetByIdForUpdateAsync(id, tenantId);
         if (customer == null)
         {
             return ApiResponse<CustomerDto>.Fail("Customer not found", $"Customer with ID {id} was not found.");
@@ -165,10 +174,11 @@ public class CustomerService : ICustomerService
             return ApiResponse<CustomerDto>.Fail("Concurrency conflict", "The customer record has been modified by another process. Please reload and try again.");
         }
 
+        var targetTenantId = customer.TenantId;
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         if (!string.Equals(customer.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
         {
-            var existingWithEmail = await _customerRepository.GetByEmailAsync(normalizedEmail, resolvedTenantId);
+            var existingWithEmail = await _customerRepository.GetByEmailAsync(normalizedEmail, targetTenantId);
             if (existingWithEmail != null && existingWithEmail.Id != id)
             {
                 return ApiResponse<CustomerDto>.Fail("Email conflict", $"Another customer with email '{normalizedEmail}' already exists.");
@@ -180,7 +190,7 @@ public class CustomerService : ICustomerService
             var normalizedCode = request.CustomerCode.Trim().ToUpperInvariant();
             if (!string.Equals(customer.CustomerCode, normalizedCode, StringComparison.OrdinalIgnoreCase))
             {
-                var existingWithCode = await _customerRepository.GetByCodeAsync(normalizedCode, resolvedTenantId);
+                var existingWithCode = await _customerRepository.GetByCodeAsync(normalizedCode, targetTenantId);
                 if (existingWithCode != null && existingWithCode.Id != id)
                 {
                     return ApiResponse<CustomerDto>.Fail("Customer code conflict", $"Another customer with code '{normalizedCode}' already exists for this tenant.");
@@ -224,7 +234,7 @@ public class CustomerService : ICustomerService
             {
                 customer.Addresses.Add(new CustomerAddress
                 {
-                    TenantId = resolvedTenantId,
+                    TenantId = targetTenantId,
                     AddressType = string.IsNullOrWhiteSpace(addr.AddressType) ? "Billing" : addr.AddressType.Trim(),
                     AddressLine1 = addr.AddressLine1?.Trim() ?? string.Empty,
                     AddressLine2 = addr.AddressLine2?.Trim(),
@@ -240,9 +250,117 @@ public class CustomerService : ICustomerService
 
         customer.UpdatedAtUtc = DateTime.UtcNow;
 
-        await _customerRepository.UpdateAsync(customer);
+        try
+        {
+            await _customerRepository.UpdateAsync(customer);
+        }
+        catch (Billing.Application.Common.ConcurrencyConflictException)
+        {
+            return ApiResponse<CustomerDto>.Fail(
+                "Concurrency conflict",
+                "The customer record has been modified by another process. Please reload and try again."
+            );
+        }
+        catch (Billing.Application.Common.DuplicateCustomerCodeException ex)
+        {
+            return ApiResponse<CustomerDto>.Fail("Customer code conflict", ex.Message);
+        }
 
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer updated successfully.");
+    }
+
+    public async Task<ApiResponse<CustomerDto>> DeactivateCustomerAsync(int id, int? tenantId)
+    {
+        if (id <= 0)
+        {
+            return ApiResponse<CustomerDto>.Fail("Invalid customer identifier", "Customer ID must be greater than zero.");
+        }
+
+        var customer = await _customerRepository.GetByIdForUpdateAsync(id, tenantId);
+        if (customer == null)
+        {
+            return ApiResponse<CustomerDto>.Fail("Customer not found", $"Customer with ID {id} was not found.");
+        }
+
+        customer.IsActive = false;
+        customer.UpdatedAtUtc = DateTime.UtcNow;
+
+        try
+        {
+            await _customerRepository.UpdateAsync(customer);
+        }
+        catch (Billing.Application.Common.ConcurrencyConflictException)
+        {
+            return ApiResponse<CustomerDto>.Fail(
+                "Concurrency conflict",
+                "The customer record has been modified by another process. Please reload and try again."
+            );
+        }
+
+        return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer deactivated successfully.");
+    }
+
+    public async Task<ApiResponse<CustomerDetailsDto>> GetCustomerDetailsAsync(int id, int? tenantId)
+    {
+        if (id <= 0)
+        {
+            return ApiResponse<CustomerDetailsDto>.Fail("Invalid customer identifier", "Customer ID must be greater than zero.");
+        }
+
+        var customer = await _customerRepository.GetByIdAsync(id, tenantId);
+        if (customer == null)
+        {
+            return ApiResponse<CustomerDetailsDto>.Fail("Customer not found", $"Customer with ID {id} was not found.");
+        }
+
+        var billingAddr = customer.Addresses
+            .FirstOrDefault(a => a.AddressType.Equals("Billing", StringComparison.OrdinalIgnoreCase) && a.IsDefault)
+            ?? customer.Addresses.FirstOrDefault(a => a.AddressType.Equals("Billing", StringComparison.OrdinalIgnoreCase));
+
+        var shippingAddr = customer.Addresses
+            .FirstOrDefault(a => a.AddressType.Equals("Shipping", StringComparison.OrdinalIgnoreCase) && a.IsDefault)
+            ?? customer.Addresses.FirstOrDefault(a => a.AddressType.Equals("Shipping", StringComparison.OrdinalIgnoreCase));
+
+        var details = new CustomerDetailsDto
+        {
+            Customer = MapToDto(customer),
+            BillingAddress = billingAddr != null ? MapAddressToDto(billingAddr) : null,
+            ShippingAddress = shippingAddr != null ? MapAddressToDto(shippingAddr) : null,
+            Addresses = customer.Addresses.Select(MapAddressToDto).ToList(),
+            FinancialSummary = new CustomerFinancialSummaryDto
+            {
+                TotalInvoiced = 0.00m,
+                TotalPaid = 0.00m,
+                OutstandingBalance = 0.00m,
+                CreditLimit = 0.00m,
+                Currency = customer.Currency,
+                TotalInvoicesCount = 0,
+                OpenInvoicesCount = 0,
+                OverdueInvoicesCount = 0
+            },
+            Invoices = new List<CustomerInvoiceSummaryDto>(),
+            Payments = new List<CustomerPaymentSummaryDto>()
+        };
+
+        return ApiResponse<CustomerDetailsDto>.Ok(details, "Customer supporting details retrieved successfully.");
+    }
+
+    private static CustomerAddressDto MapAddressToDto(CustomerAddress a)
+    {
+        return new CustomerAddressDto
+        {
+            Id = a.Id,
+            CustomerId = a.CustomerId,
+            TenantId = a.TenantId,
+            AddressType = a.AddressType,
+            AddressLine1 = a.AddressLine1,
+            AddressLine2 = a.AddressLine2,
+            City = a.City,
+            State = a.State,
+            PostalCode = a.PostalCode,
+            Country = a.Country,
+            IsDefault = a.IsDefault
+        };
     }
 
     private static List<string> ValidateCreateRequest(CreateCustomerRequest request)
