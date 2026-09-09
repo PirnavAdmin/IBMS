@@ -66,6 +66,8 @@ public class BillingDbContext : DbContext
             entity.Property(c => c.Notes).HasMaxLength(1000);
             entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("USD");
             entity.Property(c => c.PaymentTerms).HasMaxLength(64);
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(c => c.IsActive);
             entity.Property(c => c.RowVersion).IsRowVersion();
 
             entity.HasOne(c => c.Tenant)
@@ -76,7 +78,7 @@ public class BillingDbContext : DbContext
             entity.HasIndex(c => new { c.TenantId, c.CustomerCode })
                   .IsUnique();
             entity.HasIndex(c => new { c.TenantId, c.Email });
-            entity.HasIndex(c => new { c.TenantId, c.IsActive });
+            entity.HasIndex(c => new { c.TenantId, c.Status });
             entity.HasIndex(c => c.CreatedAtUtc);
         });
 

@@ -70,6 +70,7 @@ public class CustomerService : ICustomerService
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency.Trim().ToUpperInvariant(),
             PaymentTerms = string.IsNullOrWhiteSpace(request.PaymentTerms) ? null : request.PaymentTerms.Trim(),
+            Status = "Active",
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion = DateTime.UtcNow
@@ -175,14 +176,19 @@ public class CustomerService : ICustomerService
         }
 
         var targetTenantId = customer.TenantId;
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        if (!string.Equals(customer.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
         {
-            var existingWithEmail = await _customerRepository.GetByEmailAsync(normalizedEmail, targetTenantId);
-            if (existingWithEmail != null && existingWithEmail.Id != id)
+            var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+            if (!string.Equals(customer.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
             {
-                return ApiResponse<CustomerDto>.Fail("Email conflict", $"Another customer with email '{normalizedEmail}' already exists.");
+                var existingWithEmail = await _customerRepository.GetByEmailAsync(normalizedEmail, targetTenantId);
+                if (existingWithEmail != null && existingWithEmail.Id != id)
+                {
+                    return ApiResponse<CustomerDto>.Fail("Email conflict", $"Another customer with email '{normalizedEmail}' already exists.");
+                }
             }
+            customer.Email = normalizedEmail;
         }
 
         if (!string.IsNullOrWhiteSpace(request.CustomerCode))
@@ -199,18 +205,60 @@ public class CustomerService : ICustomerService
             }
         }
 
-        customer.Name = request.Name.Trim();
-        customer.Email = normalizedEmail;
-        customer.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
-        customer.CompanyName = string.IsNullOrWhiteSpace(request.CompanyName) ? null : request.CompanyName.Trim();
-        customer.TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim();
-        customer.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-        customer.City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim();
-        customer.State = string.IsNullOrWhiteSpace(request.State) ? null : request.State.Trim();
-        customer.PostalCode = string.IsNullOrWhiteSpace(request.PostalCode) ? null : request.PostalCode.Trim();
-        customer.Country = string.IsNullOrWhiteSpace(request.Country) ? null : request.Country.Trim();
-        customer.Website = string.IsNullOrWhiteSpace(request.Website) ? null : request.Website.Trim();
-        customer.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            customer.Name = request.Name.Trim();
+        }
+
+        if (request.Phone != null)
+        {
+            customer.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        }
+
+        if (request.CompanyName != null)
+        {
+            customer.CompanyName = string.IsNullOrWhiteSpace(request.CompanyName) ? null : request.CompanyName.Trim();
+        }
+
+        if (request.TaxId != null)
+        {
+            customer.TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim();
+        }
+
+        if (request.Address != null)
+        {
+            customer.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        }
+
+        if (request.City != null)
+        {
+            customer.City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim();
+        }
+
+        if (request.State != null)
+        {
+            customer.State = string.IsNullOrWhiteSpace(request.State) ? null : request.State.Trim();
+        }
+
+        if (request.PostalCode != null)
+        {
+            customer.PostalCode = string.IsNullOrWhiteSpace(request.PostalCode) ? null : request.PostalCode.Trim();
+        }
+
+        if (request.Country != null)
+        {
+            customer.Country = string.IsNullOrWhiteSpace(request.Country) ? null : request.Country.Trim();
+        }
+
+        if (request.Website != null)
+        {
+            customer.Website = string.IsNullOrWhiteSpace(request.Website) ? null : request.Website.Trim();
+        }
+
+        if (request.Notes != null)
+        {
+            customer.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Currency))
         {
@@ -222,7 +270,13 @@ public class CustomerService : ICustomerService
             customer.PaymentTerms = request.PaymentTerms.Trim();
         }
 
-        if (request.IsActive.HasValue)
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            customer.Status = string.Equals(request.Status.Trim(), "inactive", StringComparison.OrdinalIgnoreCase)
+                ? "Inactive"
+                : "Active";
+        }
+        else if (request.IsActive.HasValue)
         {
             customer.IsActive = request.IsActive.Value;
         }
@@ -429,33 +483,28 @@ public class CustomerService : ICustomerService
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(request.Name))
+        if (request.Name != null)
         {
-            errors.Add("Customer name is required.");
-        }
-        else if (request.Name.Trim().Length < 2)
-        {
-            errors.Add("Customer name must be at least 2 characters.");
-        }
-        else if (request.Name.Trim().Length > 256)
-        {
-            errors.Add("Customer name must not exceed 256 characters.");
+            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+            {
+                errors.Add("Customer name must be at least 2 characters.");
+            }
+            else if (request.Name.Trim().Length > 256)
+            {
+                errors.Add("Customer name must not exceed 256 characters.");
+            }
         }
 
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            errors.Add("Email is required.");
-        }
-        else
+        if (request.Email != null)
         {
             var email = request.Email.Trim();
-            if (email.Length > 256)
-            {
-                errors.Add("Email must not exceed 256 characters.");
-            }
-            if (!EmailRegex.IsMatch(email))
+            if (string.IsNullOrWhiteSpace(email) || !EmailRegex.IsMatch(email))
             {
                 errors.Add("Invalid email format.");
+            }
+            else if (email.Length > 256)
+            {
+                errors.Add("Email must not exceed 256 characters.");
             }
         }
 
@@ -508,6 +557,7 @@ public class CustomerService : ICustomerService
             Notes = customer.Notes,
             Currency = customer.Currency,
             PaymentTerms = customer.PaymentTerms,
+            Status = customer.Status,
             IsActive = customer.IsActive,
             CreatedAtUtc = customer.CreatedAtUtc,
             UpdatedAtUtc = customer.UpdatedAtUtc,

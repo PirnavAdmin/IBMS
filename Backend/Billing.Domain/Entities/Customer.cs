@@ -37,7 +37,14 @@ public class Customer
 
     public string? PaymentTerms { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = "Active";
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool IsActive
+    {
+        get => string.Equals(Status, "Active", StringComparison.OrdinalIgnoreCase);
+        set => Status = value ? "Active" : "Inactive";
+    }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

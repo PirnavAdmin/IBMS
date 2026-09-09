@@ -1,10 +1,18 @@
+using System.Text.Json.Serialization;
+
 namespace Billing.Contracts;
 
 public class CustomerAddressDto
 {
-    public int Id { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int? Id { get; set; }
+
+    [JsonIgnore]
     public int CustomerId { get; set; }
+
+    [JsonIgnore]
     public int TenantId { get; set; }
+
     public string AddressType { get; set; } = "Billing";
     public string AddressLine1 { get; set; } = string.Empty;
     public string? AddressLine2 { get; set; }
@@ -14,3 +22,4 @@ public class CustomerAddressDto
     public string Country { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
 }
+

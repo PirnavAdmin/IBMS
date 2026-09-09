@@ -19,7 +19,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 // ============================================================
 builder.Services.AddControllers()
-    .AddApplicationPart(typeof(AuthController).Assembly);
+    .AddApplicationPart(typeof(AuthController).Assembly)
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.AllowTrailingCommas = true;
+        options.JsonSerializerOptions.ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip;
+    });
 
 // ============================================================
 // CORS
@@ -28,9 +33,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -377,9 +383,14 @@ app.UseSwaggerUI(options =>
 // ============================================================
 // Middleware Pipeline
 // ============================================================
-app.UseHttpsRedirection();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
+});
 
 app.UseCors("AllowAll");
+
+// Note: UseHttpsRedirection is removed to prevent 307 Temporary Redirect breaking reverse proxy (ngrok) and CORS preflight OPTIONS
 
 app.UseAuthentication();
 
@@ -389,6 +400,9 @@ app.UseAuthorization();
 // Controllers
 // ============================================================
 app.MapControllers();
+
+// Auto-redirect root URL ("/") to Swagger UI (hidden from Swagger UI documentation)
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 // ============================================================
 // Run

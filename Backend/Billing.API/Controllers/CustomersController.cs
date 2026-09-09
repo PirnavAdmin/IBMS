@@ -11,7 +11,6 @@ namespace Billing.API.Controllers;
 [ApiController]
 [Route("api/v1/customers")]
 [Consumes("application/json")]
-[Produces("application/json")]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
@@ -29,15 +28,11 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-001: POST /api/v1/customers
     /// Create a new customer record scoped to current tenant.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest request)
     {
         var tenantId = GetTenantId();
@@ -74,15 +69,15 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-002: GET /api/v1/customers
-    /// Retrieve a paginated list of customers with search, sorting, and status filtering.
+    /// Retrieve a paginated list of customers.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<CustomerDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetCustomers([FromQuery] CustomerQueryParameters query)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomers(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] CustomerStatus status = CustomerStatus.Active)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
@@ -90,19 +85,60 @@ public class CustomersController : ControllerBase
             return Forbid();
         }
 
+        bool? resolvedIsActive = null;
+
+        // 1. If frontend explicitly passed isActive query parameter (e.g. ?isActive=false or ?isActive=true)
+        if (Request.Query.TryGetValue("isActive", out var isActiveVal) &&
+            bool.TryParse(isActiveVal, out var parsedIsActive))
+        {
+            resolvedIsActive = parsedIsActive;
+        }
+        // 2. If status was explicitly passed in query string (from Frontend or Swagger)
+        else if (Request.Query.TryGetValue("status", out var statusQueryVal))
+        {
+            var s = statusQueryVal.ToString().Trim();
+            if (string.Equals(s, "inactive", StringComparison.OrdinalIgnoreCase))
+                resolvedIsActive = false;
+            else if (string.Equals(s, "active", StringComparison.OrdinalIgnoreCase))
+                resolvedIsActive = true;
+            else if (string.Equals(s, "all", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(s))
+                resolvedIsActive = null;
+            else
+                resolvedIsActive = status switch
+                {
+                    CustomerStatus.Active => true,
+                    CustomerStatus.Inactive => false,
+                    _ => null
+                };
+        }
+        // 3. Fallback to status parameter (e.g. Swagger default)
+        else
+        {
+            // If neither 'status' nor 'isActive' was in query string (frontend default request on "All Statuses"), return all
+            resolvedIsActive = null;
+        }
+
+        var searchQuery = Request.Query.TryGetValue("search", out var searchVal)
+            ? searchVal.ToString().Trim()
+            : null;
+
+        var query = new CustomerQueryParameters
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            Search = string.IsNullOrWhiteSpace(searchQuery) ? null : searchQuery,
+            IsActive = resolvedIsActive
+        };
+
         var result = await _customerService.GetCustomersAsync(query, tenantId);
         return Ok(result);
     }
 
     /// <summary>
-    /// IBMSBE-003: GET /api/v1/customers/{id}
     /// Retrieve customer details and profile by customer ID.
     /// </summary>
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomerById([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -127,17 +163,11 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-004: PUT /api/v1/customers/{id}
     /// Update existing customer profile information.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateCustomer([FromRoute] int id, [FromBody] UpdateCustomerRequest request)
     {
         var tenantId = GetTenantId();
@@ -192,15 +222,11 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-011 / IBMSBE-Audit-02: PATCH /api/v1/customers/{id}/deactivate
     /// Deactivate customer record without physical deletion.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPatch("{id:int}/deactivate")]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateCustomer([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -230,15 +256,11 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-013 / IBMSBE-Audit-02: DELETE /api/v1/customers/{id}
-    /// History Protection: Physical deletion is prohibited; deactivates customer to preserve business history.
+    /// Deactivate customer record to preserve business and transaction history.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpDelete("{id:int}")]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDto>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteCustomer([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -269,12 +291,10 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/v1/customers/{id}/audit: Retrieve customer audit trail history.
-    /// Powers the Frontend Audit Tab (IBMSFE-013) displaying user, action, timestamp, and changes.
+    /// Retrieve customer audit trail history displaying user, action, timestamp, and changes.
     /// </summary>
     [HttpGet("{id:int}/audit")]
-    [ProducesResponseType(typeof(ApiResponse<List<AuditLog>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomerAuditHistory([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -289,14 +309,10 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// IBMSBE-012: GET /api/v1/customers/{id}/details
     /// Retrieve customer details with supporting information (profile, billing/shipping addresses, financial summary).
     /// </summary>
     [HttpGet("{id:int}/details")]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<CustomerDetailsDto>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomerDetails([FromRoute] int id)
     {
         var tenantId = GetTenantId();

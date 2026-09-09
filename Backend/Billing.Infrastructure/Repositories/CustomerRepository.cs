@@ -100,7 +100,8 @@ public class CustomerRepository : ICustomerRepository
 
         if (query.IsActive.HasValue)
         {
-            queryable = queryable.Where(c => c.IsActive == query.IsActive.Value);
+            var targetStatus = query.IsActive.Value ? "Active" : "Inactive";
+            queryable = queryable.Where(c => c.Status == targetStatus);
         }
 
         var isAscending = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);

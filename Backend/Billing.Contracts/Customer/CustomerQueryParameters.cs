@@ -1,4 +1,14 @@
+using System.Text.Json.Serialization;
+
 namespace Billing.Contracts;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CustomerStatus
+{
+    Active,
+    Inactive,
+    All
+}
 
 public class CustomerQueryParameters
 {

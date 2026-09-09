@@ -22,8 +22,7 @@ public class AuthController : ControllerBase
 
     // LOGIN
     [HttpPost("login")]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -238,27 +237,6 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
     {
         var response = await _authService.RegisterCompanyAsync(request);
-
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
-    }
-
-    // REGISTER CUSTOMER (Company owner creates customer under their tenant)
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "TenantAdmin,SuperAdmin")]
-    [HttpPost("register-customer")]
-    public async Task<IActionResult> RegisterCustomer([FromBody] RegisterRequest request)
-    {
-        var tenantIdClaim = User.FindFirst("tenant_id") ?? User.FindFirst("TenantId");
-        if (tenantIdClaim == null || !int.TryParse(tenantIdClaim.Value, out var tenantId))
-        {
-            return BadRequest(new { success = false, message = "Could not determine tenant from caller claims." });
-        }
-
-        var response = await _authService.RegisterCustomerAsync(request, tenantId);
 
         if (!response.Success)
         {
