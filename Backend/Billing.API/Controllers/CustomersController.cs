@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
+using Billing.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,13 +15,16 @@ namespace Billing.API.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly IAuditService _auditService;
     private readonly ILogger<CustomersController> _logger;
 
     public CustomersController(
         ICustomerService customerService,
+        IAuditService auditService,
         ILogger<CustomersController> logger)
     {
         _customerService = customerService;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -52,6 +56,16 @@ public class CustomersController : ControllerBase
         {
             return BadRequest(result);
         }
+
+        // Record CREATE audit event (IBMSBE-Audit-02)
+        await _auditService.RecordCustomerCreatedAsync(
+            tenantId.Value,
+            result.Data!.Id,
+            result.Data.Name,
+            GetUserId(),
+            GetUserName(),
+            request,
+            GetClientIpAddress());
 
         return CreatedAtAction(
             nameof(GetCustomerById),
@@ -149,11 +163,36 @@ public class CustomersController : ControllerBase
             return BadRequest(result);
         }
 
+        // Record UPDATE or DEACTIVATE audit event (IBMSBE-Audit-02)
+        var resolvedTenantId = tenantId ?? 1;
+        if (request.IsActive == false)
+        {
+            await _auditService.RecordCustomerDeactivatedAsync(
+                resolvedTenantId,
+                id,
+                result.Data?.Name ?? "Customer",
+                GetUserId(),
+                GetUserName(),
+                "Customer deactivated via profile update",
+                GetClientIpAddress());
+        }
+        else
+        {
+            await _auditService.RecordCustomerUpdatedAsync(
+                resolvedTenantId,
+                id,
+                result.Data?.Name ?? "Customer",
+                GetUserId(),
+                GetUserName(),
+                request,
+                GetClientIpAddress());
+        }
+
         return Ok(result);
     }
 
     /// <summary>
-    /// IBMSBE-011: PATCH /api/v1/customers/{id}/deactivate
+    /// IBMSBE-011 / IBMSBE-Audit-02: PATCH /api/v1/customers/{id}/deactivate
     /// Deactivate customer record without physical deletion.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
@@ -177,11 +216,21 @@ public class CustomersController : ControllerBase
             return NotFound(result);
         }
 
+        // Record DEACTIVATE audit event (IBMSBE-Audit-02)
+        await _auditService.RecordCustomerDeactivatedAsync(
+            tenantId ?? 1,
+            id,
+            result.Data?.Name ?? "Customer",
+            GetUserId(),
+            GetUserName(),
+            "Deactivated via customer management",
+            GetClientIpAddress());
+
         return Ok(result);
     }
 
     /// <summary>
-    /// IBMSBE-013: DELETE /api/v1/customers/{id}
+    /// IBMSBE-013 / IBMSBE-Audit-02: DELETE /api/v1/customers/{id}
     /// History Protection: Physical deletion is prohibited; deactivates customer to preserve business history.
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
@@ -205,8 +254,38 @@ public class CustomersController : ControllerBase
             return NotFound(result);
         }
 
+        // Record DEACTIVATE audit event (IBMSBE-Audit-02)
+        await _auditService.RecordCustomerDeactivatedAsync(
+            tenantId ?? 1,
+            id,
+            result.Data?.Name ?? "Customer",
+            GetUserId(),
+            GetUserName(),
+            "Deactivated via physical deletion prevention",
+            GetClientIpAddress());
+
         result.Message = "Customer deactivated successfully. Historical records have been preserved.";
         return Ok(result);
+    }
+
+    /// <summary>
+    /// GET /api/v1/customers/{id}/audit: Retrieve customer audit trail history.
+    /// Powers the Frontend Audit Tab (IBMSFE-013) displaying user, action, timestamp, and changes.
+    /// </summary>
+    [HttpGet("{id:int}/audit")]
+    [ProducesResponseType(typeof(ApiResponse<List<AuditLog>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCustomerAuditHistory([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var resolvedTenantId = tenantId ?? 1;
+        var auditLogs = await _auditService.GetCustomerAuditHistoryAsync(resolvedTenantId, id);
+        return Ok(ApiResponse<List<AuditLog>>.Ok(auditLogs, "Customer audit history retrieved successfully."));
     }
 
     /// <summary>
@@ -280,4 +359,9 @@ public class CustomersController : ControllerBase
 
         return string.Equals(customerEmail.Trim(), userEmail?.Trim(), StringComparison.OrdinalIgnoreCase);
     }
+
+    private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? "system";
+    private string GetUserName() => User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("name")?.Value ?? "Authorized User";
+    private string? GetClientIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString();
 }
+

@@ -20,6 +20,8 @@ public class BillingDbContext : DbContext
 
     public DbSet<CustomerAddress> CustomerAddresses { get; set; }
 
+    public DbSet<AuditLog> AuditLogs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -63,6 +65,7 @@ public class BillingDbContext : DbContext
             entity.Property(c => c.Website).HasMaxLength(256);
             entity.Property(c => c.Notes).HasMaxLength(1000);
             entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("USD");
+            entity.Property(c => c.PaymentTerms).HasMaxLength(64);
             entity.Property(c => c.RowVersion).IsRowVersion();
 
             entity.HasOne(c => c.Tenant)
@@ -136,6 +139,37 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(s => new { s.UserId, s.IsRevoked });
             entity.HasIndex(s => s.SessionExpiresAtUtc);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("audit_logs");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.EntityName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.UserId).HasMaxLength(100);
+            entity.Property(e => e.UserName).HasMaxLength(200);
+
+            entity.HasOne(e => e.Customer)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Tenant)
+                  .WithMany()
+                  .HasForeignKey(e => e.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.TenantId, e.CustomerId })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_CustomerId");
+
+            entity.HasIndex(e => new { e.TenantId, e.Timestamp })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_Timestamp");
+
+            entity.HasIndex(e => new { e.TenantId, e.EntityName, e.EntityId })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_Entity");
         });
     }
 }

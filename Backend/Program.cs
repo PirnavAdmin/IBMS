@@ -106,6 +106,7 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<LandingPageService>();
 
 // ============================================================
@@ -115,6 +116,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
 // ============================================================
 // Authentication / JWT
@@ -287,6 +289,18 @@ builder.Services.AddSwaggerGen(options =>
             }
         }
     );
+
+    var apiXmlPath = Path.Combine(AppContext.BaseDirectory, "Billing.API.xml");
+    if (File.Exists(apiXmlPath))
+    {
+        options.IncludeXmlComments(apiXmlPath);
+    }
+
+    var contractsXmlPath = Path.Combine(AppContext.BaseDirectory, "Billing.Contracts.xml");
+    if (File.Exists(contractsXmlPath))
+    {
+        options.IncludeXmlComments(contractsXmlPath);
+    }
 });
 
 // ============================================================
