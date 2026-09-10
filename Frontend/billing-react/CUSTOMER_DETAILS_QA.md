@@ -1,5 +1,13 @@
 # Customer Details integration handoff — 2026-09-10
 
+## Later update: Customer directory filters
+
+This update supersedes the earlier search/type/tax/sorting restrictions below. Live Swagger was rechecked after the backend changed: GET customers now documents `search`, `customerType` (Business/Individual), `taxId`, `sortBy` and `sortOrder` in addition to pagination/status.
+
+Frontend search and customer-type controls are now enabled. The Tax registration category selector is replaced with a Tax ID / GST / VAT ID text input matching the backend contract. Search and Tax ID use 450 ms debounce and return to page 1. Code/name table sorting is enabled; `customerCode` maps to API `code`. Unsupported column sorts are not offered. Reset clears pending inputs and URL filters, and also works when pagination parameters are present. Server filtering/pagination remain authoritative; no page-local filtering or mock fallback was added.
+
+Remaining contract gaps: outstanding filtering is not documented; GST Registered/Non GST/Tax ID Available category filtering is not documented (specific Tax ID filtering is supported); customer type Organization is not documented. Aggregate outstanding totals and populated response fields still require backend response confirmation. The earlier blanket statement that search/sorting are unsupported is no longer current. Authenticated browser filtering has not been verified.
+
 Customer Details changes for IBMSFE-009–014 are implemented. IBMSFE-015 is **partially verified**: automated transport and rendering checks passed; authenticated browser integration QA remains outstanding. Manikanta's List and Jayakrishna's Create/Edit layouts were retained. Sidebar, authentication, global styles, and other modules were not redesigned.
 
 ## Modified files

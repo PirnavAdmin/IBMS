@@ -6,12 +6,15 @@ import { customerPayload, customerQuery, mapCustomer, mapCustomerPage, unwrapCus
 const record = { id: 7, customerCode: 'TEST-7', name: 'Contract Test', phone: '9000000000', email: 'contract@example.invalid', taxId: '29ABCDE1234F1Z5', isActive: true };
 const params = { page: 2, pageSize: 10 };
 
-test('uses only Swagger pagination and status parameters', () => {
+test('uses current Swagger filters and preserves server pagination', () => {
   assert.deepEqual(customerQuery({ ...params, status: 'inactive' }), { pageNumber: 2, pageSize: 10, status: 'Inactive' });
   assert.equal(customerQuery(params).status, 'All');
-  for (const unsupported of ['search', 'customerType', 'taxId', 'outstanding', 'sortBy']) {
-    assert.throws(() => customerQuery({ ...params, [unsupported]: 'value' }), /not supported/);
-  }
+  assert.deepEqual(customerQuery({ ...params, search: ' Ravi ', customerType: 'business', taxId: ' TAX123 ', sortBy: 'customerCode', sortOrder: 'asc' }), { pageNumber: 2, pageSize: 10, status: 'All', search: 'Ravi', customerType: 'Business', taxId: 'TAX123', sortBy: 'code', sortOrder: 'asc' });
+  assert.equal(customerQuery({ ...params, customerType: 'individual' }).customerType, 'Individual');
+  assert.throws(() => customerQuery({ ...params, outstanding: 'yes' }), /not supported/);
+  assert.throws(() => customerQuery({ ...params, customerType: 'organization' }), /Invalid/);
+  assert.throws(() => customerQuery({ ...params, sortBy: 'outstandingBalance' }), /Invalid/);
+  assert.deepEqual(customerQuery({ page: 1, pageSize: 10, search: '', taxId: '' }), { pageNumber: 1, pageSize: 10, status: 'All' });
   assert.throws(() => customerQuery({ page: -1, pageSize: 10 }), /Invalid/);
 });
 

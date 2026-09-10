@@ -1,7 +1,7 @@
 import type { Customer, CustomerQueryParams, CustomerWriteRequest, PaginatedCustomerResponse } from './types';
 
 export const customerCapabilities = {
-  search: false, customerType: false, taxId: false, outstanding: false, sorting: false,
+  search: true, customerType: true, taxId: true, outstanding: false, sorting: true,
 } as const;
 
 const object = (value: unknown): Record<string, any> => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
@@ -15,12 +15,21 @@ export function unwrapCustomerResponse(response: unknown): Record<string, any> {
 }
 
 export function customerQuery(params: CustomerQueryParams) {
-  if (params.search || params.customerType || params.taxId || params.outstanding || params.sortBy) {
-    throw new Error('Search, type/tax/outstanding filters and sorting are not supported by the current Customer API. Reset filters to load customers.');
-  }
+  if (params.outstanding) throw new Error('Outstanding filtering is not supported by the current Customer API. Reset filters to load customers.');
   if (!Number.isInteger(params.page) || params.page < 1 || ![10, 25, 50, 100].includes(params.pageSize)) throw new Error('Invalid customer page or page size.');
   if (params.status && !['active', 'inactive'].includes(params.status)) throw new Error('Invalid customer status filter.');
-  return { pageNumber: params.page, pageSize: params.pageSize, status: params.status === 'active' ? 'Active' : params.status === 'inactive' ? 'Inactive' : 'All' };
+  if (params.customerType && !['business', 'individual'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
+  const sortBy = params.sortBy === 'customerCode' ? 'code' : params.sortBy;
+  if (sortBy && !['createdAt', 'name', 'email', 'companyName', 'code', 'updatedAt'].includes(sortBy)) throw new Error('Invalid customer sort field. Reset filters to load customers.');
+  if (params.sortOrder && !['asc', 'desc'].includes(params.sortOrder)) throw new Error('Invalid customer sort direction.');
+  return {
+    pageNumber: params.page, pageSize: params.pageSize,
+    status: params.status === 'active' ? 'Active' : params.status === 'inactive' ? 'Inactive' : 'All',
+    ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+    ...(params.customerType ? { customerType: params.customerType === 'business' ? 'Business' : 'Individual' } : {}),
+    ...(params.taxId?.trim() ? { taxId: params.taxId.trim() } : {}),
+    ...(sortBy ? { sortBy, sortOrder: params.sortOrder || 'desc' } : {}),
+  };
 }
 
 /** Swagger omits response schemas. These defensive mappings require authenticated verification. */
