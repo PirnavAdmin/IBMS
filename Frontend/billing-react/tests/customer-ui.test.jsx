@@ -17,13 +17,15 @@ import { CustomerListPage } from '../src/features/customers/CustomerListPage';
 
 const record = () => mapDetails({ customer: { id: 7, name: 'QA Customer', isActive: true, currency: 'INR' }, financialSummary: { totalInvoiced: 100, totalPaid: 40, outstandingBalance: 60 }, invoices: [], payments: [] });
 const render = component => renderToStaticMarkup(<StaticRouter location="/customers/7"><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } })}>{component}</QueryClientProvider></StaticRouter>);
-test('directory enables search and exact Tax ID controls and explains outstanding limitation', () => {
+test('directory enables backend search, tax-registration, and outstanding controls', () => {
   const html = render(<CustomerListPage />);
   const search = html.match(/<input\b[^>]*aria-label="Search customers"[^>]*>/)?.[0];
   assert.ok(search);
   assert.doesNotMatch(search, /disabled/);
   assert.match(html, /Tax ID \/ GST \/ VAT ID/);
-  assert.match(html, /Outstanding filtering is not available yet/);
+  assert.match(html, /Tax registration/);
+  assert.match(html, /Has Outstanding/);
+  assert.doesNotMatch(html, /Outstanding filtering is not available yet/);
   assert.doesNotMatch(html, /Search, other filters and sorting require backend support/);
 });
 test('overview renders backend values without unsupported profile labels', () => {

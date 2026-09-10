@@ -1,5 +1,16 @@
 # Customer Details integration handoff — 2026-09-10
 
+## Authenticated outstanding verification
+
+Using the user-authorized account, login and read-only customer requests succeeded. No credentials or tokens were written to project files, and no customer records were changed.
+
+- `GET /api/v1/customers?pageSize=10`: returned five customers. Page keys were `items`, `totalCount`, `pageNumber`, `pageSize`, `totalPages`, `hasPreviousPage`, `hasNextPage`. None of the five items contained `outstandingBalance`; no aggregate outstanding field was returned.
+- `GET /api/v1/customers/{id}/details`: checked all five returned IDs. Each supplied `financialSummary.outstandingBalance: 0.00`, `currency: INR`, zero invoice/payment totals, and empty invoice/payment arrays.
+- The Details balance contract is therefore verified for empty histories. This does not verify populated transaction calculations.
+- The Customer List row balance and Total Outstanding card still lack fields in the verified list response. The last live Swagger inspection also had no outstanding filter parameter or documented total-outstanding contract. Do not substitute `totalCount` for an amount, assume missing balances are zero, or sum only the current page as a global total.
+
+This supersedes earlier statements that no authenticated response had been inspected; interactive browser testing remains unperformed.
+
 ## Later update: Customer directory filters
 
 This update supersedes the earlier search/type/tax/sorting restrictions below. Live Swagger was rechecked after the backend changed: GET customers now documents `search`, `customerType` (Business/Individual), `taxId`, `sortBy` and `sortOrder` in addition to pagination/status.

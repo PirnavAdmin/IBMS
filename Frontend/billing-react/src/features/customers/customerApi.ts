@@ -48,7 +48,13 @@ export async function deleteCustomer(id: string): Promise<void> {
   await request(() => apiClient.delete(customerPath(id), config));
 }
 export async function getCustomerSummary(signal?: AbortSignal): Promise<CustomerSummary> {
-  const [all, active, inactive] = await Promise.all(['', 'active', 'inactive'].map(status => getCustomers({ page: 1, pageSize: 10, status }, signal)));
-  // No aggregate financial endpoint is documented; a page sum is not a tenant total.
-  return { total: all.totalCount, active: active.totalCount, inactive: inactive.totalCount, outstanding: null };
+  return request(async () => {
+    const data = unwrapCustomerResponse(await apiClient.get(`${endpoint}/summary`, { ...config, signal }));
+    const total = Number(data.totalCustomers);
+    const active = Number(data.activeCustomers);
+    const inactive = Number(data.inactiveCustomers);
+    const outstanding = Number(data.totalOutstanding);
+    if (![total, active, inactive, outstanding].every(Number.isFinite)) throw new Error('Customer summary API returned invalid aggregate values.');
+    return { total, active, inactive, outstanding, currency: typeof data.currency === 'string' && data.currency ? data.currency : 'USD' };
+  });
 }

@@ -9,10 +9,12 @@ import './customers.css';
 
 export const money = (value: number | null | undefined) => value == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
 export const StatusChip = ({ status }: { status: string }) => <span className={`customer-status ${status}`}><i />{status}</span>;
+const moneyWithCurrency = (value: number | null | undefined, currency = 'USD') => value == null ? money(value) : new Intl.NumberFormat('en-IN', { style: 'currency', currency: /^[A-Z]{3}$/i.test(currency) ? currency.toUpperCase() : 'USD', maximumFractionDigits: 2 }).format(value);
 const filterOptions = {
   status: { label: 'Customer status', values: [['active', 'Active'], ['inactive', 'Inactive']] },
-  customerType: { label: 'Customer type', values: [['individual', 'Individual'], ['business', 'Business']] },
-  outstanding: { label: 'Outstanding', values: [['yes', 'Has Outstanding'], ['no', 'No Outstanding']] },
+  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business']] },
+  taxRegistration: { label: 'Tax registration', values: [['Registered', 'Registered'], ['Unregistered', 'Unregistered']] },
+  outstanding: { label: 'Outstanding', values: [['Has Outstanding', 'Has Outstanding'], ['No Outstanding', 'No Outstanding']] },
 };
 const columns = [['customerCode', 'Customer code'], ['name', 'Customer'], ['customerType', 'Type'], ['', 'Tax ID / GSTIN'], ['', 'Contact'], ['outstandingBalance', 'Outstanding'], ['status', 'Status'], ['', 'Actions']];
 export function CustomerListPage() {
@@ -45,14 +47,13 @@ export function CustomerListPage() {
       { label: 'Total Customers', value: summaryQuery.data?.total, text: 'Your customer network', icon: <GroupOutlined />, tone: 'brown' },
       { label: 'Active Customers', value: summaryQuery.data?.active, text: 'Ready for new invoices', icon: <CheckCircleOutline />, tone: 'green' },
       { label: 'Inactive Customers', value: summaryQuery.data?.inactive, text: 'History safely retained', icon: <PersonOffOutlined />, tone: 'gray' },
-      { label: 'Total Outstanding', value: summaryQuery.data ? money(summaryQuery.data.outstanding) : undefined, text: 'Total outstanding is not provided by the API', icon: <AccountBalanceWalletOutlined />, tone: 'orange' },
+      { label: 'Total Outstanding', value: summaryQuery.data ? moneyWithCurrency(summaryQuery.data.outstanding, summaryQuery.data.currency) : undefined, text: 'Across all customers', icon: <AccountBalanceWalletOutlined />, tone: 'orange' },
     ].map(stat => <article key={stat.label} className={`customer-stat ${stat.tone}`}><div className="customer-stat-top"><span>{stat.label}</span><span className="customer-stat-icon">{stat.icon}</span></div><strong>{summaryQuery.isLoading ? <Skeleton width="60%" /> : stat.value ?? '—'}</strong><small>{stat.text}</small></article>)}</section>
     {summaryQuery.isError && <Alert severity="warning" action={<Button onClick={() => summaryQuery.refetch()}>Retry</Button>}>Customer summary unavailable. {summaryQuery.error.message}</Alert>}
     <section className="customer-panel">
       <div className="customer-panel-heading"><div><h2>Customer directory <span>{data?.totalCount ?? '—'}</span></h2><p>All your customer relationships, in one place.</p></div></div>
       <div className="customer-filters"><TextField disabled={!customerCapabilities.search} className="customer-search" size="small" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name, code, email, mobile or tax ID…" inputProps={{ 'aria-label': 'Search customers' }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-        <div className="customer-search-feedback" role="status">Search by customer details or enter a Tax ID. Outstanding filtering is not available yet.</div>
-        <div className="customer-filter-row">{Object.entries(filterOptions).map(([key, option]) => <TextField disabled={key === 'outstanding'} helperText={key === 'outstanding' ? 'Not available yet' : undefined} select size="small" label={option.label} key={key} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} value={params[key as keyof CustomerQueryParams] || ''} onChange={event => change({ [key]: event.target.value, page: 1 })}><MenuItem value="">All</MenuItem>{option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>)}<TextField size="small" label="Tax ID / GST / VAT ID" value={taxId} onChange={event => setTaxId(event.target.value)} /><Button onClick={reset} disabled={!filtered && !search && !taxId && !url.toString()}>Reset filters</Button></div>
+        <div className="customer-filter-row">{Object.entries(filterOptions).map(([key, option]) => <TextField select size="small" label={option.label} key={key} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} value={params[key as keyof CustomerQueryParams] || ''} onChange={event => change({ [key]: event.target.value, page: 1 })}><MenuItem value="">All</MenuItem>{option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>)}<TextField size="small" label="Tax ID / GST / VAT ID" value={taxId} onChange={event => setTaxId(event.target.value)} /><Button onClick={reset} disabled={!filtered && !search && !taxId && !url.toString()}>Reset filters</Button></div>
         {filtered && <div className="customer-filter-chips">{params.taxId && <Chip size="small" label={`Tax ID: ${params.taxId}`} onDelete={() => { setTaxId(''); change({ taxId: '', page: 1 }); }} />}{params.search && <Chip size="small" label={`Search: ${params.search}`} onDelete={() => { setSearch(''); change({ search: '', page: 1 }); }} />}{Object.entries(filterOptions).filter(([key]) => params[key as keyof CustomerQueryParams]).map(([key, option]) => <Chip key={key} size="small" label={`${option.label}: ${option.values.find(([v]) => v === params[key as keyof CustomerQueryParams])?.[1]}`} onDelete={() => change({ [key]: '', page: 1 })} />)}</div>}
       </div>
       <div className="customer-progress">{query.isFetching && <LinearProgress />}</div>
@@ -63,7 +64,7 @@ export function CustomerListPage() {
         <TableCell data-label="Type"><span className="customer-type">{customer.customerType || '—'}</span></TableCell>
         <TableCell data-label="Tax ID"><div className="customer-tax"><small>{customer.gstin ? 'GSTIN' : customer.taxId ? 'PAN / Tax ID' : 'Not registered'}</small>{customer.gstin || customer.taxId || '—'}</div></TableCell>
         <TableCell data-label="Contact"><div className="customer-contact"><a href={`mailto:${customer.email}`}>{customer.email}</a><small>{customer.mobile}</small></div></TableCell>
-        <TableCell data-label="Outstanding" align="right"><strong className={(customer.outstandingBalance ?? 0) > 0 ? 'customer-balance due' : 'customer-balance'}>{money(customer.outstandingBalance)}</strong></TableCell>
+        <TableCell data-label="Outstanding" align="right"><strong className={(customer.outstandingBalance ?? 0) > 0 ? 'customer-balance due' : 'customer-balance'}>{moneyWithCurrency(customer.outstandingBalance, customer.currency)}</strong></TableCell>
         <TableCell data-label="Status"><StatusChip status={customer.status} /></TableCell>
         <TableCell data-label="Actions"><div className="customer-row-actions" role="group" aria-label={`Actions for ${customer.name}`}>
           <Tooltip title="View details"><IconButton className="action-view" size="small" aria-label={`View ${customer.name}`} onClick={() => navigate(`/customers/${customer.id}`)}><VisibilityOutlined /></IconButton></Tooltip>

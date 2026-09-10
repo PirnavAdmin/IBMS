@@ -1,7 +1,7 @@
 import type { Customer, CustomerQueryParams, CustomerWriteRequest, PaginatedCustomerResponse } from './types';
 
 export const customerCapabilities = {
-  search: true, customerType: true, taxId: true, outstanding: false, sorting: true,
+  search: true, customerType: true, taxId: true, taxRegistration: true, outstanding: true, sorting: true,
 } as const;
 
 const object = (value: unknown): Record<string, any> => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
@@ -15,10 +15,11 @@ export function unwrapCustomerResponse(response: unknown): Record<string, any> {
 }
 
 export function customerQuery(params: CustomerQueryParams) {
-  if (params.outstanding) throw new Error('Outstanding filtering is not supported by the current Customer API. Reset filters to load customers.');
   if (!Number.isInteger(params.page) || params.page < 1 || ![10, 25, 50, 100].includes(params.pageSize)) throw new Error('Invalid customer page or page size.');
   if (params.status && !['active', 'inactive'].includes(params.status)) throw new Error('Invalid customer status filter.');
-  if (params.customerType && !['business', 'individual'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
+  if (params.customerType && !['Business', 'Individual'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
+  if (params.taxRegistration && !['Registered', 'Unregistered'].includes(params.taxRegistration)) throw new Error('Invalid tax registration filter.');
+  if (params.outstanding && !['Has Outstanding', 'No Outstanding'].includes(params.outstanding)) throw new Error('Invalid outstanding filter.');
   const sortBy = params.sortBy === 'customerCode' ? 'code' : params.sortBy;
   if (sortBy && !['createdAt', 'name', 'email', 'companyName', 'code', 'updatedAt'].includes(sortBy)) throw new Error('Invalid customer sort field. Reset filters to load customers.');
   if (params.sortOrder && !['asc', 'desc'].includes(params.sortOrder)) throw new Error('Invalid customer sort direction.');
@@ -26,8 +27,10 @@ export function customerQuery(params: CustomerQueryParams) {
     pageNumber: params.page, pageSize: params.pageSize,
     status: params.status === 'active' ? 'Active' : params.status === 'inactive' ? 'Inactive' : 'All',
     ...(params.search?.trim() ? { search: params.search.trim() } : {}),
-    ...(params.customerType ? { customerType: params.customerType === 'business' ? 'Business' : 'Individual' } : {}),
+    ...(params.customerType ? { customerType: params.customerType } : {}),
     ...(params.taxId?.trim() ? { taxId: params.taxId.trim() } : {}),
+    ...(params.taxRegistration ? { taxRegistration: params.taxRegistration } : {}),
+    ...(params.outstanding ? { outstanding: params.outstanding } : {}),
     ...(sortBy ? { sortBy, sortOrder: params.sortOrder || 'desc' } : {}),
   };
 }
@@ -45,7 +48,7 @@ export function mapCustomer(response: unknown): Customer {
     id: String(id), customerCode: string(row.customerCode), name: string(row.name), companyName: string(row.companyName),
     email: string(row.email), mobile: string(row.phone), taxId: gst ? '' : tax, gstin: gst ? tax : '',
     customerType: ['individual', 'business', 'organization'].includes(string(row.customerType).toLowerCase()) ? row.customerType.toLowerCase() : '',
-    currency: string(row.currency), outstandingBalance: amount(object(data.financialSummary).outstandingBalance ?? row.outstandingBalance),
+    currency: string(row.currency ?? object(data.financialSummary).currency), outstandingBalance: amount(object(data.financialSummary).outstandingBalance ?? row.outstandingBalance),
     creditLimit: amount(row.creditLimit), paymentTerms: string(row.paymentTerms),
     status: typeof row.isActive === 'boolean' ? row.isActive ? 'active' : 'inactive' : status === 'active' || status === 'inactive' ? status : 'unknown',
     createdAt: string(row.createdAt), notes: string(row.notes), backend: { ...row, ...(Array.isArray(data.addresses) ? { addresses: data.addresses } : {}) },

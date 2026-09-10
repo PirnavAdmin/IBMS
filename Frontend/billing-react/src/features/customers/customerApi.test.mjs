@@ -9,9 +9,11 @@ const params = { page: 2, pageSize: 10 };
 test('uses current Swagger filters and preserves server pagination', () => {
   assert.deepEqual(customerQuery({ ...params, status: 'inactive' }), { pageNumber: 2, pageSize: 10, status: 'Inactive' });
   assert.equal(customerQuery(params).status, 'All');
-  assert.deepEqual(customerQuery({ ...params, search: ' Ravi ', customerType: 'business', taxId: ' TAX123 ', sortBy: 'customerCode', sortOrder: 'asc' }), { pageNumber: 2, pageSize: 10, status: 'All', search: 'Ravi', customerType: 'Business', taxId: 'TAX123', sortBy: 'code', sortOrder: 'asc' });
-  assert.equal(customerQuery({ ...params, customerType: 'individual' }).customerType, 'Individual');
-  assert.throws(() => customerQuery({ ...params, outstanding: 'yes' }), /not supported/);
+  assert.deepEqual(customerQuery({ ...params, search: ' Ravi ', customerType: 'Business', taxId: ' TAX123 ', sortBy: 'customerCode', sortOrder: 'asc' }), { pageNumber: 2, pageSize: 10, status: 'All', search: 'Ravi', customerType: 'Business', taxId: 'TAX123', sortBy: 'code', sortOrder: 'asc' });
+  assert.equal(customerQuery({ ...params, customerType: 'Individual' }).customerType, 'Individual');
+  assert.deepEqual(customerQuery({ ...params, outstanding: 'Has Outstanding' }), { pageNumber: 2, pageSize: 10, status: 'All', outstanding: 'Has Outstanding' });
+  assert.deepEqual(customerQuery({ ...params, outstanding: 'No Outstanding', taxRegistration: 'Registered' }), { pageNumber: 2, pageSize: 10, status: 'All', taxRegistration: 'Registered', outstanding: 'No Outstanding' });
+  assert.throws(() => customerQuery({ ...params, outstanding: 'yes' }), /Invalid/);
   assert.throws(() => customerQuery({ ...params, customerType: 'organization' }), /Invalid/);
   assert.throws(() => customerQuery({ ...params, sortBy: 'outstandingBalance' }), /Invalid/);
   assert.deepEqual(customerQuery({ page: 1, pageSize: 10, search: '', taxId: '' }), { pageNumber: 1, pageSize: 10, status: 'All' });

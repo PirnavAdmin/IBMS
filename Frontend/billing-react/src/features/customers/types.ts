@@ -7,13 +7,13 @@ export interface Customer {
 }
 export interface CustomerQueryParams {
   page: number; pageSize: number; search?: string; status?: string; customerType?: string;
-  taxId?: string; outstanding?: string; sortBy?: string; sortOrder?: 'asc' | 'desc';
+  taxId?: string; taxRegistration?: string; outstanding?: string; sortBy?: string; sortOrder?: 'asc' | 'desc';
 }
 export interface PaginatedCustomerResponse {
   items: Customer[]; page: number; pageSize: number; totalCount: number; totalPages: number;
 }
 export interface CustomerSummary {
-  total: number; active: number; inactive: number; outstanding: number | null;
+  total: number; active: number; inactive: number; outstanding: number | null; currency: string;
 }
 /** Live Swagger DTO fields; unsupported UI fields must not be sent. */
 export interface CustomerWriteRequest {
