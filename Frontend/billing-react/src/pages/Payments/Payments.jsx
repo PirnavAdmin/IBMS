@@ -1,4 +1,5 @@
 import { PaymentsOutlined, Refresh } from '@mui/icons-material';
+import { useOutletContext } from 'react-router-dom';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { usePayments } from '../../hooks/usePayments';
 import '../../styles/Payments.css';
@@ -6,7 +7,9 @@ import '../../styles/Payments.css';
 const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
 export const Payments = () => {
-  const { payments, loading, error, retry } = usePayments();
+  const { payments: allPayments, loading, error, retry } = usePayments();
+  const { searchQuery = '' } = useOutletContext() || {};
+  const payments = allPayments.filter((payment) => Object.values(payment).some((value) => String(value ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase())));
 
   return <main className="payments-page">
     <header className="payments-heading">

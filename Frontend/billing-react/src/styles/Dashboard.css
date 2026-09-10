@@ -1,5 +1,7 @@
 .bd-shell { min-height: 100vh; background: var(--bg-main); color: var(--text-primary); }
-.bd-header { min-height: 72px; padding: 12px clamp(18px, 2.2vw, 34px); display: flex; align-items: center; justify-content: space-between; gap: 24px; background: var(--bg-main); border-bottom: 1px solid var(--border); box-shadow: none; position: relative; z-index: 10; }
+.bd-header { min-height: 72px; padding: 12px clamp(18px, 2.2vw, 34px); display: flex; align-items: center; justify-content: space-between; gap: 24px; background: #f0e6da; border-bottom: 1px solid #e3d4c3; box-shadow: none; position: relative; z-index: 10; }
+.bd-header-profile-only { justify-content: flex-end; }
+.app-layout-main > .bd-header + .customer-page { padding-top: 28px; }
 .bd-search { width: min(460px, 48%); min-height: 46px; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: #fff; border: 1px solid var(--border); border-radius: 24px; transition: .2s ease; }
 .bd-search:focus-within { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(212,134,79,.14); }
 .bd-search svg { color: var(--primary); }.bd-search input { flex: 1; min-width: 0; border: 0; outline: 0; font: inherit; color: inherit; background: transparent; }

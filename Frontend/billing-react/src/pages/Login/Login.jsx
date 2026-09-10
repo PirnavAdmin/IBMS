@@ -84,7 +84,7 @@ export const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [apiError, setApiError] = useState(null);
+  const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'HTTP 401: Your session has expired. Please login again.' : null);
 
   // ==========================================================
   // FORGOT PASSWORD STATE
@@ -205,7 +205,7 @@ export const Login = () => {
         password: data.password,
       });
 
-      console.log('Login successful:', response);
+
 
       // ------------------------------------------------------
       // GET TOKEN FROM BACKEND RESPONSE
@@ -233,7 +233,7 @@ export const Login = () => {
 
       localStorage.setItem(
         'billing_auth_token',
-        token
+        token.replace(/^(?:Bearer\s+)+/i, '').trim()
       );
 
       // ------------------------------------------------------

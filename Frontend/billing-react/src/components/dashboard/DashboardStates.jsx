@@ -12,9 +12,9 @@ export const DashboardSkeleton = () => <div className="bd-dashboard-skeleton" ro
   <div className="bd-detail-grid">{['Recent Payments', 'Top Customers'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
 </div>;
 
-export const DashboardErrorState = ({ onRetry }) => <section className="bd-dashboard-error" role="alert">
+export const DashboardErrorState = ({ onRetry, title = "API Error - Unable to Load Billing Data", message = "We couldn't fetch your billing data. Please check your connection and try again." }) => <section className="bd-dashboard-error" role="alert">
   <div className="bd-error-illustration" aria-hidden="true"><PowerOffOutlined /><div><DnsOutlined /><DescriptionOutlined /></div></div>
-  <h2>API Error - Unable to Load Billing Data</h2>
-  <p>We couldn't fetch your billing data. Please check your connection and try again.</p>
-  <button className="bd-retry" onClick={onRetry}><Refresh /> Retry</button>
+  <h2>{title}</h2>
+  <p>{message}</p>
+  {onRetry && <button className="bd-retry" onClick={onRetry}><Refresh /> Retry</button>}
 </section>;

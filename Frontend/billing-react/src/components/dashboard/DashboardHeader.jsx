@@ -9,9 +9,9 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu }) =>
   // TEMPORARY ROLE
   // Replace "Admin" when backend role/permission data is finalized.
   const role = 'Admin';
-  return <header className="bd-header">
+  return <header className={`bd-header${onSearch ? '' : ' bd-header-profile-only'}`}>
     {onMenu && <button className="bd-mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu /></button>}
-    <label className="bd-search"><Search /><input value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search displayed records..." aria-label="Search dashboard" /></label>
+    {onSearch && <label className="bd-search"><Search /><input value={searchQuery} onChange={(event) => onSearch(event.target.value)} placeholder="Search displayed records..." aria-label="Search dashboard" /></label>}
     <div className="bd-profile-area">
       <button className="bd-icon-button bd-notification" aria-label="Notifications"><NotificationsNone /></button>
       <button className="bd-icon-button" aria-label="Help"><HelpOutline /></button>

@@ -15,7 +15,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof localStorage !== 'undefined') {
-      const token = localStorage.getItem('billing_auth_token');
+      const token = localStorage.getItem('billing_auth_token')?.replace(/^(?:Bearer\s+)+/i, '').trim();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -50,11 +50,18 @@ export const getUserFriendlyError = (error) => {
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    if (error?.response?.status === 401 && error.config?.headers?.Authorization && !error.config?.url?.toLowerCase().includes('/auth/')) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('billing_auth_token');
+        localStorage.removeItem('billing_auth_user');
+      }
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') window.location.replace('/login?reason=session-expired');
+    }
     const message = getUserFriendlyError(error);
     const normalizedError = new Error(message);
     normalizedError.userMessage = message;
     normalizedError.code = error?.code;
-    if (message !== 'Network Error') normalizedError.response = error?.response;
+    normalizedError.response = error?.response;
     return Promise.reject(normalizedError);
   }
 );
