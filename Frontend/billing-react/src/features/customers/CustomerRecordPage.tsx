@@ -18,7 +18,7 @@ const schema = yup.object({
   mobile: yup.string().matches(/^\+?[\d\s()-]{10,18}$/, 'Enter a valid phone number').required(),
   gstin: yup.string().uppercase().matches(/^([0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z])?$/, 'Enter a valid 15-character GSTIN').default(''),
   taxId: yup.string().trim().default(''), creditLimit: yup.number().transform((value, original) => original === '' ? 0 : value).min(0).typeError('Enter a valid amount').default(0),
-  paymentTerms: yup.string().required().default('Net 30'), currency: yup.string().oneOf(['INR']).default('INR'), notes: yup.string().default(''),
+  paymentTerms: yup.string().required().default('Net 30'), currency: yup.string().oneOf<string>(['INR']).default('INR'), notes: yup.string().default(''),
 });
 type FormValues = yup.InferType<typeof schema>;
 export function CustomerRecordPage({ mode }: { mode: 'new' | 'edit' | 'view' }) {
