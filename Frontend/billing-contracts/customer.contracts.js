@@ -54,11 +54,15 @@ export const createCustomerRequest = (data = {}) => {
 
 export const createUpdateCustomerRequest = (data = {}) => {
   const base = createCustomerRequest(data);
+  const isTargetActive =
+    typeof data.isActive === 'boolean'
+      ? data.isActive
+      : String(data.status).trim().toLowerCase() !== 'inactive';
+
   return {
     ...base,
-    isActive: typeof data.isActive === 'boolean'
-      ? data.isActive
-      : data.status === 'Active',
+    status: isTargetActive ? 'Active' : 'Inactive',
+    isActive: isTargetActive,
     rowVersion: data.rowVersion || null,
   };
 };
@@ -135,7 +139,17 @@ export const parseCustomerResponse = (response) => {
       billingAddress.country === shippingAddress.country);
 
   const taxId = raw.taxId ?? raw.TaxId ?? '';
-  const isActive = raw.isActive ?? raw.IsActive ?? true;
+  const rawStatus = raw.status ?? raw.Status;
+  let isActive = true;
+  if (typeof raw.isActive === 'boolean') {
+    isActive = raw.isActive;
+  } else if (typeof raw.IsActive === 'boolean') {
+    isActive = raw.IsActive;
+  } else if (rawStatus !== undefined && rawStatus !== null) {
+    isActive = String(rawStatus).trim().toLowerCase() !== 'inactive';
+  }
+  const status = isActive ? 'Active' : 'Inactive';
+
   const rawCustomerType = String(raw.customerType ?? raw.CustomerType ?? 'business').toLowerCase();
   const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType) ? rawCustomerType : 'business';
   const creditLimit = raw.creditLimit ?? raw.CreditLimit ?? null;
@@ -155,7 +169,7 @@ export const parseCustomerResponse = (response) => {
     taxId,
     gstin: taxId,
     currency: raw.currency ?? raw.Currency ?? 'INR',
-    status: isActive === false ? 'Inactive' : 'Active',
+    status,
     isActive,
     notes: raw.notes ?? raw.Notes ?? '',
     website: raw.website ?? raw.Website ?? '',

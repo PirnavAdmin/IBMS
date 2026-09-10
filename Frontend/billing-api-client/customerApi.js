@@ -47,6 +47,17 @@ export const customerApi = {
       const endpoint = API_ENDPOINTS.CUSTOMERS.BY_ID(parsedId || id);
       const payload = createUpdateCustomerRequest(data);
       const response = await apiClient.put(endpoint, payload);
+
+      // If customer is set to Inactive, ensure deactivation endpoint is invoked
+      if (payload.isActive === false || payload.status === 'Inactive') {
+        try {
+          await apiClient.patch(API_ENDPOINTS.CUSTOMERS.DEACTIVATE(parsedId || id));
+        } catch (patchErr) {
+          // Handled or already persisted by PUT
+          console.warn('Deactivation patch notice:', patchErr?.message || patchErr);
+        }
+      }
+
       return parseCustomerResponse(ensureSuccess(response));
     } catch (err) {
       throw new Error(parseCustomerError(err, 'Failed to update customer record.'));

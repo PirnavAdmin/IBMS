@@ -20,12 +20,23 @@ export const CustomerForm = ({
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
     const taxType = values?.taxRegistrationType || (isGst ? 'gst' : rawTax ? 'pan' : 'gst');
 
+    const rawStatus = values?.status ?? values?.Status;
+    let initialStatus = 'Active';
+    if (typeof values?.isActive === 'boolean') {
+      initialStatus = values.isActive ? 'Active' : 'Inactive';
+    } else if (typeof values?.IsActive === 'boolean') {
+      initialStatus = values.IsActive ? 'Active' : 'Inactive';
+    } else if (rawStatus) {
+      initialStatus = String(rawStatus).trim().toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
+    }
+
     return {
       ...DEFAULT_CUSTOMER_VALUES,
       ...(values || {}),
       customerCode: values?.customerCode || '',
       customerType: values?.customerType || 'business',
-      status: values?.status || (values?.isActive === false ? 'Inactive' : 'Active'),
+      status: initialStatus,
+      isActive: initialStatus === 'Active',
       taxRegistrationType: taxType,
       taxId: rawTax,
       gstin: rawTax,
@@ -117,13 +128,17 @@ export const CustomerForm = ({
         ? null
         : (data.taxId || data.gstin)?.trim() || null;
 
+    const isStatusActive = String(data.status).trim().toLowerCase() !== 'inactive';
+    const normalizedStatus = isStatusActive ? 'Active' : 'Inactive';
+
     const payload = {
       ...data,
       name: data.name?.trim(),
       customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
       customerType: data.customerType || 'business',
-      status: data.status || 'Active',
+      status: normalizedStatus,
+      isActive: isStatusActive,
       email: data.email?.trim(),
       phone: data.phone?.trim() || null,
       taxRegistrationType: data.taxRegistrationType || 'gst',

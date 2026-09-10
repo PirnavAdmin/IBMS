@@ -7,8 +7,8 @@ import { CustomerForm } from '../components/CustomerForm';
 import '../customer.css';
 
 export const EditCustomer = () => {
-  const { customerId } = useParams();
-  const id = customerId;
+  const { id: paramId, customerId } = useParams();
+  const id = paramId || customerId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -55,9 +55,24 @@ export const EditCustomer = () => {
     setIsSubmitting(true);
     setSubmitError('');
 
+    const isTargetActive =
+      typeof formData.isActive === 'boolean'
+        ? formData.isActive
+        : String(formData.status).trim().toLowerCase() === 'active';
+
     try {
-      await customerApi.updateCustomer(id, { ...formData, isActive: customer.isActive, rowVersion: customer.rowVersion });
-      await Promise.all([['customers'], ['customer', String(id)], ['customer-details', String(id)], ['customer-audit', String(id)]].map(queryKey => queryClient.invalidateQueries({ queryKey })));
+      await customerApi.updateCustomer(id, {
+        ...formData,
+        status: isTargetActive ? 'Active' : 'Inactive',
+        isActive: isTargetActive,
+        rowVersion: customer.rowVersion || formData.rowVersion,
+      });
+      await Promise.all([
+        ['customers'],
+        ['customer', String(id)],
+        ['customer-details', String(id)],
+        ['customer-audit', String(id)],
+      ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
       navigate(`/customers/${id}`);
     } catch (err) {
       setSubmitError(err.userMessage || err.message || 'Failed to update customer');
