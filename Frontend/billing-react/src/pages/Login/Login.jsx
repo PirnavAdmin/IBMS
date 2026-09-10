@@ -84,7 +84,7 @@ export const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'HTTP 401: Your session has expired. Please login again.' : null);
+  const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'Your session has timed out. Please log in again.' : null);
 
   // ==========================================================
   // FORGOT PASSWORD STATE

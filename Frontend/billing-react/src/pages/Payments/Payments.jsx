@@ -18,7 +18,7 @@ export const Payments = () => {
     </header>
 
     {loading && <div className="payments-state" role="status"><span className="payments-spinner" />Loading payments...</div>}
-    {!loading && error && <DashboardErrorState onRetry={retry} />}
+    {!loading && error && <DashboardErrorState title="Unable to load payments" onRetry={retry} />}
     {!loading && !error && payments.length === 0 && <div className="payments-state">No payments found</div>}
     {!loading && !error && payments.length > 0 && <section className="payments-card">
       <div className="payments-card-title"><span><PaymentsOutlined /> Payment records</span><small>{payments.length} transactions</small></div>

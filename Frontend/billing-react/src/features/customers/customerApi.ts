@@ -15,7 +15,7 @@ async function request<T>(operation: () => Promise<T>): Promise<T> {
   catch (error: any) {
     if (error?.response?.status === 401) throw new Error('Your session is missing or expired. Sign in and retry.');
     if (error?.response?.status === 403) throw new Error('Your account does not have access to these customer records.');
-    if (error?.message === 'Network Error') throw new Error('Unable to reach the customer service. Check backend availability, your connection and the backend CORS configuration.');
+    if (error?.message === 'Network Error') throw new Error('Please check your connection and try again.');
     throw error;
   }
 }

@@ -60,13 +60,13 @@
 .bd-refresh:disabled { opacity: .55; cursor: wait; }
 .bd-spin { animation: bd-spin 1s linear infinite; }
 @keyframes bd-spin { to { transform: rotate(360deg); } }
-.bd-dashboard-error { min-height: 520px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; padding: 32px 16px; text-align: center; background: #FFF8EF; border-radius: 16px; }
-.bd-dashboard-error h2 { font-size: clamp(22px,2.2vw,28px); font-weight: 700; color: #2A211C; }
-.bd-dashboard-error p { max-width: 580px; color: #75675F; }
-.bd-error-illustration { color: #6B2A0B; padding: 20px; border-radius: 32px; background: #F2DFC9; }
-.bd-error-illustration > svg { font-size: 58px; color: #C46B12; }
-.bd-error-illustration > div svg { font-size: 78px; }
-.bd-retry { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 165px; padding: 12px 24px; border: 0; border-radius: 10px; background: #5A2508; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.bd-dashboard-error { min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; padding: 24px 16px; text-align: center; background: #FFF8EF; border-radius: 16px; }
+.bd-dashboard-error h2 { margin: 0; font-size: 18px; font-weight: 700; color: #2A211C; }
+.bd-dashboard-error p { margin: 0; font-size: 14px; max-width: 440px; color: #75675F; }
+.bd-error-illustration { color: #6B2A0B; padding: 10px; border-radius: 16px; background: #F2DFC9; }
+.bd-error-illustration > svg { font-size: 28px; color: #C46B12; }
+.bd-error-illustration > div svg { font-size: 34px; }
+.bd-retry { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 100px; padding: 8px 16px; border: 0; border-radius: 10px; background: #5A2508; color: white; font: inherit; font-weight: 700; cursor: pointer; }
 .bd-retry:hover { background: #6B2A0B; }
 .bd-user-copy { min-width: 0; max-width: 200px; }
 .bd-user-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

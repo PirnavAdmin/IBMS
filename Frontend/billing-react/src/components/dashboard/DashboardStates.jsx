@@ -12,7 +12,7 @@ export const DashboardSkeleton = () => <div className="bd-dashboard-skeleton" ro
   <div className="bd-detail-grid">{['Recent Payments', 'Top Customers'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
 </div>;
 
-export const DashboardErrorState = ({ onRetry, title = "API Error - Unable to Load Billing Data", message = "We couldn't fetch your billing data. Please check your connection and try again." }) => <section className="bd-dashboard-error" role="alert">
+export const DashboardErrorState = ({ onRetry, title = "Unable to load data", message = "Please check your connection and try again." }) => <section className="bd-dashboard-error" role="alert">
   <div className="bd-error-illustration" aria-hidden="true"><PowerOffOutlined /><div><DnsOutlined /><DescriptionOutlined /></div></div>
   <h2>{title}</h2>
   <p>{message}</p>
