@@ -1,0 +1,426 @@
+{
+    "source":  "https://pediatric-astrology-outrank.ngrok-free.dev/swagger/v1/swagger.json",
+    "inspectedAt":  "2026-09-09",
+    "paths":  {
+                  "/api/v1/customers":  {
+                                            "post":  {
+                                                         "tags":  [
+                                                                      "Customers"
+                                                                  ],
+                                                         "summary":  "Create a new customer record scoped to current tenant.",
+                                                         "requestBody":  {
+                                                                             "content":  {
+                                                                                             "application/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/CreateCustomerRequest"
+                                                                                                                                 }
+                                                                                                                  }
+                                                                                         }
+                                                                         },
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  "OK"
+                                                                                   }
+                                                                       }
+                                                     },
+                                            "get":  {
+                                                        "tags":  [
+                                                                     "Customers"
+                                                                 ],
+                                                        "summary":  "Retrieve a paginated list of customers.",
+                                                        "parameters":  [
+                                                                           {
+                                                                               "name":  "pageNumber",
+                                                                               "in":  "query",
+                                                                               "schema":  {
+                                                                                              "type":  "integer",
+                                                                                              "format":  "int32",
+                                                                                              "default":  1
+                                                                                          }
+                                                                           },
+                                                                           {
+                                                                               "name":  "pageSize",
+                                                                               "in":  "query",
+                                                                               "schema":  {
+                                                                                              "type":  "integer",
+                                                                                              "format":  "int32",
+                                                                                              "default":  10
+                                                                                          }
+                                                                           },
+                                                                           {
+                                                                               "name":  "status",
+                                                                               "in":  "query",
+                                                                               "schema":  {
+                                                                                              "$ref":  "#/components/schemas/CustomerStatus"
+                                                                                          }
+                                                                           }
+                                                                       ],
+                                                        "responses":  {
+                                                                          "200":  {
+                                                                                      "description":  "OK"
+                                                                                  }
+                                                                      }
+                                                    }
+                                        },
+                  "/api/v1/customers/{id}":  {
+                                                 "get":  {
+                                                             "tags":  [
+                                                                          "Customers"
+                                                                      ],
+                                                             "summary":  "Retrieve customer details and profile by customer ID.",
+                                                             "parameters":  [
+                                                                                {
+                                                                                    "name":  "id",
+                                                                                    "in":  "path",
+                                                                                    "required":  true,
+                                                                                    "schema":  {
+                                                                                                   "type":  "integer",
+                                                                                                   "format":  "int32"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                             "responses":  {
+                                                                               "200":  {
+                                                                                           "description":  "OK"
+                                                                                       }
+                                                                           }
+                                                         },
+                                                 "put":  {
+                                                             "tags":  [
+                                                                          "Customers"
+                                                                      ],
+                                                             "summary":  "Update existing customer profile information.",
+                                                             "parameters":  [
+                                                                                {
+                                                                                    "name":  "id",
+                                                                                    "in":  "path",
+                                                                                    "required":  true,
+                                                                                    "schema":  {
+                                                                                                   "type":  "integer",
+                                                                                                   "format":  "int32"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                             "requestBody":  {
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/UpdateCustomerRequest"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                             }
+                                                                             },
+                                                             "responses":  {
+                                                                               "200":  {
+                                                                                           "description":  "OK"
+                                                                                       }
+                                                                           }
+                                                         },
+                                                 "delete":  {
+                                                                "tags":  [
+                                                                             "Customers"
+                                                                         ],
+                                                                "summary":  "Deactivate customer record to preserve business and transaction history.",
+                                                                "parameters":  [
+                                                                                   {
+                                                                                       "name":  "id",
+                                                                                       "in":  "path",
+                                                                                       "required":  true,
+                                                                                       "schema":  {
+                                                                                                      "type":  "integer",
+                                                                                                      "format":  "int32"
+                                                                                                  }
+                                                                                   }
+                                                                               ],
+                                                                "responses":  {
+                                                                                  "200":  {
+                                                                                              "description":  "OK"
+                                                                                          }
+                                                                              }
+                                                            }
+                                             },
+                  "/api/v1/customers/{id}/deactivate":  {
+                                                            "patch":  {
+                                                                          "tags":  [
+                                                                                       "Customers"
+                                                                                   ],
+                                                                          "summary":  "Deactivate customer record without physical deletion.",
+                                                                          "parameters":  [
+                                                                                             {
+                                                                                                 "name":  "id",
+                                                                                                 "in":  "path",
+                                                                                                 "required":  true,
+                                                                                                 "schema":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "format":  "int32"
+                                                                                                            }
+                                                                                             }
+                                                                                         ],
+                                                                          "responses":  {
+                                                                                            "200":  {
+                                                                                                        "description":  "OK"
+                                                                                                    }
+                                                                                        }
+                                                                      }
+                                                        },
+                  "/api/v1/customers/{id}/audit":  {
+                                                       "get":  {
+                                                                   "tags":  [
+                                                                                "Customers"
+                                                                            ],
+                                                                   "summary":  "Retrieve customer audit trail history displaying user, action, timestamp, and changes.",
+                                                                   "parameters":  [
+                                                                                      {
+                                                                                          "name":  "id",
+                                                                                          "in":  "path",
+                                                                                          "required":  true,
+                                                                                          "schema":  {
+                                                                                                         "type":  "integer",
+                                                                                                         "format":  "int32"
+                                                                                                     }
+                                                                                      }
+                                                                                  ],
+                                                                   "responses":  {
+                                                                                     "200":  {
+                                                                                                 "description":  "OK"
+                                                                                             }
+                                                                                 }
+                                                               }
+                                                   },
+                  "/api/v1/customers/{id}/details":  {
+                                                         "get":  {
+                                                                     "tags":  [
+                                                                                  "Customers"
+                                                                              ],
+                                                                     "summary":  "Retrieve customer details with supporting information (profile, billing/shipping addresses, financial summary).",
+                                                                     "parameters":  [
+                                                                                        {
+                                                                                            "name":  "id",
+                                                                                            "in":  "path",
+                                                                                            "required":  true,
+                                                                                            "schema":  {
+                                                                                                           "type":  "integer",
+                                                                                                           "format":  "int32"
+                                                                                                       }
+                                                                                        }
+                                                                                    ],
+                                                                     "responses":  {
+                                                                                       "200":  {
+                                                                                                   "description":  "OK"
+                                                                                               }
+                                                                                   }
+                                                                 }
+                                                     }
+              },
+    "schemas":  {
+                    "CreateCustomerRequest":  {
+                                                  "type":  "object",
+                                                  "properties":  {
+                                                                     "customerCode":  {
+                                                                                          "type":  "string",
+                                                                                          "nullable":  true
+                                                                                      },
+                                                                     "name":  {
+                                                                                  "type":  "string",
+                                                                                  "nullable":  true
+                                                                              },
+                                                                     "email":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "phone":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "companyName":  {
+                                                                                         "type":  "string",
+                                                                                         "nullable":  true
+                                                                                     },
+                                                                     "taxId":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "address":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "city":  {
+                                                                                  "type":  "string",
+                                                                                  "nullable":  true
+                                                                              },
+                                                                     "state":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "postalCode":  {
+                                                                                        "type":  "string",
+                                                                                        "nullable":  true
+                                                                                    },
+                                                                     "country":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "website":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "notes":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "currency":  {
+                                                                                      "type":  "string",
+                                                                                      "nullable":  true
+                                                                                  },
+                                                                     "paymentTerms":  {
+                                                                                          "type":  "string",
+                                                                                          "nullable":  true
+                                                                                      },
+                                                                     "addresses":  {
+                                                                                       "type":  "array",
+                                                                                       "items":  {
+                                                                                                     "$ref":  "#/components/schemas/CustomerAddressDto"
+                                                                                                 },
+                                                                                       "nullable":  true
+                                                                                   }
+                                                                 },
+                                                  "additionalProperties":  false
+                                              },
+                    "CustomerAddressDto":  {
+                                               "type":  "object",
+                                               "properties":  {
+                                                                  "id":  {
+                                                                             "type":  "integer",
+                                                                             "format":  "int32",
+                                                                             "nullable":  true
+                                                                         },
+                                                                  "addressType":  {
+                                                                                      "type":  "string",
+                                                                                      "nullable":  true
+                                                                                  },
+                                                                  "addressLine1":  {
+                                                                                       "type":  "string",
+                                                                                       "nullable":  true
+                                                                                   },
+                                                                  "addressLine2":  {
+                                                                                       "type":  "string",
+                                                                                       "nullable":  true
+                                                                                   },
+                                                                  "city":  {
+                                                                               "type":  "string",
+                                                                               "nullable":  true
+                                                                           },
+                                                                  "state":  {
+                                                                                "type":  "string",
+                                                                                "nullable":  true
+                                                                            },
+                                                                  "postalCode":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                  "country":  {
+                                                                                  "type":  "string",
+                                                                                  "nullable":  true
+                                                                              },
+                                                                  "isDefault":  {
+                                                                                    "type":  "boolean"
+                                                                                }
+                                                              },
+                                               "additionalProperties":  false
+                                           },
+                    "CustomerStatus":  {
+                                           "enum":  [
+                                                        "Active",
+                                                        "Inactive",
+                                                        "All"
+                                                    ],
+                                           "type":  "string"
+                                       },
+                    "UpdateCustomerRequest":  {
+                                                  "type":  "object",
+                                                  "properties":  {
+                                                                     "customerCode":  {
+                                                                                          "type":  "string",
+                                                                                          "nullable":  true
+                                                                                      },
+                                                                     "name":  {
+                                                                                  "type":  "string",
+                                                                                  "nullable":  true
+                                                                              },
+                                                                     "email":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "phone":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "companyName":  {
+                                                                                         "type":  "string",
+                                                                                         "nullable":  true
+                                                                                     },
+                                                                     "taxId":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "address":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "city":  {
+                                                                                  "type":  "string",
+                                                                                  "nullable":  true
+                                                                              },
+                                                                     "state":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "postalCode":  {
+                                                                                        "type":  "string",
+                                                                                        "nullable":  true
+                                                                                    },
+                                                                     "country":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "website":  {
+                                                                                     "type":  "string",
+                                                                                     "nullable":  true
+                                                                                 },
+                                                                     "notes":  {
+                                                                                   "type":  "string",
+                                                                                   "nullable":  true
+                                                                               },
+                                                                     "currency":  {
+                                                                                      "type":  "string",
+                                                                                      "nullable":  true
+                                                                                  },
+                                                                     "paymentTerms":  {
+                                                                                          "type":  "string",
+                                                                                          "nullable":  true
+                                                                                      },
+                                                                     "status":  {
+                                                                                    "type":  "string",
+                                                                                    "nullable":  true
+                                                                                },
+                                                                     "isActive":  {
+                                                                                      "type":  "boolean",
+                                                                                      "nullable":  true
+                                                                                  },
+                                                                     "rowVersion":  {
+                                                                                        "type":  "string",
+                                                                                        "format":  "date-time",
+                                                                                        "nullable":  true
+                                                                                    },
+                                                                     "addresses":  {
+                                                                                       "type":  "array",
+                                                                                       "items":  {
+                                                                                                     "$ref":  "#/components/schemas/CustomerAddressDto"
+                                                                                                 },
+                                                                                       "nullable":  true
+                                                                                   }
+                                                                 },
+                                                  "additionalProperties":  false
+                                              }
+                }
+}

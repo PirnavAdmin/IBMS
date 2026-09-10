@@ -1,0 +1,193 @@
+import * as yup from 'yup';
+
+const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
+const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
+const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
+
+export const customerValidationSchema = yup.object({
+  // 1. Basic Information
+  name: yup
+    .string()
+    .trim()
+    .required('Contact / Customer name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(256, 'Name must not exceed 256 characters'),
+  customerCode: yup
+    .string()
+    .trim()
+    .max(64, 'Customer code must not exceed 64 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+  companyName: yup
+    .string()
+    .trim()
+    .max(256, 'Company name must not exceed 256 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+  status: yup
+    .string()
+    .oneOf(['Active', 'Inactive'])
+    .default('Active'),
+
+  // 2. Contact Information
+  email: yup
+    .string()
+    .trim()
+    .required('Email address is required')
+    .matches(EMAIL_REGEX, 'Enter a valid email address')
+    .max(256, 'Email must not exceed 256 characters'),
+  phone: yup
+    .string()
+    .trim()
+    .max(64, 'Phone number must not exceed 64 characters')
+    .test('phone-format', 'Enter a valid phone number', (val) => {
+      if (!val || val.trim() === '') return true;
+      return PHONE_REGEX.test(val.trim());
+    })
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+  website: yup
+    .string()
+    .trim()
+    .max(256, 'Website URL must not exceed 256 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+
+  // 3. Tax Information
+  taxId: yup
+    .string()
+    .trim()
+    .max(64, 'Tax ID must not exceed 64 characters')
+    .test('taxid-format', 'Enter a valid Tax ID / PAN / GSTIN', (val) => {
+      if (!val || val.trim() === '') return true;
+      return TAX_ID_REGEX.test(val.trim());
+    })
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+
+  // 4. Billing Address
+  billingAddress: yup.object({
+    street: yup
+      .string()
+      .trim()
+      .required('Billing street address is required')
+      .max(512, 'Street address must not exceed 512 characters'),
+    city: yup
+      .string()
+      .trim()
+      .required('Billing city is required')
+      .max(128, 'City must not exceed 128 characters'),
+    state: yup
+      .string()
+      .trim()
+      .required('Billing state is required')
+      .max(128, 'State must not exceed 128 characters'),
+    postalCode: yup
+      .string()
+      .trim()
+      .required('Billing postal code is required')
+      .max(32, 'Postal code must not exceed 32 characters')
+      .test('billing-postal-format', 'Enter a valid postal code', (val) => {
+        if (!val || val.trim() === '') return true;
+        return POSTAL_REGEX.test(val.trim());
+      }),
+    country: yup
+      .string()
+      .trim()
+      .required('Billing country is required')
+      .max(128, 'Country must not exceed 128 characters')
+      .default('India'),
+  }).required(),
+
+  // 5. Shipping Address
+  isShippingSameAsBilling: yup.boolean().default(true),
+  shippingAddress: yup.object().when('isShippingSameAsBilling', {
+    is: false,
+    then: (schema) =>
+      schema.shape({
+        street: yup
+          .string()
+          .trim()
+          .required('Shipping street address is required')
+          .max(512, 'Street address must not exceed 512 characters'),
+        city: yup
+          .string()
+          .trim()
+          .required('Shipping city is required')
+          .max(128, 'City must not exceed 128 characters'),
+        state: yup
+          .string()
+          .trim()
+          .required('Shipping state is required')
+          .max(128, 'State must not exceed 128 characters'),
+        postalCode: yup
+          .string()
+          .trim()
+          .required('Shipping postal code is required')
+          .max(32, 'Postal code must not exceed 32 characters')
+          .test('shipping-postal-format', 'Enter a valid postal code', (val) => {
+            if (!val || val.trim() === '') return true;
+            return POSTAL_REGEX.test(val.trim());
+          }),
+        country: yup
+          .string()
+          .trim()
+          .required('Shipping country is required')
+          .max(128, 'Country must not exceed 128 characters')
+          .default('India'),
+      }),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+
+  // 6. Payment Information
+  currency: yup
+    .string()
+    .trim()
+    .max(10, 'Currency code must not exceed 10 characters')
+    .default('INR'),
+  paymentTerms: yup
+    .string()
+    .trim()
+    .max(64, 'Payment terms must not exceed 64 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+
+  // 7. Additional Information
+  notes: yup
+    .string()
+    .trim()
+    .max(1000, 'Notes must not exceed 1000 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+});
+
+export const DEFAULT_CUSTOMER_VALUES = {
+  name: '',
+  customerCode: '',
+  companyName: '',
+  status: 'Active',
+  email: '',
+  phone: '',
+  website: '',
+  taxId: '',
+  gstin: '',
+  currency: 'INR',
+  paymentTerms: '',
+  notes: '',
+  isShippingSameAsBilling: true,
+  billingAddress: {
+    street: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'India',
+  },
+  shippingAddress: {
+    street: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'India',
+  },
+};
