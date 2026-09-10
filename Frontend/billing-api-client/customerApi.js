@@ -58,7 +58,8 @@ export const customerApi = {
         }
       }
 
-      return parseCustomerResponse(ensureSuccess(response));
+      const parsed = parseCustomerResponse(ensureSuccess(response));
+      return parsed || { id: parsedId || id, ...payload };
     } catch (err) {
       throw new Error(parseCustomerError(err, 'Failed to update customer record.'));
     }

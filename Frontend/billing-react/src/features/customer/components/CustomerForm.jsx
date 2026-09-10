@@ -6,6 +6,7 @@ import {
   customerValidationSchema,
   DEFAULT_CUSTOMER_VALUES,
 } from '../customerValidation';
+import '../customer.css';
 
 export const CustomerForm = ({
   initialValues = null,
@@ -30,13 +31,40 @@ export const CustomerForm = ({
       initialStatus = String(rawStatus).trim().toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
     }
 
+    const KNOWN_CODES = ['+971', '+966', '+91', '+44', '+65', '+61', '+49', '+33', '+81', '+1'];
+    let phoneCountryCode = values?.phoneCountryCode || '+91';
+    let phoneNumber = values?.phone || '';
+    if (typeof phoneNumber === 'string' && phoneNumber.trim().startsWith('+')) {
+      const trimmed = phoneNumber.trim();
+      const parts = trimmed.split(/\s+/);
+      if (parts.length > 1 && parts[0].startsWith('+')) {
+        phoneCountryCode = parts[0];
+        phoneNumber = parts.slice(1).join(' ');
+      } else {
+        const matched = KNOWN_CODES.find((c) => trimmed.startsWith(c));
+        if (matched) {
+          phoneCountryCode = matched;
+          phoneNumber = trimmed.slice(matched.length).trim();
+        }
+      }
+    }
+
+    const rawCustomerType = String(
+      values?.customerType ?? values?.CustomerType ?? values?.type ?? values?.Type ?? 'business'
+    ).trim().toLowerCase();
+    const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+      ? rawCustomerType
+      : 'business';
+
     return {
       ...DEFAULT_CUSTOMER_VALUES,
       ...(values || {}),
       customerCode: values?.customerCode || '',
-      customerType: values?.customerType || 'business',
+      customerType,
       status: initialStatus,
       isActive: initialStatus === 'Active',
+      phoneCountryCode,
+      phone: phoneNumber,
       taxRegistrationType: taxType,
       taxId: rawTax,
       gstin: rawTax,
@@ -131,16 +159,38 @@ export const CustomerForm = ({
     const isStatusActive = String(data.status).trim().toLowerCase() !== 'inactive';
     const normalizedStatus = isStatusActive ? 'Active' : 'Inactive';
 
+    const cleanedPhone = data.phone?.trim();
+    let fullPhone = null;
+    if (cleanedPhone) {
+      if (cleanedPhone.startsWith('+')) {
+        fullPhone = cleanedPhone;
+      } else {
+        const code = data.phoneCountryCode || '+91';
+        fullPhone = `${code} ${cleanedPhone}`;
+      }
+    }
+
+    let fullWebsite = data.website?.trim() || null;
+    if (fullWebsite && !/^https?:\/\//i.test(fullWebsite)) {
+      fullWebsite = `https://${fullWebsite}`;
+    }
+
+    const rawCustomerType = String(data.customerType || 'business').trim().toLowerCase();
+    const normalizedCustomerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+      ? rawCustomerType
+      : 'business';
+
     const payload = {
       ...data,
       name: data.name?.trim(),
       customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
-      customerType: data.customerType || 'business',
+      customerType: normalizedCustomerType,
       status: normalizedStatus,
       isActive: isStatusActive,
       email: data.email?.trim(),
-      phone: data.phone?.trim() || null,
+      phone: fullPhone,
+      phoneCountryCode: data.phoneCountryCode || '+91',
       taxRegistrationType: data.taxRegistrationType || 'gst',
       taxId: effectiveTaxId,
       gstin: effectiveTaxId,
@@ -154,7 +204,7 @@ export const CustomerForm = ({
         data.openingBalance !== '' && data.openingBalance !== null
           ? Number(data.openingBalance)
           : 0,
-      website: data.website?.trim() || null,
+      website: fullWebsite,
       notes: data.notes?.trim() || null,
       billingAddress: {
         street: data.billingAddress?.street?.trim() || '',
@@ -306,14 +356,53 @@ export const CustomerForm = ({
 
           <div className="cust-field">
             <label htmlFor="customer-phone">Mobile / Phone Number</label>
-            <input
-              id="customer-phone"
-              type="tel"
-              placeholder="e.g. +91 98490 12345"
-              aria-invalid={Boolean(errors.phone)}
-              aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
-              {...register('phone')}
-            />
+            <div
+              className="cust-phone-group"
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: '8px',
+                width: '100%',
+              }}
+            >
+              <select
+                id="customer-phone-code"
+                className="cust-phone-code-select"
+                aria-label="Country Dialing Code"
+                style={{
+                  width: '96px',
+                  minWidth: '88px',
+                  maxWidth: '105px',
+                  flex: '0 0 96px',
+                  padding: '9px 6px',
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                }}
+                {...register('phoneCountryCode')}
+              >
+                <option value="+91">+91 (IN)</option>
+                <option value="+1">+1 (US)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+971">+971 (AE)</option>
+                <option value="+65">+65 (SG)</option>
+                <option value="+61">+61 (AU)</option>
+                <option value="+49">+49 (DE)</option>
+                <option value="+33">+33 (FR)</option>
+                <option value="+81">+81 (JP)</option>
+                <option value="+966">+966 (SA)</option>
+              </select>
+              <input
+                id="customer-phone"
+                type="tel"
+                className="cust-phone-input"
+                style={{ flex: '1 1 auto', minWidth: 0, width: 'auto' }}
+                placeholder="e.g. 98490 12345"
+                aria-invalid={Boolean(errors.phone)}
+                aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
+                {...register('phone')}
+              />
+            </div>
             {errors.phone && (
               <span id="customer-phone-err" className="cust-field-error" role="alert">
                 {errors.phone.message}
@@ -325,8 +414,8 @@ export const CustomerForm = ({
             <label htmlFor="customer-website">Website URL</label>
             <input
               id="customer-website"
-              type="url"
-              placeholder="e.g. https://deccantech.in"
+              type="text"
+              placeholder="e.g. https://deccantech.in or www.deccantech.in"
               aria-invalid={Boolean(errors.website)}
               aria-describedby={errors.website ? 'customer-website-err' : undefined}
               {...register('website')}

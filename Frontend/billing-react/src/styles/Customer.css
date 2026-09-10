@@ -584,6 +584,48 @@
   margin-top: 2px;
 }
 
+.cust-phone-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.cust-field .cust-phone-group select.cust-phone-code-select,
+.cust-field select.cust-phone-code-select,
+.cust-phone-group select.cust-phone-code-select,
+.cust-phone-code-select {
+  width: 96px !important;
+  min-width: 88px !important;
+  max-width: 105px !important;
+  flex: 0 0 96px !important;
+  padding: 9px 6px !important;
+  font-size: 0.84rem !important;
+  color: #302a26 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e0dcd7 !important;
+  border-radius: 7px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cust-field .cust-phone-group select.cust-phone-code-select:focus-visible,
+.cust-phone-code-select:focus-visible {
+  border-color: #ab805e !important;
+  box-shadow: 0 0 0 2px rgba(171, 128, 94, 0.2) !important;
+}
+
+.cust-field .cust-phone-group input.cust-phone-input,
+.cust-field .cust-phone-group input[type="tel"],
+.cust-phone-group input {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
 /* Address Section in Form */
 .cust-address-section {
   padding: 0 24px 20px;
