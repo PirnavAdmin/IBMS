@@ -57,6 +57,7 @@ public class BillingDbContext : DbContext
             entity.Property(c => c.Email).HasMaxLength(256).IsRequired();
             entity.Property(c => c.Phone).HasMaxLength(64);
             entity.Property(c => c.CompanyName).HasMaxLength(256);
+            entity.Property(c => c.CustomerType).HasMaxLength(32).HasDefaultValue("Business").IsRequired();
             entity.Property(c => c.TaxId).HasMaxLength(64);
             entity.Property(c => c.Address).HasMaxLength(512);
             entity.Property(c => c.City).HasMaxLength(128);

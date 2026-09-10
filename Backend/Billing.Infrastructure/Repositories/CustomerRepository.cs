@@ -104,6 +104,18 @@ public class CustomerRepository : ICustomerRepository
             queryable = queryable.Where(c => c.Status == targetStatus);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.CustomerType))
+        {
+            var customerType = query.CustomerType.Trim();
+            queryable = queryable.Where(c => c.CustomerType == customerType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.TaxId))
+        {
+            var taxId = query.TaxId.Trim().ToLower();
+            queryable = queryable.Where(c => c.TaxId != null && c.TaxId.ToLower().Contains(taxId));
+        }
+
         var isAscending = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
         var sortBy = (query.SortBy ?? "createdat").Trim().ToLowerInvariant();
 

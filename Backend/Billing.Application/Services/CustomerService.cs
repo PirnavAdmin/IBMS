@@ -60,6 +60,9 @@ public class CustomerService : ICustomerService
             Email = normalizedEmail,
             Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
             CompanyName = string.IsNullOrWhiteSpace(request.CompanyName) ? null : request.CompanyName.Trim(),
+            CustomerType = !string.IsNullOrWhiteSpace(request.CustomerType)
+                ? request.CustomerType.Trim()
+                : (!string.IsNullOrWhiteSpace(request.CompanyName) ? "Business" : "Individual"),
             TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim(),
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
             City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim(),
@@ -218,6 +221,13 @@ public class CustomerService : ICustomerService
         if (request.CompanyName != null)
         {
             customer.CompanyName = string.IsNullOrWhiteSpace(request.CompanyName) ? null : request.CompanyName.Trim();
+        }
+
+        if (request.CustomerType != null)
+        {
+            customer.CustomerType = string.IsNullOrWhiteSpace(request.CustomerType)
+                ? (!string.IsNullOrWhiteSpace(customer.CompanyName) ? "Business" : "Individual")
+                : request.CustomerType.Trim();
         }
 
         if (request.TaxId != null)
@@ -547,6 +557,7 @@ public class CustomerService : ICustomerService
             Email = customer.Email,
             Phone = customer.Phone,
             CompanyName = customer.CompanyName,
+            CustomerType = customer.CustomerType ?? (!string.IsNullOrWhiteSpace(customer.CompanyName) ? "Business" : "Individual"),
             TaxId = customer.TaxId,
             Address = customer.Address,
             City = customer.City,

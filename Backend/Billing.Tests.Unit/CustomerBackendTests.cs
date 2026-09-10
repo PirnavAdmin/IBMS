@@ -465,4 +465,110 @@ public class CustomerBackendTests
     }
 
     #endregion
+
+    #region 7. CustomerType & TaxId Filter Tests
+
+    [Fact]
+    public async Task CreateCustomer_CustomerType_ExplicitOrInferred_WorksCorrectly()
+    {
+        // 1. Explicit Individual
+        var res1 = await _customerService.CreateCustomerAsync(new CreateCustomerRequest
+        {
+            Name = "John Individual",
+            Email = "john.ind@test.com",
+            CustomerType = "Individual"
+        }, tenantId: 1);
+        Assert.True(res1.Success);
+        Assert.Equal("Individual", res1.Data!.CustomerType);
+
+        // 2. Inferred Business via CompanyName
+        var res2 = await _customerService.CreateCustomerAsync(new CreateCustomerRequest
+        {
+            Name = "Jane Business",
+            Email = "jane.biz@test.com",
+            CompanyName = "Enterprise Inc"
+        }, tenantId: 1);
+        Assert.True(res2.Success);
+        Assert.Equal("Business", res2.Data!.CustomerType);
+
+        // 3. Default without CompanyName -> Individual
+        var res3 = await _customerService.CreateCustomerAsync(new CreateCustomerRequest
+        {
+            Name = "Bob Solo",
+            Email = "bob.solo@test.com"
+        }, tenantId: 1);
+        Assert.True(res3.Success);
+        Assert.Equal("Individual", res3.Data!.CustomerType);
+    }
+
+    [Fact]
+    public async Task GetCustomers_FilterByCustomerType_ReturnsOnlyMatching()
+    {
+        _customerRepo.Customers.Add(new Customer
+        {
+            Id = 91,
+            TenantId = 1,
+            CustomerCode = "CUST-BIZ-01",
+            Name = "Corp 1",
+            Email = "corp1@test.com",
+            CustomerType = "Business"
+        });
+
+        _customerRepo.Customers.Add(new Customer
+        {
+            Id = 92,
+            TenantId = 1,
+            CustomerCode = "CUST-IND-01",
+            Name = "Individual 1",
+            Email = "ind1@test.com",
+            CustomerType = "Individual"
+        });
+
+        var bizResult = await _customerService.GetCustomersAsync(new CustomerQueryParameters
+        {
+            CustomerType = "Business"
+        }, tenantId: 1);
+        Assert.Single(bizResult.Data!.Items);
+        Assert.Equal("CUST-BIZ-01", bizResult.Data.Items[0].CustomerCode);
+
+        var indResult = await _customerService.GetCustomersAsync(new CustomerQueryParameters
+        {
+            CustomerType = "Individual"
+        }, tenantId: 1);
+        Assert.Single(indResult.Data!.Items);
+        Assert.Equal("CUST-IND-01", indResult.Data.Items[0].CustomerCode);
+    }
+
+    [Fact]
+    public async Task GetCustomers_FilterByTaxId_ReturnsOnlyMatching()
+    {
+        _customerRepo.Customers.Add(new Customer
+        {
+            Id = 93,
+            TenantId = 1,
+            CustomerCode = "CUST-TAX-01",
+            Name = "Taxpayer 1",
+            Email = "tax1@test.com",
+            TaxId = "TAX-998877"
+        });
+
+        _customerRepo.Customers.Add(new Customer
+        {
+            Id = 94,
+            TenantId = 1,
+            CustomerCode = "CUST-TAX-02",
+            Name = "Taxpayer 2",
+            Email = "tax2@test.com",
+            TaxId = "VAT-112233"
+        });
+
+        var taxResult = await _customerService.GetCustomersAsync(new CustomerQueryParameters
+        {
+            TaxId = "TAX-9988"
+        }, tenantId: 1);
+        Assert.Single(taxResult.Data!.Items);
+        Assert.Equal("CUST-TAX-01", taxResult.Data.Items[0].CustomerCode);
+    }
+
+    #endregion
 }

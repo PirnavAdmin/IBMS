@@ -9,6 +9,7 @@ public class CustomerDto
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? CompanyName { get; set; }
+    public string CustomerType { get; set; } = "Business";
     public string? TaxId { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }

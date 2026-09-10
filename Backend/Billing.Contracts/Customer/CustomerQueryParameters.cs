@@ -18,6 +18,10 @@ public class CustomerQueryParameters
 
     public string? Search { get; set; }
 
+    public string? CustomerType { get; set; }
+
+    public string? TaxId { get; set; }
+
     public bool? IsActive { get; set; }
 
     public int PageNumber

@@ -7,6 +7,7 @@ public class UpdateCustomerRequest
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? CompanyName { get; set; }
+    public string? CustomerType { get; set; }
     public string? TaxId { get; set; }
     public string? Address { get; set; }
     public string? City { get; set; }

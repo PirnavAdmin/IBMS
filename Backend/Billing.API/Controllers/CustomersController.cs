@@ -67,15 +67,28 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieve a paginated list of customers.
+    /// Retrieve a paginated list of customers with search, filtering, and sorting.
     /// </summary>
+    /// <param name="pageNumber">Page number for pagination (Default: 1)</param>
+    /// <param name="pageSize">Number of records per page (Default: 10, Max: 100)</param>
+    /// <param name="status">Filter by status: Active, Inactive, or All</param>
+    /// <param name="search">Search text across customer code, name, email, phone, company, or tax ID</param>
+    /// <param name="customerType">Filter by customer type: Business or Individual</param>
+    /// <param name="taxId">Filter directly by Tax / GST / VAT ID</param>
+    /// <param name="sortBy">Sort field: createdAt, name, email, companyName, code, updatedAt</param>
+    /// <param name="sortOrder">Sort direction: asc or desc (Default: desc)</param>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomers(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] CustomerStatus status = CustomerStatus.Active)
+        [FromQuery] CustomerStatus status = CustomerStatus.Active,
+        [FromQuery] string? search = null,
+        [FromQuery] string? customerType = null,
+        [FromQuery] string? taxId = null,
+        [FromQuery] string? sortBy = "createdAt",
+        [FromQuery] string? sortOrder = "desc")
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
@@ -116,16 +129,36 @@ public class CustomersController : ControllerBase
             resolvedIsActive = null;
         }
 
-        var searchQuery = Request.Query.TryGetValue("search", out var searchVal)
-            ? searchVal.ToString().Trim()
-            : null;
+        var effectiveSearch = !string.IsNullOrWhiteSpace(search)
+            ? search.Trim()
+            : (Request.Query.TryGetValue("search", out var searchVal) ? searchVal.ToString().Trim() : null);
+
+        var effectiveCustomerType = !string.IsNullOrWhiteSpace(customerType)
+            ? customerType.Trim()
+            : (Request.Query.TryGetValue("customerType", out var cTypeVal) ? cTypeVal.ToString().Trim() : null);
+
+        var effectiveTaxId = !string.IsNullOrWhiteSpace(taxId)
+            ? taxId.Trim()
+            : (Request.Query.TryGetValue("taxId", out var taxIdVal) ? taxIdVal.ToString().Trim() : null);
+
+        var effectiveSortBy = !string.IsNullOrWhiteSpace(sortBy)
+            ? sortBy.Trim()
+            : (Request.Query.TryGetValue("sortBy", out var sortByVal) ? sortByVal.ToString().Trim() : "createdAt");
+
+        var effectiveSortOrder = !string.IsNullOrWhiteSpace(sortOrder)
+            ? sortOrder.Trim()
+            : (Request.Query.TryGetValue("sortOrder", out var sortOrderVal) ? sortOrderVal.ToString().Trim() : "desc");
 
         var query = new CustomerQueryParameters
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
-            Search = string.IsNullOrWhiteSpace(searchQuery) ? null : searchQuery,
-            IsActive = resolvedIsActive
+            Search = string.IsNullOrWhiteSpace(effectiveSearch) ? null : effectiveSearch,
+            CustomerType = string.IsNullOrWhiteSpace(effectiveCustomerType) ? null : effectiveCustomerType,
+            TaxId = string.IsNullOrWhiteSpace(effectiveTaxId) ? null : effectiveTaxId,
+            IsActive = resolvedIsActive,
+            SortBy = effectiveSortBy,
+            SortOrder = effectiveSortOrder
         };
 
         var result = await _customerService.GetCustomersAsync(query, tenantId);

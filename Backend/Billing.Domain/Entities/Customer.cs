@@ -17,6 +17,8 @@ public class Customer
 
     public string? CompanyName { get; set; }
 
+    public string CustomerType { get; set; } = "Business";
+
     public string? TaxId { get; set; }
 
     public string? Address { get; set; }
