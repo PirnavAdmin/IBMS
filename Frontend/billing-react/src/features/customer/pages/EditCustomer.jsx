@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
+import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
 import '../customer.css';
 
 export const EditCustomer = () => {
-  const { id: routeId, customerId } = useParams();
-  const id = routeId || customerId;
+  const { customerId } = useParams();
+  const id = customerId;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,8 @@ export const EditCustomer = () => {
     setSubmitError('');
 
     try {
-      await customerApi.updateCustomer(id, formData);
+      await customerApi.updateCustomer(id, { ...formData, isActive: customer.isActive, rowVersion: customer.rowVersion });
+      await Promise.all([['customers'], ['customer', String(id)], ['customer-details', String(id)], ['customer-audit', String(id)]].map(queryKey => queryClient.invalidateQueries({ queryKey })));
       navigate(`/customers/${id}`);
     } catch (err) {
       setSubmitError(err.userMessage || err.message || 'Failed to update customer');

@@ -8,12 +8,19 @@ import {
   parseCustomerError,
 } from '../billing-contracts/index.js';
 
+const ensureSuccess = (response) => {
+  if (response?.success === false) {
+    throw Object.assign(new Error('Customer request failed.'), { response: { status: 400, data: response } });
+  }
+  return response;
+};
+
 export const customerApi = {
   createCustomer: async (data) => {
     try {
       const payload = createCustomerRequest(data);
       const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.BASE, payload);
-      return parseCustomerResponse(response);
+      return parseCustomerResponse(ensureSuccess(response));
     } catch (err) {
       throw new Error(parseCustomerError(err, 'Failed to create customer record.'));
     }
@@ -40,7 +47,7 @@ export const customerApi = {
       const endpoint = API_ENDPOINTS.CUSTOMERS.BY_ID(parsedId || id);
       const payload = createUpdateCustomerRequest(data);
       const response = await apiClient.put(endpoint, payload);
-      return parseCustomerResponse(response);
+      return parseCustomerResponse(ensureSuccess(response));
     } catch (err) {
       throw new Error(parseCustomerError(err, 'Failed to update customer record.'));
     }
