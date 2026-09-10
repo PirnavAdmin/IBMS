@@ -12,6 +12,9 @@ import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder'
 import { Payments } from '../pages/Payments/Payments';
 import { Invoices } from '../pages/Invoices/Invoices';
 import { Taxes } from '../pages/Taxes/Taxes';
+import { CustomerListPage } from '../features/customers/CustomerListPage';
+import { CustomerRecordPage } from '../features/customers/CustomerRecordPage';
+import { AddCustomerPage } from '../features/customers/AddCustomerPage';
 
 export const AppRoutes = () => (
   <Routes>
@@ -27,7 +30,10 @@ export const AppRoutes = () => (
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
       <Route path="/payments" element={<Payments />} />
-      <Route path="/customers" element={<ModulePlaceholder />} />
+      <Route path="/customers" element={<CustomerListPage />} />
+      <Route path="/customers/new" element={<AddCustomerPage />} />
+      <Route path="/customers/:customerId" element={<CustomerRecordPage mode="view" />} />
+      <Route path="/customers/:customerId/edit" element={<CustomerRecordPage mode="edit" />} />
       <Route path="/products" element={<ModulePlaceholder />} />
       <Route path="/credit-notes" element={<ModulePlaceholder />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />
