@@ -65,28 +65,64 @@ export const createUpdateCustomerRequest = (data = {}) => {
 
 export const parseCustomerResponse = (response) => {
   if (!response) return null;
-  const raw = response.data || response;
+  let raw = response;
+  if (response.data !== undefined) {
+    if (response.data === null) return null;
+    raw = response.data;
+  }
   if (!raw || typeof raw !== 'object') return null;
 
-  const addresses = Array.isArray(raw.addresses) ? raw.addresses : [];
-  const billingDto = addresses.find((a) => a.addressType?.toLowerCase() === 'billing') || null;
-  const shippingDto = addresses.find((a) => a.addressType?.toLowerCase() === 'shipping') || null;
+  const addresses = Array.isArray(raw.addresses)
+    ? raw.addresses
+    : Array.isArray(raw.Addresses)
+    ? raw.Addresses
+    : [];
+
+  const billingDto =
+    addresses.find((a) => (a.addressType || a.AddressType)?.toLowerCase() === 'billing') || null;
+  const shippingDto =
+    addresses.find((a) => (a.addressType || a.AddressType)?.toLowerCase() === 'shipping') || null;
 
   const billingAddress = {
-    street: billingDto?.addressLine1 || raw.address || '',
-    city: billingDto?.city || raw.city || '',
-    state: billingDto?.state || raw.state || '',
-    postalCode: billingDto?.postalCode || raw.postalCode || '',
-    country: billingDto?.country || raw.country || 'India',
+    street:
+      billingDto?.addressLine1 ||
+      billingDto?.AddressLine1 ||
+      raw.address ||
+      raw.Address ||
+      '',
+    city:
+      billingDto?.city ||
+      billingDto?.City ||
+      raw.city ||
+      raw.City ||
+      '',
+    state:
+      billingDto?.state ||
+      billingDto?.State ||
+      raw.state ||
+      raw.State ||
+      '',
+    postalCode:
+      billingDto?.postalCode ||
+      billingDto?.PostalCode ||
+      raw.postalCode ||
+      raw.PostalCode ||
+      '',
+    country:
+      billingDto?.country ||
+      billingDto?.Country ||
+      raw.country ||
+      raw.Country ||
+      'India',
   };
 
   const shippingAddress = shippingDto
     ? {
-        street: shippingDto.addressLine1 || '',
-        city: shippingDto.city || '',
-        state: shippingDto.state || '',
-        postalCode: shippingDto.postalCode || '',
-        country: shippingDto.country || 'India',
+        street: shippingDto.addressLine1 || shippingDto.AddressLine1 || '',
+        city: shippingDto.city || shippingDto.City || '',
+        state: shippingDto.state || shippingDto.State || '',
+        postalCode: shippingDto.postalCode || shippingDto.PostalCode || '',
+        country: shippingDto.country || shippingDto.Country || 'India',
       }
     : { ...billingAddress };
 
@@ -98,42 +134,48 @@ export const parseCustomerResponse = (response) => {
       billingAddress.postalCode === shippingAddress.postalCode &&
       billingAddress.country === shippingAddress.country);
 
+  const taxId = raw.taxId ?? raw.TaxId ?? '';
+  const isActive = raw.isActive ?? raw.IsActive ?? true;
+
   return {
-    id: raw.id,
-    customerCode: raw.customerCode || '',
-    name: raw.name || '',
-    email: raw.email || '',
-    phone: raw.phone || '',
-    companyName: raw.companyName || '',
-    taxId: raw.taxId || '',
-    gstin: raw.taxId || '',
-    currency: raw.currency || 'INR',
-    status: raw.isActive === false ? 'Inactive' : 'Active',
-    isActive: raw.isActive ?? true,
-    notes: raw.notes || '',
-    website: raw.website || '',
-    paymentTerms: raw.paymentTerms || '',
+    id: raw.id ?? raw.Id,
+    customerCode: raw.customerCode ?? raw.CustomerCode ?? '',
+    name: raw.name ?? raw.Name ?? '',
+    email: raw.email ?? raw.Email ?? '',
+    phone: raw.phone ?? raw.Phone ?? '',
+    companyName: raw.companyName ?? raw.CompanyName ?? '',
+    taxId,
+    gstin: taxId,
+    currency: raw.currency ?? raw.Currency ?? 'INR',
+    status: isActive === false ? 'Inactive' : 'Active',
+    isActive,
+    notes: raw.notes ?? raw.Notes ?? '',
+    website: raw.website ?? raw.Website ?? '',
+    paymentTerms: raw.paymentTerms ?? raw.PaymentTerms ?? '',
     billingAddress,
     shippingAddress,
     isShippingSameAsBilling,
-    rowVersion: raw.rowVersion || null,
-    createdAtUtc: raw.createdAtUtc || null,
-    updatedAtUtc: raw.updatedAtUtc || null,
+    rowVersion: raw.rowVersion ?? raw.RowVersion ?? null,
+    createdAtUtc: raw.createdAtUtc ?? raw.CreatedAtUtc ?? null,
+    updatedAtUtc: raw.updatedAtUtc ?? raw.UpdatedAtUtc ?? null,
     raw,
   };
 };
 
 export const parseCustomerListResponse = (response) => {
   if (!response) return [];
-  const raw = response.data || response;
+  let raw = response;
+  if (response?.data !== undefined && response.data !== null) {
+    raw = response.data;
+  }
 
   let items = [];
   if (Array.isArray(raw)) {
     items = raw;
   } else if (Array.isArray(raw?.items)) {
     items = raw.items;
-  } else if (Array.isArray(raw?.data)) {
-    items = raw.data;
+  } else if (Array.isArray(raw?.Items)) {
+    items = raw.Items;
   }
 
   return items.map((item) => parseCustomerResponse(item)).filter(Boolean);

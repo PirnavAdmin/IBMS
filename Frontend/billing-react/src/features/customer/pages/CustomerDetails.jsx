@@ -33,7 +33,7 @@ export const CustomerDetails = () => {
     setError(null);
 
     customerApi
-      .fetchCustomerById(id)
+      .getCustomerById(id)
       .then((data) => {
         if (isCurrent) {
           setCustomer(data);

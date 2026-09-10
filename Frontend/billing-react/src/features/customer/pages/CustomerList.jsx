@@ -33,7 +33,7 @@ export const CustomerList = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await customerApi.fetchCustomers();
+      const data = await customerApi.getCustomers();
       if (activeCheck.current) {
         setCustomers(data);
       }

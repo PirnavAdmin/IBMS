@@ -55,10 +55,6 @@ export const customerApi = {
     }
   },
 
-  fetchCustomers: async (params = {}) => customerApi.getCustomers(params),
-  fetchCustomerById: async (id) => customerApi.getCustomerById(id),
-
-
   deactivateCustomer: async (id) => {
     try {
       const parsedId = Number(id);
@@ -85,9 +81,8 @@ export const customerApi = {
       const endpoint = API_ENDPOINTS.CUSTOMERS.DETAILS(parsedId || id);
       const response = await apiClient.get(endpoint);
       return parseCustomerResponse(response);
-    } catch {
-      // Fallback to getCustomerById if details sub-route is not supported by backend
-      return customerApi.getCustomerById(id);
+    } catch (err) {
+      throw new Error(parseCustomerError(err, `Failed to load details for customer with ID ${id}.`));
     }
   },
 };
