@@ -409,6 +409,30 @@ public class CustomerService : ICustomerService
         return ApiResponse<CustomerDetailsDto>.Ok(details, "Customer supporting details retrieved successfully.");
     }
 
+    public async Task<ApiResponse<CustomerKpiSummaryDto>> GetCustomerSummaryAsync(int? tenantId)
+    {
+        var (allItems, totalCount) = await _customerRepository.GetPagedListAsync(tenantId, new CustomerQueryParameters
+        {
+            PageNumber = 1,
+            PageSize = 10000,
+            IsActive = null
+        });
+
+        var activeCount = allItems.Count(c => string.Equals(c.Status, "Active", StringComparison.OrdinalIgnoreCase));
+        var inactiveCount = allItems.Count(c => string.Equals(c.Status, "Inactive", StringComparison.OrdinalIgnoreCase));
+
+        var summary = new CustomerKpiSummaryDto
+        {
+            TotalCustomers = totalCount,
+            ActiveCustomers = activeCount,
+            InactiveCustomers = inactiveCount,
+            TotalOutstanding = 0.00m,
+            Currency = "USD"
+        };
+
+        return ApiResponse<CustomerKpiSummaryDto>.Ok(summary, "Customer summary retrieved successfully.");
+    }
+
     private static CustomerAddressDto MapAddressToDto(CustomerAddress a)
     {
         return new CustomerAddressDto

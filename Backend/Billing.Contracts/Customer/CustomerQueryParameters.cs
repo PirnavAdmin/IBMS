@@ -22,6 +22,8 @@ public class CustomerQueryParameters
 
     public string? TaxId { get; set; }
 
+    public string? TaxRegistration { get; set; }
+
     public string? Outstanding { get; set; }
 
     public bool? IsActive { get; set; }

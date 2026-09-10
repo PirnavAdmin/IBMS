@@ -69,16 +69,40 @@ public class FakeCustomerRepository : ICustomerRepository
             queryable = queryable.Where(c => c.Status == targetStatus);
         }
 
-        if (!string.IsNullOrWhiteSpace(query.CustomerType))
+        if (!string.IsNullOrWhiteSpace(query.CustomerType) && !string.Equals(query.CustomerType.Trim(), "all", StringComparison.OrdinalIgnoreCase))
         {
             var customerType = query.CustomerType.Trim();
             queryable = queryable.Where(c => c.CustomerType.Equals(customerType, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(query.TaxId))
+        var effectiveTaxFilter = !string.IsNullOrWhiteSpace(query.TaxRegistration)
+            ? query.TaxRegistration.Trim()
+            : (!string.IsNullOrWhiteSpace(query.TaxId) ? query.TaxId.Trim() : null);
+
+        if (!string.IsNullOrWhiteSpace(effectiveTaxFilter) && !string.Equals(effectiveTaxFilter, "all", StringComparison.OrdinalIgnoreCase))
         {
-            var taxId = query.TaxId.Trim().ToLower();
-            queryable = queryable.Where(c => c.TaxId != null && c.TaxId.ToLower().Contains(taxId));
+            var taxLower = effectiveTaxFilter.ToLower();
+            if (taxLower is "registered" or "yes" or "true")
+            {
+                queryable = queryable.Where(c => !string.IsNullOrWhiteSpace(c.TaxId));
+            }
+            else if (taxLower is "unregistered" or "no" or "false")
+            {
+                queryable = queryable.Where(c => string.IsNullOrWhiteSpace(c.TaxId));
+            }
+            else
+            {
+                queryable = queryable.Where(c => c.TaxId != null && c.TaxId.ToLower().Contains(taxLower));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Outstanding) && !string.Equals(query.Outstanding.Trim(), "all", StringComparison.OrdinalIgnoreCase))
+        {
+            var outLower = query.Outstanding.Trim().ToLower();
+            if (outLower is "has_balance" or "with_balance" or "unpaid" or "yes" or "true")
+            {
+                queryable = queryable.Where(c => false);
+            }
         }
 
         var isAscending = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);

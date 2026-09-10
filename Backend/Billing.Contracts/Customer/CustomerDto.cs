@@ -28,3 +28,12 @@ public class CustomerDto
     public DateTime? RowVersion { get; set; }
     public List<CustomerAddressDto> Addresses { get; set; } = new();
 }
+
+public class CustomerKpiSummaryDto
+{
+    public int TotalCustomers { get; set; }
+    public int ActiveCustomers { get; set; }
+    public int InactiveCustomers { get; set; }
+    public decimal TotalOutstanding { get; set; } = 0.00m;
+    public string Currency { get; set; } = "USD";
+}

@@ -570,5 +570,42 @@ public class CustomerBackendTests
         Assert.Equal("CUST-TAX-01", taxResult.Data.Items[0].CustomerCode);
     }
 
+    [Fact]
+    public async Task GetCustomerSummary_ReturnsAccurateMetrics()
+    {
+        _customerRepo.Customers.Clear();
+
+        _customerRepo.Customers.Add(new Customer { Id = 101, TenantId = 1, Status = "Active", Name = "A1", Email = "a1@test.com", CustomerCode = "C101" });
+        _customerRepo.Customers.Add(new Customer { Id = 102, TenantId = 1, Status = "Active", Name = "A2", Email = "a2@test.com", CustomerCode = "C102" });
+        _customerRepo.Customers.Add(new Customer { Id = 103, TenantId = 1, Status = "Inactive", Name = "I1", Email = "i1@test.com", CustomerCode = "C103" });
+
+        var res = await _customerService.GetCustomerSummaryAsync(1);
+        Assert.True(res.Success);
+        Assert.Equal(3, res.Data!.TotalCustomers);
+        Assert.Equal(2, res.Data.ActiveCustomers);
+        Assert.Equal(1, res.Data.InactiveCustomers);
+        Assert.Equal(0.00m, res.Data.TotalOutstanding);
+    }
+
+    [Fact]
+    public async Task GetCustomers_FilterByTaxRegistration_Works()
+    {
+        _customerRepo.Customers.Clear();
+
+        _customerRepo.Customers.Add(new Customer { Id = 111, TenantId = 1, Status = "Active", Name = "Reg", Email = "r@test.com", CustomerCode = "CR1", TaxId = "GST123" });
+        _customerRepo.Customers.Add(new Customer { Id = 112, TenantId = 1, Status = "Active", Name = "Unreg", Email = "u@test.com", CustomerCode = "CU1", TaxId = null });
+
+        var regRes = await _customerService.GetCustomersAsync(new CustomerQueryParameters { TaxRegistration = "Registered" }, 1);
+        Assert.Single(regRes.Data!.Items);
+        Assert.Equal("CR1", regRes.Data.Items[0].CustomerCode);
+
+        var unregRes = await _customerService.GetCustomersAsync(new CustomerQueryParameters { TaxRegistration = "Unregistered" }, 1);
+        Assert.Single(unregRes.Data!.Items);
+        Assert.Equal("CU1", unregRes.Data.Items[0].CustomerCode);
+
+        var allRes = await _customerService.GetCustomersAsync(new CustomerQueryParameters { TaxRegistration = "All" }, 1);
+        Assert.Equal(2, allRes.Data!.Items.Count);
+    }
+
     #endregion
 }

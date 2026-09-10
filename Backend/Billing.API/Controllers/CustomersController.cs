@@ -87,6 +87,7 @@ public class CustomersController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? customerType = null,
         [FromQuery] string? taxId = null,
+        [FromQuery] string? taxRegistration = null,
         [FromQuery] string? outstanding = null,
         [FromQuery] string? sortBy = "createdAt",
         [FromQuery] string? sortOrder = "desc")
@@ -142,6 +143,10 @@ public class CustomersController : ControllerBase
             ? taxId.Trim()
             : (Request.Query.TryGetValue("taxId", out var taxIdVal) ? taxIdVal.ToString().Trim() : null);
 
+        var effectiveTaxRegistration = !string.IsNullOrWhiteSpace(taxRegistration)
+            ? taxRegistration.Trim()
+            : (Request.Query.TryGetValue("taxRegistration", out var taxRegVal) ? taxRegVal.ToString().Trim() : null);
+
         var effectiveOutstanding = !string.IsNullOrWhiteSpace(outstanding)
             ? outstanding.Trim()
             : (Request.Query.TryGetValue("outstanding", out var outstandingVal) ? outstandingVal.ToString().Trim() : null);
@@ -161,6 +166,7 @@ public class CustomersController : ControllerBase
             Search = string.IsNullOrWhiteSpace(effectiveSearch) ? null : effectiveSearch,
             CustomerType = string.IsNullOrWhiteSpace(effectiveCustomerType) ? null : effectiveCustomerType,
             TaxId = string.IsNullOrWhiteSpace(effectiveTaxId) ? null : effectiveTaxId,
+            TaxRegistration = string.IsNullOrWhiteSpace(effectiveTaxRegistration) ? null : effectiveTaxRegistration,
             Outstanding = string.IsNullOrWhiteSpace(effectiveOutstanding) ? null : effectiveOutstanding,
             IsActive = resolvedIsActive,
             SortBy = effectiveSortBy,
@@ -168,6 +174,24 @@ public class CustomersController : ControllerBase
         };
 
         var result = await _customerService.GetCustomersAsync(query, tenantId);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieve customer directory KPI summary metrics (total, active, inactive, total outstanding).
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpGet("summary")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerSummary()
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var result = await _customerService.GetCustomerSummaryAsync(tenantId);
         return Ok(result);
     }
 
