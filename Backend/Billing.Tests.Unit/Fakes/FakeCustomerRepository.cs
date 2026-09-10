@@ -98,10 +98,14 @@ public class FakeCustomerRepository : ICustomerRepository
 
         if (!string.IsNullOrWhiteSpace(query.Outstanding) && !string.Equals(query.Outstanding.Trim(), "all", StringComparison.OrdinalIgnoreCase))
         {
-            var outLower = query.Outstanding.Trim().ToLower();
-            if (outLower is "has_balance" or "with_balance" or "unpaid" or "yes" or "true")
+            var outLower = query.Outstanding.Trim().ToLower().Replace("-", "").Replace("_", "").Replace(" ", "");
+            if (outLower is "hasbalance" or "withbalance" or "unpaid" or "yes" or "true" or "hasoutstanding")
             {
                 queryable = queryable.Where(c => false);
+            }
+            else if (outLower is "none" or "nobalance" or "paid" or "zero" or "no" or "false" or "nooutstanding")
+            {
+                // keep all
             }
         }
 

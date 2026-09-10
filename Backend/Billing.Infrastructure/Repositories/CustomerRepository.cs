@@ -133,11 +133,15 @@ public class CustomerRepository : ICustomerRepository
 
         if (!string.IsNullOrWhiteSpace(query.Outstanding) && !string.Equals(query.Outstanding.Trim(), "all", StringComparison.OrdinalIgnoreCase))
         {
-            var outLower = query.Outstanding.Trim().ToLower();
-            if (outLower is "has_balance" or "with_balance" or "unpaid" or "yes" or "true")
+            var outLower = query.Outstanding.Trim().ToLower().Replace("-", "").Replace("_", "").Replace(" ", "");
+            if (outLower is "hasbalance" or "withbalance" or "unpaid" or "yes" or "true" or "hasoutstanding")
             {
-                // No customer has invoices/outstanding balance yet in Phase 3
+                // In Phase 3, invoices/payments do not exist yet, so no customers have outstanding balances > 0
                 queryable = queryable.Where(c => false);
+            }
+            else if (outLower is "none" or "nobalance" or "paid" or "zero" or "no" or "false" or "nooutstanding")
+            {
+                // All customers currently have 0 balance, keep all
             }
         }
 
