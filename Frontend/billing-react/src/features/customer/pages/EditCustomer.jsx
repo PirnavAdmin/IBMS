@@ -6,7 +6,8 @@ import { CustomerForm } from '../components/CustomerForm';
 import '../customer.css';
 
 export const EditCustomer = () => {
-  const { id } = useParams();
+  const { id: routeId, customerId } = useParams();
+  const id = routeId || customerId;
   const navigate = useNavigate();
 
   const [customer, setCustomer] = useState(null);

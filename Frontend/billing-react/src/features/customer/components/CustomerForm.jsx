@@ -18,6 +18,8 @@ export const CustomerForm = ({
   const getInitialValues = (values) => ({
     ...DEFAULT_CUSTOMER_VALUES,
     ...(values || {}),
+    customerCode: values?.customerCode || '',
+    taxId: values?.taxId || values?.gstin || '',
     gstin: values?.gstin || values?.taxId || '',
     billingAddress: {
       ...DEFAULT_CUSTOMER_VALUES.billingAddress,
@@ -101,16 +103,16 @@ export const CustomerForm = ({
     const payload = {
       ...data,
       name: data.name?.trim(),
+      customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
       email: data.email?.trim(),
       phone: data.phone?.trim() || null,
-      gstin: data.gstin?.trim() || null,
-      taxId: data.gstin?.trim() || null,
+      taxId: (data.taxId || data.gstin)?.trim() || null,
       currency: data.currency?.trim() || 'INR',
       status: data.status || 'Active',
-      notes: data.notes?.trim() || null,
       website: data.website?.trim() || null,
       paymentTerms: data.paymentTerms?.trim() || null,
+      notes: data.notes?.trim() || null,
       billingAddress: {
         street: data.billingAddress?.street?.trim() || '',
         city: data.billingAddress?.city?.trim() || '',
@@ -135,17 +137,17 @@ export const CustomerForm = ({
         </div>
       )}
 
-      {/* Primary Customer Details */}
+      {/* 1. Basic Information */}
       <section className="cust-card">
         <div className="cust-card-header">
-          <h2>Customer Information</h2>
+          <h2>1. Basic Information</h2>
           <span className="cust-hint">* Required fields</span>
         </div>
 
         <div className="cust-grid cust-grid-2">
           <div className="cust-field">
             <label htmlFor="customer-name">
-              Contact Name <span className="cust-required">*</span>
+              Contact / Customer Name <span className="cust-required">*</span>
             </label>
             <input
               id="customer-name"
@@ -158,6 +160,23 @@ export const CustomerForm = ({
             {errors.name && (
               <span id="customer-name-err" className="cust-field-error" role="alert">
                 {errors.name.message}
+              </span>
+            )}
+          </div>
+
+          <div className="cust-field">
+            <label htmlFor="customer-code">Customer Code</label>
+            <input
+              id="customer-code"
+              type="text"
+              placeholder="e.g. CUST-001 (auto-generated if empty)"
+              aria-invalid={Boolean(errors.customerCode)}
+              aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
+              {...register('customerCode')}
+            />
+            {errors.customerCode && (
+              <span id="customer-code-err" className="cust-field-error" role="alert">
+                {errors.customerCode.message}
               </span>
             )}
           </div>
@@ -180,6 +199,32 @@ export const CustomerForm = ({
           </div>
 
           <div className="cust-field">
+            <label htmlFor="customer-status">Account Status</label>
+            <select
+              id="customer-status"
+              aria-invalid={Boolean(errors.status)}
+              {...register('status')}
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            {errors.status && (
+              <span className="cust-field-error" role="alert">
+                {errors.status.message}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Contact Information */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>2. Contact Information</h2>
+        </div>
+
+        <div className="cust-grid cust-grid-2">
+          <div className="cust-field">
             <label htmlFor="customer-email">
               Email Address <span className="cust-required">*</span>
             </label>
@@ -199,7 +244,7 @@ export const CustomerForm = ({
           </div>
 
           <div className="cust-field">
-            <label htmlFor="customer-phone">Phone Number</label>
+            <label htmlFor="customer-phone">Mobile / Phone Number</label>
             <input
               id="customer-phone"
               type="tel"
@@ -215,24 +260,100 @@ export const CustomerForm = ({
             )}
           </div>
 
-          <div className="cust-field">
-            <label htmlFor="customer-gstin">GSTIN / Tax ID</label>
+          <div className="cust-field cust-col-span-2">
+            <label htmlFor="customer-website">Website URL</label>
             <input
-              id="customer-gstin"
-              type="text"
-              placeholder="e.g. 36AAACD1234F1Z8"
-              maxLength={64}
-              aria-invalid={Boolean(errors.gstin)}
-              aria-describedby={errors.gstin ? 'customer-gstin-err' : undefined}
-              {...register('gstin')}
+              id="customer-website"
+              type="url"
+              placeholder="e.g. https://deccantech.in"
+              aria-invalid={Boolean(errors.website)}
+              aria-describedby={errors.website ? 'customer-website-err' : undefined}
+              {...register('website')}
             />
-            {errors.gstin && (
-              <span id="customer-gstin-err" className="cust-field-error" role="alert">
-                {errors.gstin.message}
+            {errors.website && (
+              <span id="customer-website-err" className="cust-field-error" role="alert">
+                {errors.website.message}
               </span>
             )}
           </div>
+        </div>
+      </section>
 
+      {/* 3. Tax Information */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>3. Tax Information</h2>
+        </div>
+
+        <div className="cust-grid cust-grid-2">
+          <div className="cust-field">
+            <label htmlFor="customer-taxid">Tax ID / PAN / GSTIN</label>
+            <input
+              id="customer-taxid"
+              type="text"
+              placeholder="e.g. 36AAACD1234F1Z8 or ABCDE1234F"
+              maxLength={64}
+              aria-invalid={Boolean(errors.taxId)}
+              aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
+              {...register('taxId')}
+            />
+            {errors.taxId && (
+              <span id="customer-taxid-err" className="cust-field-error" role="alert">
+                {errors.taxId.message}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Billing Address */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>4. Billing Address</h2>
+        </div>
+
+        <AddressSection
+          prefix="billingAddress"
+          title="Billing Address Details"
+          register={register}
+          errors={errors}
+        />
+      </section>
+
+      {/* 5. Shipping Address */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>5. Shipping Address</h2>
+        </div>
+
+        {/* Same as Billing Checkbox */}
+        <div className="cust-checkbox-field">
+          <label className="cust-checkbox-label" htmlFor="same-as-billing">
+            <input
+              id="same-as-billing"
+              type="checkbox"
+              {...register('isShippingSameAsBilling')}
+            />
+            <span>Shipping address is identical to billing address</span>
+          </label>
+        </div>
+
+        <AddressSection
+          prefix="shippingAddress"
+          title="Shipping Address Details"
+          register={register}
+          errors={errors}
+          disabled={isShippingSameAsBilling}
+        />
+      </section>
+
+      {/* 6. Payment Information */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>6. Payment Information</h2>
+        </div>
+
+        <div className="cust-grid cust-grid-2">
           <div className="cust-field">
             <label htmlFor="customer-currency">Billing Currency</label>
             <select
@@ -253,45 +374,41 @@ export const CustomerForm = ({
           </div>
 
           <div className="cust-field">
-            <label htmlFor="customer-status">Status</label>
+            <label htmlFor="customer-payment-terms">Payment Terms</label>
             <select
-              id="customer-status"
-              aria-invalid={Boolean(errors.status)}
-              {...register('status')}
+              id="customer-payment-terms"
+              aria-invalid={Boolean(errors.paymentTerms)}
+              {...register('paymentTerms')}
             >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="">Select Payment Terms</option>
+              <option value="Due on Receipt">Due on Receipt</option>
+              <option value="Net 15">Net 15</option>
+              <option value="Net 30">Net 30</option>
+              <option value="Net 45">Net 45</option>
+              <option value="Net 60">Net 60</option>
             </select>
-            {errors.status && (
+            {errors.paymentTerms && (
               <span className="cust-field-error" role="alert">
-                {errors.status.message}
+                {errors.paymentTerms.message}
               </span>
             )}
           </div>
+        </div>
+      </section>
 
-          <div className="cust-field">
-            <label htmlFor="customer-website">Website URL</label>
-            <input
-              id="customer-website"
-              type="text"
-              placeholder="e.g. https://deccantech.in"
-              aria-invalid={Boolean(errors.website)}
-              aria-describedby={errors.website ? 'customer-website-err' : undefined}
-              {...register('website')}
-            />
-            {errors.website && (
-              <span id="customer-website-err" className="cust-field-error" role="alert">
-                {errors.website.message}
-              </span>
-            )}
-          </div>
+      {/* 7. Additional Information */}
+      <section className="cust-card">
+        <div className="cust-card-header">
+          <h2>7. Additional Information</h2>
+        </div>
 
+        <div className="cust-grid cust-grid-2">
           <div className="cust-field cust-col-span-2">
             <label htmlFor="customer-notes">Internal Notes</label>
             <textarea
               id="customer-notes"
               rows={3}
-              placeholder="Add internal notes or special delivery instructions..."
+              placeholder="Add internal notes, client preferences, or delivery instructions..."
               aria-invalid={Boolean(errors.notes)}
               aria-describedby={errors.notes ? 'customer-notes-err' : undefined}
               {...register('notes')}
@@ -303,42 +420,6 @@ export const CustomerForm = ({
             )}
           </div>
         </div>
-      </section>
-
-      {/* Address Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>Addresses</h2>
-        </div>
-
-        {/* Billing Address */}
-        <AddressSection
-          prefix="billingAddress"
-          title="Billing Address"
-          register={register}
-          errors={errors}
-        />
-
-        {/* Same as Billing Checkbox */}
-        <div className="cust-checkbox-field">
-          <label className="cust-checkbox-label" htmlFor="same-as-billing">
-            <input
-              id="same-as-billing"
-              type="checkbox"
-              {...register('isShippingSameAsBilling')}
-            />
-            <span>Shipping address is identical to billing address</span>
-          </label>
-        </div>
-
-        {/* Shipping Address */}
-        <AddressSection
-          prefix="shippingAddress"
-          title="Shipping Address"
-          register={register}
-          errors={errors}
-          disabled={isShippingSameAsBilling}
-        />
       </section>
 
       {/* Form Action Controls */}
