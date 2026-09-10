@@ -15,22 +15,33 @@ export const CustomerForm = ({
   onCancel,
   mode = 'create',
 }) => {
-  const getInitialValues = (values) => ({
-    ...DEFAULT_CUSTOMER_VALUES,
-    ...(values || {}),
-    customerCode: values?.customerCode || '',
-    taxId: values?.taxId || values?.gstin || '',
-    gstin: values?.gstin || values?.taxId || '',
-    billingAddress: {
-      ...DEFAULT_CUSTOMER_VALUES.billingAddress,
-      ...(values?.billingAddress || {}),
-    },
-    shippingAddress: {
-      ...DEFAULT_CUSTOMER_VALUES.shippingAddress,
-      ...(values?.shippingAddress || {}),
-    },
-    isShippingSameAsBilling: values?.isShippingSameAsBilling ?? true,
-  });
+  const getInitialValues = (values) => {
+    const rawTax = values?.taxId || values?.gstin || '';
+    const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
+    const taxType = values?.taxRegistrationType || (isGst ? 'gst' : rawTax ? 'pan' : 'gst');
+
+    return {
+      ...DEFAULT_CUSTOMER_VALUES,
+      ...(values || {}),
+      customerCode: values?.customerCode || '',
+      customerType: values?.customerType || 'business',
+      status: values?.status || (values?.isActive === false ? 'Inactive' : 'Active'),
+      taxRegistrationType: taxType,
+      taxId: rawTax,
+      gstin: rawTax,
+      creditLimit: values?.creditLimit ?? '',
+      openingBalance: values?.openingBalance ?? values?.outstandingBalance ?? '',
+      billingAddress: {
+        ...DEFAULT_CUSTOMER_VALUES.billingAddress,
+        ...(values?.billingAddress || {}),
+      },
+      shippingAddress: {
+        ...DEFAULT_CUSTOMER_VALUES.shippingAddress,
+        ...(values?.shippingAddress || {}),
+      },
+      isShippingSameAsBilling: values?.isShippingSameAsBilling ?? true,
+    };
+  };
 
   const {
     register,
@@ -54,6 +65,7 @@ export const CustomerForm = ({
 
   const isShippingSameAsBilling = watch('isShippingSameAsBilling');
   const billingAddress = watch('billingAddress');
+  const taxRegistrationType = watch('taxRegistrationType');
 
   // Synchronize shipping address whenever billing changes while "Same as Billing" is active
   useEffect(() => {
@@ -100,18 +112,34 @@ export const CustomerForm = ({
           country: data.shippingAddress?.country?.trim() || 'India',
         };
 
+    const effectiveTaxId =
+      data.taxRegistrationType === 'non-gst'
+        ? null
+        : (data.taxId || data.gstin)?.trim() || null;
+
     const payload = {
       ...data,
       name: data.name?.trim(),
       customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
+      customerType: data.customerType || 'business',
+      status: data.status || 'Active',
       email: data.email?.trim(),
       phone: data.phone?.trim() || null,
-      taxId: (data.taxId || data.gstin)?.trim() || null,
+      taxRegistrationType: data.taxRegistrationType || 'gst',
+      taxId: effectiveTaxId,
+      gstin: effectiveTaxId,
       currency: data.currency?.trim() || 'INR',
-      status: data.status || 'Active',
-      website: data.website?.trim() || null,
       paymentTerms: data.paymentTerms?.trim() || null,
+      creditLimit:
+        data.creditLimit !== '' && data.creditLimit !== null
+          ? Number(data.creditLimit)
+          : 0,
+      openingBalance:
+        data.openingBalance !== '' && data.openingBalance !== null
+          ? Number(data.openingBalance)
+          : 0,
+      website: data.website?.trim() || null,
       notes: data.notes?.trim() || null,
       billingAddress: {
         street: data.billingAddress?.street?.trim() || '',
@@ -194,6 +222,24 @@ export const CustomerForm = ({
             {errors.companyName && (
               <span id="customer-company-err" className="cust-field-error" role="alert">
                 {errors.companyName.message}
+              </span>
+            )}
+          </div>
+
+          <div className="cust-field">
+            <label htmlFor="customer-type">Customer Type</label>
+            <select
+              id="customer-type"
+              aria-invalid={Boolean(errors.customerType)}
+              {...register('customerType')}
+            >
+              <option value="business">Business</option>
+              <option value="individual">Individual</option>
+              <option value="organization">Organization</option>
+            </select>
+            {errors.customerType && (
+              <span className="cust-field-error" role="alert">
+                {errors.customerType.message}
               </span>
             )}
           </div>
@@ -287,11 +333,42 @@ export const CustomerForm = ({
 
         <div className="cust-grid cust-grid-2">
           <div className="cust-field">
-            <label htmlFor="customer-taxid">Tax ID / PAN / GSTIN</label>
+            <label htmlFor="customer-tax-type">Tax Registration Status</label>
+            <select
+              id="customer-tax-type"
+              aria-invalid={Boolean(errors.taxRegistrationType)}
+              {...register('taxRegistrationType')}
+            >
+              <option value="gst">GST Registered</option>
+              <option value="pan">PAN / Tax ID Available</option>
+              <option value="non-gst">Non-GST / Unregistered</option>
+            </select>
+            {errors.taxRegistrationType && (
+              <span className="cust-field-error" role="alert">
+                {errors.taxRegistrationType.message}
+              </span>
+            )}
+          </div>
+
+          <div className="cust-field">
+            <label htmlFor="customer-taxid">
+              {taxRegistrationType === 'gst'
+                ? 'GSTIN (15-Character GST Number)'
+                : taxRegistrationType === 'pan'
+                ? 'PAN / Registration ID'
+                : 'Tax ID (Optional)'}
+            </label>
             <input
               id="customer-taxid"
               type="text"
-              placeholder="e.g. 36AAACD1234F1Z8 or ABCDE1234F"
+              disabled={taxRegistrationType === 'non-gst'}
+              placeholder={
+                taxRegistrationType === 'gst'
+                  ? 'e.g. 36AAACD1234F1Z8'
+                  : taxRegistrationType === 'pan'
+                  ? 'e.g. ABCDE1234F'
+                  : 'Not applicable for non-GST'
+              }
               maxLength={64}
               aria-invalid={Boolean(errors.taxId)}
               aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
@@ -390,6 +467,43 @@ export const CustomerForm = ({
             {errors.paymentTerms && (
               <span className="cust-field-error" role="alert">
                 {errors.paymentTerms.message}
+              </span>
+            )}
+          </div>
+
+          <div className="cust-field">
+            <label htmlFor="customer-credit-limit">Approved Credit Limit (₹)</label>
+            <input
+              id="customer-credit-limit"
+              type="number"
+              min="0"
+              step="any"
+              placeholder="e.g. 50000 (0 for no limit)"
+              aria-invalid={Boolean(errors.creditLimit)}
+              aria-describedby={errors.creditLimit ? 'customer-credit-limit-err' : undefined}
+              {...register('creditLimit')}
+            />
+            {errors.creditLimit && (
+              <span id="customer-credit-limit-err" className="cust-field-error" role="alert">
+                {errors.creditLimit.message}
+              </span>
+            )}
+          </div>
+
+          <div className="cust-field">
+            <label htmlFor="customer-opening-balance">Opening Balance / Outstanding (₹)</label>
+            <input
+              id="customer-opening-balance"
+              type="number"
+              step="any"
+              placeholder="e.g. 0.00"
+              aria-invalid={Boolean(errors.openingBalance)}
+              aria-describedby={errors.openingBalance ? 'customer-opening-balance-err' : undefined}
+              {...register('openingBalance')}
+            />
+            {errors.openingBalance && (
+              <span id="customer-opening-balance-err" className="cust-field-error" role="alert">
+                {errors.openingBalance.message}
               </span>
             )}
           </div>

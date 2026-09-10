@@ -29,6 +29,10 @@ export const customerValidationSchema = yup.object({
     .string()
     .oneOf(['Active', 'Inactive'])
     .default('Active'),
+  customerType: yup
+    .string()
+    .oneOf(['business', 'individual', 'organization'])
+    .default('business'),
 
   // 2. Contact Information
   email: yup
@@ -55,13 +59,26 @@ export const customerValidationSchema = yup.object({
     .transform((curr, orig) => (orig === '' ? null : curr)),
 
   // 3. Tax Information
+  taxRegistrationType: yup
+    .string()
+    .oneOf(['gst', 'pan', 'non-gst'])
+    .default('gst'),
   taxId: yup
     .string()
     .trim()
     .max(64, 'Tax ID must not exceed 64 characters')
-    .test('taxid-format', 'Enter a valid Tax ID / PAN / GSTIN', (val) => {
-      if (!val || val.trim() === '') return true;
-      return TAX_ID_REGEX.test(val.trim());
+    .when('taxRegistrationType', {
+      is: 'gst',
+      then: (schema) =>
+        schema.test('gstin-format', 'Enter a valid 15-character GSTIN (e.g. 36AAACD1234F1Z8)', (val) => {
+          if (!val || val.trim() === '') return true;
+          return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(val.trim());
+        }),
+      otherwise: (schema) =>
+        schema.test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
+          if (!val || val.trim() === '') return true;
+          return TAX_ID_REGEX.test(val.trim());
+        }),
     })
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
@@ -152,6 +169,17 @@ export const customerValidationSchema = yup.object({
     .max(64, 'Payment terms must not exceed 64 characters')
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
+  creditLimit: yup
+    .number()
+    .transform((curr, orig) => (orig === '' || orig === null || isNaN(curr) ? 0 : curr))
+    .min(0, 'Credit limit cannot be negative')
+    .nullable()
+    .default(0),
+  openingBalance: yup
+    .number()
+    .transform((curr, orig) => (orig === '' || orig === null || isNaN(curr) ? 0 : curr))
+    .nullable()
+    .default(0),
 
   // 7. Additional Information
   notes: yup
@@ -165,15 +193,19 @@ export const customerValidationSchema = yup.object({
 export const DEFAULT_CUSTOMER_VALUES = {
   name: '',
   customerCode: '',
+  customerType: 'business',
   companyName: '',
   status: 'Active',
   email: '',
   phone: '',
   website: '',
+  taxRegistrationType: 'gst',
   taxId: '',
   gstin: '',
   currency: 'INR',
-  paymentTerms: '',
+  paymentTerms: 'Net 30',
+  creditLimit: '',
+  openingBalance: '',
   notes: '',
   isShippingSameAsBilling: true,
   billingAddress: {

@@ -136,6 +136,10 @@ export const parseCustomerResponse = (response) => {
 
   const taxId = raw.taxId ?? raw.TaxId ?? '';
   const isActive = raw.isActive ?? raw.IsActive ?? true;
+  const rawCustomerType = String(raw.customerType ?? raw.CustomerType ?? 'business').toLowerCase();
+  const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType) ? rawCustomerType : 'business';
+  const creditLimit = raw.creditLimit ?? raw.CreditLimit ?? null;
+  const outstandingBalance = raw.outstandingBalance ?? raw.OutstandingBalance ?? null;
 
   return {
     id: raw.id ?? raw.Id,
@@ -144,6 +148,10 @@ export const parseCustomerResponse = (response) => {
     email: raw.email ?? raw.Email ?? '',
     phone: raw.phone ?? raw.Phone ?? '',
     companyName: raw.companyName ?? raw.CompanyName ?? '',
+    customerType,
+    creditLimit,
+    outstandingBalance,
+    openingBalance: outstandingBalance,
     taxId,
     gstin: taxId,
     currency: raw.currency ?? raw.Currency ?? 'INR',
