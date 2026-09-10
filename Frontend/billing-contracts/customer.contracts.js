@@ -6,11 +6,12 @@
 export const createCustomerRequest = (data = {}) => {
   const billing = data.billingAddress || {};
   const shipping = data.isShippingSameAsBilling
-    ? { ...billing }
+    ? { ...billing, id: (data.shippingAddress && data.shippingAddress.id) || null }
     : (data.shippingAddress || {});
 
   const addresses = [
     {
+      ...(billing.id ? { id: Number(billing.id) } : {}),
       addressType: 'Billing',
       addressLine1: billing.street?.trim() || '',
       addressLine2: billing.addressLine2?.trim() || null,
@@ -21,6 +22,7 @@ export const createCustomerRequest = (data = {}) => {
       isDefault: true,
     },
     {
+      ...(shipping.id ? { id: Number(shipping.id) } : {}),
       addressType: 'Shipping',
       addressLine1: shipping.street?.trim() || '',
       addressLine2: shipping.addressLine2?.trim() || null,
@@ -32,16 +34,31 @@ export const createCustomerRequest = (data = {}) => {
     },
   ];
 
+  let formattedWebsite = data.website?.trim() || null;
+  if (formattedWebsite && !/^https?:\/\//i.test(formattedWebsite)) {
+    formattedWebsite = `https://${formattedWebsite}`;
+  }
+
+  const rawCustomerType = String(
+    data.customerType ?? data.CustomerType ?? 'business'
+  ).trim().toLowerCase();
+  const normalizedCustomerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+    ? rawCustomerType
+    : 'business';
+  const titleCaseCustomerType =
+    normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1);
+
   return {
     customerCode: data.customerCode?.trim() || null,
     name: data.name?.trim() || '',
     email: data.email?.trim() || '',
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
+    customerType: titleCaseCustomerType,
     taxId: (data.taxId || data.gstin)?.trim() || null,
     currency: (data.currency?.trim() || 'INR').toUpperCase(),
     notes: data.notes?.trim() || null,
-    website: data.website?.trim() || null,
+    website: formattedWebsite,
     paymentTerms: data.paymentTerms?.trim() || null,
     address: billing.street?.trim() || null,
     city: billing.city?.trim() || null,
@@ -59,8 +76,18 @@ export const createUpdateCustomerRequest = (data = {}) => {
       ? data.isActive
       : String(data.status).trim().toLowerCase() !== 'inactive';
 
+  const rawCustomerType = String(
+    data.customerType ?? data.CustomerType ?? base.customerType ?? 'business'
+  ).trim().toLowerCase();
+  const normalizedCustomerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+    ? rawCustomerType
+    : 'business';
+  const titleCaseCustomerType =
+    normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1);
+
   return {
     ...base,
+    customerType: titleCaseCustomerType,
     status: isTargetActive ? 'Active' : 'Inactive',
     isActive: isTargetActive,
     rowVersion: data.rowVersion || null,
@@ -75,6 +102,21 @@ export const parseCustomerResponse = (response) => {
     raw = response.data;
   }
   if (!raw || typeof raw !== 'object') return null;
+
+  // Unwrap nested customer or profile envelope
+  if (raw.customer && typeof raw.customer === 'object') {
+    raw = {
+      ...raw.customer,
+      financialSummary: raw.financialSummary || raw.customer.financialSummary,
+      addresses: raw.addresses || raw.customer.addresses || raw.Addresses || raw.customer.Addresses,
+    };
+  } else if (raw.profile && typeof raw.profile === 'object') {
+    raw = {
+      ...raw.profile,
+      financialSummary: raw.financialSummary || raw.profile.financialSummary,
+      addresses: raw.addresses || raw.profile.addresses || raw.Addresses || raw.profile.Addresses,
+    };
+  }
 
   const addresses = Array.isArray(raw.addresses)
     ? raw.addresses
@@ -150,8 +192,14 @@ export const parseCustomerResponse = (response) => {
   }
   const status = isActive ? 'Active' : 'Inactive';
 
-  const rawCustomerType = String(raw.customerType ?? raw.CustomerType ?? 'business').toLowerCase();
-  const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType) ? rawCustomerType : 'business';
+  const rawCustomerType = String(
+    raw.customerType ?? raw.CustomerType ?? raw.type ?? raw.Type ?? 'business'
+  ).trim().toLowerCase();
+  const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+    ? rawCustomerType
+    : 'business';
+  const customerTypeTitleCase =
+    customerType.charAt(0).toUpperCase() + customerType.slice(1);
   const creditLimit = raw.creditLimit ?? raw.CreditLimit ?? null;
   const outstandingBalance = raw.outstandingBalance ?? raw.OutstandingBalance ?? null;
 
@@ -163,6 +211,7 @@ export const parseCustomerResponse = (response) => {
     phone: raw.phone ?? raw.Phone ?? '',
     companyName: raw.companyName ?? raw.CompanyName ?? '',
     customerType,
+    CustomerType: customerTypeTitleCase,
     creditLimit,
     outstandingBalance,
     openingBalance: outstandingBalance,

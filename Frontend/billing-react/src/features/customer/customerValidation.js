@@ -4,6 +4,7 @@ const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
 const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
 const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
+const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
 
 export const customerValidationSchema = yup.object({
   // 1. Basic Information
@@ -36,6 +37,11 @@ export const customerValidationSchema = yup.object({
     .default('Active'),
   customerType: yup
     .string()
+    .transform((val) => {
+      if (!val) return 'business';
+      const s = String(val).trim().toLowerCase();
+      return ['business', 'individual', 'organization'].includes(s) ? s : 'business';
+    })
     .oneOf(['business', 'individual', 'organization'])
     .default('business'),
 
@@ -46,6 +52,10 @@ export const customerValidationSchema = yup.object({
     .required('Email address is required')
     .matches(EMAIL_REGEX, 'Enter a valid email address')
     .max(256, 'Email must not exceed 256 characters'),
+  phoneCountryCode: yup
+    .string()
+    .trim()
+    .default('+91'),
   phone: yup
     .string()
     .trim()
@@ -60,6 +70,10 @@ export const customerValidationSchema = yup.object({
     .string()
     .trim()
     .max(256, 'Website URL must not exceed 256 characters')
+    .test('website-url', 'Enter a valid website URL (e.g. https://example.com or www.example.com)', (val) => {
+      if (!val || val.trim() === '') return true;
+      return URL_REGEX.test(val.trim());
+    })
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
 
@@ -202,6 +216,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   companyName: '',
   status: 'Active',
   email: '',
+  phoneCountryCode: '+91',
   phone: '',
   website: '',
   taxRegistrationType: 'gst',
