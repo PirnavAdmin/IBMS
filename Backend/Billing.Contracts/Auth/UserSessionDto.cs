@@ -2,7 +2,7 @@ namespace Billing.Contracts;
 
 public class UserSessionDto
 {
-    public Guid SessionId { get; set; }
+    public int SessionId { get; set; }
 
     public int UserId { get; set; }
 
@@ -19,8 +19,6 @@ public class UserSessionDto
     public bool IsRevoked { get; set; }
 
     public string? RevocationReason { get; set; }
-
-    public string? IpAddress { get; set; }
 
     public string? UserAgent { get; set; }
 

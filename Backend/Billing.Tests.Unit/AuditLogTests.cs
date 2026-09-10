@@ -18,11 +18,9 @@ public class AuditLogTests
             EntityName = "Customer",
             EntityId = "101",
             Action = "CREATE",
-            UserId = "user-123",
             UserName = "Prathap Ganugapenta",
             Timestamp = timestamp,
-            Changes = "{\"Name\":\"Acme Corp\",\"Status\":\"Active\"}",
-            IpAddress = "127.0.0.1"
+            Changes = "Customer created"
         };
 
         // Assert
@@ -32,11 +30,9 @@ public class AuditLogTests
         Assert.Equal("Customer", log.EntityName);
         Assert.Equal("101", log.EntityId);
         Assert.Equal("CREATE", log.Action);
-        Assert.Equal("user-123", log.UserId);
         Assert.Equal("Prathap Ganugapenta", log.UserName);
         Assert.Equal(timestamp, log.Timestamp);
-        Assert.Contains("Acme Corp", log.Changes);
-        Assert.Equal("127.0.0.1", log.IpAddress);
+        Assert.Equal("Customer created", log.Changes);
     }
 
     [Fact]

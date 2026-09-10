@@ -21,5 +21,5 @@ public class UserClaimsDto
 
     public List<string> Permissions { get; set; } = new();
 
-    public Guid? SessionId { get; set; }
+    public int? SessionId { get; set; }
 }

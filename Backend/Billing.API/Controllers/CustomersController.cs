@@ -57,10 +57,8 @@ public class CustomersController : ControllerBase
             tenantId.Value,
             result.Data!.Id,
             result.Data.Name,
-            GetUserId(),
             GetUserName(),
-            request,
-            GetClientIpAddress());
+            request);
 
         return CreatedAtAction(
             nameof(GetCustomerById),
@@ -201,10 +199,8 @@ public class CustomersController : ControllerBase
                 resolvedTenantId,
                 id,
                 result.Data?.Name ?? "Customer",
-                GetUserId(),
                 GetUserName(),
-                "Customer deactivated via profile update",
-                GetClientIpAddress());
+                "Customer deactivated via profile update");
         }
         else
         {
@@ -212,10 +208,8 @@ public class CustomersController : ControllerBase
                 resolvedTenantId,
                 id,
                 result.Data?.Name ?? "Customer",
-                GetUserId(),
                 GetUserName(),
-                request,
-                GetClientIpAddress());
+                request);
         }
 
         return Ok(result);
@@ -247,10 +241,8 @@ public class CustomersController : ControllerBase
             tenantId ?? 1,
             id,
             result.Data?.Name ?? "Customer",
-            GetUserId(),
             GetUserName(),
-            "Deactivated via customer management",
-            GetClientIpAddress());
+            "Deactivated via customer management");
 
         return Ok(result);
     }
@@ -281,10 +273,8 @@ public class CustomersController : ControllerBase
             tenantId ?? 1,
             id,
             result.Data?.Name ?? "Customer",
-            GetUserId(),
             GetUserName(),
-            "Deactivated via physical deletion prevention",
-            GetClientIpAddress());
+            "Deactivated via physical deletion prevention");
 
         result.Message = "Customer deactivated successfully. Historical records have been preserved.";
         return Ok(result);
@@ -376,8 +366,6 @@ public class CustomersController : ControllerBase
         return string.Equals(customerEmail.Trim(), userEmail?.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
-    private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? "system";
     private string GetUserName() => User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("name")?.Value ?? "Authorized User";
-    private string? GetClientIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString();
 }
 

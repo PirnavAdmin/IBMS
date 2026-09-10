@@ -60,14 +60,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout(
         [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] LogoutRequest? request = null)
     {
-        Guid? sessionId = null;
+        int? sessionId = null;
         var sidClaim = User.FindFirst("sessionId") ??
                        User.FindFirst(System.Security.Claims.ClaimTypes.Sid) ??
                        User.FindFirst("sid");
 
-        if (sidClaim != null && Guid.TryParse(sidClaim.Value, out var guid))
+        if (sidClaim != null && int.TryParse(sidClaim.Value, out var sid))
         {
-            sessionId = guid;
+            sessionId = sid;
         }
 
         var refreshToken = string.Equals(request?.RefreshToken?.Trim(), "string", StringComparison.OrdinalIgnoreCase)
@@ -115,14 +115,14 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "User identifier claim not found in token" });
         }
 
-        Guid? sessionId = null;
+        int? sessionId = null;
         var sidClaim = User.FindFirst("sessionId") ??
                        User.FindFirst(System.Security.Claims.ClaimTypes.Sid) ??
                        User.FindFirst("sid");
 
-        if (sidClaim != null && Guid.TryParse(sidClaim.Value, out var guid))
+        if (sidClaim != null && int.TryParse(sidClaim.Value, out var sid))
         {
-            sessionId = guid;
+            sessionId = sid;
         }
 
         var profile = await _authService.GetUserProfileAsync(userId, sessionId);

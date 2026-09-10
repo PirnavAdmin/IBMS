@@ -27,7 +27,14 @@ public class CustomerAddress
 
     public string Country { get; set; } = string.Empty;
 
-    public bool IsDefault { get; set; } = false;
+    public string IsDefaultStatus { get; set; } = "Non-Default";
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool IsDefault
+    {
+        get => string.Equals(IsDefaultStatus, "Default", StringComparison.OrdinalIgnoreCase);
+        set => IsDefaultStatus = value ? "Default" : "Non-Default";
+    }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

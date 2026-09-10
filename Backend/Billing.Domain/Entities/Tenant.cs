@@ -1,4 +1,4 @@
-﻿namespace Billing.Domain.Entities;
+namespace Billing.Domain.Entities;
 
 public class Tenant
 {
@@ -16,7 +16,14 @@ public class Tenant
 
     public string? Address { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = "Active";
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool IsActive
+    {
+        get => string.Equals(Status, "Active", StringComparison.OrdinalIgnoreCase);
+        set => Status = value ? "Active" : "Inactive";
+    }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

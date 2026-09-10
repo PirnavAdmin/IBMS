@@ -20,11 +20,18 @@ public class User
 
     public string ApplicationId { get; set; } = "IBMS";
 
-    public string RolesJson { get; set; } = "[\"User\"]";
+    public string RolesString { get; set; } = "User";
 
-    public string PermissionsJson { get; set; } = "[\"billing.view\",\"billing.create\"]";
+    public string PermissionsString { get; set; } = "billing.view,billing.create";
 
-    public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = "Active";
+
+    [NotMapped]
+    public bool IsActive
+    {
+        get => string.Equals(Status, "Active", StringComparison.OrdinalIgnoreCase);
+        set => Status = value ? "Active" : "Inactive";
+    }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
@@ -35,19 +42,12 @@ public class User
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(RolesJson))
+            if (string.IsNullOrWhiteSpace(RolesString))
                 return new List<string>();
 
-            try
-            {
-                return JsonSerializer.Deserialize<List<string>>(RolesJson) ?? new List<string>();
-            }
-            catch
-            {
-                return new List<string>();
-            }
+            return RolesString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         }
-        set => RolesJson = JsonSerializer.Serialize(value ?? new List<string>());
+        set => RolesString = value != null && value.Any() ? string.Join(",", value) : string.Empty;
     }
 
     [NotMapped]
@@ -55,19 +55,26 @@ public class User
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(PermissionsJson))
+            if (string.IsNullOrWhiteSpace(PermissionsString))
                 return new List<string>();
 
-            try
-            {
-                return JsonSerializer.Deserialize<List<string>>(PermissionsJson) ?? new List<string>();
-            }
-            catch
-            {
-                return new List<string>();
-            }
+            return PermissionsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         }
-        set => PermissionsJson = JsonSerializer.Serialize(value ?? new List<string>());
+        set => PermissionsString = value != null && value.Any() ? string.Join(",", value) : string.Empty;
+    }
+
+    [NotMapped]
+    public string RolesJson
+    {
+        get => RolesString;
+        set => RolesString = value;
+    }
+
+    [NotMapped]
+    public string PermissionsJson
+    {
+        get => PermissionsString;
+        set => PermissionsString = value;
     }
 
     public ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();

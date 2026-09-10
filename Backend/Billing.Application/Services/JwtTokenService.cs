@@ -20,7 +20,7 @@ public class JwtTokenService : IJwtTokenService
         _tokenHandler = new JwtSecurityTokenHandler();
     }
 
-    public (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(User user, Guid sessionId)
+    public (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(User user, int sessionId)
     {
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes);
         var key = Encoding.UTF8.GetBytes(_jwtSettings.SecretKey);

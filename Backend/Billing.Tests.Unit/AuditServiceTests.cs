@@ -46,10 +46,8 @@ public class AuditServiceTests
             tenantId: 2,
             customerId: 10,
             customerName: "Acme Corp",
-            userId: "usr_1",
             userName: "Prathap",
-            customerData: new { Name = "Acme Corp", Email = "acme@example.com" },
-            ipAddress: "192.168.1.1");
+            customerData: new { Name = "Acme Corp", Email = "acme@example.com" });
 
         Assert.Single(repo.Logs);
         var log = repo.Logs[0];
@@ -58,10 +56,8 @@ public class AuditServiceTests
         Assert.Equal(10, log.CustomerId);
         Assert.Equal("Customer", log.EntityName);
         Assert.Equal("10", log.EntityId);
-        Assert.Equal("usr_1", log.UserId);
         Assert.Equal("Prathap", log.UserName);
-        Assert.Equal("192.168.1.1", log.IpAddress);
-        Assert.Contains("acme@example.com", log.Changes);
+        Assert.Equal("Customer created", log.Changes);
     }
 
     [Fact]
@@ -74,7 +70,6 @@ public class AuditServiceTests
             tenantId: 1,
             customerId: 15,
             customerName: "Global Tech",
-            userId: "usr_2",
             userName: "Prathap",
             changes: new { Phone = "+1234567890", City = "New York" });
 
@@ -83,7 +78,7 @@ public class AuditServiceTests
         Assert.Equal("UPDATE", log.Action);
         Assert.Equal(1, log.TenantId);
         Assert.Equal(15, log.CustomerId);
-        Assert.Contains("New York", log.Changes);
+        Assert.Equal("Phone, City updated", log.Changes);
     }
 
     [Fact]
@@ -96,7 +91,6 @@ public class AuditServiceTests
             tenantId: 1,
             customerId: 20,
             customerName: "Inactive Corp",
-            userId: "usr_3",
             userName: "Prathap",
             reason: "Account closed by customer request");
 
@@ -113,10 +107,10 @@ public class AuditServiceTests
         var repo = new FakeAuditLogRepository();
         var service = new AuditService(repo, NullLogger<AuditService>.Instance);
 
-        await service.RecordCustomerCreatedAsync(1, 100, "Cust 1", "u1", "Prathap", new { });
-        await service.RecordCustomerUpdatedAsync(1, 100, "Cust 1", "u1", "Prathap", new { });
-        await service.RecordCustomerCreatedAsync(1, 200, "Cust 2", "u1", "Prathap", new { });
-        await service.RecordCustomerCreatedAsync(2, 100, "Cust 1 Tenant 2", "u2", "Other", new { });
+        await service.RecordCustomerCreatedAsync(1, 100, "Cust 1", "Prathap", new { });
+        await service.RecordCustomerUpdatedAsync(1, 100, "Cust 1", "Prathap", new { });
+        await service.RecordCustomerCreatedAsync(1, 200, "Cust 2", "Prathap", new { });
+        await service.RecordCustomerCreatedAsync(2, 100, "Cust 1 Tenant 2", "Other", new { });
 
         var history = await service.GetCustomerAuditHistoryAsync(1, 100);
 

@@ -180,11 +180,9 @@ public class ApiContractVerificationTests
             EntityName = "Customer",
             EntityId = "10",
             Action = "UPDATE",
-            UserId = "usr_test",
             UserName = "Prathap",
             Timestamp = DateTime.UtcNow,
-            Changes = "{\"phone\":\"+12345\"}",
-            IpAddress = "127.0.0.1"
+            Changes = "Phone updated"
         };
 
         var json = JsonSerializer.Serialize(log, _jsonOptions);
@@ -197,10 +195,8 @@ public class ApiContractVerificationTests
         Assert.True(root.TryGetProperty("entityName", out _));
         Assert.True(root.TryGetProperty("entityId", out _));
         Assert.True(root.TryGetProperty("action", out _));
-        Assert.True(root.TryGetProperty("userId", out _));
         Assert.True(root.TryGetProperty("userName", out _));
         Assert.True(root.TryGetProperty("timestamp", out _));
         Assert.True(root.TryGetProperty("changes", out _));
-        Assert.True(root.TryGetProperty("ipAddress", out _));
     }
 }

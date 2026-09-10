@@ -9,7 +9,7 @@ public interface IJwtTokenService
     /// Generates a signed JWT access token containing required claims:
     /// UserId, TenantId, ApplicationId, Roles, Permissions, SessionId, Name, Email, Jti, Iat, Exp.
     /// </summary>
-    (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(User user, Guid sessionId);
+    (string AccessToken, DateTime ExpiresAtUtc) GenerateAccessToken(User user, int sessionId);
 
     /// <summary>
     /// Generates a cryptographically random refresh token.

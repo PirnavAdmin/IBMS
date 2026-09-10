@@ -173,19 +173,15 @@ public class AuthService
             };
         }
 
-        // 1. Generate new Session ID
-        var sessionId = Guid.NewGuid();
-
-        // 2. Generate Refresh Token & hash it
+        // 1. Generate Refresh Token & hash it
         var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
         var refreshTokenHash = _jwtTokenService.HashRefreshToken(rawRefreshToken);
         var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
         var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.SessionTimeoutMinutes);
 
-        // 3. Persist session in DB
+        // 2. Persist session in DB
         var session = new UserSession
         {
-            Id = sessionId,
             UserId = user.Id,
             RefreshTokenHash = refreshTokenHash,
             RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
@@ -193,15 +189,14 @@ public class AuthService
             IsRevoked = false,
             CreatedAtUtc = DateTime.UtcNow,
             LastActivityAtUtc = DateTime.UtcNow,
-            IpAddress = ipAddress,
             UserAgent = userAgent,
             DeviceInfo = deviceInfo ?? ParseDeviceInfo(userAgent)
         };
 
         await _userSessionRepository.CreateSessionAsync(session);
 
-        // 4. Generate JWT Access Token with claims
-        var (accessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, sessionId);
+        // 3. Generate JWT Access Token with claims
+        var (accessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, session.Id);
 
         var primaryRole = user.Roles.FirstOrDefault() ?? "Customer";
         var claimsDto = new UserClaimsDto
@@ -217,7 +212,7 @@ public class AuthService
             ApplicationId = user.ApplicationId,
             Roles = user.Roles,
             Permissions = user.Permissions,
-            SessionId = sessionId
+            SessionId = session.Id
         };
 
         return new LoginResponse
@@ -337,13 +332,11 @@ public class AuthService
         );
 
         // Create new session entry for rotation
-        var newSessionId = Guid.NewGuid();
         var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
         var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.SessionTimeoutMinutes);
 
         var newSession = new UserSession
         {
-            Id = newSessionId,
             UserId = user.Id,
             RefreshTokenHash = newRefreshTokenHash,
             RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
@@ -351,7 +344,6 @@ public class AuthService
             IsRevoked = false,
             CreatedAtUtc = DateTime.UtcNow,
             LastActivityAtUtc = DateTime.UtcNow,
-            IpAddress = ipAddress ?? session.IpAddress,
             UserAgent = userAgent ?? session.UserAgent,
             DeviceInfo = deviceInfo ?? session.DeviceInfo
         };
@@ -359,7 +351,7 @@ public class AuthService
         await _userSessionRepository.CreateSessionAsync(newSession);
 
         // Generate new JWT Access Token
-        var (newAccessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, newSessionId);
+        var (newAccessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, newSession.Id);
 
         var claimsDto = new UserClaimsDto
         {
@@ -374,7 +366,7 @@ public class AuthService
             ApplicationId = user.ApplicationId,
             Roles = user.Roles,
             Permissions = user.Permissions,
-            SessionId = newSessionId
+            SessionId = newSession.Id
         };
 
         return new LoginResponse
@@ -391,7 +383,7 @@ public class AuthService
     }
 
     // LOGOUT (Current session)
-    public async Task<LoginResponse> LogoutAsync(string? refreshToken, Guid? sessionId = null)
+    public async Task<LoginResponse> LogoutAsync(string? refreshToken, int? sessionId = null)
     {
         if (!string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -460,14 +452,13 @@ public class AuthService
             IsRevoked = s.IsRevoked,
             IsActive = !s.IsRevoked && s.RefreshTokenExpiresAtUtc > DateTime.UtcNow && s.SessionExpiresAtUtc > DateTime.UtcNow,
             RevocationReason = s.RevocationReason,
-            IpAddress = s.IpAddress,
             UserAgent = s.UserAgent,
             DeviceInfo = s.DeviceInfo
         }).ToList();
     }
 
     // GET USER PROFILE / CLAIMS
-    public async Task<UserClaimsDto?> GetUserProfileAsync(int userId, Guid? sessionId = null)
+    public async Task<UserClaimsDto?> GetUserProfileAsync(int userId, int? sessionId = null)
     {
         var user = await _userRepository.GetByIdAsync(userId);
         if (user == null)

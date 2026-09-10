@@ -21,5 +21,6 @@ public class CustomerAddressDto
     public string? PostalCode { get; set; }
     public string Country { get; set; } = string.Empty;
     public bool IsDefault { get; set; }
+    public string DefaultStatus => IsDefault ? "Default" : "Non-Default";
 }
 

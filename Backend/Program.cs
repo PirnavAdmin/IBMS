@@ -187,8 +187,8 @@ builder.Services.AddAuthentication(options =>
                 return;
             }
 
-            // Session ID must be a valid Guid
-            if (!Guid.TryParse(sidClaim, out var sessionId))
+            // Session ID must be a valid integer
+            if (!int.TryParse(sidClaim, out var sessionId))
             {
                 context.Fail("Session ID claim is invalid.");
                 return;

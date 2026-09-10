@@ -6,7 +6,7 @@ public interface IUserSessionRepository
 {
     Task CreateSessionAsync(UserSession session);
 
-    Task<UserSession?> GetByIdAsync(Guid id);
+    Task<UserSession?> GetByIdAsync(int id);
 
     Task<UserSession?> GetByTokenHashAsync(string tokenHash);
 
@@ -14,11 +14,11 @@ public interface IUserSessionRepository
 
     Task<List<UserSession>> GetAllSessionsByUserIdAsync(int userId);
 
-    Task RevokeSessionAsync(Guid sessionId, string reason, string? replacedByHash = null);
+    Task RevokeSessionAsync(int sessionId, string reason, string? replacedByHash = null);
 
     Task RevokeAllUserSessionsAsync(int userId, string reason);
 
-    Task UpdateActivityAsync(Guid sessionId, DateTime? newSessionExpiry = null);
+    Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null);
 
     Task UpdateSessionAsync(UserSession session);
 }

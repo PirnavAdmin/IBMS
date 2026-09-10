@@ -20,7 +20,7 @@ public class UserSessionRepository : IUserSessionRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<UserSession?> GetByIdAsync(Guid id)
+    public async Task<UserSession?> GetByIdAsync(int id)
     {
         return await _context.UserSessions
             .Include(s => s.User)
@@ -54,7 +54,7 @@ public class UserSessionRepository : IUserSessionRepository
             .ToListAsync();
     }
 
-    public async Task RevokeSessionAsync(Guid sessionId, string reason, string? replacedByHash = null)
+    public async Task RevokeSessionAsync(int sessionId, string reason, string? replacedByHash = null)
     {
         var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session != null && !session.IsRevoked)
@@ -93,7 +93,7 @@ public class UserSessionRepository : IUserSessionRepository
         }
     }
 
-    public async Task UpdateActivityAsync(Guid sessionId, DateTime? newSessionExpiry = null)
+    public async Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null)
     {
         var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
         if (session != null && !session.IsRevoked)

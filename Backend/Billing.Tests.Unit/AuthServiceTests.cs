@@ -118,7 +118,6 @@ public class AuthServiceTests
         var session = _sessionRepository.Sessions.First();
         Assert.Equal(1, session.UserId);
         Assert.False(session.IsRevoked);
-        Assert.Equal("192.168.1.100", session.IpAddress);
         Assert.Equal("Windows Desktop", session.DeviceInfo);
     }
 

@@ -376,29 +376,29 @@ public class CustomerBackendTests
 
         // 1. Audit event for Create
         await _auditService.RecordCustomerCreatedAsync(
-            tenantId, customerId, "Audit Customer", "usr_adm", "Prathap",
-            new { Name = "Audit Customer", Email = "audit@test.com" }, "127.0.0.1");
+            tenantId, customerId, "Audit Customer", "Prathap",
+            new { Name = "Audit Customer", Email = "audit@test.com" });
 
         // 2. Audit event for Update
         await _auditService.RecordCustomerUpdatedAsync(
-            tenantId, customerId, "Audit Customer", "usr_adm", "Prathap",
-            new { Phone = "+1999888777" }, "127.0.0.1");
+            tenantId, customerId, "Audit Customer", "Prathap",
+            new { Phone = "+1999888777" });
 
         // 3. Audit event for Deactivate
         await _auditService.RecordCustomerDeactivatedAsync(
-            tenantId, customerId, "Audit Customer", "usr_adm", "Prathap",
-            "Business relationship terminated", "127.0.0.1");
+            tenantId, customerId, "Audit Customer", "Prathap",
+            "Business relationship terminated");
 
         // Verify audit history
         var history = await _auditService.GetCustomerAuditHistoryAsync(tenantId, customerId);
         Assert.Equal(3, history.Count);
 
         var createLog = history.First(h => h.Action == "CREATE");
-        Assert.Equal("usr_adm", createLog.UserId);
-        Assert.Contains("audit@test.com", createLog.Changes);
+        Assert.Equal("Prathap", createLog.UserName);
+        Assert.Equal("Customer created", createLog.Changes);
 
         var updateLog = history.First(h => h.Action == "UPDATE");
-        Assert.Contains("1999888777", updateLog.Changes);
+        Assert.Equal("Phone updated", updateLog.Changes);
 
         var deactLog = history.First(h => h.Action == "DEACTIVATE");
         Assert.Contains("Business relationship terminated", deactLog.Changes);

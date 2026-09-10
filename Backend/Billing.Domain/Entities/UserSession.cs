@@ -2,7 +2,7 @@ namespace Billing.Domain.Entities;
 
 public class UserSession
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     public int UserId { get; set; }
 
@@ -29,9 +29,7 @@ public class UserSession
 
     public DateTime SessionExpiresAtUtc { get; set; }
 
-    // IP and device information
-    public string? IpAddress { get; set; }
-
+    // Device information
     public string? UserAgent { get; set; }
 
     public string? DeviceInfo { get; set; }

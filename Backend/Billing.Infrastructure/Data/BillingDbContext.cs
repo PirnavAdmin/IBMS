@@ -35,7 +35,8 @@ public class BillingDbContext : DbContext
             entity.Property(t => t.CompanyEmail).HasMaxLength(256);
             entity.Property(t => t.Phone).HasMaxLength(64);
             entity.Property(t => t.TaxId).HasMaxLength(64);
-            entity.Property(t => t.Address).HasMaxLength(512);
+            entity.Property(t => t.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(t => t.IsActive);
 
             entity.HasData(new Tenant
             {
@@ -43,7 +44,7 @@ public class BillingDbContext : DbContext
                 Name = "Default Company",
                 TenantCode = "tenant-default",
                 CompanyEmail = "admin@default.com",
-                IsActive = true,
+                Status = "Active",
                 CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             });
         });
@@ -92,6 +93,8 @@ public class BillingDbContext : DbContext
             entity.Property(a => a.State).HasMaxLength(128);
             entity.Property(a => a.PostalCode).HasMaxLength(32);
             entity.Property(a => a.Country).HasMaxLength(128).IsRequired();
+            entity.Property(a => a.IsDefaultStatus).HasColumnName("IsDefault").HasMaxLength(16).HasDefaultValue("Non-Default").IsRequired();
+            entity.Ignore(a => a.IsDefault);
 
             entity.HasOne(a => a.Customer)
                   .WithMany(c => c.Addresses)
@@ -114,6 +117,14 @@ public class BillingDbContext : DbContext
             entity.Property(u => u.Username).HasMaxLength(256);
             entity.Property(u => u.Name).HasMaxLength(256);
             entity.Property(u => u.ApplicationId).HasMaxLength(128);
+            entity.Property(u => u.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(u => u.IsActive);
+            entity.Property(u => u.RolesString).HasColumnName("Roles").HasMaxLength(256).HasDefaultValue("User").IsRequired();
+            entity.Ignore(u => u.Roles);
+            entity.Ignore(u => u.RolesJson);
+            entity.Property(u => u.PermissionsString).HasColumnName("Permissions").HasMaxLength(1000).HasDefaultValue("billing.view,billing.create").IsRequired();
+            entity.Ignore(u => u.Permissions);
+            entity.Ignore(u => u.PermissionsJson);
 
             entity.HasOne(u => u.Tenant)
                   .WithMany(t => t.Users)
@@ -129,8 +140,8 @@ public class BillingDbContext : DbContext
         modelBuilder.Entity<UserSession>(entity =>
         {
             entity.HasKey(s => s.Id);
+            entity.Property(s => s.Id).ValueGeneratedOnAdd();
             entity.Property(s => s.RefreshTokenHash).HasMaxLength(128).IsRequired();
-            entity.Property(s => s.IpAddress).HasMaxLength(64);
             entity.Property(s => s.UserAgent).HasMaxLength(512);
             entity.Property(s => s.DeviceInfo).HasMaxLength(256);
             entity.Property(s => s.RevocationReason).HasMaxLength(256);
@@ -151,8 +162,8 @@ public class BillingDbContext : DbContext
             entity.Property(e => e.EntityName).HasMaxLength(100).IsRequired();
             entity.Property(e => e.EntityId).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.UserId).HasMaxLength(100);
             entity.Property(e => e.UserName).HasMaxLength(200);
+            entity.Property(e => e.Changes).HasColumnType("text");
 
             entity.HasOne(e => e.Customer)
                   .WithMany()

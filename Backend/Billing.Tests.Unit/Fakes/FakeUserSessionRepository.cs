@@ -7,13 +7,19 @@ public class FakeUserSessionRepository : IUserSessionRepository
 {
     public List<UserSession> Sessions { get; } = new();
 
+    private int _nextId = 1;
+
     public Task CreateSessionAsync(UserSession session)
     {
+        if (session.Id == 0)
+        {
+            session.Id = _nextId++;
+        }
         Sessions.Add(session);
         return Task.CompletedTask;
     }
 
-    public Task<UserSession?> GetByIdAsync(Guid id)
+    public Task<UserSession?> GetByIdAsync(int id)
     {
         return Task.FromResult(Sessions.FirstOrDefault(s => s.Id == id));
     }
@@ -47,7 +53,7 @@ public class FakeUserSessionRepository : IUserSessionRepository
         return Task.FromResult(result);
     }
 
-    public Task RevokeSessionAsync(Guid sessionId, string reason, string? replacedByHash = null)
+    public Task RevokeSessionAsync(int sessionId, string reason, string? replacedByHash = null)
     {
         var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
         if (session != null && !session.IsRevoked)
@@ -78,7 +84,7 @@ public class FakeUserSessionRepository : IUserSessionRepository
         return Task.CompletedTask;
     }
 
-    public Task UpdateActivityAsync(Guid sessionId, DateTime? newSessionExpiry = null)
+    public Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null)
     {
         var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
         if (session != null && !session.IsRevoked)
