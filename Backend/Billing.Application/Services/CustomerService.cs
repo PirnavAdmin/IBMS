@@ -567,6 +567,7 @@ public class CustomerService : ICustomerService
             Website = customer.Website,
             Notes = customer.Notes,
             Currency = customer.Currency,
+            OutstandingBalance = 0.00m,
             PaymentTerms = customer.PaymentTerms,
             Status = customer.Status,
             IsActive = customer.IsActive,

@@ -87,6 +87,7 @@ public class CustomersController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? customerType = null,
         [FromQuery] string? taxId = null,
+        [FromQuery] string? outstanding = null,
         [FromQuery] string? sortBy = "createdAt",
         [FromQuery] string? sortOrder = "desc")
     {
@@ -141,6 +142,10 @@ public class CustomersController : ControllerBase
             ? taxId.Trim()
             : (Request.Query.TryGetValue("taxId", out var taxIdVal) ? taxIdVal.ToString().Trim() : null);
 
+        var effectiveOutstanding = !string.IsNullOrWhiteSpace(outstanding)
+            ? outstanding.Trim()
+            : (Request.Query.TryGetValue("outstanding", out var outstandingVal) ? outstandingVal.ToString().Trim() : null);
+
         var effectiveSortBy = !string.IsNullOrWhiteSpace(sortBy)
             ? sortBy.Trim()
             : (Request.Query.TryGetValue("sortBy", out var sortByVal) ? sortByVal.ToString().Trim() : "createdAt");
@@ -156,6 +161,7 @@ public class CustomersController : ControllerBase
             Search = string.IsNullOrWhiteSpace(effectiveSearch) ? null : effectiveSearch,
             CustomerType = string.IsNullOrWhiteSpace(effectiveCustomerType) ? null : effectiveCustomerType,
             TaxId = string.IsNullOrWhiteSpace(effectiveTaxId) ? null : effectiveTaxId,
+            Outstanding = string.IsNullOrWhiteSpace(effectiveOutstanding) ? null : effectiveOutstanding,
             IsActive = resolvedIsActive,
             SortBy = effectiveSortBy,
             SortOrder = effectiveSortOrder

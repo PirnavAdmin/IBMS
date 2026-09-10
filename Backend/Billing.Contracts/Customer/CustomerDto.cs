@@ -19,6 +19,7 @@ public class CustomerDto
     public string? Website { get; set; }
     public string? Notes { get; set; }
     public string Currency { get; set; } = "USD";
+    public decimal OutstandingBalance { get; set; } = 0.00m;
     public string? PaymentTerms { get; set; }
     public string Status { get; set; } = "Active";
     public bool IsActive { get; set; } = true;
