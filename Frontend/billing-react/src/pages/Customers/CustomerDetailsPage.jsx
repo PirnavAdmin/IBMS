@@ -18,11 +18,11 @@ export function CustomerDetailsPage() {
   const tab = tabs.find((item) => item.toLowerCase() === params.get('tab')) || 'Overview';
   const c = query.data?.customer;
   return <main className="customer-page">
-    <Breadcrumbs aria-label="Breadcrumb"><Link component={RouterLink} to="/customers" underline="hover">Customers</Link><span>Customer Details</span></Breadcrumbs>
+    <Breadcrumbs aria-label="Breadcrumb"><Link component={RouterLink} to="/customers" underline="hover">Back to Customers</Link><span>Customer Details</span></Breadcrumbs>
     <CustomerState query={query} />
     {query.isSuccess && <>
-      <header className="customer-heading"><div><h1>{c.name}</h1><div className="customer-meta"><span>Customer ID: {c.customerCode || c.id}</span><span>{c.type}</span><StatusBadge value={c.status} /></div></div><div className="customer-actions"><Button variant="outlined" component={RouterLink} to={`/customers/${encodeURIComponent(c.id)}/edit`}>Edit Customer</Button><DeactivateCustomerDialog key={c.id} customer={c} /></div></header>
-      <Tabs className="customer-tabs" value={tab} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Customer details tabs" onChange={(_, value) => setParams({ tab: value.toLowerCase() })}>{tabs.map((name) => <Tab key={name} label={name} value={name} id={`customer-tab-${name}`} aria-controls={`customer-panel-${name}`} />)}</Tabs>
+      <header className="customer-heading"><div><h1>{c.name || '—'}</h1><div className="customer-meta"><span>Customer Code: {c.customerCode || '—'}</span><span>{c.customerType || '—'}</span><StatusBadge value={c.status} /></div></div><div className="customer-actions"><Button variant="outlined" component={RouterLink} to={`/customers/${encodeURIComponent(customerId)}/edit`}>Edit Customer</Button><DeactivateCustomerDialog key={c.id} customer={c} /></div></header>
+      <Tabs className="customer-tabs" value={tab} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile aria-label="Customer details tabs" onChange={(_, value) => setParams(previous => { const next = new URLSearchParams(previous); next.set("tab", value.toLowerCase()); return next; })}>{tabs.map((name) => <Tab key={name} label={name} value={name} id={`customer-tab-${name}`} aria-controls={`customer-panel-${name}`} />)}</Tabs>
       <div role="tabpanel" id={`customer-panel-${tab}`} aria-labelledby={`customer-tab-${tab}`} key={`${customerId}-${tab}`}>
         {tab === 'Overview' && <CustomerOverview record={query.data} />}
         {tab === 'Addresses' && <CustomerAddresses customer={c} />}

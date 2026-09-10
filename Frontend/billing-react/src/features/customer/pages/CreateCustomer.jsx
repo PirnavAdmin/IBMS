@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
+import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
 import '../customer.css';
 
 export const CreateCustomer = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (formData) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setSubmitError('');
 
     try {
       await customerApi.createCustomer(formData);
-      navigate('/customers');
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      navigate('/customers', { state: { customerNotice: 'Customer created successfully.' } });
     } catch (err) {
       setSubmitError(err.userMessage || err.message || 'Failed to create customer');
       setIsSubmitting(false);

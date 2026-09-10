@@ -2,6 +2,7 @@ import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { apiClient } from '../../billing-api-client/apiClient.js';
 import { authApi } from '../../billing-api-client/authApi.js';
+import { customerApi } from '../../billing-api-client/customerApi.js';
 import { customerUpdatePayload, validateCustomerEdit } from '../src/services/customerEdit.js';
 import { getCustomers, getCustomerById, getCustomerDetails, getCustomerAudit, updateCustomer, createCustomer, deactivateCustomer, validCustomerId } from '../src/services/customerService.js';
 let calls, response, status;
@@ -42,6 +43,27 @@ test('write transport uses POST, PUT, and PATCH with caller DTO unchanged', asyn
   await createCustomer(dto); await updateCustomer(1, dto); await deactivateCustomer(1);
   assert.deepEqual(calls.map(c => [c.method,c.url]), [['post','/api/v1/customers'],['put','/api/v1/customers/1'],['patch','/api/v1/customers/1/deactivate']]);
   assert.deepEqual(JSON.parse(calls[1].data), dto);
+});
+test('owned Create/Edit API rejects unsuccessful HTTP 200 envelopes', async () => {
+  apiClient.defaults.adapter = async config => ({ data: { success: false, message: 'Validation failed', errors: ['Email already exists.'] }, status: 200, config, headers: {} });
+  await assert.rejects(customerApi.createCustomer({}), /Email already exists/);
+  await assert.rejects(customerApi.updateCustomer(1, {}), /Email already exists/);
+});
+test('null customer responses produce not-found and malformed histories fail explicitly', async () => {
+  for (const missing of [null, { customer: null }]) {
+    response = missing;
+    await assert.rejects(getCustomerDetails(1), { code: 'NOT_FOUND' });
+  }
+  response = { customer: { id: 1 }, invoices: {} };
+  await assert.rejects(getCustomerDetails(1), /invalid records/);
+});
+test('default addresses, zero transaction amounts and currency fallback preserve supplied values', async () => {
+  response = { customer: { id: 1, currency: 'INR' }, billingAddress: { addressLine1: 'Main', isDefault: true }, invoices: [{ id: 2, issueDate: '2026-09-10', totalAmount: 0, amountPaid: 0, balanceDue: 0 }], payments: [{ id: 3, paymentDate: '2026-09-10', amount: 0, invoiceNumber: 'INV-2' }] };
+  const data = await getCustomerDetails(1);
+  assert.equal(data.customer.billingAddress.isDefault, true);
+  assert.equal(data.invoices[0].amount, 0);
+  assert.equal(data.invoices[0].currency, 'INR');
+  assert.equal(data.payments[0].invoiceNumber, 'INV-2');
 });
 test('edit loads the numeric route ID and preserves PUT fields and exact rowVersion', async () => {
   response = { id: 12, name: 'Original', email: 'old@example.com', rowVersion: '2026-09-09T12:00:00.1234567Z', companyName: 'Company', taxId: 'TAX', currency: 'INR', isActive: false, notes: 'Keep', addresses: [{ id: 4 }], tenantId: 2 };

@@ -64,11 +64,6 @@ export const AppRoutes = () => (
 
       {/* Jayakrishna - Create Customer */}
       <Route
-        path="/customers/new"
-        element={<CreateCustomer />}
-      />
-
-      <Route
         path="/customers/create"
         element={<CreateCustomer />}
       />
