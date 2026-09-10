@@ -27,6 +27,11 @@ export const customerValidationSchema = yup.object({
     .transform((curr, orig) => (orig === '' ? null : curr)),
   status: yup
     .string()
+    .transform((val) => {
+      if (!val) return 'Active';
+      const s = String(val).trim().toLowerCase();
+      return s === 'inactive' ? 'Inactive' : 'Active';
+    })
     .oneOf(['Active', 'Inactive'])
     .default('Active'),
   customerType: yup
