@@ -9,7 +9,14 @@ export function CustomerStatement({ record }) {
   const [filters, setFilters] = useState({ ...emptyFilters });
   const s = record.financialSummary;
   const currency = s.currency || record.customer.currency;
-  const rows = [...record.invoices.filter(r => r.date && !Number.isNaN(Date.parse(r.date)) && r.amount != null && Number.isFinite(Number(r.amount))).map(r => ({ id: `invoice-${r.id}`, date: r.date, type: 'Invoice', reference: r.invoiceNumber, debit: r.amount, currency: r.currency })), ...record.payments.filter(r => r.date && !Number.isNaN(Date.parse(r.date)) && r.amount != null && Number.isFinite(Number(r.amount))).map(r => ({ id: `payment-${r.id}`, date: r.date, type: 'Payment', reference: r.paymentNumber, credit: r.amount, currency: r.currency }))];
+  const rows = [
+    ...record.invoices
+      .filter((r) => (r.date || r.issueDate) && (r.amount != null || r.totalAmount != null) && Number.isFinite(Number(r.amount ?? r.totalAmount)))
+      .map((r) => ({ id: `invoice-${r.id}`, date: r.date || r.issueDate, type: 'Invoice', reference: r.invoiceNumber, debit: Number(r.amount ?? r.totalAmount), currency: r.currency || currency })),
+    ...record.payments
+      .filter((r) => (r.date || r.paymentDate) && (r.amount != null || r.paymentAmount != null || r.amountPaid != null) && Number.isFinite(Number(r.amount ?? r.paymentAmount ?? r.amountPaid)))
+      .map((r) => ({ id: `payment-${r.id}`, date: r.date || r.paymentDate, type: 'Payment', reference: r.paymentNumber || r.reference, credit: Number(r.amount ?? r.paymentAmount ?? r.amountPaid), currency: r.currency || currency }))
+  ];
   const columns = [{ key: 'date', label: 'Date', render: (r) => displayDate(r.date) }, { key: 'type', label: 'Transaction Type' }, { key: 'reference', label: 'Reference' }, ...['debit', 'credit'].map((key) => ({ key, label: key[0].toUpperCase() + key.slice(1), money: true, render: (r) => r[key] == null ? '—' : formatCurrency(r[key], r.currency || currency) }))];
   return <>
     <FinancialSummary currency={currency} items={[[ 'Total Invoiced', s.totalInvoiced ], [ 'Total Paid', s.totalPaid ], [ 'Outstanding Balance', s.outstandingBalance, true ]]} />

@@ -2,9 +2,10 @@ import { Card, Skeleton } from '@mui/material';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { StatusBadge as DashboardStatusBadge } from '../../../components/dashboard/DashboardSections';
 const StatusBadge = ({ value }) => value == null || value === '' ? <span>—</span> : <DashboardStatusBadge value={String(value)} />;
-const formatCurrency = (value, currency) => {
-  if (value == null || value === '' || !Number.isFinite(Number(value)) || !currency) return '—';
-  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(value); } catch { return `${value} ${currency}`; }
+const formatCurrency = (value, currency = 'INR') => {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '—';
+  const curr = currency || 'INR';
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: curr }).format(Number(value)); } catch { return `${value} ${curr}`; }
 };
 
 export { StatusBadge, formatCurrency };

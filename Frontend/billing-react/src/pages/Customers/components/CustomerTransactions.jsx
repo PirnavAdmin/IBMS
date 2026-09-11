@@ -5,7 +5,16 @@ import { displayDate, formatCurrency, InformationCard, StatusBadge } from './Cus
 
 export const invoiceStatuses = ['Draft', 'Issued', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled', 'Void'];
 export const paymentStatuses = ['Completed', 'Pending', 'Failed', 'Reversed', 'Refunded'];
-const money = (key, label) => ({ key, label, money: true, render: (row) => formatCurrency(row[key], row.currency) });
+const money = (key, label) => ({
+  key,
+  label,
+  money: true,
+  render: (row) =>
+    formatCurrency(
+      row[key] ?? row.amount ?? row.paymentAmount ?? row.amountPaid ?? row.totalAmount ?? 0,
+      row.currency || 'INR'
+    ),
+});
 const date = (key, label) => ({ key, label, render: (row) => displayDate(row[key]) });
 const statusColumn = { key: 'status', label: 'Status', render: (row) => <StatusBadge value={row.status} /> };
 

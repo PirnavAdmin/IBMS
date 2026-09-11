@@ -72,7 +72,7 @@ export const EditCustomer = () => {
         ['customer', String(id)],
         ['customer-details', String(id)],
         ['customer-audit', String(id)],
-      ].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+      ].map((queryKey) => queryClient.invalidateQueries({ queryKey, refetchType: 'all' })));
       navigate(`/customers/${id}`, { state: { customerNotice: 'Customer updated successfully.' } });
     } catch (err) {
       setSubmitError(err.userMessage || err.message || 'Failed to update customer');

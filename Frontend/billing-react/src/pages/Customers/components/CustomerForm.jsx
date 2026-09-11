@@ -57,6 +57,60 @@ export const CustomerForm = ({
       ? rawCustomerType
       : 'business';
 
+    const rawCurrency = String(
+      values?.currency ??
+      values?.Currency ??
+      values?.financialSummary?.currency ??
+      values?.financialSummary?.Currency ??
+      values?.raw?.currency ??
+      'INR'
+    ).trim().toUpperCase();
+    const currency = ['INR', 'USD', 'EUR', 'GBP'].includes(rawCurrency) ? rawCurrency : 'INR';
+
+    const rawPaymentTerms = String(
+      values?.paymentTerms ??
+      values?.PaymentTerms ??
+      values?.financialSummary?.paymentTerms ??
+      values?.financialSummary?.PaymentTerms ??
+      values?.raw?.paymentTerms ??
+      ''
+    ).trim();
+    let paymentTerms = rawPaymentTerms;
+    const ptClean = rawPaymentTerms.toLowerCase().replace(/[\s_-]+/g, '');
+    if (ptClean === 'net15') paymentTerms = 'Net 15';
+    else if (ptClean === 'net30') paymentTerms = 'Net 30';
+    else if (ptClean === 'net45') paymentTerms = 'Net 45';
+    else if (ptClean === 'net60') paymentTerms = 'Net 60';
+    else if (ptClean === 'dueonreceipt') paymentTerms = 'Due on Receipt';
+    else if (!paymentTerms) paymentTerms = 'Net 30';
+
+    const rawCreditLimit =
+      values?.creditLimit ??
+      values?.CreditLimit ??
+      values?.financialSummary?.creditLimit ??
+      values?.financialSummary?.CreditLimit ??
+      values?.raw?.creditLimit ??
+      values?.raw?.CreditLimit;
+    const creditLimit =
+      rawCreditLimit !== undefined && rawCreditLimit !== null && rawCreditLimit !== ''
+        ? Number(rawCreditLimit)
+        : '';
+
+    const rawOpeningBalance =
+      values?.openingBalance ??
+      values?.OpeningBalance ??
+      values?.outstandingBalance ??
+      values?.OutstandingBalance ??
+      values?.financialSummary?.outstandingBalance ??
+      values?.financialSummary?.OutstandingBalance ??
+      values?.financialSummary?.openingBalance ??
+      values?.raw?.openingBalance ??
+      values?.raw?.outstandingBalance;
+    const openingBalance =
+      rawOpeningBalance !== undefined && rawOpeningBalance !== null && rawOpeningBalance !== ''
+        ? Number(rawOpeningBalance)
+        : 0;
+
     return {
       ...DEFAULT_CUSTOMER_VALUES,
       ...(values || {}),
@@ -69,6 +123,8 @@ export const CustomerForm = ({
       taxRegistrationType: taxType,
       taxId: rawTax,
       gstin: rawTax,
+      currency,
+      paymentTerms,
       creditLimit: values?.creditLimit ?? '',
       openingBalance: values?.openingBalance ?? '',
       billingAddress: {
