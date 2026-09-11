@@ -1,0 +1,280 @@
+[
+  {
+    "id": "DTO-CreateCustomerRequest",
+    "status": "PASS",
+    "observed": {
+      "unsupportedFields": []
+    }
+  },
+  {
+    "id": "DTO-UpdateCustomerRequest",
+    "status": "PASS",
+    "observed": {
+      "unsupportedFields": []
+    }
+  },
+  {
+    "id": "ADDRESS-ROUNDTRIP",
+    "status": "PASS",
+    "observed": {
+      "before": [
+        {
+          "id": 71,
+          "addressLine2": "Suite 2",
+          "isDefault": false
+        },
+        {
+          "id": 72,
+          "addressLine2": "Floor 3",
+          "isDefault": true
+        }
+      ],
+      "after": [
+        {
+          "id": 71,
+          "addressLine2": "Suite 2",
+          "isDefault": false
+        },
+        {
+          "id": 72,
+          "addressLine2": "Floor 3",
+          "isDefault": true
+        }
+      ]
+    }
+  },
+  {
+    "id": "ROWVERSION-PRESERVED",
+    "status": "PASS",
+    "observed": {
+      "rowVersion": "2026-09-10T00:00:00Z"
+    }
+  },
+  {
+    "id": "FORM-FINANCIAL-PERSISTENCE",
+    "status": "PASS",
+    "observed": {
+      "creditLimitControl": true,
+      "openingBalanceControl": true,
+      "creditLimitInDto": false,
+      "openingBalanceInDto": false,
+      "swaggerSupportsTheseFields": false
+    }
+  },
+  {
+    "id": "CREATE-STATUS-PERSISTENCE",
+    "status": "PASS",
+    "observed": {
+      "controlPresent": true,
+      "statusInCreateDto": false,
+      "isActiveInCreateDto": false
+    }
+  },
+  {
+    "id": "QUERY-CURRENT-SWAGGER",
+    "status": "PASS",
+    "observed": {
+      "pageNumber": 2,
+      "pageSize": 25,
+      "status": "Active",
+      "search": "QA & Co",
+      "customerType": "Business",
+      "taxRegistration": "Registered",
+      "outstanding": "Has Outstanding",
+      "sortBy": "name",
+      "sortOrder": "asc"
+    }
+  },
+  {
+    "id": "QUERY-ALL-BEHAVIOR",
+    "status": "PASS",
+    "observed": {
+      "pageNumber": 1,
+      "pageSize": 10,
+      "status": "All"
+    }
+  },
+  {
+    "id": "SUMMARY-ENDPOINT-AND-TOTAL",
+    "status": "PASS",
+    "observed": {
+      "calls": [
+        {
+          "method": "get",
+          "url": "/api/v1/customers/summary",
+          "params": {
+            "ngrok-skip-browser-warning": "true"
+          }
+        }
+      ],
+      "summary": {
+        "total": 101,
+        "active": 80,
+        "inactive": 21,
+        "outstanding": 12345,
+        "currency": "EUR"
+      }
+    }
+  },
+  {
+    "id": "SUMMARY-NULL-NOT-ZERO",
+    "status": "PASS",
+    "observed": {
+      "total": null,
+      "active": null,
+      "inactive": null,
+      "outstanding": null,
+      "currency": "EUR"
+    }
+  },
+  {
+    "id": "SUMMARY-EXPLICIT-ZERO",
+    "status": "PASS",
+    "observed": {
+      "total": 0,
+      "active": 0,
+      "inactive": 0,
+      "outstanding": 0,
+      "currency": "EUR"
+    }
+  },
+  {
+    "id": "SUMMARY-UNAVAILABLE-VALUES",
+    "status": "PASS",
+    "observed": {
+      "total": null,
+      "active": null,
+      "inactive": null,
+      "outstanding": null,
+      "currency": ""
+    }
+  },
+  {
+    "id": "SUMMARY-MISSING-CURRENCY",
+    "status": "PASS",
+    "observed": {
+      "total": 1,
+      "active": 1,
+      "inactive": 0,
+      "outstanding": 50,
+      "currency": ""
+    }
+  },
+  {
+    "id": "LIST-MISSING-CURRENCY",
+    "status": "PASS",
+    "observed": {
+      "outstandingCell": "<strong class=\"customer-balance due\">—</strong>"
+    }
+  },
+  {
+    "id": "LIST-MISSING-FIELDS",
+    "status": "PASS",
+    "observed": {
+      "code": "<span class=\"customer-code\">—</span>",
+      "contact": "<div class=\"customer-contact\"><span>—</span><small>—</small></div>",
+      "status": "<span>—</span>"
+    }
+  },
+  {
+    "id": "SSR-FILTER-ASSERTION-DIAGNOSIS",
+    "status": "PASS",
+    "observed": {
+      "closedSelectHasLabel": true,
+      "unselectedOptionInSSR": false
+    }
+  },
+  {
+    "id": "EDIT-CONFLICT-GUIDANCE",
+    "status": "PASS",
+    "observed": "This customer has changed or conflicts with another record. Reload and try again."
+  },
+  {
+    "id": "SERVER-ERROR-DISTINCT",
+    "status": "PASS",
+    "observed": "Server Error. Please try again."
+  },
+  {
+    "id": "RAW-STACK-SUPPRESSION",
+    "status": "PASS",
+    "observed": "Invalid customer data. Please review the highlighted fields."
+  },
+  {
+    "id": "EDIT-NO-UNNECESSARY-PATCH",
+    "status": "PASS",
+    "observed": {
+      "saveOutcome": "resolved",
+      "methods": [
+        "put"
+      ]
+    }
+  },
+  {
+    "id": "REQUIRED-PATCH-FAILURE-SURFACED",
+    "status": "PASS",
+    "observed": {
+      "deactivateOutcome": "rejected"
+    }
+  },
+  {
+    "id": "EDIT-INVALID-ID-NO-REQUEST",
+    "status": "PASS",
+    "observed": []
+  },
+  {
+    "id": "VALIDATION-valid",
+    "status": "PASS",
+    "observed": {
+      "valid": true,
+      "expected": true
+    }
+  },
+  {
+    "id": "VALIDATION-blank-name",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  },
+  {
+    "id": "VALIDATION-bad-email",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  },
+  {
+    "id": "VALIDATION-phone-letters",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  },
+  {
+    "id": "VALIDATION-bad-gstin",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  },
+  {
+    "id": "VALIDATION-bad-postal",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  },
+  {
+    "id": "VALIDATION-separate-shipping-empty",
+    "status": "PASS",
+    "observed": {
+      "valid": false,
+      "expected": false
+    }
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "path": "/customers",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/create",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17/edit",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17?tab=addresses",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17?tab=invoices",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17?tab=payments",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17?tab=statement",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  },
+  {
+    "path": "/customers/17?tab=audit",
+    "status": 200,
+    "hasRoot": true,
+    "assetStatus": 200,
+    "result": "PASS (HTML shell only)"
+  }
+]

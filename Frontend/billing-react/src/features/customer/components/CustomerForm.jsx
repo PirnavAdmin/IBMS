@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
+import { shippingFromBilling } from 'billing-contracts';
 import {
   customerValidationSchema,
   DEFAULT_CUSTOMER_VALUES,
@@ -69,7 +70,7 @@ export const CustomerForm = ({
       taxId: rawTax,
       gstin: rawTax,
       creditLimit: values?.creditLimit ?? '',
-      openingBalance: values?.openingBalance ?? values?.outstandingBalance ?? '',
+      openingBalance: values?.openingBalance ?? '',
       billingAddress: {
         ...DEFAULT_CUSTOMER_VALUES.billingAddress,
         ...(values?.billingAddress || {}),
@@ -87,6 +88,7 @@ export const CustomerForm = ({
     handleSubmit,
     watch,
     setValue,
+    getValues,
     reset,
     formState: { errors },
   } = useForm({
@@ -111,24 +113,20 @@ export const CustomerForm = ({
     if (isShippingSameAsBilling && billingAddress) {
       setValue(
         'shippingAddress',
-        {
-          street: billingAddress.street || '',
-          city: billingAddress.city || '',
-          state: billingAddress.state || '',
-          postalCode: billingAddress.postalCode || '',
-          country: billingAddress.country || 'India',
-        },
+        shippingFromBilling(billingAddress, getValues('shippingAddress')),
         { shouldValidate: false }
       );
     }
   }, [
     isShippingSameAsBilling,
     billingAddress?.street,
+    billingAddress?.addressLine2,
     billingAddress?.city,
     billingAddress?.state,
     billingAddress?.postalCode,
     billingAddress?.country,
     setValue,
+    getValues,
   ]);
 
   const handleValidSubmit = (data) => {
@@ -136,20 +134,8 @@ export const CustomerForm = ({
 
     // Derive immutable effective shipping values without cross-object mutation
     const effectiveShipping = data.isShippingSameAsBilling
-      ? {
-          street: data.billingAddress?.street?.trim() || '',
-          city: data.billingAddress?.city?.trim() || '',
-          state: data.billingAddress?.state?.trim() || '',
-          postalCode: data.billingAddress?.postalCode?.trim() || '',
-          country: data.billingAddress?.country?.trim() || 'India',
-        }
-      : {
-          street: data.shippingAddress?.street?.trim() || '',
-          city: data.shippingAddress?.city?.trim() || '',
-          state: data.shippingAddress?.state?.trim() || '',
-          postalCode: data.shippingAddress?.postalCode?.trim() || '',
-          country: data.shippingAddress?.country?.trim() || 'India',
-        };
+      ? shippingFromBilling(data.billingAddress, data.shippingAddress)
+      : { ...data.shippingAddress };
 
     const effectiveTaxId =
       data.taxRegistrationType === 'non-gst'
@@ -196,23 +182,10 @@ export const CustomerForm = ({
       gstin: effectiveTaxId,
       currency: data.currency?.trim() || 'INR',
       paymentTerms: data.paymentTerms?.trim() || null,
-      creditLimit:
-        data.creditLimit !== '' && data.creditLimit !== null
-          ? Number(data.creditLimit)
-          : 0,
-      openingBalance:
-        data.openingBalance !== '' && data.openingBalance !== null
-          ? Number(data.openingBalance)
-          : 0,
       website: fullWebsite,
       notes: data.notes?.trim() || null,
-      billingAddress: {
-        street: data.billingAddress?.street?.trim() || '',
-        city: data.billingAddress?.city?.trim() || '',
-        state: data.billingAddress?.state?.trim() || '',
-        postalCode: data.billingAddress?.postalCode?.trim() || '',
-        country: data.billingAddress?.country?.trim() || 'India',
-      },
+      billingAddress: { ...data.billingAddress },
+      raw: initialValues?.raw,
       shippingAddress: effectiveShipping,
       isShippingSameAsBilling: Boolean(data.isShippingSameAsBilling),
       rowVersion: initialValues?.rowVersion || null,
@@ -313,12 +286,15 @@ export const CustomerForm = ({
             <label htmlFor="customer-status">Account Status</label>
             <select
               id="customer-status"
+              disabled={mode === 'create'}
+              aria-describedby={mode === 'create' ? 'customer-status-help' : undefined}
               aria-invalid={Boolean(errors.status)}
               {...register('status')}
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
+            {mode === 'create' && <span id="customer-status-help" className="cust-hint">Initial status is assigned when the customer is created. Status can be changed when editing.</span>}
             {errors.status && (
               <span className="cust-field-error" role="alert">
                 {errors.status.message}
@@ -532,6 +508,7 @@ export const CustomerForm = ({
       <section className="cust-card">
         <div className="cust-card-header">
           <h2>6. Payment Information</h2>
+          <span id="customer-financial-help" className="cust-hint">Credit Limit and Opening Balance cannot be changed here because the customer service does not support saving them.</span>
         </div>
 
         <div className="cust-grid cust-grid-2">
@@ -576,16 +553,18 @@ export const CustomerForm = ({
           </div>
 
           <div className="cust-field">
-            <label htmlFor="customer-credit-limit">Approved Credit Limit (₹)</label>
+            <label htmlFor="customer-credit-limit">Approved Credit Limit</label>
             <input
               id="customer-credit-limit"
               type="number"
               min="0"
               step="any"
-              placeholder="e.g. 50000 (0 for no limit)"
+              placeholder="Not available"
               aria-invalid={Boolean(errors.creditLimit)}
-              aria-describedby={errors.creditLimit ? 'customer-credit-limit-err' : undefined}
-              {...register('creditLimit')}
+              disabled
+              readOnly
+              value={initialValues?.creditLimit ?? ''}
+              aria-describedby="customer-financial-help"
             />
             {errors.creditLimit && (
               <span id="customer-credit-limit-err" className="cust-field-error" role="alert">
@@ -595,15 +574,17 @@ export const CustomerForm = ({
           </div>
 
           <div className="cust-field">
-            <label htmlFor="customer-opening-balance">Opening Balance / Outstanding (₹)</label>
+            <label htmlFor="customer-opening-balance">Opening Balance</label>
             <input
               id="customer-opening-balance"
               type="number"
               step="any"
-              placeholder="e.g. 0.00"
+              placeholder="Not available"
               aria-invalid={Boolean(errors.openingBalance)}
-              aria-describedby={errors.openingBalance ? 'customer-opening-balance-err' : undefined}
-              {...register('openingBalance')}
+              disabled
+              readOnly
+              value={initialValues?.openingBalance ?? ''}
+              aria-describedby="customer-financial-help"
             />
             {errors.openingBalance && (
               <span id="customer-opening-balance-err" className="cust-field-error" role="alert">

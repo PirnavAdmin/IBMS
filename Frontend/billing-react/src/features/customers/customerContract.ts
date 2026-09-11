@@ -1,4 +1,5 @@
 import type { Customer, CustomerQueryParams, CustomerWriteRequest, PaginatedCustomerResponse } from './types';
+import { safeCustomerMessage } from '../../../../billing-contracts/customer.contracts.js';
 
 export const customerCapabilities = {
   search: true, customerType: true, taxId: true, taxRegistration: true, outstanding: true, sorting: true,
@@ -10,7 +11,7 @@ const amount = (value: unknown): number | null => value !== null && value !== un
 
 export function unwrapCustomerResponse(response: unknown): Record<string, any> {
   const envelope = object(response);
-  if (envelope.success === false || envelope.isSuccess === false) throw new Error(string(envelope.message) || 'The customer request was rejected.');
+  if (envelope.success === false || envelope.isSuccess === false) throw new Error(safeCustomerMessage(envelope.message) || 'The customer request was rejected.');
   return Object.keys(object(envelope.data)).length ? object(envelope.data) : envelope;
 }
 

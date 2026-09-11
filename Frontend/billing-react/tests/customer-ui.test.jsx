@@ -14,6 +14,7 @@ import { DeactivateCustomerDialog } from '../src/components/customers/Deactivate
 import { mapDetails } from '../src/services/customerService';
 import { CustomerDetailsPage } from '../src/pages/Customers/CustomerDetailsPage';
 import { CustomerListPage } from '../src/features/customers/CustomerListPage';
+import { CustomerForm } from '../src/features/customer/components/CustomerForm';
 
 const record = () => mapDetails({ customer: { id: 7, name: 'QA Customer', isActive: true, currency: 'INR' }, financialSummary: { totalInvoiced: 100, totalPaid: 40, outstandingBalance: 60 }, invoices: [], payments: [] });
 const render = component => renderToStaticMarkup(<StaticRouter location="/customers/7"><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { gcTime: Infinity }, mutations: { gcTime: Infinity } } })}>{component}</QueryClientProvider></StaticRouter>);
@@ -24,7 +25,9 @@ test('directory enables backend search, tax-registration, and outstanding contro
   assert.doesNotMatch(search, /disabled/);
   assert.match(html, /Tax ID \/ GST \/ VAT ID/);
   assert.match(html, /Tax registration/);
-  assert.match(html, /Has Outstanding/);
+  // A closed MUI Select renders its label/selected value, not the menu options.
+  assert.match(html, /Outstanding/);
+  assert.match(html, /role="combobox"/);
   assert.doesNotMatch(html, /Outstanding filtering is not available yet/);
   assert.doesNotMatch(html, /Search, other filters and sorting require backend support/);
 });
@@ -34,6 +37,28 @@ test('overview renders backend values without unsupported profile labels', () =>
   assert.match(html, /100\.00/);
   assert.match(html, /60\.00/);
   assert.doesNotMatch(html, /Overdue Amount|Tax Treatment|Preferred Payment Method/);
+});
+
+test('B12: selected outstanding filter is visible in the closed dropdown', () => {
+  const html = renderToStaticMarkup(<StaticRouter location="/customers?outstanding=Has%20Outstanding"><QueryClientProvider client={new QueryClient()}><CustomerListPage /></QueryClientProvider></StaticRouter>);
+  assert.match(html, /Has Outstanding/);
+  assert.match(html, /value="Has Outstanding"/);
+});
+
+test('B02/B03: unsupported values are disabled, while edit status remains available', () => {
+  const disabled = (html, id) => new RegExp(`<(?:input|select)[^>]*id="${id}"[^>]*disabled`).test(html);
+  const create = render(<CustomerForm mode="create" onSubmit={() => {}} />);
+  const edit = render(<CustomerForm mode="edit" onSubmit={() => {}} />);
+  for (const html of [create, edit]) {
+    assert.ok(disabled(html, 'customer-credit-limit'));
+    assert.ok(disabled(html, 'customer-opening-balance'));
+    assert.match(html, /does not support saving them/);
+    assert.match(html, /billingAddress-addressLine2/);
+    assert.match(html, /shippingAddress-addressLine2/);
+  }
+  assert.ok(disabled(create, 'customer-status'));
+  assert.equal(disabled(edit, 'customer-status'), false);
+  assert.match(create, /Initial status is assigned/);
 });
 test('address cards render missing state and supplied default indicator', () => {
   const data = record();

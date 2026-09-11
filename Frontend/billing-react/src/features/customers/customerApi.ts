@@ -1,4 +1,5 @@
 import { apiClient } from 'billing-api-client';
+import { requireCustomerId } from '../../../../billing-contracts/customer.contracts.js';
 import { customerPayload, customerQuery, mapCustomer, mapCustomerPage, unwrapCustomerResponse } from './customerContract';
 import type { Customer, CustomerQueryParams, CustomerSummary } from './types';
 
@@ -7,8 +8,7 @@ const config = { headers: { Accept: 'application/json' } };
 // One-time cleanup of the obsolete Customer demo store only. Never read it as API data.
 try { if (typeof localStorage !== 'undefined') localStorage.removeItem('ibms.customers.demo.v1'); } catch { /* Browser storage may be unavailable; backend requests still work. */ }
 const customerPath = (id: string) => {
-  if (!/^\d+$/.test(id) || Number(id) < 1) throw new Error('A valid backend customer ID is required.');
-  return `${endpoint}/${encodeURIComponent(id)}`;
+  return `${endpoint}/${requireCustomerId(id)}`;
 };
 async function request<T>(operation: () => Promise<T>): Promise<T> {
   try { const result = await operation(); unwrapCustomerResponse(result); return result; }
@@ -50,11 +50,11 @@ export async function deleteCustomer(id: string): Promise<void> {
 export async function getCustomerSummary(signal?: AbortSignal): Promise<CustomerSummary> {
   return request(async () => {
     const data = unwrapCustomerResponse(await apiClient.get(`${endpoint}/summary`, { ...config, signal }));
-    const total = Number(data.totalCustomers);
-    const active = Number(data.activeCustomers);
-    const inactive = Number(data.inactiveCustomers);
-    const outstanding = Number(data.totalOutstanding);
-    if (![total, active, inactive, outstanding].every(Number.isFinite)) throw new Error('Customer summary API returned invalid aggregate values.');
-    return { total, active, inactive, outstanding, currency: typeof data.currency === 'string' && data.currency ? data.currency : 'USD' };
+    const availableNumber = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null;
+    const total = availableNumber(data.totalCustomers);
+    const active = availableNumber(data.activeCustomers);
+    const inactive = availableNumber(data.inactiveCustomers);
+    const outstanding = availableNumber(data.totalOutstanding);
+    return { total, active, inactive, outstanding, currency: typeof data.currency === 'string' ? data.currency.trim() : '' };
   });
 }

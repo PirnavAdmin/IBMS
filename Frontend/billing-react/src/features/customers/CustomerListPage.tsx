@@ -9,8 +9,12 @@ import { DashboardErrorState } from '../../components/dashboard/DashboardStates'
 import './customers.css';
 
 export const money = (value: number | null | undefined) => value == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
-export const StatusChip = ({ status }: { status: string }) => <span className={`customer-status ${status}`}><i />{status}</span>;
-const moneyWithCurrency = (value: number | null | undefined, currency = 'USD') => value == null ? money(value) : new Intl.NumberFormat('en-IN', { style: 'currency', currency: /^[A-Z]{3}$/i.test(currency) ? currency.toUpperCase() : 'USD', maximumFractionDigits: 2 }).format(value);
+export const StatusChip = ({ status }: { status: string }) => !['active', 'inactive'].includes(status) ? <span>—</span> : <span className={`customer-status ${status}`}><i />{status}</span>;
+const moneyWithCurrency = (value: number | null | undefined, currency?: string) => {
+  if (value == null || !Number.isFinite(value) || !currency?.trim()) return '—';
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency.trim().toUpperCase(), maximumFractionDigits: 2 }).format(value); }
+  catch { return '—'; }
+};
 const filterOptions = {
   status: { label: 'Customer status', values: [['active', 'Active'], ['inactive', 'Inactive']] },
   customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business']] },
@@ -60,11 +64,11 @@ export function CustomerListPage() {
       <div className="customer-progress">{query.isFetching && <LinearProgress />}</div>
       {query.isError ? <DashboardErrorState title="Unable to load customers" message={query.error.message} onRetry={() => { query.refetch(); if (summaryQuery.isError) summaryQuery.refetch(); }} /> : query.isLoading ? <div className="customer-skeleton">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} height={65} />)}</div> : !data?.items.length ? <div className="customer-empty"><GroupOutlined /><h2>{filtered ? 'No matching customers' : 'No customers yet'}</h2><p>{filtered ? 'No customers match your current search or filters.' : 'Add your first customer to start billing.'}</p><Button variant="outlined" onClick={() => filtered ? reset() : navigate('/customers/create')}>{filtered ? 'Clear Filters' : 'Add Customer'}</Button></div> : <>
       <TableContainer className="customer-table"><Table size="small" aria-label="Customer directory"><TableHead><TableRow>{columns.map(([key, label], index) => <TableCell key={index} align={key === 'outstandingBalance' ? 'right' : 'left'}>{['customerCode', 'name'].includes(key) ? <TableSortLabel disabled={!customerCapabilities.sorting} active={!!params.sortBy && params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => customerCapabilities.sorting && change({ sortBy: key, sortOrder: params.sortBy === key && params.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 })}>{label}</TableSortLabel> : label || <span className="customer-sr-only">Actions</span>}</TableCell>)}</TableRow></TableHead><TableBody>{data.items.map(customer => <TableRow key={customer.id} hover>
-        <TableCell data-label="Code"><span className="customer-code">{customer.customerCode}</span></TableCell>
-        <TableCell data-label="Customer"><div className="customer-identity"><Avatar className={`customer-avatar tone-${Number(customer.customerCode.slice(-1)) % 3}`}>{customer.name.split(' ').slice(0, 2).map(n => n[0]).join('')}</Avatar><div><Link to={`/customers/${customer.id}`}>{customer.name}</Link><small>{customer.companyName || '—'}</small></div></div></TableCell>
+        <TableCell data-label="Code"><span className="customer-code">{customer.customerCode.trim() || '—'}</span></TableCell>
+        <TableCell data-label="Customer"><div className="customer-identity"><Avatar className={`customer-avatar tone-${Number(customer.customerCode.slice(-1)) % 3}`}>{customer.name.split(' ').slice(0, 2).map(n => n[0]).join('')}</Avatar><div><Link to={`/customers/${customer.id}`}>{customer.name.trim() || '—'}</Link><small>{customer.companyName.trim() || '—'}</small></div></div></TableCell>
         <TableCell data-label="Type"><span className="customer-type">{customer.customerType || '—'}</span></TableCell>
-        <TableCell data-label="Tax ID"><div className="customer-tax"><small>{customer.gstin ? 'GSTIN' : customer.taxId ? 'PAN / Tax ID' : 'Not registered'}</small>{customer.gstin || customer.taxId || '—'}</div></TableCell>
-        <TableCell data-label="Contact"><div className="customer-contact"><a href={`mailto:${customer.email}`}>{customer.email}</a><small>{customer.mobile}</small></div></TableCell>
+        <TableCell data-label="Tax ID"><div className="customer-tax"><small>{customer.gstin.trim() ? 'GSTIN' : customer.taxId.trim() ? 'PAN / Tax ID' : '—'}</small>{customer.gstin.trim() || customer.taxId.trim() || '—'}</div></TableCell>
+        <TableCell data-label="Contact"><div className="customer-contact">{customer.email.trim() ? <a href={`mailto:${customer.email.trim()}`}>{customer.email}</a> : <span>—</span>}<small>{customer.mobile.trim() || '—'}</small></div></TableCell>
         <TableCell data-label="Outstanding" align="right"><strong className={(customer.outstandingBalance ?? 0) > 0 ? 'customer-balance due' : 'customer-balance'}>{moneyWithCurrency(customer.outstandingBalance, customer.currency)}</strong></TableCell>
         <TableCell data-label="Status"><StatusChip status={customer.status} /></TableCell>
         <TableCell data-label="Actions"><div className="customer-row-actions" role="group" aria-label={`Actions for ${customer.name}`}>

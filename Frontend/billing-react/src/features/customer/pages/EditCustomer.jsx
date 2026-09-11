@@ -95,7 +95,7 @@ export const EditCustomer = () => {
     return (
       <main className="cust-page">
         <div className="cust-state-box cust-state-error" role="alert">
-          <h2>Customer Not Found</h2>
+          <h2>Unable to load customer</h2>
           <p>{loadError || `No customer found with ID: ${id}`}</p>
           <button
             type="button"

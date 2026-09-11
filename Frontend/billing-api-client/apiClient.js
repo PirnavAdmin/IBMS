@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
 
 export const BACKEND_URL = 'https://pediatric-astrology-outrank.ngrok-free.dev';
 export const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || BACKEND_URL;
@@ -41,6 +42,8 @@ const safeValidationMessage = (data) => {
 };
 
 export const getUserFriendlyError = (error) => {
+  // Scope Customer error policy to Customer calls; other modules retain their behavior.
+  if (/\/api\/v1\/customers(?:[/?]|$)/i.test(error?.config?.url || '')) return parseCustomerError(error);
   const status = error?.response?.status;
   const responseText = typeof error?.response?.data === 'string' ? error.response.data : '';
   if (!error?.response || status >= 500 || responseText.includes('ERR_NGROK') || responseText.toLowerCase().includes('ngrok') || responseText.toLowerCase().includes('offline')) return 'Network Error';

@@ -13,7 +13,7 @@ export interface PaginatedCustomerResponse {
   items: Customer[]; page: number; pageSize: number; totalCount: number; totalPages: number;
 }
 export interface CustomerSummary {
-  total: number; active: number; inactive: number; outstanding: number | null; currency: string;
+  total: number | null; active: number | null; inactive: number | null; outstanding: number | null; currency: string;
 }
 /** Live Swagger DTO fields; unsupported UI fields must not be sent. */
 export interface CustomerWriteRequest {

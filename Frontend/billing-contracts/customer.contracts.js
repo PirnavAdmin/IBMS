@@ -3,10 +3,24 @@
  * Confirmed via backend API schemas (CustomersController, CreateCustomerRequest, UpdateCustomerRequest, CustomerDto, CustomerAddressDto, ApiResponse<T>)
  */
 
+export const validCustomerId = (id) => ['string', 'number'].includes(typeof id)
+  && /^[1-9]\d*$/.test(String(id)) && Number.isInteger(Number(id)) && Number(id) <= 2147483647;
+
+export const requireCustomerId = (id) => {
+  if (!validCustomerId(id)) throw Object.assign(new Error('Invalid customer ID.'), { code: 'INVALID_ID' });
+  return Number(id);
+};
+
+// Copy address content, never the billing record's identity/default flag.
+export const shippingFromBilling = (billing = {}, shipping = {}) => ({
+  ...shipping,
+  ...Object.fromEntries(['street', 'addressLine2', 'city', 'state', 'postalCode', 'country'].map(key => [key, billing[key] ?? ''])),
+});
+
 export const createCustomerRequest = (data = {}) => {
   const billing = data.billingAddress || {};
   const shipping = data.isShippingSameAsBilling
-    ? { ...billing, id: (data.shippingAddress && data.shippingAddress.id) || null }
+    ? shippingFromBilling(billing, data.shippingAddress)
     : (data.shippingAddress || {});
 
   const addresses = [
@@ -18,8 +32,8 @@ export const createCustomerRequest = (data = {}) => {
       city: billing.city?.trim() || '',
       state: billing.state?.trim() || null,
       postalCode: billing.postalCode?.trim() || null,
-      country: billing.country?.trim() || 'India',
-      isDefault: true,
+      country: billing.country === undefined ? 'India' : billing.country?.trim() || null,
+      isDefault: billing.isDefault ?? true,
     },
     {
       ...(shipping.id ? { id: Number(shipping.id) } : {}),
@@ -29,8 +43,8 @@ export const createCustomerRequest = (data = {}) => {
       city: shipping.city?.trim() || '',
       state: shipping.state?.trim() || null,
       postalCode: shipping.postalCode?.trim() || null,
-      country: shipping.country?.trim() || 'India',
-      isDefault: false,
+      country: shipping.country === undefined ? 'India' : shipping.country?.trim() || null,
+      isDefault: shipping.isDefault ?? false,
     },
   ];
 
@@ -71,6 +85,45 @@ export const createCustomerRequest = (data = {}) => {
 
 export const createUpdateCustomerRequest = (data = {}) => {
   const base = createCustomerRequest(data);
+  // PUT must retain addresses outside the two form sections, too. Preserve the
+  // exact original value (including null) when its editable representation is unchanged.
+  const originals = data.raw?.addresses ?? data.raw?.Addresses;
+  if (Array.isArray(originals)) {
+    const fields = ['id', 'addressType', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode', 'country', 'isDefault'];
+    const pending = [...base.addresses];
+    const comparable = value => typeof value === 'string' ? value.trim() : value ?? '';
+    const baseline = createCustomerRequest(parseCustomerResponse(data.raw));
+    base.addresses = originals.map(original => {
+      const current = Object.fromEntries(fields.flatMap(key => {
+        const value = original[key] !== undefined ? original[key] : original[key[0].toUpperCase() + key.slice(1)];
+        return value === undefined ? [] : [[key, value]];
+      }));
+      const index = pending.findIndex(next => next.id != null ? next.id === current.id
+        : current.id == null && next.addressType?.toLowerCase() === current.addressType?.toLowerCase());
+      if (index < 0) return current;
+      const next = pending.splice(index, 1)[0];
+      const previous = baseline.addresses.find(address => next.id != null ? address.id === next.id : address.addressType === next.addressType);
+      return Object.fromEntries(fields.flatMap(key => {
+        const value = comparable(next[key]) === comparable(previous?.[key]) ? current[key] : next[key];
+        return value === undefined ? [] : [[key, value]];
+      }));
+    });
+    base.addresses.push(...pending.filter(next => {
+      const previous = baseline.addresses.find(address => address.addressType === next.addressType);
+      return !previous || fields.some(key => comparable(next[key]) !== comparable(previous[key]));
+    }));
+    for (const key of ['address', 'city', 'state', 'postalCode', 'country']) {
+      if (comparable(base[key]) === comparable(baseline[key])) {
+        if (data.raw[key] === undefined) delete base[key];
+        else base[key] = data.raw[key];
+      }
+    }
+  } else if (data.raw) {
+    const baseline = createCustomerRequest(parseCustomerResponse(data.raw));
+    // If GET omitted the collection, a name-only edit must not replace unknown
+    // backend addresses with the form's empty/default address sections.
+    if (JSON.stringify(base.addresses) === JSON.stringify(baseline.addresses)) delete base.addresses;
+  }
   const isTargetActive =
     typeof data.isActive === 'boolean'
       ? data.isActive
@@ -130,6 +183,9 @@ export const parseCustomerResponse = (response) => {
     addresses.find((a) => (a.addressType || a.AddressType)?.toLowerCase() === 'shipping') || null;
 
   const billingAddress = {
+    id: billingDto?.id ?? billingDto?.Id,
+    addressLine2: billingDto?.addressLine2 ?? billingDto?.AddressLine2 ?? '',
+    isDefault: billingDto?.isDefault ?? billingDto?.IsDefault,
     street:
       billingDto?.addressLine1 ||
       billingDto?.AddressLine1 ||
@@ -159,22 +215,26 @@ export const parseCustomerResponse = (response) => {
       billingDto?.Country ||
       raw.country ||
       raw.Country ||
-      'India',
+      '',
   };
 
   const shippingAddress = shippingDto
     ? {
+        id: shippingDto.id ?? shippingDto.Id,
+        addressLine2: shippingDto.addressLine2 ?? shippingDto.AddressLine2 ?? '',
+        isDefault: shippingDto.isDefault ?? shippingDto.IsDefault,
         street: shippingDto.addressLine1 || shippingDto.AddressLine1 || '',
         city: shippingDto.city || shippingDto.City || '',
         state: shippingDto.state || shippingDto.State || '',
         postalCode: shippingDto.postalCode || shippingDto.PostalCode || '',
-        country: shippingDto.country || shippingDto.Country || 'India',
+        country: shippingDto.country ?? shippingDto.Country ?? '',
       }
-    : { ...billingAddress };
+    : shippingFromBilling(billingAddress);
 
   const isShippingSameAsBilling =
     !shippingDto ||
     (billingAddress.street === shippingAddress.street &&
+      billingAddress.addressLine2 === shippingAddress.addressLine2 &&
       billingAddress.city === shippingAddress.city &&
       billingAddress.state === shippingAddress.state &&
       billingAddress.postalCode === shippingAddress.postalCode &&
@@ -214,7 +274,7 @@ export const parseCustomerResponse = (response) => {
     CustomerType: customerTypeTitleCase,
     creditLimit,
     outstandingBalance,
-    openingBalance: outstandingBalance,
+    openingBalance: raw.openingBalance ?? null,
     taxId,
     gstin: taxId,
     currency: raw.currency ?? raw.Currency ?? 'INR',
@@ -252,51 +312,39 @@ export const parseCustomerListResponse = (response) => {
   return items.map((item) => parseCustomerResponse(item)).filter(Boolean);
 };
 
+// Accept short, structured user messages only; arbitrary server bodies are never UI copy.
+export const safeCustomerMessage = value => {
+  if (typeof value !== 'string' || !value.trim() || value.length > 500) return '';
+  if (/[<>]|&(?:lt|gt);|exception|stack\s*trace|traceback|\b(?:SQL|SQLSTATE|ORA-\d+|System\.|Microsoft\.)|(?:violates|violation of)[\s\S]*constraint|database error|connection string|incorrect syntax|\b(?:select\b[\s\S]*\bfrom|insert\s+into|update\s+\w+\s+set|delete\s+from)|(?:[A-Z]:\\|\bat\s+\S+\([^)]*\))/i.test(value)) return '';
+  return value.trim();
+};
+
 export const parseCustomerError = (
   error,
-  fallbackMessage = 'An unexpected error occurred while processing customer data.'
+  fallbackMessage = 'Unable to complete the customer request. Please try again.'
 ) => {
   if (!error) return fallbackMessage;
-
-  if (error.userMessage === 'Network Error' || error.message === 'Network Error') return 'Network Error';
-
+  if (error.code === 'INVALID_ID') return 'Invalid customer ID.';
   if (error.response) {
-    const status = error.response.status;
-    const data = error.response.data;
-
-    if (typeof data === 'string') {
-      if (data.includes('ERR_NGROK') || data.toLowerCase().includes('ngrok') || data.toLowerCase().includes('offline')) {
-        return 'Network Error';
-      }
-      return data.trim() || `Server error (${status})`;
+    const { status, data } = error.response;
+    if (status >= 500) return 'Server Error. Please try again.';
+    const fallbacks = {
+      400: 'Invalid customer data. Please review the highlighted fields.',
+      401: 'Session expired. Please sign in again.',
+      403: 'You do not have permission to perform this action.',
+      404: 'The requested customer was not found.',
+      409: 'This customer has changed or conflicts with another record. Reload and try again.',
+      422: 'Invalid customer data. Please review the highlighted fields.',
+    };
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const validation = data.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().map(safeCustomerMessage).filter(Boolean) : [];
+      const message = safeCustomerMessage(data.message) || safeCustomerMessage(data.title);
+      const useful = [...new Set([...validation, message].filter(Boolean))].join(' ');
+      if (useful) return useful.slice(0, 1000);
     }
-
-    if (Array.isArray(data?.errors)) {
-      const msgs = data.errors.filter(Boolean);
-      if (msgs.length > 0) return msgs.join(' ');
-    }
-
-    if (data?.errors && typeof data.errors === 'object') {
-      const messages = Object.entries(data.errors).flatMap(([field, errList]) => {
-        if (Array.isArray(errList)) return errList.map((m) => `${m}`);
-        return [String(errList)];
-      });
-      if (messages.length > 0) return messages.join(' ');
-    }
-
-    if (data?.message) return data.message;
-    if (data?.title) return data.title;
-    if (data?.error) return typeof data.error === 'string' ? data.error : data.error?.message || fallbackMessage;
-
-    if (status === 400) return 'Invalid customer data. Please review the highlighted fields.';
-    if (status === 401) return 'Session expired. Please sign in again.';
-    if (status === 403) return 'You do not have permission to perform this action.';
-    if (status === 404) return 'The requested customer was not found.';
-    if (status === 409) return 'A customer with this email or customer code already exists.';
-    if (status >= 500) return 'Network Error';
+    return fallbacks[status] || fallbackMessage;
   }
-
-  if (error.request || error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') return 'Network Error';
-
-  return error.userMessage || error.message || fallbackMessage;
+  if (error.request || ['ERR_NETWORK', 'ECONNABORTED', 'ETIMEDOUT'].includes(error.code) || error.message === 'Network Error') return 'Network Error';
+  return safeCustomerMessage(error.userMessage) || safeCustomerMessage(error.message) || fallbackMessage;
 };

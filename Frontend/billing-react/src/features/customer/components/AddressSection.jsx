@@ -52,6 +52,19 @@ export const AddressSection = ({
           )}
         </div>
 
+        <div className="cust-field cust-col-span-2">
+          <label htmlFor={getFieldId('addressLine2')}>Address Line 2</label>
+          <input
+            id={getFieldId('addressLine2')}
+            type="text"
+            disabled={disabled}
+            {...(register ? register(`${prefix}.addressLine2`) : {
+              value: values.addressLine2 || '',
+              onChange: (e) => onChange && onChange('addressLine2', e.target.value),
+            })}
+          />
+        </div>
+
         <div className="cust-field">
           <label htmlFor={getFieldId('city')}>
             City <span className="cust-required">*</span>

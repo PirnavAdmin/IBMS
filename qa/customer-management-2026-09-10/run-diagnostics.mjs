@@ -1,0 +1,13 @@
+import { build } from '../../Frontend/billing-react/node_modules/esbuild/lib/main.js';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { unlinkSync } from 'node:fs';
+const here = new URL('./', import.meta.url);
+const frontendModules = new URL('../../Frontend/billing-react/node_modules/', here);
+const alias = Object.fromEntries(['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'].map(name => [name, fileURLToPath(new URL(name, frontendModules))]));
+await build({ entryPoints: [fileURLToPath(new URL('diagnostics.jsx', here))], outfile: fileURLToPath(new URL('diagnostics.cjs', here)), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic', loader: { '.css': 'empty' }, nodePaths: [fileURLToPath(frontendModules)], alias: { ...alias, 'billing-contracts': fileURLToPath(new URL('../../Frontend/billing-contracts/index.js', here)), 'billing-api-client': fileURLToPath(new URL('../../Frontend/billing-api-client/index.js', here)) }, define: { 'import.meta': '{ "env": {} }' } });
+const result = spawnSync(process.execPath, [fileURLToPath(new URL('diagnostics.cjs', here))], { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
+process.stdout.write(result.stdout);
+process.stderr.write(result.stderr);
+unlinkSync(new URL('diagnostics.cjs', here));
+process.exitCode = result.status ?? 1;

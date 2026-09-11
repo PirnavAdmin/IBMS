@@ -93,7 +93,7 @@ test('audit keeps supplied changes and no invented user', async () => {
   assert.equal(rows[0].newValue, '{"name":"Test"}');
 });
 test('HTTP failures are safe and 401 clears authentication without retry', async () => {
-  for (const [code,message] of [[400,'Invalid customer data'],[401,'Your session has expired'],[403,'You do not have permission'],[404,'Customer not found'],[500,'Customer service is currently unavailable']]) {
+  for (const [code,message] of [[400,'Invalid customer data'],[401,'Your session has expired'],[403,'You do not have permission'],[404,'Customer not found'],[500,'Server Error. Customer service is currently unavailable']]) {
     status = code; response = '<html>private backend stack</html>';
     await assert.rejects(getCustomerDetails(1), e => e.message.startsWith(`HTTP ${code}: ${message}`));
   }

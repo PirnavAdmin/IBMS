@@ -1,6 +1,7 @@
 import { apiClient } from '../../../billing-api-client/apiClient.js';
+import { validCustomerId, safeCustomerMessage } from '../../../billing-contracts/customer.contracts.js';
 
-export const validCustomerId = (id) => /^[1-9]\d*$/.test(String(id)) && Number.isSafeInteger(Number(id));
+export { validCustomerId };
 const path = (id) => {
   if (!validCustomerId(id)) throw Object.assign(new Error('Invalid customer ID.'), { code: 'INVALID_ID' });
   return `/api/v1/customers/${id}`;
@@ -9,9 +10,9 @@ export function customerError(error) {
   const status = error.response?.status;
   const messages = { 400: 'Invalid customer data. Please check the form values.', 401: 'Your session has expired. Please login again.', 403: 'You do not have permission to access customer data.', 404: 'Customer not found.', 409: 'This customer was changed by another user. Reload before saving.' };
   const data = error.response?.data;
-  const validationMessages = [400, 422].includes(status) && data && typeof data === 'object'
-    ? [data.message, ...Object.values(data.errors || {}).flat()].filter(value => typeof value === 'string' && value.length <= 500 && !/[<>]/.test(value)) : [];
-  const detail = validationMessages.join(' ') || messages[status] || 'Customer service is currently unavailable. Please try again.';
+  const validationMessages = [400, 409, 422].includes(status) && data && typeof data === 'object'
+    ? [data.message, ...Object.values(data.errors || {}).flat()].map(safeCustomerMessage).filter(Boolean) : [];
+  const detail = validationMessages.join(' ') || messages[status] || `${status >= 500 ? 'Server Error. ' : ''}Customer service is currently unavailable. Please try again.`;
   const responseText = typeof error.response?.data === 'string' ? error.response.data : '';
   const ngrokCode = responseText.match(/ERR_NGROK_\d+/)?.[0];
   const codeLabel = status ? `HTTP ${status}` : 'Network Error';
@@ -21,7 +22,7 @@ export function customerError(error) {
 async function request(operation) {
   try {
     const response = await operation();
-    if (response?.success === false) throw Object.assign(new Error('Request failed'), { response: { status: 400, data: response } });
+    if (response?.success === false || response?.isSuccess === false) throw Object.assign(new Error('Request failed'), { response: { status: 400, data: response } });
     return response && Object.hasOwn(response, 'data') ? response.data : response;
   } catch (error) { throw customerError(error); }
 }

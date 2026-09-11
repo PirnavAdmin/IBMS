@@ -1,0 +1,16 @@
+[
+  {
+    "method": "GET",
+    "url": "/api/v1/customers",
+    "status": 401,
+    "authenticated": false,
+    "code": "ERR_BAD_REQUEST"
+  },
+  {
+    "method": "GET",
+    "url": "/api/v1/customers/summary",
+    "status": 401,
+    "authenticated": false,
+    "code": "ERR_BAD_REQUEST"
+  }
+]
