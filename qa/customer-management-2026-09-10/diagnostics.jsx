@@ -8,11 +8,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { apiClient, getUserFriendlyError } from '../../Frontend/billing-api-client/apiClient.js';
 import { customerApi } from '../../Frontend/billing-api-client/customerApi.js';
 import { createCustomerRequest, createUpdateCustomerRequest, parseCustomerResponse, parseCustomerError } from '../../Frontend/billing-contracts/customer.contracts.js';
-import { customerValidationSchema, DEFAULT_CUSTOMER_VALUES } from '../../Frontend/billing-react/src/features/customers/validation/customerValidation.js';
-import { customerQuery, mapCustomerPage } from '../../Frontend/billing-react/src/features/customers/api/customerContract.js';
-import { getCustomerSummary } from '../../Frontend/billing-react/src/features/customers/api/customerApi.js';
-import { CustomerListPage } from '../../Frontend/billing-react/src/features/customers/pages/CustomerListPage.jsx';
-import { CustomerForm } from '../../Frontend/billing-react/src/features/customers/components/CustomerForm.jsx';
+import { customerValidationSchema, DEFAULT_CUSTOMER_VALUES } from '../../Frontend/billing-react/src/pages/Customers/validation/customerValidation.js';
+import { customerQuery, mapCustomerPage } from '../../Frontend/billing-react/src/pages/Customers/api/customerContract.js';
+import { getCustomerSummary } from '../../Frontend/billing-react/src/pages/Customers/api/customerApi.js';
+import { CustomerListPage } from '../../Frontend/billing-react/src/pages/Customers/pages/CustomerListPage.jsx';
+import { CustomerForm } from '../../Frontend/billing-react/src/pages/Customers/components/CustomerForm.jsx';
 
 async function main() {
 const output = [];

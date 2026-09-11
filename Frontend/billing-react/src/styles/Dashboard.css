@@ -128,3 +128,6 @@
   .bd-refresh { min-height: 48px; }
 }
 @media (max-width: 400px) { .bd-kpi-grid { grid-template-columns: minmax(0, 1fr); } .bd-customer-row, .bd-customer-head { padding-inline: 10px; gap: 6px; } }
+
+/* Keep the application navbar visible while page content scrolls. */
+.app-layout-main .bd-header { position: sticky; top: 0; z-index: 100; }

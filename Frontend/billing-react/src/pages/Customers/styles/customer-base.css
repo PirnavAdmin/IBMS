@@ -954,3 +954,19 @@
     gap: 8px;
   }
 }
+
+/* Form text remains readable without changing field behavior. */
+.cust-page { font-size: 15px; line-height: 1.5; }
+.cust-page .cust-header p,
+.cust-page .cust-breadcrumbs { color: #62584f; }
+.cust-page label { font-size: 14px; font-weight: 600; color: #403831; }
+.cust-page input,
+.cust-page select,
+.cust-page textarea { font-family: inherit; font-size: 15px; }
+.cust-page input::placeholder,
+.cust-page textarea::placeholder { color: #6b625b; opacity: 1; }
+
+.cust-page { color: var(--text-primary); }
+.cust-page h1 { font-size: clamp(1.5rem, 2.2vw, 2rem); font-weight: 700; letter-spacing: -.02em; color: var(--primary); }
+.cust-page h2 { font-size: 1.08rem; letter-spacing: -.02em; }
+.cust-page p { color: var(--text-secondary); }

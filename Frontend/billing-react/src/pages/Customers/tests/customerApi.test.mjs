@@ -62,3 +62,16 @@ test('POST/PUT DTO maps phone and tax, excludes unsupported fields, preserves ad
   assert.ok(!('customerCode' in create));
   assert.throws(() => customerPayload({ gstin: record.taxId, taxId: 'ABCDE1234F' }), /one Tax ID/);
 });
+
+
+test('single-letter search is sent to the backend', () => {
+  assert.equal(customerQuery({ page: 1, pageSize: 10, search: ' a ' }).search, 'a');
+});
+
+test('name prefix matches lead returned results without mutating server rows', async () => {
+  const { rankCustomerNameMatches } = await import('../components/customerTableUtils.js');
+  const rows = [{ name: 'Bala' }, { name: 'Anita' }, { name: 'Arun' }, { name: 'Team Alpha' }];
+  assert.deepEqual(rankCustomerNameMatches(rows, 'a').map(row => row.name), ['Anita', 'Arun', 'Team Alpha', 'Bala']);
+  assert.deepEqual(rows.map(row => row.name), ['Bala', 'Anita', 'Arun', 'Team Alpha']);
+  assert.equal(rankCustomerNameMatches(rows, ''), rows);
+});

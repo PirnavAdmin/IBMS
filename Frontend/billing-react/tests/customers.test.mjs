@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { apiClient } from '../../billing-api-client/apiClient.js';
 import { authApi } from '../../billing-api-client/authApi.js';
 import { customerApi } from '../../billing-api-client/customerApi.js';
-import { customerUpdatePayload, validateCustomerEdit } from '../src/features/customers/api/customerEdit.js';
-import { getCustomers, getCustomerById, getCustomerDetails, getCustomerAudit, updateCustomer, createCustomer, deactivateCustomer, validCustomerId } from '../src/features/customers/api/customerService.js';
+import { customerUpdatePayload, validateCustomerEdit } from '../src/pages/Customers/api/customerEdit.js';
+import { getCustomers, getCustomerById, getCustomerDetails, getCustomerAudit, updateCustomer, createCustomer, deactivateCustomer, validCustomerId } from '../src/pages/Customers/api/customerService.js';
 let calls, response, status;
 beforeEach(() => {
   calls = []; response = {}; status = 200;

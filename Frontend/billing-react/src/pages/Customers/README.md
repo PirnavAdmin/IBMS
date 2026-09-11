@@ -1,6 +1,6 @@
 # Customers
 
-Customer frontend code lives in this feature folder. Shared `billing-api-client`
+Customer frontend code lives in `src/pages/Customers/`. Shared `billing-api-client`
 and `billing-contracts` packages remain outside the feature.
 
 - `pages/`: customer screens.
@@ -39,7 +39,7 @@ stylesheets or import all of them from the barrel.
 Run from `Frontend/billing-react`:
 
 ```sh
-node --test src/features/customers/tests/customerApi.test.mjs tests/customers.test.mjs tests/customer-regressions.test.mjs
+node --test src/pages/Customers/tests/customerApi.test.mjs tests/customers.test.mjs tests/customer-regressions.test.mjs
 node tests/run-customer-ui.mjs
 npm run build
 ```

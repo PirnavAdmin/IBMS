@@ -4,6 +4,7 @@ import { Alert, Avatar, Button, Chip, Dialog, DialogActions, DialogContent, Dial
 import { Add, CheckCircleOutline, GroupOutlined, VisibilityOutlined, EditOutlined, ReceiptLongOutlined, PersonOffOutlined, Search, AccountBalanceWalletOutlined } from '@mui/icons-material';
 import { useCustomers, useCustomerStatus, useCustomerSummary } from '../hooks/useCustomers';
 
+import { rankCustomerNameMatches } from '../components/customerTableUtils';
 import { customerCapabilities } from '../api/customerContract';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import '../styles/customer-list.css';
@@ -34,7 +35,7 @@ export function CustomerListPage() {
   const [taxId, setTaxId] = useState(params.taxId);
   const change = (values) => setUrl(previous => { const next = new URLSearchParams(previous); Object.entries(values).forEach(([key, value]) => value ? next.set(key, String(value)) : next.delete(key)); return next; }, { replace: true });
   useEffect(() => { setSearch(params.search); }, [params.search]);
-  useEffect(() => { if (search === params.search) return; const timer = setTimeout(() => change({ search: search || '', page: 1 }), 450); return () => clearTimeout(timer); }, [search, params.search]);
+  useEffect(() => { if (search.trim() === params.search) return; const timer = setTimeout(() => change({ search: search.trim(), page: 1 }), 300); return () => clearTimeout(timer); }, [search, params.search]);
   useEffect(() => { setTaxId(params.taxId); }, [params.taxId]);
   useEffect(() => { if (taxId === params.taxId) return; const timer = setTimeout(() => change({ taxId: taxId || '', page: 1 }), 450); return () => clearTimeout(timer); }, [taxId, params.taxId]);
   const query = useCustomers(params);
@@ -43,6 +44,8 @@ export function CustomerListPage() {
   const [notice, setNotice] = useState(location.state?.customerNotice || '');
   useEffect(() => { if (location.state?.customerNotice) navigate(location.pathname + location.search, { replace: true, state: null }); }, [location.state, location.pathname, location.search, navigate]);
   const data = query.data;
+  // Rank only the returned page; server pagination and explicit sorting stay authoritative.
+  const visibleCustomers = params.search && !params.sortBy ? rankCustomerNameMatches(data?.items || [], params.search) : data?.items || [];
   const reset = () => { setSearch(''); setTaxId(''); setUrl({}); };
   const filtered = !!params.taxId || !!params.sortBy || !!params.search || Object.keys(filterOptions).some(key => !!params[key]);
   return <main className="customers-page">
@@ -63,7 +66,7 @@ export function CustomerListPage() {
       </div>
       <div className="customer-progress">{query.isFetching && <LinearProgress />}</div>
       {query.isError ? <DashboardErrorState title="Unable to load customers" message={query.error.message} onRetry={() => { query.refetch(); if (summaryQuery.isError) summaryQuery.refetch(); }} /> : query.isLoading ? <div className="customer-skeleton">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} height={65} />)}</div> : !data?.items.length ? <div className="customer-empty"><GroupOutlined /><h2>{filtered ? 'No matching customers' : 'No customers yet'}</h2><p>{filtered ? 'No customers match your current search or filters.' : 'Add your first customer to start billing.'}</p><Button variant="outlined" onClick={() => filtered ? reset() : navigate('/customers/create')}>{filtered ? 'Clear Filters' : 'Add Customer'}</Button></div> : <>
-      <TableContainer className="customer-table"><Table size="small" aria-label="Customer directory"><TableHead><TableRow>{columns.map(([key, label], index) => <TableCell key={index} align={key === 'outstandingBalance' ? 'right' : 'left'}>{['customerCode', 'name'].includes(key) ? <TableSortLabel disabled={!customerCapabilities.sorting} active={!!params.sortBy && params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => customerCapabilities.sorting && change({ sortBy: key, sortOrder: params.sortBy === key && params.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 })}>{label}</TableSortLabel> : label || <span className="customer-sr-only">Actions</span>}</TableCell>)}</TableRow></TableHead><TableBody>{data.items.map(customer => <TableRow key={customer.id} hover>
+      <TableContainer className="customer-table"><Table size="small" aria-label="Customer directory"><TableHead><TableRow>{columns.map(([key, label], index) => <TableCell key={index} align={key === 'outstandingBalance' ? 'right' : 'left'}>{['customerCode', 'name'].includes(key) ? <TableSortLabel disabled={!customerCapabilities.sorting} active={!!params.sortBy && params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => customerCapabilities.sorting && change({ sortBy: key, sortOrder: params.sortBy === key && params.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 })}>{label}</TableSortLabel> : label || <span className="customer-sr-only">Actions</span>}</TableCell>)}</TableRow></TableHead><TableBody>{visibleCustomers.map(customer => <TableRow key={customer.id} hover>
         <TableCell data-label="Code"><span className="customer-code">{customer.customerCode.trim() || '—'}</span></TableCell>
         <TableCell data-label="Customer"><div className="customer-identity"><Avatar className={`customer-avatar tone-${Number(customer.customerCode.slice(-1)) % 3}`}>{customer.name.split(' ').slice(0, 2).map(n => n[0]).join('')}</Avatar><div><Link to={`/customers/${customer.id}`}>{customer.name.trim() || '—'}</Link><small>{customer.companyName.trim() || '—'}</small></div></div></TableCell>
         <TableCell data-label="Type"><span className="customer-type">{customer.customerType || '—'}</span></TableCell>
