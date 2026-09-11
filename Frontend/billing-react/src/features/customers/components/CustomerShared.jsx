@@ -1,6 +1,6 @@
 import { Card, Skeleton } from '@mui/material';
-import { DashboardErrorState } from '../dashboard/DashboardStates';
-import { StatusBadge as DashboardStatusBadge } from '../dashboard/DashboardSections';
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import { StatusBadge as DashboardStatusBadge } from '../../../components/dashboard/DashboardSections';
 const StatusBadge = ({ value }) => value == null || value === '' ? <span>—</span> : <DashboardStatusBadge value={String(value)} />;
 const formatCurrency = (value, currency = 'INR') => {
   if (value == null || value === '' || !Number.isFinite(Number(value))) return '—';

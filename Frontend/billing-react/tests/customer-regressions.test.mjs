@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { apiClient, getUserFriendlyError } from '../../billing-api-client/apiClient.js';
 import { customerApi } from '../../billing-api-client/customerApi.js';
 import { createCustomerRequest, createUpdateCustomerRequest, parseCustomerResponse, parseCustomerError, shippingFromBilling } from '../../billing-contracts/customer.contracts.js';
-import { getCustomerById, updateCustomer, deactivateCustomer } from '../src/services/customerService.js';
+import { getCustomerById, updateCustomer, deactivateCustomer } from '../src/features/customers/api/customerService.js';
 
 // Isolated adapters only: these tests never issue HTTP requests.
 let calls;

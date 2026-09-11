@@ -5,4 +5,4 @@ export { CreateCustomer } from './pages/CreateCustomer';
 export { EditCustomer } from './pages/EditCustomer';
 export { CustomerList } from './pages/CustomerList';
 export { CustomerDetails } from './pages/CustomerDetails';
-export * from './customerValidation';
+export * from './validation/customerValidation';

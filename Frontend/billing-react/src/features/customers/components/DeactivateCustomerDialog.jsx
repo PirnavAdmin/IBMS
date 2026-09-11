@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar } from '@mui/material';
-import { useCustomerMutation } from '../../hooks/useCustomer';
-import { deactivateCustomer } from '../../services/customerService';
+import { useCustomerMutation } from '../hooks/useCustomer';
+import { deactivateCustomer } from '../api/customerService';
 
 export function DeactivateCustomerDialog({ customer }) {
   const [open, setOpen] = useState(false);

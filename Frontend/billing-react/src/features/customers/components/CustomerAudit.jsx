@@ -1,5 +1,5 @@
 import { CustomerTable } from './CustomerTable';
-import { useCustomerAudit } from '../../hooks/useCustomer';
+import { useCustomerAudit } from '../hooks/useCustomer';
 import { CustomerState } from './CustomerShared';
 import { displayDate } from './CustomerShared';
 

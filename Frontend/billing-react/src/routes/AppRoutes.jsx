@@ -21,14 +21,14 @@ import { Taxes } from '../pages/Taxes/Taxes';
 // ==============================
 
 // Manikanta - Customer List
-import { CustomerListPage } from '../features/customers/CustomerListPage';
+import { CustomerListPage } from '../features/customers/pages/CustomerListPage';
 
 // Jayakrishna - Create & Edit Customer
-import { CreateCustomer } from '../features/customer/pages/CreateCustomer';
-import { EditCustomer } from '../features/customer/pages/EditCustomer';
+import { CreateCustomer } from '../features/customers/pages/CreateCustomer';
+import { EditCustomer } from '../features/customers/pages/EditCustomer';
 
 // Sumanth - Customer Details
-import { CustomerDetailsPage } from '../pages/Customers/CustomerDetailsPage';
+import { CustomerDetailsPage } from '../features/customers/pages/CustomerDetailsPage';
 
 export const AppRoutes = () => (
   <Routes>

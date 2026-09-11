@@ -1,5 +1,5 @@
-import { apiClient } from '../../../billing-api-client/apiClient.js';
-import { validCustomerId, safeCustomerMessage } from '../../../billing-contracts/customer.contracts.js';
+import { apiClient } from '../../../../../billing-api-client/apiClient.js';
+import { validCustomerId, safeCustomerMessage } from '../../../../../billing-contracts/customer.contracts.js';
 
 export { validCustomerId };
 const path = (id) => {

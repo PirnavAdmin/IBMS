@@ -1,4 +1,4 @@
-@import '../../styles/Customer.css';
+@import './customer-base.css';
  
 .cust-phone-group {
   display: flex !important;

@@ -2,22 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Avatar, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, Tooltip, MenuItem, Pagination, Skeleton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
 import { Add, CheckCircleOutline, GroupOutlined, VisibilityOutlined, EditOutlined, ReceiptLongOutlined, PersonOffOutlined, Search, AccountBalanceWalletOutlined } from '@mui/icons-material';
-import { useCustomers, useCustomerStatus, useCustomerSummary } from './useCustomers';
-import type { Customer, CustomerQueryParams } from './types';
-import { customerCapabilities } from './customerContract';
-import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
-import './customers.css';
+import { useCustomers, useCustomerStatus, useCustomerSummary } from '../hooks/useCustomers';
 
-export const money = (value: number | null | undefined) => value == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
-export const StatusChip = ({ status }: { status: string }) => !['active', 'inactive'].includes(status) ? <span>—</span> : <span className={`customer-status ${status}`}><i />{status}</span>;
-const moneyWithCurrency = (value: number | null | undefined, currency?: string) => {
+import { customerCapabilities } from '../api/customerContract';
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import '../styles/customer-list.css';
+
+export const money = (value) => value == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
+export const StatusChip = ({ status }) => !['active', 'inactive'].includes(status) ? <span>—</span> : <span className={`customer-status ${status}`}><i />{status}</span>;
+const moneyWithCurrency = (value, currency) => {
   if (value == null || !Number.isFinite(value) || !currency?.trim()) return '—';
   try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency.trim().toUpperCase(), maximumFractionDigits: 2 }).format(value); }
   catch { return '—'; }
 };
 const filterOptions = {
   status: { label: 'Customer status', values: [['active', 'Active'], ['inactive', 'Inactive']] },
-  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business']] },
+  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business'], ['Organization', 'Organization']] },
   taxRegistration: { label: 'Tax registration', values: [['Registered', 'Registered'], ['Unregistered', 'Unregistered']] },
   outstanding: { label: 'Outstanding', values: [['Has Outstanding', 'Has Outstanding'], ['No Outstanding', 'No Outstanding']] },
 };
@@ -27,24 +27,24 @@ export function CustomerListPage() {
   const location = useLocation();
   const summaryQuery = useCustomerSummary();
   const [url, setUrl] = useSearchParams();
-  const params: CustomerQueryParams = { page: Math.max(1, Number(url.get('page')) || 1), pageSize: [10, 25, 50, 100].includes(Number(url.get('pageSize'))) ? Number(url.get('pageSize')) : 10,
+  const params = { page: Math.max(1, Number(url.get('page')) || 1), pageSize: [10, 25, 50, 100].includes(Number(url.get('pageSize'))) ? Number(url.get('pageSize')) : 10,
     taxId: url.get('taxId') || '', search: url.get('search') || '', sortBy: url.get('sortBy') || '', sortOrder: url.get('sortOrder') === 'desc' ? 'desc' : 'asc',
     ...Object.fromEntries(Object.entries(filterOptions).map(([key, option]) => [key, option.values.some(([value]) => value === url.get(key)) ? url.get(key) : ''])) };
   const [search, setSearch] = useState(params.search);
   const [taxId, setTaxId] = useState(params.taxId);
-  const change = (values: Record<string, string | number>) => setUrl(previous => { const next = new URLSearchParams(previous); Object.entries(values).forEach(([key, value]) => value ? next.set(key, String(value)) : next.delete(key)); return next; }, { replace: true });
+  const change = (values) => setUrl(previous => { const next = new URLSearchParams(previous); Object.entries(values).forEach(([key, value]) => value ? next.set(key, String(value)) : next.delete(key)); return next; }, { replace: true });
   useEffect(() => { setSearch(params.search); }, [params.search]);
   useEffect(() => { if (search === params.search) return; const timer = setTimeout(() => change({ search: search || '', page: 1 }), 450); return () => clearTimeout(timer); }, [search, params.search]);
   useEffect(() => { setTaxId(params.taxId); }, [params.taxId]);
   useEffect(() => { if (taxId === params.taxId) return; const timer = setTimeout(() => change({ taxId: taxId || '', page: 1 }), 450); return () => clearTimeout(timer); }, [taxId, params.taxId]);
   const query = useCustomers(params);
   const mutation = useCustomerStatus();
-  const [confirm, setConfirm] = useState<Customer | null>(null);
+  const [confirm, setConfirm] = useState(null);
   const [notice, setNotice] = useState(location.state?.customerNotice || '');
   useEffect(() => { if (location.state?.customerNotice) navigate(location.pathname + location.search, { replace: true, state: null }); }, [location.state, location.pathname, location.search, navigate]);
   const data = query.data;
   const reset = () => { setSearch(''); setTaxId(''); setUrl({}); };
-  const filtered = !!params.taxId || !!params.sortBy || !!params.search || Object.keys(filterOptions).some(key => !!params[key as keyof CustomerQueryParams]);
+  const filtered = !!params.taxId || !!params.sortBy || !!params.search || Object.keys(filterOptions).some(key => !!params[key]);
   return <main className="customers-page">
     <nav className="customers-breadcrumb" aria-label="Breadcrumb"><strong aria-current="page">Customers</strong></nav>
     <header className="customers-heading"><div><h1>Customer Management</h1><p>Manage customers, billing information, tax details and outstanding balances.</p></div><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/customers/create')}>Add Customer</Button></header>
@@ -58,8 +58,8 @@ export function CustomerListPage() {
     <section className="customer-panel">
       <div className="customer-panel-heading"><div><h2>Customer directory <span>{data?.totalCount ?? '—'}</span></h2><p>All your customer relationships, in one place.</p></div></div>
       <div className="customer-filters"><TextField disabled={!customerCapabilities.search} className="customer-search" size="small" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name, code, email, mobile or tax ID…" inputProps={{ 'aria-label': 'Search customers' }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-        <div className="customer-filter-row">{Object.entries(filterOptions).map(([key, option]) => <TextField select size="small" label={option.label} key={key} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} value={params[key as keyof CustomerQueryParams] || ''} onChange={event => change({ [key]: event.target.value, page: 1 })}><MenuItem value="">All</MenuItem>{option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>)}<TextField size="small" label="Tax ID / GST / VAT ID" value={taxId} onChange={event => setTaxId(event.target.value)} /><Button onClick={reset} disabled={!filtered && !search && !taxId && !url.toString()}>Reset filters</Button></div>
-        {filtered && <div className="customer-filter-chips">{params.taxId && <Chip size="small" label={`Tax ID: ${params.taxId}`} onDelete={() => { setTaxId(''); change({ taxId: '', page: 1 }); }} />}{params.search && <Chip size="small" label={`Search: ${params.search}`} onDelete={() => { setSearch(''); change({ search: '', page: 1 }); }} />}{Object.entries(filterOptions).filter(([key]) => params[key as keyof CustomerQueryParams]).map(([key, option]) => <Chip key={key} size="small" label={`${option.label}: ${option.values.find(([v]) => v === params[key as keyof CustomerQueryParams])?.[1]}`} onDelete={() => change({ [key]: '', page: 1 })} />)}</div>}
+        <div className="customer-filter-row">{Object.entries(filterOptions).map(([key, option]) => <TextField select size="small" label={option.label} key={key} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} value={params[key] || ''} onChange={event => change({ [key]: event.target.value, page: 1 })}><MenuItem value="">All</MenuItem>{option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>)}<TextField size="small" label="Tax ID / GST / VAT ID" value={taxId} onChange={event => setTaxId(event.target.value)} /><Button onClick={reset} disabled={!filtered && !search && !taxId && !url.toString()}>Reset filters</Button></div>
+        {filtered && <div className="customer-filter-chips">{params.taxId && <Chip size="small" label={`Tax ID: ${params.taxId}`} onDelete={() => { setTaxId(''); change({ taxId: '', page: 1 }); }} />}{params.search && <Chip size="small" label={`Search: ${params.search}`} onDelete={() => { setSearch(''); change({ search: '', page: 1 }); }} />}{Object.entries(filterOptions).filter(([key]) => params[key]).map(([key, option]) => <Chip key={key} size="small" label={`${option.label}: ${option.values.find(([v]) => v === params[key])?.[1]}`} onDelete={() => change({ [key]: '', page: 1 })} />)}</div>}
       </div>
       <div className="customer-progress">{query.isFetching && <LinearProgress />}</div>
       {query.isError ? <DashboardErrorState title="Unable to load customers" message={query.error.message} onRetry={() => { query.refetch(); if (summaryQuery.isError) summaryQuery.refetch(); }} /> : query.isLoading ? <div className="customer-skeleton">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} height={65} />)}</div> : !data?.items.length ? <div className="customer-empty"><GroupOutlined /><h2>{filtered ? 'No matching customers' : 'No customers yet'}</h2><p>{filtered ? 'No customers match your current search or filters.' : 'Add your first customer to start billing.'}</p><Button variant="outlined" onClick={() => filtered ? reset() : navigate('/customers/create')}>{filtered ? 'Clear Filters' : 'Add Customer'}</Button></div> : <>
