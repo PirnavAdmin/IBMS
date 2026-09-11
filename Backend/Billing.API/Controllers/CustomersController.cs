@@ -73,7 +73,7 @@ public class CustomersController : ControllerBase
     /// <param name="pageSize">Number of records per page (Default: 10, Max: 100)</param>
     /// <param name="status">Filter by status: Active, Inactive, or All</param>
     /// <param name="search">Search text across customer code, name, email, phone, company, or tax ID</param>
-    /// <param name="customerType">Filter by customer type: Business or Individual</param>
+    /// <param name="customerType">Filter by customer type: Business, Individual, or Organization (or All)</param>
     /// <param name="taxId">Filter directly by Tax / GST / VAT ID</param>
     /// <param name="sortBy">Sort field: createdAt, name, email, companyName, code, updatedAt</param>
     /// <param name="sortOrder">Sort direction: asc or desc (Default: desc)</param>

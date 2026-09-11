@@ -524,6 +524,16 @@ public class CustomerBackendTests
             CustomerType = "Individual"
         });
 
+        _customerRepo.Customers.Add(new Customer
+        {
+            Id = 95,
+            TenantId = 1,
+            CustomerCode = "CUST-ORG-01",
+            Name = "Org 1",
+            Email = "org1@test.com",
+            CustomerType = "Organization"
+        });
+
         var bizResult = await _customerService.GetCustomersAsync(new CustomerQueryParameters
         {
             CustomerType = "Business"
@@ -537,6 +547,13 @@ public class CustomerBackendTests
         }, tenantId: 1);
         Assert.Single(indResult.Data!.Items);
         Assert.Equal("CUST-IND-01", indResult.Data.Items[0].CustomerCode);
+
+        var orgResult = await _customerService.GetCustomersAsync(new CustomerQueryParameters
+        {
+            CustomerType = "Organization"
+        }, tenantId: 1);
+        Assert.Single(orgResult.Data!.Items);
+        Assert.Equal("CUST-ORG-01", orgResult.Data.Items[0].CustomerCode);
     }
 
     [Fact]
