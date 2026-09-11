@@ -62,6 +62,23 @@ export const createCustomerRequest = (data = {}) => {
   const titleCaseCustomerType =
     normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1);
 
+  const effectiveCreditLimit =
+    data.creditLimit !== '' && data.creditLimit !== null && data.creditLimit !== undefined
+      ? Number(data.creditLimit)
+      : data.CreditLimit !== '' && data.CreditLimit !== null && data.CreditLimit !== undefined
+      ? Number(data.CreditLimit)
+      : null;
+  const effectiveOpeningBalance =
+    data.openingBalance !== '' && data.openingBalance !== null && data.openingBalance !== undefined
+      ? Number(data.openingBalance)
+      : data.OpeningBalance !== '' && data.OpeningBalance !== null && data.OpeningBalance !== undefined
+      ? Number(data.OpeningBalance)
+      : data.outstandingBalance !== '' && data.outstandingBalance !== null && data.outstandingBalance !== undefined
+      ? Number(data.outstandingBalance)
+      : data.OutstandingBalance !== '' && data.OutstandingBalance !== null && data.OutstandingBalance !== undefined
+      ? Number(data.OutstandingBalance)
+      : null;
+
   return {
     customerCode: data.customerCode?.trim() || null,
     name: data.name?.trim() || '',
@@ -69,11 +86,20 @@ export const createCustomerRequest = (data = {}) => {
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
     customerType: titleCaseCustomerType,
+    CustomerType: titleCaseCustomerType,
+    creditLimit: effectiveCreditLimit,
+    CreditLimit: effectiveCreditLimit,
+    openingBalance: effectiveOpeningBalance,
+    OpeningBalance: effectiveOpeningBalance,
+    outstandingBalance: effectiveOpeningBalance,
+    OutstandingBalance: effectiveOpeningBalance,
     taxId: (data.taxId || data.gstin)?.trim() || null,
-    currency: (data.currency?.trim() || 'INR').toUpperCase(),
+    currency: (data.currency?.trim() || data.Currency?.trim() || 'INR').toUpperCase(),
+    Currency: (data.currency?.trim() || data.Currency?.trim() || 'INR').toUpperCase(),
     notes: data.notes?.trim() || null,
     website: formattedWebsite,
-    paymentTerms: data.paymentTerms?.trim() || null,
+    paymentTerms: data.paymentTerms?.trim() || data.PaymentTerms?.trim() || null,
+    PaymentTerms: data.paymentTerms?.trim() || data.PaymentTerms?.trim() || null,
     address: billing.street?.trim() || null,
     city: billing.city?.trim() || null,
     state: billing.state?.trim() || null,
@@ -260,8 +286,36 @@ export const parseCustomerResponse = (response) => {
     : 'business';
   const customerTypeTitleCase =
     customerType.charAt(0).toUpperCase() + customerType.slice(1);
-  const creditLimit = raw.creditLimit ?? raw.CreditLimit ?? null;
-  const outstandingBalance = raw.outstandingBalance ?? raw.OutstandingBalance ?? null;
+  const creditLimit =
+    raw.creditLimit ??
+    raw.CreditLimit ??
+    raw.financialSummary?.creditLimit ??
+    raw.financialSummary?.CreditLimit ??
+    null;
+  const outstandingBalance =
+    raw.outstandingBalance ??
+    raw.OutstandingBalance ??
+    raw.financialSummary?.outstandingBalance ??
+    raw.financialSummary?.OutstandingBalance ??
+    null;
+  const openingBalance =
+    raw.openingBalance ??
+    raw.OpeningBalance ??
+    raw.financialSummary?.openingBalance ??
+    raw.financialSummary?.OpeningBalance ??
+    outstandingBalance;
+  const currency =
+    raw.currency ??
+    raw.Currency ??
+    raw.financialSummary?.currency ??
+    raw.financialSummary?.Currency ??
+    'INR';
+  const paymentTerms =
+    raw.paymentTerms ??
+    raw.PaymentTerms ??
+    raw.financialSummary?.paymentTerms ??
+    raw.financialSummary?.PaymentTerms ??
+    '';
 
   return {
     id: raw.id ?? raw.Id,
@@ -273,22 +327,33 @@ export const parseCustomerResponse = (response) => {
     customerType,
     CustomerType: customerTypeTitleCase,
     creditLimit,
+    CreditLimit: creditLimit,
     outstandingBalance,
-    openingBalance: raw.openingBalance ?? null,
+    OutstandingBalance: outstandingBalance,
+    openingBalance,
+    OpeningBalance: openingBalance,
     taxId,
     gstin: taxId,
-    currency: raw.currency ?? raw.Currency ?? 'INR',
+    currency,
+    Currency: currency,
     status,
     isActive,
     notes: raw.notes ?? raw.Notes ?? '',
     website: raw.website ?? raw.Website ?? '',
-    paymentTerms: raw.paymentTerms ?? raw.PaymentTerms ?? '',
+    paymentTerms,
+    PaymentTerms: paymentTerms,
     billingAddress,
     shippingAddress,
     isShippingSameAsBilling,
     rowVersion: raw.rowVersion ?? raw.RowVersion ?? null,
     createdAtUtc: raw.createdAtUtc ?? raw.CreatedAtUtc ?? null,
     updatedAtUtc: raw.updatedAtUtc ?? raw.UpdatedAtUtc ?? null,
+    financialSummary: raw.financialSummary || {
+      creditLimit,
+      outstandingBalance,
+      currency,
+      paymentTerms,
+    },
     raw,
   };
 };

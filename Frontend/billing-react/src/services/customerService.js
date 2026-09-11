@@ -35,10 +35,23 @@ export function mapDetails(data) {
     if (rows != null && (!Array.isArray(rows) || rows.some(row => !row || typeof row !== 'object'))) throw new Error('Customer service returned invalid records. Please try again.');
   }
   const addresses = [...(data.addresses || []), ...(data.customer.addresses || [])];
+  const invoicesList = data.invoices || data.Invoices || data.customer?.invoices || data.customer?.Invoices || [];
+  const paymentsList = data.payments || data.Payments || data.customer?.payments || data.customer?.Payments || [];
   return { ...data, customer: { ...mapCustomer(data.customer), billingAddress: address(data.billingAddress ?? addresses.find(a => a.addressType === 'Billing')), shippingAddress: address(data.shippingAddress ?? addresses.find(a => a.addressType === 'Shipping')) },
     financialSummary: data.financialSummary || {},
-    invoices: (data.invoices || []).map(r => ({ ...r, date: r.issueDate, amount: r.totalAmount, paid: r.amountPaid, balance: r.balanceDue, currency: r.currency ?? data.financialSummary?.currency ?? data.customer.currency })),
-    payments: (data.payments || []).map(r => ({ ...r, date: r.paymentDate, method: r.paymentMethod, reference: r.referenceNumber, currency: r.currency ?? data.financialSummary?.currency ?? data.customer.currency })) };
+    invoices: invoicesList.map(r => ({ ...r, date: r.issueDate || r.date || r.Date, amount: r.amount ?? r.totalAmount ?? r.TotalAmount ?? 0, paid: r.paid ?? r.amountPaid ?? r.AmountPaid ?? 0, balance: r.balance ?? r.balanceDue ?? r.BalanceDue ?? 0, currency: r.currency ?? data.financialSummary?.currency ?? data.customer?.currency ?? 'INR' })),
+    payments: paymentsList.map(r => ({
+      ...r,
+      id: r.id ?? r.Id ?? r.paymentId ?? r.PaymentId,
+      paymentNumber: r.paymentNumber ?? r.PaymentNumber ?? r.paymentId ?? r.PaymentId ?? (r.id ? `PAY-${r.id}` : '—'),
+      date: r.date ?? r.Date ?? r.paymentDate ?? r.PaymentDate ?? r.createdAtUtc ?? r.createdAt,
+      method: r.method ?? r.Method ?? r.paymentMethod ?? r.PaymentMethod ?? '—',
+      reference: r.reference ?? r.Reference ?? r.referenceNumber ?? r.ReferenceNumber ?? '—',
+      invoiceNumber: r.invoiceNumber ?? r.InvoiceNumber ?? (r.invoiceId ? `INV-${r.invoiceId}` : '—'),
+      amount: r.amount ?? r.Amount ?? r.paymentAmount ?? r.PaymentAmount ?? r.amountPaid ?? r.AmountPaid ?? r.totalAmount ?? r.TotalAmount ?? 0,
+      status: r.status ?? r.Status ?? r.paymentStatus ?? r.PaymentStatus ?? 'Completed',
+      currency: r.currency ?? r.Currency ?? data.financialSummary?.currency ?? data.customer?.currency ?? 'INR',
+    })) };
 }
 export async function getCustomers(params = {}) {
   const data = await request(() => apiClient.get('/api/v1/customers', { params }));
