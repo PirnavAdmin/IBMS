@@ -66,7 +66,7 @@ public class BillingDbContext : DbContext
             entity.Property(c => c.Country).HasMaxLength(128);
             entity.Property(c => c.Website).HasMaxLength(256);
             entity.Property(c => c.Notes).HasMaxLength(1000);
-            entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("USD");
+            entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("INR");
             entity.Property(c => c.PaymentTerms).HasMaxLength(64);
             entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
             entity.Ignore(c => c.IsActive);

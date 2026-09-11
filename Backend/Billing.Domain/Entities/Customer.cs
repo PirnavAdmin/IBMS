@@ -35,7 +35,7 @@ public class Customer
 
     public string? Notes { get; set; }
 
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
 
     public string? PaymentTerms { get; set; }
 

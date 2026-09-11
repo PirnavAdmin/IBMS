@@ -27,7 +27,7 @@ public class CustomerFinancialSummaryDto
 
     public decimal CreditLimit { get; set; } = 0.00m;
 
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
 
     public int TotalInvoicesCount { get; set; } = 0;
 
@@ -54,7 +54,7 @@ public class CustomerInvoiceSummaryDto
 
     public string Status { get; set; } = "Draft";
 
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
 }
 
 public class CustomerPaymentSummaryDto

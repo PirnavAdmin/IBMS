@@ -16,7 +16,7 @@ public class CreateCustomerRequest
     public string? Country { get; set; }
     public string? Website { get; set; }
     public string? Notes { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
     public string? PaymentTerms { get; set; }
     public List<CustomerAddressDto>? Addresses { get; set; }
 }

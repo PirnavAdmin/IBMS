@@ -585,6 +585,7 @@ public class CustomerBackendTests
         Assert.Equal(2, res.Data.ActiveCustomers);
         Assert.Equal(1, res.Data.InactiveCustomers);
         Assert.Equal(0.00m, res.Data.TotalOutstanding);
+        Assert.Equal("INR", res.Data.Currency);
     }
 
     [Fact]

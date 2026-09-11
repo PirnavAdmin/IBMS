@@ -71,7 +71,7 @@ public class CustomerService : ICustomerService
             Country = string.IsNullOrWhiteSpace(request.Country) ? null : request.Country.Trim(),
             Website = string.IsNullOrWhiteSpace(request.Website) ? null : request.Website.Trim(),
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
-            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency.Trim().ToUpperInvariant(),
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency.Trim().ToUpperInvariant(),
             PaymentTerms = string.IsNullOrWhiteSpace(request.PaymentTerms) ? null : request.PaymentTerms.Trim(),
             Status = "Active",
             IsActive = true,
@@ -427,7 +427,7 @@ public class CustomerService : ICustomerService
             ActiveCustomers = activeCount,
             InactiveCustomers = inactiveCount,
             TotalOutstanding = 0.00m,
-            Currency = "USD"
+            Currency = "INR"
         };
 
         return ApiResponse<CustomerKpiSummaryDto>.Ok(summary, "Customer summary retrieved successfully.");

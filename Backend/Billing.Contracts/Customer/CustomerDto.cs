@@ -18,7 +18,7 @@ public class CustomerDto
     public string Country { get; set; } = string.Empty;
     public string? Website { get; set; }
     public string? Notes { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
     public decimal OutstandingBalance { get; set; } = 0.00m;
     public string? PaymentTerms { get; set; }
     public string Status { get; set; } = "Active";
@@ -35,5 +35,5 @@ public class CustomerKpiSummaryDto
     public int ActiveCustomers { get; set; }
     public int InactiveCustomers { get; set; }
     public decimal TotalOutstanding { get; set; } = 0.00m;
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "INR";
 }
