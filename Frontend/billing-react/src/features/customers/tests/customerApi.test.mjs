@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { customerPayload, customerQuery, mapCustomer, mapCustomerPage, unwrapCustomerResponse } from './customerContract.ts';
+import { customerPayload, customerQuery, mapCustomer, mapCustomerPage, unwrapCustomerResponse } from '../api/customerContract.js';
 
 // Synthetic contract fixtures only; these are never imported by the application.
 const record = { id: 7, customerCode: 'TEST-7', name: 'Contract Test', phone: '9000000000', email: 'contract@example.invalid', taxId: '29ABCDE1234F1Z5', isActive: true };

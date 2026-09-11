@@ -1,14 +1,14 @@
 import { Breadcrumbs, Button, Link, Tab, Tabs } from '@mui/material';
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
-import { useCustomer } from '../../hooks/useCustomer';
-import { CustomerState, StatusBadge } from '../../components/customers/CustomerShared';
-import { CustomerOverview } from '../../components/customers/CustomerOverview';
-import { CustomerAddresses } from '../../components/customers/CustomerAddresses';
-import { CustomerInvoices, CustomerPayments } from '../../components/customers/CustomerTransactions';
-import { CustomerStatement } from '../../components/customers/CustomerStatement';
-import { CustomerAudit } from '../../components/customers/CustomerAudit';
-import { DeactivateCustomerDialog } from '../../components/customers/DeactivateCustomerDialog';
-import '../../styles/Customers.css';
+import { useCustomer } from '../hooks/useCustomer';
+import { CustomerState, StatusBadge } from '../components/CustomerShared';
+import { CustomerOverview } from '../components/CustomerOverview';
+import { CustomerAddresses } from '../components/CustomerAddresses';
+import { CustomerInvoices, CustomerPayments } from '../components/CustomerTransactions';
+import { CustomerStatement } from '../components/CustomerStatement';
+import { CustomerAudit } from '../components/CustomerAudit';
+import { DeactivateCustomerDialog } from '../components/DeactivateCustomerDialog';
+import '../styles/customer-details.css';
 
 const tabs = ['Overview', 'Addresses', 'Invoices', 'Payments', 'Statement', 'Audit'];
 export function CustomerDetailsPage() {

@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import { customerApi } from 'billing-api-client';
 import { CustomerStatusBadge } from '../components/CustomerStatusBadge';
-import '../customer.css';
+import '../styles/customer-form.css';
 
 export const CustomerDetails = () => {
   const { id } = useParams();

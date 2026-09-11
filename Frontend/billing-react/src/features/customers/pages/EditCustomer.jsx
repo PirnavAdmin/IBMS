@@ -4,7 +4,7 @@ import { ArrowBack } from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
-import '../customer.css';
+import '../styles/customer-form.css';
 
 export const EditCustomer = () => {
   const { id: paramId, customerId } = useParams();

@@ -1,10 +1,10 @@
 ﻿import { Button } from '@mui/material';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useCustomers } from '../../hooks/useCustomer';
-import { CustomerState, StatusBadge } from '../../components/customers/CustomerShared';
-import { CustomerTable } from '../../components/customers/CustomerTable';
-import '../../styles/Customers.css';
+import { useCustomers } from '../hooks/useCustomer';
+import { CustomerState, StatusBadge } from '../components/CustomerShared';
+import { CustomerTable } from '../components/CustomerTable';
+import '../styles/customer-details.css';
 
 export function Customers() {
   const { searchQuery = '' } = useOutletContext() || {};

@@ -6,8 +6,8 @@ import { shippingFromBilling } from 'billing-contracts';
 import {
   customerValidationSchema,
   DEFAULT_CUSTOMER_VALUES,
-} from '../customerValidation';
-import '../customer.css';
+} from '../validation/customerValidation';
+import '../styles/customer-form.css';
 
 export const CustomerForm = ({
   initialValues = null,

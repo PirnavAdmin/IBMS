@@ -1,21 +1,20 @@
-import type { Customer, CustomerQueryParams, CustomerWriteRequest, PaginatedCustomerResponse } from './types';
-import { safeCustomerMessage } from '../../../../billing-contracts/customer.contracts.js';
+import { safeCustomerMessage } from '../../../../../billing-contracts/customer.contracts.js';
 
 export const customerCapabilities = {
   search: true, customerType: true, taxId: true, taxRegistration: true, outstanding: true, sorting: true,
-} as const;
+};
 
-const object = (value: unknown): Record<string, any> => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
-const string = (value: unknown) => typeof value === 'string' ? value : '';
-const amount = (value: unknown): number | null => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const string = (value) => typeof value === 'string' ? value : '';
+const amount = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
 
-export function unwrapCustomerResponse(response: unknown): Record<string, any> {
+export function unwrapCustomerResponse(response) {
   const envelope = object(response);
   if (envelope.success === false || envelope.isSuccess === false) throw new Error(safeCustomerMessage(envelope.message) || 'The customer request was rejected.');
   return Object.keys(object(envelope.data)).length ? object(envelope.data) : envelope;
 }
 
-export function customerQuery(params: CustomerQueryParams) {
+export function customerQuery(params) {
   if (!Number.isInteger(params.page) || params.page < 1 || ![10, 25, 50, 100].includes(params.pageSize)) throw new Error('Invalid customer page or page size.');
   if (params.status && !['active', 'inactive'].includes(params.status)) throw new Error('Invalid customer status filter.');
   if (params.customerType && !['Business', 'Individual'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
@@ -37,7 +36,7 @@ export function customerQuery(params: CustomerQueryParams) {
 }
 
 /** Swagger omits response schemas. These defensive mappings require authenticated verification. */
-export function mapCustomer(response: unknown): Customer {
+export function mapCustomer(response) {
   const data = unwrapCustomerResponse(response);
   const row = Object.keys(object(data.customer)).length ? object(data.customer) : Object.keys(object(data.profile)).length ? object(data.profile) : data;
   const id = row.id ?? row.customerId;
@@ -56,7 +55,7 @@ export function mapCustomer(response: unknown): Customer {
   };
 }
 
-export function mapCustomerPage(response: unknown, params: CustomerQueryParams): PaginatedCustomerResponse {
+export function mapCustomerPage(response, params) {
   const data = unwrapCustomerResponse(response);
   if (!Array.isArray(data.items) || !Number.isInteger(data.totalCount) || data.totalCount < 0) {
     throw new Error('Customer API must return items and totalCount (optionally inside data). Its Swagger does not define a response schema; confirm the authenticated response.');
@@ -67,12 +66,12 @@ export function mapCustomerPage(response: unknown, params: CustomerQueryParams):
   return { items: data.items.map(mapCustomer), page, pageSize, totalCount: data.totalCount, totalPages: Math.max(1, Math.ceil(data.totalCount / pageSize)) };
 }
 
-const preserved = ['customerCode', 'address', 'city', 'state', 'postalCode', 'country', 'website', 'addresses', 'rowVersion', 'status', 'isActive'] as const;
-export function customerPayload(values: Partial<Customer>, existing?: Customer): CustomerWriteRequest {
+const preserved = ['customerCode', 'address', 'city', 'state', 'postalCode', 'country', 'website', 'addresses', 'rowVersion', 'status', 'isActive'];
+export function customerPayload(values, existing) {
   if (values.gstin && values.taxId && values.gstin !== values.taxId) throw new Error('The backend supports one Tax ID. Enter either GSTIN or PAN / Registration ID, not both.');
-  const payload: Record<string, unknown> = {};
+  const payload = {};
   if (existing) preserved.forEach(key => { if (existing.backend[key] !== undefined) payload[key] = existing.backend[key]; });
-  for (const key of ['name', 'companyName', 'email', 'notes', 'currency', 'paymentTerms'] as const) {
+  for (const key of ['name', 'companyName', 'email', 'notes', 'currency', 'paymentTerms']) {
     const value = values[key] ?? existing?.[key];
     if (value !== undefined) payload[key] = value;
   }
@@ -80,5 +79,5 @@ export function customerPayload(values: Partial<Customer>, existing?: Customer):
   else if (existing) payload.phone = existing.mobile;
   if (values.gstin !== undefined || values.taxId !== undefined) payload.taxId = values.gstin || values.taxId || null;
   else if (existing) payload.taxId = existing.gstin || existing.taxId || null;
-  return payload as CustomerWriteRequest;
+  return payload;
 }

@@ -1,10 +1,10 @@
 ﻿import { Alert, Breadcrumbs, Button, Card, Link, Snackbar, TextField } from '@mui/material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useRef, useState } from 'react';
-import { useCustomerProfile, useCustomerMutation } from '../../hooks/useCustomer';
-import { customerUpdatePayload, validateCustomerEdit } from '../../services/customerEdit';
-import { CustomerState } from '../../components/customers/CustomerShared';
-import '../../styles/Customers.css';
+import { useCustomerProfile, useCustomerMutation } from '../hooks/useCustomer';
+import { customerUpdatePayload, validateCustomerEdit } from '../api/customerEdit';
+import { CustomerState } from '../components/CustomerShared';
+import '../styles/customer-details.css';
 
 const fields = [['name', 'Customer Name', true], ['email', 'Email', true, 'email'], ['phone', 'Phone'], ['website', 'Website', false, 'url']];
 const formValues = customer => Object.fromEntries(fields.map(([key]) => [key, customer[key] ?? '']));
