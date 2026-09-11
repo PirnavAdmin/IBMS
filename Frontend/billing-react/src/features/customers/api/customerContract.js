@@ -17,7 +17,7 @@ export function unwrapCustomerResponse(response) {
 export function customerQuery(params) {
   if (!Number.isInteger(params.page) || params.page < 1 || ![10, 25, 50, 100].includes(params.pageSize)) throw new Error('Invalid customer page or page size.');
   if (params.status && !['active', 'inactive'].includes(params.status)) throw new Error('Invalid customer status filter.');
-  if (params.customerType && !['Business', 'Individual'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
+  if (params.customerType && !['Business', 'Individual', 'Organization'].includes(params.customerType)) throw new Error('Invalid customer type filter.');
   if (params.taxRegistration && !['Registered', 'Unregistered'].includes(params.taxRegistration)) throw new Error('Invalid tax registration filter.');
   if (params.outstanding && !['Has Outstanding', 'No Outstanding'].includes(params.outstanding)) throw new Error('Invalid outstanding filter.');
   const sortBy = params.sortBy === 'customerCode' ? 'code' : params.sortBy;

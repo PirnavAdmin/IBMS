@@ -17,7 +17,7 @@ const moneyWithCurrency = (value, currency) => {
 };
 const filterOptions = {
   status: { label: 'Customer status', values: [['active', 'Active'], ['inactive', 'Inactive']] },
-  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business']] },
+  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business'], ['Organization', 'Organization']] },
   taxRegistration: { label: 'Tax registration', values: [['Registered', 'Registered'], ['Unregistered', 'Unregistered']] },
   outstanding: { label: 'Outstanding', values: [['Has Outstanding', 'Has Outstanding'], ['No Outstanding', 'No Outstanding']] },
 };

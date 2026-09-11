@@ -11,6 +11,7 @@ test('uses current Swagger filters and preserves server pagination', () => {
   assert.equal(customerQuery(params).status, 'All');
   assert.deepEqual(customerQuery({ ...params, search: ' Ravi ', customerType: 'Business', taxId: ' TAX123 ', sortBy: 'customerCode', sortOrder: 'asc' }), { pageNumber: 2, pageSize: 10, status: 'All', search: 'Ravi', customerType: 'Business', taxId: 'TAX123', sortBy: 'code', sortOrder: 'asc' });
   assert.equal(customerQuery({ ...params, customerType: 'Individual' }).customerType, 'Individual');
+  assert.equal(customerQuery({ ...params, customerType: 'Organization' }).customerType, 'Organization');
   assert.deepEqual(customerQuery({ ...params, outstanding: 'Has Outstanding' }), { pageNumber: 2, pageSize: 10, status: 'All', outstanding: 'Has Outstanding' });
   assert.deepEqual(customerQuery({ ...params, outstanding: 'No Outstanding', taxRegistration: 'Registered' }), { pageNumber: 2, pageSize: 10, status: 'All', taxRegistration: 'Registered', outstanding: 'No Outstanding' });
   assert.throws(() => customerQuery({ ...params, outstanding: 'yes' }), /Invalid/);
