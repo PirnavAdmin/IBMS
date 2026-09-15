@@ -22,6 +22,10 @@ public class BillingDbContext : DbContext
 
     public DbSet<AuditLog> AuditLogs { get; set; }
 
+    public DbSet<ProductCategory> ProductCategories { get; set; }
+
+    public DbSet<Product> Products { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -184,6 +188,58 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(e => new { e.TenantId, e.EntityName, e.EntityId })
                   .HasDatabaseName("IX_AuditLogs_TenantId_Entity");
+        });
+
+        modelBuilder.Entity<ProductCategory>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).HasMaxLength(128).IsRequired();
+            entity.Property(c => c.Description).HasMaxLength(500);
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(c => c.IsActive);
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(c => new { c.TenantId, c.Name });
+            entity.HasIndex(c => c.TenantId);
+        });
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.ProductCode).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Name).HasMaxLength(256).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(1000);
+            entity.Property(p => p.Type).HasMaxLength(32).HasDefaultValue("Product").IsRequired();
+            entity.Property(p => p.Unit).HasMaxLength(32).HasDefaultValue("unit").IsRequired();
+            entity.Property(p => p.Price).HasPrecision(18, 2);
+            entity.Property(p => p.Currency).HasMaxLength(10).HasDefaultValue("INR").IsRequired();
+            entity.Property(p => p.TaxCategory).HasMaxLength(64);
+            entity.Property(p => p.HsnSacCode).HasMaxLength(32);
+            entity.Property(p => p.DiscountAllowed).HasDefaultValue(true);
+            entity.Property(p => p.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(p => p.IsActive);
+            entity.Property(p => p.RowVersion).IsRowVersion();
+
+            entity.HasOne(p => p.Tenant)
+                  .WithMany()
+                  .HasForeignKey(p => p.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Category)
+                  .WithMany(c => c.Products)
+                  .HasForeignKey(p => p.CategoryId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // IBMSBE-007: Unique Product Code per tenant & Category foreign key/indexes
+            entity.HasIndex(p => new { p.TenantId, p.ProductCode })
+                  .IsUnique();
+            entity.HasIndex(p => new { p.TenantId, p.CategoryId });
+            entity.HasIndex(p => new { p.TenantId, p.Status });
+            entity.HasIndex(p => p.CreatedAtUtc);
         });
     }
 }

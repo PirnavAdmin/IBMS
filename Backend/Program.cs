@@ -169,6 +169,20 @@ builder.Services.AddAuthentication(options =>
     // ========================================================
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            var authHeader = context.Request.Headers.Authorization.ToString();
+            if (!string.IsNullOrEmpty(authHeader))
+            {
+                var token = authHeader.Trim();
+                while (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    token = token.Substring(7).Trim();
+                }
+                context.Token = token;
+            }
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
             var userSessionRepo =

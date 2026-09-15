@@ -55,7 +55,7 @@ public static class DbInitializer
                     PasswordHash = passwordHash,
                     TenantId = null,
                     ApplicationId = "IBMS-Billing",
-                    Roles = new List<string> { "SuperAdmin" },
+                    Roles = new List<string> { "SuperAdmin", "TenantAdmin" },
                     Permissions = new List<string> { "all", "billing.admin", "billing.view", "billing.create", "billing.manage_customers" },
                     IsActive = true,
                     CreatedAtUtc = DateTime.UtcNow
@@ -64,6 +64,12 @@ public static class DbInitializer
                 await context.Users.AddAsync(superAdmin);
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded default Super Admin with email: {Email}", normalizedEmail);
+            }
+            else if (!existingSuperAdmin.Roles.Contains("SuperAdmin"))
+            {
+                existingSuperAdmin.Roles = new List<string> { "SuperAdmin", "TenantAdmin" };
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Updated existing user {Email} with SuperAdmin,TenantAdmin roles", normalizedEmail);
             }
         }
         catch (Exception ex)
