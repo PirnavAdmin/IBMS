@@ -90,6 +90,19 @@ export const customerApi = {
       throw new Error(parseCustomerError(err, `Failed to fetch audit history for customer #${id}.`));
     }
   },
+
+  /**
+   * GET /api/v1/customers/summary
+   * Fetch tenant-wide KPI summary metrics for customers (total, active, inactive, outstanding)
+   */
+  getCustomerSummary: async () => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.SUMMARY);
+      return parseCustomerResponse(response);
+    } catch (err) {
+      throw new Error(parseCustomerError(err, 'Failed to fetch customer KPI summary.'));
+    }
+  },
 };
 
 export default customerApi;
