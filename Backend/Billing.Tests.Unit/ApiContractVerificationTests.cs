@@ -199,4 +199,43 @@ public class ApiContractVerificationTests
         Assert.True(root.TryGetProperty("timestamp", out _));
         Assert.True(root.TryGetProperty("changes", out _));
     }
+
+    [Fact]
+    public void CustomerKpiSummaryDto_SerializesWithExpectedCamelCaseProperties()
+    {
+        var summary = new CustomerKpiSummaryDto
+        {
+            TotalCustomers = 120,
+            ActiveCustomers = 100,
+            InactiveCustomers = 20,
+            TotalOutstanding = 1500.50m,
+            Currency = "INR"
+        };
+
+        var response = ApiResponse<CustomerKpiSummaryDto>.Ok(summary, "Customer summary retrieved successfully.");
+        var json = JsonSerializer.Serialize(response, _jsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.True(root.TryGetProperty("success", out var successProp));
+        Assert.True(successProp.GetBoolean());
+
+        Assert.True(root.TryGetProperty("message", out _));
+
+        Assert.True(root.TryGetProperty("data", out var dataProp));
+        Assert.True(dataProp.TryGetProperty("totalCustomers", out var totalProp));
+        Assert.Equal(120, totalProp.GetInt32());
+
+        Assert.True(dataProp.TryGetProperty("activeCustomers", out var activeProp));
+        Assert.Equal(100, activeProp.GetInt32());
+
+        Assert.True(dataProp.TryGetProperty("inactiveCustomers", out var inactiveProp));
+        Assert.Equal(20, inactiveProp.GetInt32());
+
+        Assert.True(dataProp.TryGetProperty("totalOutstanding", out var outstandingProp));
+        Assert.Equal(1500.50m, outstandingProp.GetDecimal());
+
+        Assert.True(dataProp.TryGetProperty("currency", out var currencyProp));
+        Assert.Equal("INR", currencyProp.GetString());
+    }
 }

@@ -1,8 +1,12 @@
+using System.Security.Claims;
+using Billing.API.Controllers;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
 using Billing.Contracts;
 using Billing.Domain.Entities;
 using Billing.Tests.Unit.Fakes;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -623,6 +627,107 @@ public class CustomerBackendTests
 
         var allRes = await _customerService.GetCustomersAsync(new CustomerQueryParameters { TaxRegistration = "All" }, 1);
         Assert.Equal(2, allRes.Data!.Items.Count);
+    }
+
+    [Fact]
+    public async Task CustomersController_GetCustomerSummary_AuthenticatedTenantAdmin_ReturnsTenantScopedKpiMetrics()
+    {
+        // Arrange
+        _customerRepo.Customers.Clear();
+        _customerRepo.Customers.Add(new Customer { Id = 201, TenantId = 1, Status = "Active", Name = "Tenant1 Active", Email = "t1a@test.com", CustomerCode = "C201", Currency = "INR" });
+        _customerRepo.Customers.Add(new Customer { Id = 202, TenantId = 1, Status = "Inactive", Name = "Tenant1 Inactive", Email = "t1i@test.com", CustomerCode = "C202", Currency = "INR" });
+        _customerRepo.Customers.Add(new Customer { Id = 203, TenantId = 2, Status = "Active", Name = "Tenant2 Active", Email = "t2a@test.com", CustomerCode = "C203", Currency = "INR" });
+
+        var controller = new CustomersController(_customerService, _auditService, NullLogger<CustomersController>.Instance);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "user-1"),
+            new(ClaimTypes.Name, "Tenant 1 Admin"),
+            new(ClaimTypes.Role, "TenantAdmin"),
+            new("TenantId", "1")
+        };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+            }
+        };
+
+        // Act
+        var response = await controller.GetCustomerSummary();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var apiResponse = Assert.IsType<ApiResponse<CustomerKpiSummaryDto>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Data);
+        Assert.Equal(2, apiResponse.Data.TotalCustomers);
+        Assert.Equal(1, apiResponse.Data.ActiveCustomers);
+        Assert.Equal(1, apiResponse.Data.InactiveCustomers);
+        Assert.Equal(0.00m, apiResponse.Data.TotalOutstanding);
+        Assert.Equal("INR", apiResponse.Data.Currency);
+    }
+
+    [Fact]
+    public async Task CustomersController_GetCustomerSummary_AuthenticatedSuperAdmin_ReturnsTenantOrGlobalKpiMetrics()
+    {
+        // Arrange
+        _customerRepo.Customers.Clear();
+        _customerRepo.Customers.Add(new Customer { Id = 301, TenantId = 1, Status = "Active", Name = "Tenant1 Active", Email = "t1a@test.com", CustomerCode = "C301", Currency = "INR" });
+        _customerRepo.Customers.Add(new Customer { Id = 302, TenantId = 2, Status = "Active", Name = "Tenant2 Active", Email = "t2a@test.com", CustomerCode = "C302", Currency = "INR" });
+
+        var controller = new CustomersController(_customerService, _auditService, NullLogger<CustomersController>.Instance);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "superadmin-1"),
+            new(ClaimTypes.Name, "Super Admin"),
+            new(ClaimTypes.Role, "SuperAdmin")
+        };
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+        };
+        // SuperAdmin targeting Tenant 1 via header
+        httpContext.Request.Headers["X-Tenant-Id"] = "1";
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        // Act
+        var response = await controller.GetCustomerSummary();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        var apiResponse = Assert.IsType<ApiResponse<CustomerKpiSummaryDto>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.Equal(1, apiResponse.Data!.TotalCustomers);
+        Assert.Equal(1, apiResponse.Data.ActiveCustomers);
+    }
+
+    [Fact]
+    public async Task CustomersController_GetCustomerSummary_WithoutTenantOrSuperAdmin_ReturnsForbid()
+    {
+        // Arrange
+        var controller = new CustomersController(_customerService, _auditService, NullLogger<CustomersController>.Instance);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, "user-unauth"),
+            new(ClaimTypes.Role, "Customer") // Has no TenantId and is not SuperAdmin
+        };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+            }
+        };
+
+        // Act
+        var response = await controller.GetCustomerSummary();
+
+        // Assert
+        Assert.IsType<ForbidResult>(response);
     }
 
     #endregion
