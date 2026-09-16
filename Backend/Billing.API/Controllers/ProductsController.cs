@@ -160,6 +160,166 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Deactivate product record safely without physical deletion to protect historical invoice integrity. (IBMSBE-012)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPatch("{id:int}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeactivateProduct([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var result = await _productService.DeactivateProductAsync(id, tenantId);
+        if (!result.Success)
+        {
+            return NotFound(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Deactivate product record to preserve financial and historical invoice records. (IBMSBE-012)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteProduct([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var result = await _productService.DeactivateProductAsync(id, tenantId);
+        if (!result.Success)
+        {
+            return NotFound(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Validate that product is active and eligible for invoice line item selection. (IBMSBE-011)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
+    [HttpGet("{id:int}/validate-invoice")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ValidateProductForInvoice([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue)
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
+            }
+            return Forbid();
+        }
+
+        var result = await _productService.ValidateProductForInvoicingAsync(id, tenantId.Value);
+        if (!result.Success)
+        {
+            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(result);
+            }
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Retrieve list of product categories scoped to tenant. (IBMSBE-009, IBMSBE-013)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]
+    [HttpGet("categories")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCategories()
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var result = await _productService.GetCategoriesAsync(tenantId);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Create a new product category scoped to tenant with name uniqueness check. (IBMSBE-010, IBMSBE-013)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPost("categories")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue)
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
+            }
+            return Forbid();
+        }
+
+        var result = await _productService.CreateCategoryAsync(request, tenantId.Value);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Activate or deactivate product category with tenant verification. (IBMSBE-013)
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPatch("categories/{categoryId:int}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCategoryStatus([FromRoute] int categoryId, [FromQuery] bool isActive)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue)
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
+            }
+            return Forbid();
+        }
+
+        var result = await _productService.UpdateCategoryStatusAsync(categoryId, isActive, tenantId.Value);
+        if (!result.Success)
+        {
+            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(result);
+            }
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
     private int? GetTenantId()
     {
         var tenantClaim = User.FindFirst("TenantId")?.Value

@@ -153,4 +153,30 @@ public class FakeProductRepository : IProductRepository
         Categories.Add(category);
         return Task.FromResult(category);
     }
+
+    public Task<List<ProductCategory>> GetCategoriesListAsync(int? tenantId)
+    {
+        var list = Categories.AsQueryable();
+        if (tenantId.HasValue && tenantId.Value > 0)
+        {
+            list = list.Where(c => c.TenantId == tenantId.Value);
+        }
+        return Task.FromResult(list.OrderBy(c => c.Name).ToList());
+    }
+
+    public Task<ProductCategory> UpdateCategoryAsync(ProductCategory category)
+    {
+        var idx = Categories.FindIndex(c => c.Id == category.Id);
+        if (idx >= 0)
+        {
+            Categories[idx] = category;
+        }
+        return Task.FromResult(category);
+    }
+
+    public Task<int> CountProductsByCategoryIdAsync(int categoryId, int tenantId)
+    {
+        var count = Products.Count(p => p.CategoryId == categoryId && p.TenantId == tenantId);
+        return Task.FromResult(count);
+    }
 }

@@ -171,4 +171,27 @@ public class ProductRepository : IProductRepository
         await _context.SaveChangesAsync();
         return category;
     }
+
+    public async Task<List<ProductCategory>> GetCategoriesListAsync(int? tenantId)
+    {
+        var query = _context.ProductCategories.AsNoTracking().AsQueryable();
+        if (tenantId.HasValue && tenantId.Value > 0)
+        {
+            query = query.Where(c => c.TenantId == tenantId.Value);
+        }
+        return await query.OrderBy(c => c.Name).ToListAsync();
+    }
+
+    public async Task<ProductCategory> UpdateCategoryAsync(ProductCategory category)
+    {
+        _context.ProductCategories.Update(category);
+        await _context.SaveChangesAsync();
+        return category;
+    }
+
+    public async Task<int> CountProductsByCategoryIdAsync(int categoryId, int tenantId)
+    {
+        return await _context.Products
+            .CountAsync(p => p.CategoryId == categoryId && p.TenantId == tenantId);
+    }
 }

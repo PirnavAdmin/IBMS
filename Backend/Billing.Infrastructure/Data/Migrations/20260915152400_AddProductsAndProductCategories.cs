@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -26,14 +26,15 @@ namespace Billing.Infrastructure.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .OldAnnotation("MySql:CharSet", "utf8mb4");
 
-            migrationBuilder.AddColumn<string>(
-                name: "CustomerType",
-                table: "Customers",
-                type: "varchar(32)",
-                maxLength: 32,
-                nullable: false,
-                defaultValue: "Business")
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // CustomerType column already exists in the Customers table
+            // migrationBuilder.AddColumn<string>(
+            //     name: "CustomerType",
+            //     table: "Customers",
+            //     type: "varchar(32)",
+            //     maxLength: 32,
+            //     nullable: false,
+            //     defaultValue: "Business")
+            //     .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ProductCategories",

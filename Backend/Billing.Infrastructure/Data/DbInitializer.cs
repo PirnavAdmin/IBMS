@@ -42,7 +42,7 @@ public static class DbInitializer
 
             var normalizedEmail = adminEmail.Trim().ToLowerInvariant();
             var existingSuperAdmin = await context.Users
-                .FirstOrDefaultAsync(u => u.Email == normalizedEmail || u.RolesJson.Contains("SuperAdmin"));
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail || u.RolesString.Contains("SuperAdmin"));
 
             if (existingSuperAdmin == null)
             {

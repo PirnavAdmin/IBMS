@@ -22,4 +22,10 @@ public interface IProductRepository
     Task<ProductCategory?> GetCategoryByNameAsync(string categoryName, int tenantId);
 
     Task<ProductCategory> AddCategoryAsync(ProductCategory category);
+
+    Task<List<ProductCategory>> GetCategoriesListAsync(int? tenantId);
+
+    Task<ProductCategory> UpdateCategoryAsync(ProductCategory category);
+
+    Task<int> CountProductsByCategoryIdAsync(int categoryId, int tenantId);
 }
