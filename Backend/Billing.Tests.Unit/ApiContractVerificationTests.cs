@@ -238,4 +238,74 @@ public class ApiContractVerificationTests
         Assert.True(dataProp.TryGetProperty("currency", out var currencyProp));
         Assert.Equal("INR", currencyProp.GetString());
     }
+
+    [Fact]
+    public void ProductDto_SerializesWithExpectedCamelCaseProperties()
+    {
+        var product = new ProductDto
+        {
+            Id = 1,
+            TenantId = 1,
+            ProductCode = "PRD-001",
+            Name = "ERP Billing",
+            Description = "Full Suite",
+            Type = "Product",
+            CategoryId = 5,
+            CategoryName = "Software",
+            Unit = "License",
+            Price = 999.99m,
+            Currency = "INR",
+            TaxCategory = "GST 18%",
+            HsnSacCode = "998314",
+            DiscountAllowed = true,
+            Status = "Active",
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var response = ApiResponse<ProductDto>.Ok(product, "Product created");
+        var json = JsonSerializer.Serialize(response, _jsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.True(root.TryGetProperty("success", out _));
+        Assert.True(root.TryGetProperty("data", out var data));
+        Assert.True(data.TryGetProperty("id", out _));
+        Assert.True(data.TryGetProperty("tenantId", out _));
+        Assert.True(data.TryGetProperty("productCode", out var codeProp));
+        Assert.Equal("PRD-001", codeProp.GetString());
+        Assert.True(data.TryGetProperty("name", out _));
+        Assert.True(data.TryGetProperty("categoryId", out _));
+        Assert.True(data.TryGetProperty("categoryName", out _));
+        Assert.True(data.TryGetProperty("price", out _));
+        Assert.True(data.TryGetProperty("currency", out _));
+        Assert.True(data.TryGetProperty("taxCategory", out _));
+        Assert.True(data.TryGetProperty("hsnSacCode", out _));
+        Assert.True(data.TryGetProperty("discountAllowed", out _));
+        Assert.True(data.TryGetProperty("status", out _));
+        Assert.True(data.TryGetProperty("isActive", out _));
+    }
+
+    [Fact]
+    public void CreateProductRequest_DeserializesWithHsnSacAlias()
+    {
+        var json = """
+        {
+            "productCode": "PRD-ALIAS",
+            "name": "Widget X",
+            "price": 49.99,
+            "category": "Gadgets",
+            "hsnSac": "8471"
+        }
+        """;
+
+        var request = JsonSerializer.Deserialize<CreateProductRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(request);
+        Assert.Equal("PRD-ALIAS", request.ProductCode);
+        Assert.Equal("Widget X", request.Name);
+        Assert.Equal(49.99m, request.Price);
+        Assert.Equal("Gadgets", request.Category);
+        Assert.Equal("8471", request.HsnSacCode);
+    }
 }
+

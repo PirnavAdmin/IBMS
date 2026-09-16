@@ -1,0 +1,313 @@
+using System.Text.RegularExpressions;
+using Billing.Application.Interfaces;
+using Billing.Contracts;
+using Billing.Domain.Entities;
+
+namespace Billing.Application.Services;
+
+public class ProductService : IProductService
+{
+    private static readonly Regex ProductCodeRegex = new(
+        @"^[A-Za-z0-9_-]{2,64}$",
+        RegexOptions.Compiled);
+
+    private readonly IProductRepository _productRepository;
+
+    public ProductService(IProductRepository productRepository)
+    {
+        _productRepository = productRepository;
+    }
+
+    public async Task<ApiResponse<ProductDto>> CreateProductAsync(CreateProductRequest request, int tenantId)
+    {
+        if (tenantId <= 0)
+        {
+            return ApiResponse<ProductDto>.Fail("Invalid tenant identifier", "A valid positive Tenant ID is required.");
+        }
+
+        var errors = ValidateCreateRequest(request);
+        if (errors.Any())
+        {
+            return ApiResponse<ProductDto>.Fail("Validation failed", errors);
+        }
+
+        var code = string.IsNullOrWhiteSpace(request.ProductCode)
+            ? $"PROD-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}"
+            : request.ProductCode.Trim().ToUpperInvariant();
+
+        var existingWithCode = await _productRepository.GetByCodeAsync(code, tenantId);
+        if (existingWithCode != null)
+        {
+            return ApiResponse<ProductDto>.Fail("Product code conflict", $"Product with code '{code}' already exists for this tenant.");
+        }
+
+        int? resolvedCategoryId = request.CategoryId;
+        ProductCategory? resolvedCategory = null;
+
+        if (request.CategoryId.HasValue && request.CategoryId.Value > 0)
+        {
+            resolvedCategory = await _productRepository.GetCategoryByIdAsync(request.CategoryId.Value, tenantId);
+            if (resolvedCategory == null)
+            {
+                return ApiResponse<ProductDto>.Fail("Validation failed", $"Product category with ID {request.CategoryId.Value} was not found for this tenant.");
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(request.Category))
+        {
+            var categoryName = request.Category.Trim();
+            resolvedCategory = await _productRepository.GetCategoryByNameAsync(categoryName, tenantId);
+            if (resolvedCategory == null)
+            {
+                resolvedCategory = await _productRepository.AddCategoryAsync(new ProductCategory
+                {
+                    TenantId = tenantId,
+                    Name = categoryName,
+                    Status = "Active",
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+            resolvedCategoryId = resolvedCategory.Id;
+        }
+
+        var product = new Product
+        {
+            TenantId = tenantId,
+            ProductCode = code,
+            Name = request.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Type = string.IsNullOrWhiteSpace(request.Type) ? "Product" : request.Type.Trim(),
+            CategoryId = resolvedCategoryId,
+            Category = resolvedCategory,
+            Unit = string.IsNullOrWhiteSpace(request.Unit) ? "Piece" : request.Unit.Trim(),
+            Price = request.Price,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency.Trim().ToUpperInvariant(),
+            TaxCategory = string.IsNullOrWhiteSpace(request.TaxCategory) ? null : request.TaxCategory.Trim(),
+            HsnSacCode = string.IsNullOrWhiteSpace(request.HsnSacCode) ? null : request.HsnSacCode.Trim(),
+            DiscountAllowed = request.DiscountAllowed,
+            Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim(),
+            CreatedAtUtc = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
+        };
+
+        var created = await _productRepository.AddAsync(product);
+        if (created.Category == null && resolvedCategory != null)
+        {
+            created.Category = resolvedCategory;
+        }
+
+        return ApiResponse<ProductDto>.Ok(MapToDto(created), "Product created successfully.");
+    }
+
+    public async Task<ApiResponse<PagedResult<ProductDto>>> GetProductsAsync(ProductQueryParameters query, int? tenantId)
+    {
+        query ??= new ProductQueryParameters();
+
+        var (items, totalCount) = await _productRepository.GetPagedListAsync(tenantId, query);
+        var dtos = items.Select(MapToDto).ToList();
+
+        var pagedResult = new PagedResult<ProductDto>(dtos, totalCount, query.PageNumber, query.PageSize);
+        return ApiResponse<PagedResult<ProductDto>>.Ok(pagedResult, "Products retrieved successfully.");
+    }
+
+    public async Task<ApiResponse<ProductDto>> GetProductByIdAsync(int id, int? tenantId)
+    {
+        if (id <= 0)
+        {
+            return ApiResponse<ProductDto>.Fail("Invalid product identifier", "Product ID must be greater than 0.");
+        }
+
+        var product = await _productRepository.GetByIdAsync(id, tenantId);
+        if (product == null)
+        {
+            return ApiResponse<ProductDto>.Fail("Product not found", $"Product with ID {id} was not found.");
+        }
+
+        return ApiResponse<ProductDto>.Ok(MapToDto(product), "Product retrieved successfully.");
+    }
+
+    public async Task<ApiResponse<ProductDto>> UpdateProductAsync(int id, UpdateProductRequest request, int? tenantId)
+    {
+        if (id <= 0)
+        {
+            return ApiResponse<ProductDto>.Fail("Invalid product identifier", "Product ID must be greater than 0.");
+        }
+
+        var errors = ValidateUpdateRequest(request);
+        if (errors.Any())
+        {
+            return ApiResponse<ProductDto>.Fail("Validation failed", errors);
+        }
+
+        var product = await _productRepository.GetByIdForUpdateAsync(id, tenantId);
+        if (product == null)
+        {
+            return ApiResponse<ProductDto>.Fail("Product not found", $"Product with ID {id} was not found.");
+        }
+
+        // Check if product code is being updated
+        if (!string.IsNullOrWhiteSpace(request.ProductCode))
+        {
+            var newCode = request.ProductCode.Trim().ToUpperInvariant();
+            if (!string.Equals(product.ProductCode, newCode, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingWithCode = await _productRepository.GetByCodeAsync(newCode, product.TenantId);
+                if (existingWithCode != null && existingWithCode.Id != product.Id)
+                {
+                    return ApiResponse<ProductDto>.Fail("Product code conflict", $"Product with code '{newCode}' already exists for this tenant.");
+                }
+                product.ProductCode = newCode;
+            }
+        }
+
+        // Category resolution
+        int? resolvedCategoryId = request.CategoryId;
+        ProductCategory? resolvedCategory = null;
+
+        if (request.CategoryId.HasValue && request.CategoryId.Value > 0)
+        {
+            resolvedCategory = await _productRepository.GetCategoryByIdAsync(request.CategoryId.Value, product.TenantId);
+            if (resolvedCategory == null)
+            {
+                return ApiResponse<ProductDto>.Fail("Validation failed", $"Product category with ID {request.CategoryId.Value} was not found for this tenant.");
+            }
+            product.CategoryId = resolvedCategory.Id;
+            product.Category = resolvedCategory;
+        }
+        else if (!string.IsNullOrWhiteSpace(request.Category))
+        {
+            var categoryName = request.Category.Trim();
+            resolvedCategory = await _productRepository.GetCategoryByNameAsync(categoryName, product.TenantId);
+            if (resolvedCategory == null)
+            {
+                resolvedCategory = await _productRepository.AddCategoryAsync(new ProductCategory
+                {
+                    TenantId = product.TenantId,
+                    Name = categoryName,
+                    Status = "Active",
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
+            product.CategoryId = resolvedCategory.Id;
+            product.Category = resolvedCategory;
+        }
+
+        product.Name = request.Name.Trim();
+        product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        product.Type = string.IsNullOrWhiteSpace(request.Type) ? "Product" : request.Type.Trim();
+        product.Unit = string.IsNullOrWhiteSpace(request.Unit) ? "Piece" : request.Unit.Trim();
+        product.Price = request.Price;
+        product.Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency.Trim().ToUpperInvariant();
+        product.TaxCategory = string.IsNullOrWhiteSpace(request.TaxCategory) ? null : request.TaxCategory.Trim();
+        product.HsnSacCode = string.IsNullOrWhiteSpace(request.HsnSacCode) ? null : request.HsnSacCode.Trim();
+        product.DiscountAllowed = request.DiscountAllowed;
+        product.Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim();
+        product.UpdatedAtUtc = DateTime.UtcNow;
+        product.RowVersion = DateTime.UtcNow;
+
+        var updated = await _productRepository.UpdateAsync(product);
+        if (updated.Category == null && resolvedCategory != null)
+        {
+            updated.Category = resolvedCategory;
+        }
+
+        return ApiResponse<ProductDto>.Ok(MapToDto(updated), "Product updated successfully.");
+    }
+
+    private static List<string> ValidateCreateRequest(CreateProductRequest request)
+    {
+        var errors = new List<string>();
+
+        if (request == null)
+        {
+            errors.Add("Request body cannot be null.");
+            return errors;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add("Product name is required.");
+        }
+        else if (request.Name.Trim().Length < 2 || request.Name.Trim().Length > 256)
+        {
+            errors.Add("Product name must be between 2 and 256 characters.");
+        }
+
+        if (request.Price < 0)
+        {
+            errors.Add("Price must be a non-negative number.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductCode))
+        {
+            var code = request.ProductCode.Trim();
+            if (code.Length < 2 || code.Length > 64 || !ProductCodeRegex.IsMatch(code))
+            {
+                errors.Add("Product code must be 2 to 64 alphanumeric characters (hyphens and underscores allowed).");
+            }
+        }
+
+        return errors;
+    }
+
+    private static List<string> ValidateUpdateRequest(UpdateProductRequest request)
+    {
+        var errors = new List<string>();
+
+        if (request == null)
+        {
+            errors.Add("Request body cannot be null.");
+            return errors;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add("Product name is required.");
+        }
+        else if (request.Name.Trim().Length < 2 || request.Name.Trim().Length > 256)
+        {
+            errors.Add("Product name must be between 2 and 256 characters.");
+        }
+
+        if (request.Price < 0)
+        {
+            errors.Add("Price must be a non-negative number.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ProductCode))
+        {
+            var code = request.ProductCode.Trim();
+            if (code.Length < 2 || code.Length > 64 || !ProductCodeRegex.IsMatch(code))
+            {
+                errors.Add("Product code must be 2 to 64 alphanumeric characters (hyphens and underscores allowed).");
+            }
+        }
+
+        return errors;
+    }
+
+    private static ProductDto MapToDto(Product p)
+    {
+        return new ProductDto
+        {
+            Id = p.Id,
+            TenantId = p.TenantId,
+            ProductCode = p.ProductCode,
+            Name = p.Name,
+            Description = p.Description,
+            Type = p.Type,
+            CategoryId = p.CategoryId,
+            CategoryName = p.Category?.Name,
+            Unit = p.Unit,
+            Price = p.Price,
+            Currency = p.Currency,
+            TaxCategory = p.TaxCategory,
+            HsnSacCode = p.HsnSacCode,
+            DiscountAllowed = p.DiscountAllowed,
+            Status = p.Status,
+            IsActive = p.IsActive,
+            CreatedAtUtc = p.CreatedAtUtc,
+            UpdatedAtUtc = p.UpdatedAtUtc,
+            RowVersion = Convert.ToBase64String(BitConverter.GetBytes(p.RowVersion.Ticks))
+        };
+    }
+}
