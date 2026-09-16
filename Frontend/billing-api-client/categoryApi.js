@@ -55,39 +55,13 @@ export const categoryApi = {
   },
 
   /**
-   * PATCH /api/v1/categories/:id/activate
-   * Activate category
+   * PATCH /api/v1/categories/:id/status?status=Active|Inactive
+   * Update category status (Active or Inactive)
    */
-  activateCategory: async (id) => {
-    try {
-      const response = await apiClient.patch(API_ENDPOINTS.CATEGORIES.ACTIVATE(id));
-      return response.data;
-    } catch (err) {
-      throw new Error(err?.response?.data?.message || err.message || `Failed to activate category #${id}.`);
-    }
-  },
-
-  /**
-   * PATCH /api/v1/categories/:id/deactivate
-   * Deactivate category safely
-   */
-  deactivateCategory: async (id) => {
-    try {
-      const response = await apiClient.patch(API_ENDPOINTS.CATEGORIES.DEACTIVATE(id));
-      return response.data;
-    } catch (err) {
-      throw new Error(err?.response?.data?.message || err.message || `Failed to deactivate category #${id}.`);
-    }
-  },
-
-  /**
-   * PATCH /api/v1/categories/:id/status?isActive=boolean
-   * Toggle category status
-   */
-  updateCategoryStatus: async (id, isActive) => {
+  updateCategoryStatus: async (id, status = 'Active') => {
     try {
       const response = await apiClient.patch(API_ENDPOINTS.CATEGORIES.STATUS(id), null, {
-        params: { isActive },
+        params: { status },
       });
       return response.data;
     } catch (err) {
