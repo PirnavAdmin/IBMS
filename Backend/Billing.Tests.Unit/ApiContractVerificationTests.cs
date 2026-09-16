@@ -307,5 +307,57 @@ public class ApiContractVerificationTests
         Assert.Equal("Gadgets", request.Category);
         Assert.Equal("8471", request.HsnSacCode);
     }
+
+    [Fact]
+    public void ProductCategoryDto_SerializesWithExpectedCamelCaseProperties()
+    {
+        var category = new ProductCategoryDto
+        {
+            Id = 1,
+            TenantId = 1,
+            Name = "Hardware",
+            Description = "Computer peripherals",
+            Status = "Active",
+            IsActive = true,
+            ProductCount = 5,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        var response = ApiResponse<ProductCategoryDto>.Ok(category, "Category retrieved");
+        var json = JsonSerializer.Serialize(response, _jsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        Assert.True(root.TryGetProperty("success", out _));
+        Assert.True(root.TryGetProperty("data", out var data));
+        Assert.True(data.TryGetProperty("id", out var idProp));
+        Assert.Equal(1, idProp.GetInt32());
+        Assert.True(data.TryGetProperty("name", out var nameProp));
+        Assert.Equal("Hardware", nameProp.GetString());
+        Assert.True(data.TryGetProperty("productCount", out var countProp));
+        Assert.Equal(5, countProp.GetInt32());
+        Assert.True(data.TryGetProperty("status", out var statusProp));
+        Assert.Equal("Active", statusProp.GetString());
+        Assert.True(data.TryGetProperty("isActive", out var activeProp));
+        Assert.True(activeProp.GetBoolean());
+    }
+
+    [Fact]
+    public void CreateCategoryRequest_DeserializesCorrectly()
+    {
+        var json = """
+        {
+            "name": "Cloud Infrastructure",
+            "description": "AWS and Azure servers",
+            "status": "Active"
+        }
+        """;
+
+        var request = JsonSerializer.Deserialize<CreateCategoryRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(request);
+        Assert.Equal("Cloud Infrastructure", request.Name);
+        Assert.Equal("AWS and Azure servers", request.Description);
+        Assert.Equal("Active", request.Status);
+    }
 }
 

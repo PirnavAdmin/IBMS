@@ -13,6 +13,19 @@ export const API_ENDPOINTS = {
     DEACTIVATE: (id) => `/api/v1/customers/${id}/deactivate`,
     AUDIT: (id) => `/api/v1/customers/${id}/audit`,
   },
+  PRODUCTS: {
+    BASE: '/api/v1/products',
+    BY_ID: (id) => `/api/v1/products/${id}`,
+    DEACTIVATE: (id) => `/api/v1/products/${id}/deactivate`,
+    CATEGORIES: '/api/v1/products/categories',
+  },
+  CATEGORIES: {
+    BASE: '/api/v1/categories',
+    BY_ID: (id) => `/api/v1/categories/${id}`,
+    ACTIVATE: (id) => `/api/v1/categories/${id}/activate`,
+    DEACTIVATE: (id) => `/api/v1/categories/${id}/deactivate`,
+    STATUS: (id) => `/api/v1/categories/${id}/status`,
+  },
 };
 
 export default API_ENDPOINTS;
