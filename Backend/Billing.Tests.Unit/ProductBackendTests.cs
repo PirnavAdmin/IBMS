@@ -460,14 +460,12 @@ public class ProductBackendTests
         await _repository.AddCategoryAsync(new ProductCategory { TenantId = 1, Name = "Electronics T1", Status = "Active" });
         await _repository.AddCategoryAsync(new ProductCategory { TenantId = 2, Name = "Electronics T2", Status = "Active" });
 
-        SetUserContext(_controller, tenantId: 1, role: "TenantAdmin", email: "admin@t1.com");
-        var response = await _controller.GetCategories();
+        var response = await _service.GetCategoriesAsync(1);
 
-        var okResult = Assert.IsType<OkObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<List<ProductCategoryDto>>>(okResult.Value);
-        Assert.Single(apiResponse.Data!);
-        Assert.Equal("Electronics T1", apiResponse.Data![0].Name);
-        Assert.Equal(1, apiResponse.Data![0].TenantId);
+        Assert.True(response.Success);
+        Assert.Single(response.Data!);
+        Assert.Equal("Electronics T1", response.Data![0].Name);
+        Assert.Equal(1, response.Data![0].TenantId);
     }
 
     #endregion
@@ -690,16 +688,13 @@ public class ProductBackendTests
     [Fact]
     public async Task CreateCategory_WithUniqueName_Succeeds()
     {
-        SetUserContext(_controller, tenantId: 1, role: "TenantAdmin", email: "admin@t1.com");
         var req = new CreateCategoryRequest { Name = "Cloud Services", Description = "SaaS and PaaS" };
-        var response = await _controller.CreateCategory(req);
+        var response = await _service.CreateCategoryAsync(req, 1);
 
-        var okResult = Assert.IsType<OkObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);
-        Assert.True(apiResponse.Success);
-        Assert.Equal("Cloud Services", apiResponse.Data!.Name);
-        Assert.Equal(1, apiResponse.Data.TenantId);
-        Assert.True(apiResponse.Data.IsActive);
+        Assert.True(response.Success);
+        Assert.Equal("Cloud Services", response.Data!.Name);
+        Assert.Equal(1, response.Data.TenantId);
+        Assert.True(response.Data.IsActive);
     }
 
     [Fact]
@@ -707,14 +702,11 @@ public class ProductBackendTests
     {
         await _repository.AddCategoryAsync(new ProductCategory { TenantId = 1, Name = "Consulting", Status = "Active" });
 
-        SetUserContext(_controller, tenantId: 1, role: "TenantAdmin", email: "admin@t1.com");
         var req = new CreateCategoryRequest { Name = "consulting" };
-        var response = await _controller.CreateCategory(req);
+        var response = await _service.CreateCategoryAsync(req, 1);
 
-        var badRequest = Assert.IsType<BadRequestObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(badRequest.Value);
-        Assert.False(apiResponse.Success);
-        Assert.Contains("conflict", apiResponse.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(response.Success);
+        Assert.Contains("conflict", response.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -722,15 +714,12 @@ public class ProductBackendTests
     {
         await _repository.AddCategoryAsync(new ProductCategory { TenantId = 1, Name = "Hardware", Status = "Active" });
 
-        SetUserContext(_controller, tenantId: 2, role: "TenantAdmin", email: "admin@t2.com");
         var req = new CreateCategoryRequest { Name = "Hardware" };
-        var response = await _controller.CreateCategory(req);
+        var response = await _service.CreateCategoryAsync(req, 2);
 
-        var okResult = Assert.IsType<OkObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);
-        Assert.True(apiResponse.Success);
-        Assert.Equal(2, apiResponse.Data!.TenantId);
-        Assert.Equal("Hardware", apiResponse.Data.Name);
+        Assert.True(response.Success);
+        Assert.Equal(2, response.Data!.TenantId);
+        Assert.Equal("Hardware", response.Data.Name);
     }
 
     [Fact]
@@ -739,15 +728,12 @@ public class ProductBackendTests
         var category = await _repository.AddCategoryAsync(new ProductCategory { TenantId = 1, Name = "Office Supplies", Status = "Active" });
         await _repository.AddAsync(new Product { TenantId = 1, ProductCode = "PEN-01", Name = "Gel Pen", CategoryId = category.Id, Status = "Active" });
 
-        SetUserContext(_controller, tenantId: 1, role: "TenantAdmin", email: "admin@t1.com");
-        var response = await _controller.UpdateCategoryStatus(category.Id, isActive: false);
+        var response = await _service.UpdateCategoryStatusAsync(category.Id, isActive: false, tenantId: 1);
 
-        var okResult = Assert.IsType<OkObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);
-        Assert.True(apiResponse.Success);
-        Assert.False(apiResponse.Data!.IsActive);
-        Assert.Equal("Inactive", apiResponse.Data.Status);
-        Assert.Equal(1, apiResponse.Data.ProductCount);
+        Assert.True(response.Success);
+        Assert.False(response.Data!.IsActive);
+        Assert.Equal("Inactive", response.Data.Status);
+        Assert.Equal(1, response.Data.ProductCount);
 
         // Verify category is updated
         var updated = await _repository.GetCategoryByIdAsync(category.Id, 1);
@@ -760,12 +746,10 @@ public class ProductBackendTests
     {
         var category = await _repository.AddCategoryAsync(new ProductCategory { TenantId = 2, Name = "Tenant 2 Cat", Status = "Active" });
 
-        SetUserContext(_controller, tenantId: 1, role: "TenantAdmin", email: "admin@t1.com");
-        var response = await _controller.UpdateCategoryStatus(category.Id, isActive: false);
+        var response = await _service.UpdateCategoryStatusAsync(category.Id, isActive: false, tenantId: 1);
 
-        var notFound = Assert.IsType<NotFoundObjectResult>(response);
-        var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(notFound.Value);
-        Assert.False(apiResponse.Success);
+        Assert.False(response.Success);
+        Assert.Contains("not found", response.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion

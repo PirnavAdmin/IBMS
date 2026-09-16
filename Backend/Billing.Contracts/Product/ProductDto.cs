@@ -16,6 +16,7 @@ public class ProductDto
     public string? TaxCategory { get; set; }
     public string? HsnSacCode { get; set; }
     public bool DiscountAllowed { get; set; } = true;
+    public decimal? DiscountPercent { get; set; } = 0.00m;
     public string Status { get; set; } = "Active";
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }

@@ -41,18 +41,10 @@ public class ProductService : IProductService
             return ApiResponse<ProductDto>.Fail("Product code conflict", $"Product with code '{code}' already exists for this tenant.");
         }
 
-        int? resolvedCategoryId = request.CategoryId;
+        int? resolvedCategoryId = null;
         ProductCategory? resolvedCategory = null;
 
-        if (request.CategoryId.HasValue && request.CategoryId.Value > 0)
-        {
-            resolvedCategory = await _productRepository.GetCategoryByIdAsync(request.CategoryId.Value, tenantId);
-            if (resolvedCategory == null)
-            {
-                return ApiResponse<ProductDto>.Fail("Validation failed", $"Product category with ID {request.CategoryId.Value} was not found for this tenant.");
-            }
-        }
-        else if (!string.IsNullOrWhiteSpace(request.Category))
+        if (!string.IsNullOrWhiteSpace(request.Category))
         {
             var categoryName = request.Category.Trim();
             resolvedCategory = await _productRepository.GetCategoryByNameAsync(categoryName, tenantId);
@@ -84,6 +76,7 @@ public class ProductService : IProductService
             TaxCategory = string.IsNullOrWhiteSpace(request.TaxCategory) ? null : request.TaxCategory.Trim(),
             HsnSacCode = string.IsNullOrWhiteSpace(request.HsnSacCode) ? null : request.HsnSacCode.Trim(),
             DiscountAllowed = request.DiscountAllowed,
+            DiscountPercent = request.DiscountPercent ?? 0.00m,
             Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim(),
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion = DateTime.UtcNow
@@ -160,20 +153,9 @@ public class ProductService : IProductService
         }
 
         // Category resolution
-        int? resolvedCategoryId = request.CategoryId;
         ProductCategory? resolvedCategory = null;
 
-        if (request.CategoryId.HasValue && request.CategoryId.Value > 0)
-        {
-            resolvedCategory = await _productRepository.GetCategoryByIdAsync(request.CategoryId.Value, product.TenantId);
-            if (resolvedCategory == null)
-            {
-                return ApiResponse<ProductDto>.Fail("Validation failed", $"Product category with ID {request.CategoryId.Value} was not found for this tenant.");
-            }
-            product.CategoryId = resolvedCategory.Id;
-            product.Category = resolvedCategory;
-        }
-        else if (!string.IsNullOrWhiteSpace(request.Category))
+        if (!string.IsNullOrWhiteSpace(request.Category))
         {
             var categoryName = request.Category.Trim();
             resolvedCategory = await _productRepository.GetCategoryByNameAsync(categoryName, product.TenantId);
@@ -200,6 +182,7 @@ public class ProductService : IProductService
         product.TaxCategory = string.IsNullOrWhiteSpace(request.TaxCategory) ? null : request.TaxCategory.Trim();
         product.HsnSacCode = string.IsNullOrWhiteSpace(request.HsnSacCode) ? null : request.HsnSacCode.Trim();
         product.DiscountAllowed = request.DiscountAllowed;
+        product.DiscountPercent = request.DiscountPercent ?? 0.00m;
         product.Status = string.IsNullOrWhiteSpace(request.Status) ? "Active" : request.Status.Trim();
         product.UpdatedAtUtc = DateTime.UtcNow;
         product.RowVersion = DateTime.UtcNow;
@@ -463,6 +446,7 @@ public class ProductService : IProductService
             TaxCategory = p.TaxCategory,
             HsnSacCode = p.HsnSacCode,
             DiscountAllowed = p.DiscountAllowed,
+            DiscountPercent = p.DiscountPercent ?? 0.00m,
             Status = p.Status,
             IsActive = p.IsActive,
             CreatedAtUtc = p.CreatedAtUtc,

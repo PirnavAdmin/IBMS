@@ -287,21 +287,21 @@ public class ApiContractVerificationTests
     }
 
     [Fact]
-    public void CreateProductRequest_DeserializesWithHsnSacAlias()
+    public void CreateProductRequest_DeserializesWithHsnSacCode()
     {
         var json = """
         {
-            "productCode": "PRD-ALIAS",
+            "productCode": "PRD-STANDARD",
             "name": "Widget X",
             "price": 49.99,
             "category": "Gadgets",
-            "hsnSac": "8471"
+            "hsnSacCode": "8471"
         }
         """;
 
         var request = JsonSerializer.Deserialize<CreateProductRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.NotNull(request);
-        Assert.Equal("PRD-ALIAS", request.ProductCode);
+        Assert.Equal("PRD-STANDARD", request.ProductCode);
         Assert.Equal("Widget X", request.Name);
         Assert.Equal(49.99m, request.Price);
         Assert.Equal("Gadgets", request.Category);

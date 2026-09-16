@@ -85,7 +85,6 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetCategoryById([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -110,7 +109,6 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryRequest request)
     {
         var tenantId = GetTenantId();
@@ -143,8 +141,6 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateCategory([FromRoute] int id, [FromBody] UpdateCategoryRequest request)
     {
         var tenantId = GetTenantId();
@@ -171,74 +167,16 @@ public class CategoriesController : ControllerBase
     }
 
     /// <summary>
-    /// Activate a product category. (IBMSBE-014)
-    /// </summary>
-    /// <param name="id">Category ID to activate</param>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
-    [HttpPatch("{id:int}/activate")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ActivateCategory([FromRoute] int id)
-    {
-        var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            if (User.IsInRole("SuperAdmin"))
-            {
-                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
-            }
-            return Forbid();
-        }
-
-        var result = await _categoryService.ActivateCategoryAsync(id, tenantId.Value);
-        if (!result.Success)
-        {
-            return NotFound(result);
-        }
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Deactivate a product category safely without deleting associated products. (IBMSBE-014)
-    /// </summary>
-    /// <param name="id">Category ID to deactivate</param>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
-    [HttpPatch("{id:int}/deactivate")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeactivateCategory([FromRoute] int id)
-    {
-        var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            if (User.IsInRole("SuperAdmin"))
-            {
-                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
-            }
-            return Forbid();
-        }
-
-        var result = await _categoryService.DeactivateCategoryAsync(id, tenantId.Value);
-        if (!result.Success)
-        {
-            return NotFound(result);
-        }
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Update product category active status with boolean query parameter. (IBMSBE-014)
+    /// Update product category status (Active or Inactive). (IBMSBE-014)
     /// </summary>
     /// <param name="id">Category ID to update</param>
-    /// <param name="isActive">Set true for Active, false for Inactive</param>
+    /// <param name="status">Category status: Active or Inactive</param>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPatch("{id:int}/status")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCategoryStatus([FromRoute] int id, [FromQuery] bool isActive)
+    public async Task<IActionResult> UpdateCategoryStatus(
+        [FromRoute] int id,
+        [FromQuery] CategoryStatus status = CategoryStatus.Active)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue)
@@ -250,6 +188,7 @@ public class CategoriesController : ControllerBase
             return Forbid();
         }
 
+        bool isActive = status == CategoryStatus.Active;
         var result = await _categoryService.UpdateCategoryStatusAsync(id, isActive, tenantId.Value);
         if (!result.Success)
         {
@@ -287,7 +226,7 @@ public class CategoriesController : ControllerBase
                 return queryTenantId;
             }
 
-            return null; // Cross-tenant access for SuperAdmin
+            return 1; // Default to tenant 1 for SuperAdmin if not specified
         }
 
         return null;

@@ -219,7 +219,14 @@ public class BillingDbContext : DbContext
             entity.Property(p => p.Currency).HasMaxLength(10).HasDefaultValue("INR").IsRequired();
             entity.Property(p => p.TaxCategory).HasMaxLength(64);
             entity.Property(p => p.HsnSacCode).HasMaxLength(32);
-            entity.Property(p => p.DiscountAllowed).HasDefaultValue(true);
+            entity.Property(p => p.DiscountAllowed)
+                  .HasConversion(
+                      v => v ? "Yes" : "No",
+                      v => v != null && (v.Equals("Yes", StringComparison.OrdinalIgnoreCase) || v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)))
+                  .HasMaxLength(10)
+                  .HasColumnType("varchar(10)")
+                  .HasDefaultValue(true);
+            entity.Property(p => p.DiscountPercent).HasPrecision(5, 2).HasDefaultValue(0.00m);
             entity.Property(p => p.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
             entity.Ignore(p => p.IsActive);
             entity.Property(p => p.RowVersion).IsRowVersion();

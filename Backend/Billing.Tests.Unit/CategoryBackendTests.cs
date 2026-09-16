@@ -312,7 +312,7 @@ public class CategoryBackendTests
             Status = "Inactive"
         });
 
-        var response = await _controller.ActivateCategory(category.Id);
+        var response = await _controller.UpdateCategoryStatus(category.Id, CategoryStatus.Active);
 
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);
@@ -341,7 +341,7 @@ public class CategoryBackendTests
             Status = "Active"
         });
 
-        var response = await _controller.DeactivateCategory(category.Id);
+        var response = await _controller.UpdateCategoryStatus(category.Id, CategoryStatus.Inactive);
 
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);
@@ -365,7 +365,7 @@ public class CategoryBackendTests
             Status = "Active"
         });
 
-        var response = await _controller.UpdateCategoryStatus(category.Id, isActive: false);
+        var response = await _controller.UpdateCategoryStatus(category.Id, CategoryStatus.Inactive);
 
         var okResult = Assert.IsType<OkObjectResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<ProductCategoryDto>>(okResult.Value);

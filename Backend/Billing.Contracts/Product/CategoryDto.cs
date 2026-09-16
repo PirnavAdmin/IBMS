@@ -1,4 +1,19 @@
+using System.Text.Json.Serialization;
+
 namespace Billing.Contracts;
+
+/// <summary>
+/// Target status for product category activation or deactivation.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CategoryStatus
+{
+    /// <summary>Active category status</summary>
+    Active,
+
+    /// <summary>Inactive category status</summary>
+    Inactive
+}
 
 /// <summary>
 /// Data transfer object representing a product category with associated metadata and product count.

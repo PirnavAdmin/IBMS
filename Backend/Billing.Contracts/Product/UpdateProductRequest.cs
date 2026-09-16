@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Billing.Contracts;
 
@@ -16,8 +17,6 @@ public class UpdateProductRequest
 
     [StringLength(32, ErrorMessage = "Type cannot exceed 32 characters.")]
     public string Type { get; set; } = "Product";
-
-    public int? CategoryId { get; set; }
 
     [StringLength(128, ErrorMessage = "Category name cannot exceed 128 characters.")]
     public string? Category { get; set; }
@@ -38,22 +37,11 @@ public class UpdateProductRequest
     [StringLength(32, ErrorMessage = "HSN/SAC code cannot exceed 32 characters.")]
     public string? HsnSacCode { get; set; }
 
-    /// <summary>
-    /// Alias property for HsnSacCode matching frontend payloads.
-    /// </summary>
-    public string? HsnSac
-    {
-        get => HsnSacCode;
-        set
-        {
-            if (!string.IsNullOrWhiteSpace(value) && string.IsNullOrWhiteSpace(HsnSacCode))
-            {
-                HsnSacCode = value;
-            }
-        }
-    }
-
+    [JsonConverter(typeof(BooleanOrYesNoJsonConverter))]
     public bool DiscountAllowed { get; set; } = true;
+
+    [Range(0.00, 100.00, ErrorMessage = "Discount percent must be between 0 and 100.")]
+    public decimal? DiscountPercent { get; set; } = 0.00m;
 
     [StringLength(32, ErrorMessage = "Status cannot exceed 32 characters.")]
     public string Status { get; set; } = "Active";
