@@ -34,8 +34,24 @@ public class CreateProductRequest
     [StringLength(64, ErrorMessage = "Tax category cannot exceed 64 characters.")]
     public string? TaxCategory { get; set; }
 
+    private string? _hsnSacCode;
+
     [StringLength(32, ErrorMessage = "HSN/SAC code cannot exceed 32 characters.")]
-    public string? HsnSacCode { get; set; }
+    public string? HsnSacCode
+    {
+        get => _hsnSacCode;
+        set => _hsnSacCode = value;
+    }
+
+    /// <summary>
+    /// Alias property for frontend compatibility where field name is sent as "hsnSac".
+    /// </summary>
+    [StringLength(32, ErrorMessage = "HSN/SAC code cannot exceed 32 characters.")]
+    public string? HsnSac
+    {
+        get => _hsnSacCode;
+        set => _hsnSacCode = value ?? _hsnSacCode;
+    }
 
     [JsonConverter(typeof(BooleanOrYesNoJsonConverter))]
     public bool DiscountAllowed { get; set; } = true;

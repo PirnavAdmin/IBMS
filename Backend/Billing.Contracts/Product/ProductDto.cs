@@ -10,11 +10,13 @@ public class ProductDto
     public string Type { get; set; } = "Product";
     public int? CategoryId { get; set; }
     public string? CategoryName { get; set; }
+    public string? Category => CategoryName;
     public string Unit { get; set; } = "unit";
     public decimal Price { get; set; }
     public string Currency { get; set; } = "INR";
     public string? TaxCategory { get; set; }
     public string? HsnSacCode { get; set; }
+    public string? HsnSac => HsnSacCode;
     public bool DiscountAllowed { get; set; } = true;
     public decimal? DiscountPercent { get; set; } = 0.00m;
     public string Status { get; set; } = "Active";

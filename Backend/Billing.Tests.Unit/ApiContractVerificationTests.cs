@@ -281,6 +281,8 @@ public class ApiContractVerificationTests
         Assert.True(data.TryGetProperty("currency", out _));
         Assert.True(data.TryGetProperty("taxCategory", out _));
         Assert.True(data.TryGetProperty("hsnSacCode", out _));
+        Assert.True(data.TryGetProperty("hsnSac", out _));
+        Assert.True(data.TryGetProperty("category", out _));
         Assert.True(data.TryGetProperty("discountAllowed", out _));
         Assert.True(data.TryGetProperty("status", out _));
         Assert.True(data.TryGetProperty("isActive", out _));
@@ -306,6 +308,44 @@ public class ApiContractVerificationTests
         Assert.Equal(49.99m, request.Price);
         Assert.Equal("Gadgets", request.Category);
         Assert.Equal("8471", request.HsnSacCode);
+    }
+
+    [Fact]
+    public void CreateProductRequest_DeserializesWithHsnSac_FrontendAlias()
+    {
+        var json = """
+        {
+            "productCode": "PRD-FRONTEND",
+            "name": "Widget Frontend",
+            "price": 99.99,
+            "category": "Electronics",
+            "hsnSac": "8528"
+        }
+        """;
+
+        var request = JsonSerializer.Deserialize<CreateProductRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(request);
+        Assert.Equal("8528", request.HsnSacCode);
+        Assert.Equal("8528", request.HsnSac);
+    }
+
+    [Fact]
+    public void UpdateProductRequest_DeserializesWithHsnSac_FrontendAlias()
+    {
+        var json = """
+        {
+            "productCode": "PRD-UPDATE",
+            "name": "Widget Updated",
+            "price": 149.99,
+            "category": "Electronics",
+            "hsnSac": "8528"
+        }
+        """;
+
+        var request = JsonSerializer.Deserialize<UpdateProductRequest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(request);
+        Assert.Equal("8528", request.HsnSacCode);
+        Assert.Equal("8528", request.HsnSac);
     }
 
     [Fact]
