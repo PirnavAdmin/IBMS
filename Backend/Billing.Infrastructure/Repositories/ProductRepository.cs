@@ -19,7 +19,7 @@ public class ProductRepository : IProductRepository
     {
         var query = _context.Products
             .AsNoTracking()
-            .Include(p => p.Category)
+            .Include(p => p.ProductCategory)
             .Where(p => p.Id == id);
 
         if (tenantId.HasValue && tenantId.Value > 0)
@@ -33,7 +33,7 @@ public class ProductRepository : IProductRepository
     public async Task<Product?> GetByIdForUpdateAsync(int id, int? tenantId = null)
     {
         var query = _context.Products
-            .Include(p => p.Category)
+            .Include(p => p.ProductCategory)
             .Where(p => p.Id == id);
 
         if (tenantId.HasValue && tenantId.Value > 0)
@@ -48,7 +48,7 @@ public class ProductRepository : IProductRepository
     {
         var normalizedCode = productCode.Trim().ToLowerInvariant();
         var query = _context.Products
-            .Include(p => p.Category)
+            .Include(p => p.ProductCategory)
             .Where(p => p.ProductCode.ToLower() == normalizedCode);
 
         if (tenantId.HasValue && tenantId.Value > 0)
@@ -63,7 +63,7 @@ public class ProductRepository : IProductRepository
     {
         var queryable = _context.Products
             .AsNoTracking()
-            .Include(p => p.Category)
+            .Include(p => p.ProductCategory)
             .AsQueryable();
 
         if (tenantId.HasValue && tenantId.Value > 0)
@@ -88,7 +88,8 @@ public class ProductRepository : IProductRepository
         else if (!string.IsNullOrWhiteSpace(query.Category))
         {
             var cat = query.Category.Trim().ToLower();
-            queryable = queryable.Where(p => p.Category != null && p.Category.Name.ToLower() == cat);
+            queryable = queryable.Where(p => (p.Category != null && p.Category.ToLower() == cat) ||
+                                             (p.ProductCategory != null && p.ProductCategory.Name.ToLower() == cat));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Type) && !query.Type.Equals("All", StringComparison.OrdinalIgnoreCase))
@@ -120,8 +121,8 @@ public class ProductRepository : IProductRepository
             ("price", true) => queryable.OrderByDescending(p => p.Price),
             ("productcode" or "code", false) => queryable.OrderBy(p => p.ProductCode),
             ("productcode" or "code", true) => queryable.OrderByDescending(p => p.ProductCode),
-            ("category", false) => queryable.OrderBy(p => p.Category != null ? p.Category.Name : string.Empty),
-            ("category", true) => queryable.OrderByDescending(p => p.Category != null ? p.Category.Name : string.Empty),
+            ("category", false) => queryable.OrderBy(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
+            ("category", true) => queryable.OrderByDescending(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("updatedat", false) => queryable.OrderBy(p => p.UpdatedAtUtc),
             ("updatedat", true) => queryable.OrderByDescending(p => p.UpdatedAtUtc),
             ("createdat", false) => queryable.OrderBy(p => p.CreatedAtUtc),

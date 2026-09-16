@@ -18,7 +18,8 @@ public class Product
     public string Type { get; set; } = "Product";
 
     public int? CategoryId { get; set; }
-    public ProductCategory? Category { get; set; }
+    public ProductCategory? ProductCategory { get; set; }
+    public string? Category { get; set; }
 
     public string Unit { get; set; } = "unit";
 

@@ -236,7 +236,9 @@ public class BillingDbContext : DbContext
                   .HasForeignKey(p => p.TenantId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(p => p.Category)
+            entity.Property(p => p.Category).HasMaxLength(128);
+
+            entity.HasOne(p => p.ProductCategory)
                   .WithMany(c => c.Products)
                   .HasForeignKey(p => p.CategoryId)
                   .OnDelete(DeleteBehavior.SetNull);

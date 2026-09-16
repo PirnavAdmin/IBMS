@@ -233,7 +233,7 @@ public class ProductBackendTests
     public async Task GetProducts_WithCategoryFilter_FiltersCorrectly()
     {
         var cat = await _repository.AddCategoryAsync(new ProductCategory { TenantId = 1, Name = "Hardware" });
-        await _repository.AddAsync(new Product { TenantId = 1, ProductCode = "P-HW", Name = "Keyboard", Price = 50, CategoryId = cat.Id, Category = cat });
+        await _repository.AddAsync(new Product { TenantId = 1, ProductCode = "P-HW", Name = "Keyboard", Price = 50, CategoryId = cat.Id, ProductCategory = cat, Category = cat.Name });
         await _repository.AddAsync(new Product { TenantId = 1, ProductCode = "P-SW", Name = "OS License", Price = 150 });
 
         var response = await _controller.GetProducts(category: "Hardware");

@@ -69,7 +69,8 @@ public class ProductService : IProductService
             Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             Type = string.IsNullOrWhiteSpace(request.Type) ? "Product" : request.Type.Trim(),
             CategoryId = resolvedCategoryId,
-            Category = resolvedCategory,
+            ProductCategory = resolvedCategory,
+            Category = resolvedCategory?.Name ?? (string.IsNullOrWhiteSpace(request.Category) ? null : request.Category.Trim()),
             Unit = string.IsNullOrWhiteSpace(request.Unit) ? "Piece" : request.Unit.Trim(),
             Price = request.Price,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency.Trim().ToUpperInvariant(),
@@ -83,9 +84,9 @@ public class ProductService : IProductService
         };
 
         var created = await _productRepository.AddAsync(product);
-        if (created.Category == null && resolvedCategory != null)
+        if (created.ProductCategory == null && resolvedCategory != null)
         {
-            created.Category = resolvedCategory;
+            created.ProductCategory = resolvedCategory;
         }
 
         return ApiResponse<ProductDto>.Ok(MapToDto(created), "Product created successfully.");
@@ -170,7 +171,8 @@ public class ProductService : IProductService
                 });
             }
             product.CategoryId = resolvedCategory.Id;
-            product.Category = resolvedCategory;
+            product.ProductCategory = resolvedCategory;
+            product.Category = resolvedCategory.Name;
         }
 
         product.Name = request.Name.Trim();
@@ -188,9 +190,9 @@ public class ProductService : IProductService
         product.RowVersion = DateTime.UtcNow;
 
         var updated = await _productRepository.UpdateAsync(product);
-        if (updated.Category == null && resolvedCategory != null)
+        if (updated.ProductCategory == null && resolvedCategory != null)
         {
-            updated.Category = resolvedCategory;
+            updated.ProductCategory = resolvedCategory;
         }
 
         return ApiResponse<ProductDto>.Ok(MapToDto(updated), "Product updated successfully.");
@@ -439,7 +441,7 @@ public class ProductService : IProductService
             Description = p.Description,
             Type = p.Type,
             CategoryId = p.CategoryId,
-            CategoryName = p.Category?.Name,
+            CategoryName = p.Category ?? p.ProductCategory?.Name,
             Unit = p.Unit,
             Price = p.Price,
             Currency = p.Currency,

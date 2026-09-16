@@ -59,7 +59,8 @@ public class FakeProductRepository : IProductRepository
         else if (!string.IsNullOrWhiteSpace(query.Category))
         {
             var cat = query.Category.Trim().ToLowerInvariant();
-            queryable = queryable.Where(p => p.Category != null && p.Category.Name.ToLowerInvariant() == cat);
+            queryable = queryable.Where(p => (p.Category != null && p.Category.ToLowerInvariant() == cat) ||
+                                             (p.ProductCategory != null && p.ProductCategory.Name.ToLowerInvariant() == cat));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Type) && !query.Type.Equals("All", StringComparison.OrdinalIgnoreCase))
@@ -91,8 +92,8 @@ public class FakeProductRepository : IProductRepository
             ("price", true) => queryable.OrderByDescending(p => p.Price),
             ("productcode" or "code", false) => queryable.OrderBy(p => p.ProductCode),
             ("productcode" or "code", true) => queryable.OrderByDescending(p => p.ProductCode),
-            ("category", false) => queryable.OrderBy(p => p.Category != null ? p.Category.Name : string.Empty),
-            ("category", true) => queryable.OrderByDescending(p => p.Category != null ? p.Category.Name : string.Empty),
+            ("category", false) => queryable.OrderBy(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
+            ("category", true) => queryable.OrderByDescending(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("updatedat", false) => queryable.OrderBy(p => p.UpdatedAtUtc),
             ("updatedat", true) => queryable.OrderByDescending(p => p.UpdatedAtUtc),
             ("createdat", false) => queryable.OrderBy(p => p.CreatedAtUtc),
