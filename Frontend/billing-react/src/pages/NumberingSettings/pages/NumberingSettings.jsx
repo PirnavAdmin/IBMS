@@ -30,15 +30,6 @@ import { DocumentTypeSelector } from '../components/DocumentTypeSelector';
 import { FormatBuilder } from '../components/FormatBuilder';
 import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
 import '../styles/numbering-settings.css';
-import {
-  FormatListNumberedOutlined,
-  CheckCircleOutline,
-  ErrorOutline,
-  InfoOutlined,
-  ArrowBackOutlined,
-  ChevronRight,
-} from '@mui/icons-material';
-import { Button, Skeleton } from '@mui/material';
 
 export function NumberingSettings() {
   const navigate = useNavigate();
@@ -47,7 +38,6 @@ export function NumberingSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
-  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: string }
 
   const {
     register,
@@ -74,26 +64,36 @@ export function NumberingSettings() {
   const loadSettingsForType = useCallback(async (docType) => {
     setIsLoading(true);
     setApiError('');
+    const preset = DEFAULT_PRESETS_BY_DOC_TYPE[docType] || DEFAULT_NUMBERING_CONFIG;
     try {
       const data = await numberingService.getSettings(docType);
       if (data) {
         // Normalize any backend curly braces to normal brackets for the UI
-        const normalizedTokens = (data.tokens ?? '(YEAR)-(MONTH)-')
+        const normalizedTokens = (data.tokens || preset.tokens)
           .replace(/\{/g, '(')
           .replace(/\}/g, ')');
 
         reset({
           documentType: data.documentType || docType,
-          prefix: (data.prefix ?? 'INV-001').replace(/\{/g, '(').replace(/\}/g, ')'),
-          suffix: (data.suffix ?? '2026').replace(/\{/g, '(').replace(/\}/g, ')'),
+          prefix: (data.prefix || preset.prefix).replace(/\{/g, '(').replace(/\}/g, ')'),
+          suffix: (data.suffix || preset.suffix).replace(/\{/g, '(').replace(/\}/g, ')'),
           tokens: normalizedTokens,
-          sequenceLength: Number(data.sequenceLength ?? 4),
-          nextNumber: Number(data.nextNumber ?? 42),
-          resetPolicy: data.resetPolicy || 'Never (Continuous sequence)',
+          sequenceLength: Number(data.sequenceLength || preset.sequenceLength || 4),
+          nextNumber: Number(data.nextNumber || preset.nextNumber || 1),
+          resetPolicy: data.resetPolicy || preset.resetPolicy || 'Never (Continuous sequence)',
+        });
+      } else {
+        reset({
+          ...preset,
+          documentType: docType,
         });
       }
     } catch (err) {
-      setApiError(err.message || 'Failed to load numbering settings.');
+      console.warn('API getSettings error, falling back to preset:', err);
+      reset({
+        ...preset,
+        documentType: docType,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -156,11 +156,22 @@ export function NumberingSettings() {
       };
 
       const result = await numberingService.updateSettings(payload);
-      reset(result);
-      setFeedback({
-        type: 'success',
-        message: `Numbering settings for ${result.documentType} updated successfully.`,
-      });
+      if (result) {
+        reset({
+          documentType: result.documentType || currentDocType,
+          prefix: (result.prefix ?? currentPrefix).replace(/\{/g, '(').replace(/\}/g, ')'),
+          suffix: (result.suffix ?? currentSuffix).replace(/\{/g, '(').replace(/\}/g, ')'),
+          tokens: (result.tokens ?? currentTokens).replace(/\{/g, '(').replace(/\}/g, ')'),
+          sequenceLength: Number(result.sequenceLength ?? currentSeqLength),
+          nextNumber: Number(result.nextNumber ?? currentNextNum),
+          resetPolicy: result.resetPolicy || currentResetPolicy,
+        });
+      }
+      setToast(
+        isDraft
+          ? `Numbering format for ${currentDocType} saved as draft.`
+          : `Numbering settings for ${currentDocType} saved successfully.`
+      );
     } catch (err) {
       setApiError(err.userMessage || err.message || 'Failed to save numbering settings.');
     } finally {
@@ -183,7 +194,14 @@ export function NumberingSettings() {
     <div className="numbering-page-root">
       {/* Top Breadcrumbs */}
       <nav className="numbering-breadcrumbs" aria-label="Breadcrumb">
-        <span className="crumb-root">Settings</span>
+        <span
+          className="crumb-root"
+          onClick={() => navigate('/settings')}
+          style={{ cursor: 'pointer' }}
+          title="Back to Settings"
+        >
+          Settings
+        </span>
         <span className="crumb-sep">&gt;</span>
         <span className="crumb-mid">General Settings</span>
         <span className="crumb-sep">&gt;</span>
@@ -199,7 +217,21 @@ export function NumberingSettings() {
           </p>
         </div>
 
-        <div className="num-header-actions"><Button size="small" variant="text" startIcon={<ArrowBackOutlined />} onClick={() => navigate('/settings')}>Back to Settings</Button><div className="num-header-badge"><FormatListNumberedOutlined style={{ fontSize: '1rem' }} />Active: {currentDocType}</div></div>
+        {/* Decorative Quote Banner matching mockup */}
+        <div className="numbering-quote-card" aria-hidden="true">
+          <div className="quote-card-glow" />
+          <div className="quote-text-wrap">
+            <span className="quote-line-1">Organize today,</span>
+            <span className="quote-line-2">Invoice better tomorrow</span>
+          </div>
+          <div className="quote-invoice-icon">
+            <div className="mini-invoice-sheet">
+              <div className="mini-invoice-line" style={{ width: '60%' }} />
+              <div className="mini-invoice-line" style={{ width: '80%' }} />
+              <div className="mini-invoice-line" style={{ width: '40%' }} />
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* Error Alert */}
