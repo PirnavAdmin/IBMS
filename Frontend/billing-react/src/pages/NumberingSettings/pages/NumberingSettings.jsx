@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
@@ -29,13 +30,24 @@ import { DocumentTypeSelector } from '../components/DocumentTypeSelector';
 import { FormatBuilder } from '../components/FormatBuilder';
 import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
 import '../styles/numbering-settings.css';
+import {
+  FormatListNumberedOutlined,
+  CheckCircleOutline,
+  ErrorOutline,
+  InfoOutlined,
+  ArrowBackOutlined,
+  ChevronRight,
+} from '@mui/icons-material';
+import { Button, Skeleton } from '@mui/material';
 
 export function NumberingSettings() {
+  const navigate = useNavigate();
   const requestLock = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
+  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: string }
 
   const {
     register,
@@ -63,7 +75,7 @@ export function NumberingSettings() {
     setIsLoading(true);
     setApiError('');
     try {
-      const { data } = await numberingService.getSettings(docType);
+      const data = await numberingService.getSettings(docType);
       if (data) {
         // Normalize any backend curly braces to normal brackets for the UI
         const normalizedTokens = (data.tokens ?? '(YEAR)-(MONTH)-')
@@ -143,12 +155,12 @@ export function NumberingSettings() {
         status: isDraft ? 'Draft' : 'Active',
       };
 
-      await numberingService.updateSettings(payload);
-      setToast(
-        isDraft
-          ? `Numbering format for ${currentDocType} saved as draft.`
-          : `Numbering settings for ${currentDocType} saved successfully.`
-      );
+      const result = await numberingService.updateSettings(payload);
+      reset(result);
+      setFeedback({
+        type: 'success',
+        message: `Numbering settings for ${result.documentType} updated successfully.`,
+      });
     } catch (err) {
       setApiError(err.userMessage || err.message || 'Failed to save numbering settings.');
     } finally {
@@ -187,21 +199,7 @@ export function NumberingSettings() {
           </p>
         </div>
 
-        {/* Decorative Quote Banner */}
-        <div className="numbering-quote-card" aria-hidden="true">
-          <div className="quote-card-glow" />
-          <div className="quote-text-wrap">
-            <span className="quote-line-1">Organize today,</span>
-            <span className="quote-line-2">Invoice better tomorrow</span>
-          </div>
-          <div className="quote-invoice-icon">
-            <div className="mini-invoice-sheet">
-              <div className="mini-invoice-line" style={{ width: '60%' }} />
-              <div className="mini-invoice-line" style={{ width: '80%' }} />
-              <div className="mini-invoice-line" style={{ width: '40%' }} />
-            </div>
-          </div>
-        </div>
+        <div className="num-header-actions"><Button size="small" variant="text" startIcon={<ArrowBackOutlined />} onClick={() => navigate('/settings')}>Back to Settings</Button><div className="num-header-badge"><FormatListNumberedOutlined style={{ fontSize: '1rem' }} />Active: {currentDocType}</div></div>
       </header>
 
       {/* Error Alert */}

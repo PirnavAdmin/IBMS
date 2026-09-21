@@ -1,9 +1,10 @@
-import { Settings, LocalOfferOutlined, AddCardOutlined, FormatListNumberedOutlined } from '@mui/icons-material';
+import { Settings, LocalOfferOutlined, AddCardOutlined, FormatListNumberedOutlined, ReceiptLongOutlined } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import './settings.css';
 
 const cards = [
+  { title: 'Taxes & GST', description: 'Configure tax rules, GST rates, calculation methods, and active billing taxes.', icon: ReceiptLongOutlined, route: '/settings/taxes' },
   { title: 'Discount Configuration', description: 'Set maximum discounts, application controls, overrides, and role access.', icon: LocalOfferOutlined, route: '/settings/discounts' },
   { title: 'Charges Configuration', description: 'Manage shipping, handling, late fees, and custom invoice charges.', icon: AddCardOutlined, route: '/settings/charges' },
   { title: 'Invoice Numbering', description: 'Configure document numbering format, dynamic date tokens, and sequence rules.', icon: FormatListNumberedOutlined, route: '/settings/numbering' },

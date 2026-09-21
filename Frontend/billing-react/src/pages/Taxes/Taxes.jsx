@@ -2,16 +2,13 @@
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, CircularProgress, Skeleton } from '@mui/material';
+import { AccountTreeOutlined, CheckCircleOutline, ReceiptLongOutlined, RemoveCircleOutline } from '@mui/icons-material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
-import { taxService, taxError, TAX_CONTRACT_BLOCKER } from '../../services/taxService';
+import { taxService, taxError } from '../../services/taxService';
 import { TAX_TYPES, emptyTax, validateTax, calculatePreview } from './taxModel';
 import './TaxSettings.css';
-import { taxDemoService } from './taxDemoService';
-
-const demoMode = import.meta.env.VITE_TAX_DEMO_MODE !== 'false';
-const activeTaxService = demoMode ? taxDemoService : taxService;
-const taxQueryKey = ['tax-settings', demoMode ? 'demo' : 'live'];
-const demoNotice = 'Demo data — sample tax rules only. Changes reset when you refresh and are not saved to the backend.';
+const activeTaxService = taxService;
+const taxQueryKey = ['tax-settings'];
 
 const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
 const useTaxes = () => useQuery({ queryKey: taxQueryKey, queryFn: activeTaxService.list, retry: false });
@@ -54,12 +51,17 @@ function TaxList() {
   const [status, setStatus] = useState('All');
   const taxes = query.data || [];
   const filtered = taxes.filter(tax => `${tax.name} ${tax.code}`.toLowerCase().includes(search.toLowerCase()) && (type === 'All' || tax.type === type) && (status === 'All' || tax.status === status));
-  return <><header className="tax-settings-header"><div><span className="tax-eyebrow">BILLING CONFIGURATION</span><h1>Tax Settings</h1><p>Configure taxes used for invoice and billing calculations.</p></div><Link className="tax-primary-btn" to="/taxes/new">+ Add Tax</Link></header>
-    {demoMode && <div className="tax-demo-notice" role="note">{demoNotice}</div>}{state?.taxNotice && <Alert severity="success">{state.taxNotice}</Alert>}
+  return <><div className="tax-back-action"><Link className="tax-primary-btn tax-settings-back" to="/settings">← Back to Settings</Link></div><header className="tax-settings-header"><div><span className="tax-eyebrow">BILLING CONFIGURATION</span><h1>Tax Settings</h1><p>Configure taxes used for invoice and billing calculations.</p></div><div className="tax-header-actions"><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></div></header>
+    {state?.taxNotice && <Alert severity="success">{state.taxNotice}</Alert>}
     {query.isPending ? <Loading /> : query.isError ? <LoadError query={query} /> : <>
-      <div className="tax-summary-grid">{[['Total Tax Rules', taxes.length], ['Active Taxes', taxes.filter(t => t.status === 'Active').length], ['Inactive Taxes', taxes.filter(t => t.status === 'Inactive').length], ['Tax Types', new Set(taxes.map(t => t.type)).size]].map(([label, count]) => <div className="tax-summary-card" key={label}><span>{label}</span><strong>{count}</strong></div>)}</div>
+      <section className="tax-summary-grid" aria-label="Tax summary">{[
+        { label: 'Total Tax Rules', value: taxes.length, text: 'Configured for billing', icon: <ReceiptLongOutlined />, tone: 'total' },
+        { label: 'Active Taxes', value: taxes.filter(t => t.status === 'Active').length, text: 'Ready to apply', icon: <CheckCircleOutline />, tone: 'active' },
+        { label: 'Inactive Taxes', value: taxes.filter(t => t.status === 'Inactive').length, text: 'Kept for history', icon: <RemoveCircleOutline />, tone: 'inactive' },
+        { label: 'Tax Types', value: new Set(taxes.map(t => t.type)).size, text: 'Across all tax rules', icon: <AccountTreeOutlined />, tone: 'types' },
+      ].map(stat => <article className={`tax-summary-card tax-summary-${stat.tone}`} key={stat.label}><div className="tax-summary-top"><span>{stat.label}</span><span className="tax-summary-icon" aria-hidden="true">{stat.icon}</span></div><strong>{stat.value}</strong><small>{stat.text}</small></article>)}</section>
       <section className="tax-card"><div className="tax-toolbar"><Field name="search" label="Search Tax" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or code" type="search" /><Field name="filter-type" label="Tax Type" options={['All', ...TAX_TYPES]} value={type} onChange={e => setType(e.target.value)} /><Field name="filter-status" label="Status" options={['All', 'Active', 'Inactive']} value={status} onChange={e => setStatus(e.target.value)} /></div>
-        {!taxes.length ? <div className="tax-empty-state"><h2>No tax configurations found.</h2><p>Create your first tax rule to start configuring invoice taxes.</p><Link className="tax-primary-btn" to="/taxes/new">+ Add Tax</Link></div> : !filtered.length ? <div className="tax-empty-state"><h2>No matching tax rules.</h2><button className="tax-secondary-btn" onClick={() => { setSearch(''); setType('All'); setStatus('All'); }}>Clear filters</button></div> : <div className="tax-table-container" tabIndex={0} role="region" aria-label="Tax configurations"><table className="tax-table"><thead><tr>{['Tax Name', 'Tax Code', 'Tax Type', 'Rate', 'Calculation', 'Priority', 'Effective From', 'Effective To', 'Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{filtered.map(tax => <tr key={tax.id}><th scope="row">{tax.name}</th><td>{tax.code}</td><td>{tax.type}</td><td>{tax.rate}%</td><td>{tax.calculation}</td><td>{tax.priority}</td><td>{tax.effectiveFrom}</td><td>{tax.effectiveTo || 'No end date'}</td><td><span className={`tax-status tax-status-${tax.status.toLowerCase()}`}>{tax.status}</span></td><td><Link className="tax-edit" aria-label={`Edit ${tax.name}`} to={`/taxes/${encodeURIComponent(tax.id)}/edit`}>Edit</Link></td></tr>)}</tbody></table></div>}
+        {!taxes.length ? <div className="tax-empty-state"><h2>No tax configurations found.</h2><p>Create your first tax rule to start configuring invoice taxes.</p><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></div> : !filtered.length ? <div className="tax-empty-state"><h2>No matching tax rules.</h2><button className="tax-secondary-btn" onClick={() => { setSearch(''); setType('All'); setStatus('All'); }}>Clear filters</button></div> : <div className="tax-table-container" tabIndex={0} role="region" aria-label="Tax configurations"><table className="tax-table"><thead><tr>{['Tax Name', 'Tax Code', 'Tax Type', 'Rate', 'Calculation', 'Priority', 'Effective From', 'Effective To', 'Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{filtered.map(tax => <tr key={tax.id}><th scope="row">{tax.name}</th><td>{tax.code}</td><td>{tax.type}</td><td>{tax.rate}%</td><td>{tax.calculation}</td><td>{tax.priority}</td><td>{tax.effectiveFrom}</td><td>{tax.effectiveTo || 'No end date'}</td><td><span className={`tax-status tax-status-${tax.status.toLowerCase()}`}>{tax.status}</span></td><td><Link className="tax-edit" aria-label={`Edit ${tax.name}`} to={`/settings/taxes/${encodeURIComponent(tax.id)}/edit`}>Edit</Link></td></tr>)}</tbody></table></div>}
       </section></>}
     <Preview />
   </>;
@@ -86,7 +88,7 @@ function TaxForm({ initial, editing = false }) {
     try {
       await activeTaxService.save(values, initial?.id);
       await queryClient.invalidateQueries({ queryKey: taxQueryKey });
-      navigate('/taxes', { state: { taxNotice: editing ? 'Tax updated successfully.' : 'Tax created successfully.' } });
+      navigate('/settings/taxes', { state: { taxNotice: editing ? 'Tax updated successfully.' : 'Tax created successfully.' } });
     } catch (error) { setSubmitError(taxError(error)); }
     finally { pending.current = false; setSaving(false); }
   };
@@ -95,19 +97,19 @@ function TaxForm({ initial, editing = false }) {
     ['calculation', 'Calculation Method', ['Inclusive', 'Exclusive']], ['priority', 'Priority', null, 'number'],
     ['effectiveFrom', 'Effective From', null, 'date'], ['effectiveTo', 'Effective To', null, 'date'], ['status', 'Status', ['Active', 'Inactive']],
   ];
-  return <><header className="tax-settings-header"><div><Link className="tax-edit" to="/taxes">← Tax Settings</Link><h1>{editing ? 'Edit Tax' : 'Add Tax'}</h1><p>Define a tax rule for invoice and billing calculations.</p></div></header><form className="tax-card tax-form" onSubmit={submit} noValidate><Alert severity="info">{demoMode ? demoNotice : TAX_CONTRACT_BLOCKER}</Alert><p className="tax-form-hint">Fields marked * are required.</p><fieldset disabled={saving}><div className="tax-form-grid">{fields.map(([name, label, options, type]) => <Field key={name} name={name} label={label} options={options ? ['', ...options] : undefined} type={type} value={values[name]} required={name !== 'effectiveTo'} error={errors[name]} onChange={event => { setValues(previous => ({ ...previous, [name]: event.target.value })); setErrors(previous => ({ ...previous, [name]: undefined })); }} {...(type === 'number' ? { min: 0, step: name === 'rate' ? 'any' : 1, ...(name === 'rate' ? { max: 100 } : {}) } : {})} />)}</div></fieldset>{submitError && <Alert severity="error">{submitError}</Alert>}<div className="tax-form-actions"><button className="tax-secondary-btn" type="button" disabled={saving} onClick={() => navigate('/taxes')}>Cancel</button><button className="tax-primary-btn" type="submit" disabled={saving}>{saving && <CircularProgress size={16} color="inherit" />}{saving ? 'Saving…' : editing ? 'Update Tax' : 'Save Tax'}</button></div></form></>;
+  return <><header className="tax-settings-header"><div><Link className="tax-edit" to="/settings/taxes">← Tax Settings</Link><h1>{editing ? 'Edit Tax' : 'Add Tax'}</h1><p>Define a tax rule for invoice and billing calculations.</p></div></header><form className="tax-card tax-form" onSubmit={submit} noValidate><p className="tax-form-hint">Fields marked * are required.</p><fieldset disabled={saving}><div className="tax-form-grid">{fields.map(([name, label, options, type]) => <Field key={name} name={name} label={label} options={options ? ['', ...options] : undefined} type={type} value={values[name]} required={name !== 'effectiveTo'} error={errors[name]} onChange={event => { setValues(previous => ({ ...previous, [name]: event.target.value })); setErrors(previous => ({ ...previous, [name]: undefined })); }} {...(type === 'number' ? { min: 0, step: name === 'rate' ? { max: 100 } : 1, ...(name === 'rate' ? { max: 100 } : {}) } : {})} />)}</div></fieldset>{submitError && <Alert severity="error">{submitError}</Alert>}<div className="tax-form-actions"><button className="tax-secondary-btn" type="button" disabled={saving} onClick={() => navigate('/settings/taxes')}>Cancel</button><button className="tax-primary-btn" type="submit" disabled={saving}>{saving && <CircularProgress size={16} color="inherit" />}{saving ? 'Saving…' : editing ? 'Update Tax' : 'Save Tax'}</button></div></form></>;
 }
 function EditTax() {
   const { id } = useParams();
   const query = useTaxes();
   if (query.isPending) return <Loading />;
-  if (query.isError) return <><Link className="tax-edit" to="/taxes">← Tax Settings</Link><LoadError query={query} /></>;
+  if (query.isError) return <><Link className="tax-edit" to="/settings/taxes">← Tax Settings</Link><LoadError query={query} /></>;
   const tax = query.data.find(item => String(item.id) === id);
-  return tax ? <TaxForm key={id} initial={tax} editing /> : <div className="tax-card"><h1>Tax rule not found</h1><Link to="/taxes">Back to Tax Settings</Link></div>;
+  return tax ? <TaxForm key={id} initial={tax} editing /> : <div className="tax-card"><h1>Tax rule not found</h1><Link to="/settings/taxes">Back to Tax Settings</Link></div>;
 }
 export function Taxes() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const signOut = () => { localStorage.removeItem('billing_auth_token'); localStorage.removeItem('billing_auth_user'); navigate('/login'); };
-  return <div className="tax-module"><DashboardHeader searchQuery={search} onSearch={setSearch} onSignOut={signOut} /><main className="tax-settings-page"><Routes><Route index element={<TaxList />} /><Route path="new" element={<TaxForm />} /><Route path=":id/edit" element={<EditTax />} /><Route path="*" element={<Navigate to="/taxes" replace />} /></Routes></main></div>;
+  return <div className="tax-module"><DashboardHeader searchQuery={search} onSearch={setSearch} onSignOut={signOut} /><main className="tax-settings-page"><Routes><Route index element={<TaxList />} /><Route path="new" element={<TaxForm />} /><Route path=":id/edit" element={<EditTax />} /><Route path="*" element={<Navigate to="/settings/taxes" replace />} /></Routes></main></div>;
 }
