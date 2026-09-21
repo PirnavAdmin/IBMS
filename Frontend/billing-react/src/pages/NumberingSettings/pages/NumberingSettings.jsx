@@ -23,7 +23,6 @@ export function NumberingSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: string }
-  const [isFallbackBackend, setIsFallbackBackend] = useState(false);
 
   const {
     register,
@@ -46,8 +45,7 @@ export function NumberingSettings() {
     setIsLoading(true);
     setFeedback(null);
     try {
-      const { data, isFallback } = await numberingService.getSettings(docType);
-      setIsFallbackBackend(isFallback);
+      const data = await numberingService.getSettings(docType);
       if (data) {
         reset({
           documentType: data.documentType || docType,
@@ -118,18 +116,11 @@ export function NumberingSettings() {
       };
 
       const result = await numberingService.updateSettings(payload);
-
-      if (result.isFallback) {
-        setFeedback({
-          type: 'success',
-          message: `Numbering settings for ${data.documentType} saved successfully.`,
-        });
-      } else {
-        setFeedback({
-          type: 'success',
-          message: `Numbering settings for ${data.documentType} updated successfully on server!`,
-        });
-      }
+      reset(result);
+      setFeedback({
+        type: 'success',
+        message: `Numbering settings for ${result.documentType} updated successfully.`,
+      });
     } catch (err) {
       setFeedback({
         type: 'error',
