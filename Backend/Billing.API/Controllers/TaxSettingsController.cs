@@ -83,6 +83,10 @@ public class TaxSettingsController : ControllerBase
         var result = await _taxSettingService.UpdateTaxSettingsAsync(request, tenantId ?? 1);
         if (!result.Success)
         {
+            if (result.ErrorCode == "TAX_CONFIGURATION_CONFLICT" || (result.Message != null && result.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Conflict(result);
+            }
             return BadRequest(result);
         }
 
@@ -180,8 +184,14 @@ public class TaxSettingsController : ControllerBase
         var result = await _taxSettingService.UpdateTaxRateAsync(id, request, tenantId ?? 1);
         if (!result.Success)
         {
-            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            if (result.ErrorCode == "TAX_RATE_NOT_FOUND" || (result.Message != null && result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)))
                 return NotFound(result);
+
+            if (result.ErrorCode == "TAX_RATE_CODE_EXISTS" || result.ErrorCode == "TAX_CONFIGURATION_CONFLICT" ||
+                (result.Message != null && (result.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) || result.Message.Contains("conflict", StringComparison.OrdinalIgnoreCase))))
+            {
+                return Conflict(result);
+            }
 
             return BadRequest(result);
         }

@@ -36,6 +36,8 @@ public class BillingDbContext : DbContext
 
     public DbSet<NumberingSetting> NumberingSettings { get; set; }
 
+    public DbSet<DiscountSetting> DiscountSettings { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -387,6 +389,30 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(s => new { s.TenantId, s.DocumentType }).IsUnique();
             entity.HasIndex(s => new { s.TenantId, s.Status });
+        });
+
+        modelBuilder.Entity<DiscountSetting>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Property(s => s.MaximumType).HasMaxLength(32).HasDefaultValue("Percentage").IsRequired();
+            entity.Property(s => s.MaximumValue).HasPrecision(18, 2).HasDefaultValue(50.00m);
+            entity.Property(s => s.DiscountType).HasMaxLength(32).HasDefaultValue("Percentage").IsRequired();
+            entity.Property(s => s.ApplicationLevel).HasMaxLength(32).HasDefaultValue("Invoice Level").IsRequired();
+            entity.Property(s => s.AllowLineLevel).HasDefaultValue(true);
+            entity.Property(s => s.AllowInvoiceLevel).HasDefaultValue(true);
+            entity.Property(s => s.EnforceMaximum).HasDefaultValue(true);
+            entity.Property(s => s.AllowManualOverride).HasDefaultValue(true);
+            entity.Property(s => s.RequireOverrideReason).HasDefaultValue(true);
+            entity.Property(s => s.MinimumReasonLength).HasDefaultValue(10);
+            entity.Property(s => s.RowVersion).IsRowVersion();
+
+            entity.HasOne(s => s.Tenant)
+                  .WithMany()
+                  .HasForeignKey(s => s.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => s.TenantId).IsUnique();
         });
     }
 }

@@ -75,6 +75,7 @@ export const NextNumberPreviewCard = ({ formValues = {}, onInsertToken }) => {
 
         <div className="num-preview-display">
           <small>{documentType} Sequence</small>
+          <span className="num-derived-number-label">{documentType} Number</span>
           <div className="preview-text" title={preview.fullPreview || 'Incomplete Configuration'}>
             {preview.fullPreview || '---'}
           </div>

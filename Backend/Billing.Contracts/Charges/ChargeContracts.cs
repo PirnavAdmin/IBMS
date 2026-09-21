@@ -60,6 +60,7 @@ public class CreateChargeRequest
     public string? TaxCategory { get; set; }
 
     [StringLength(32)]
+    [RegularExpression("^(?i)(Active|Inactive)$", ErrorMessage = "Status must be either 'Active' or 'Inactive'.")]
     public string Status { get; set; } = "Active";
 }
 
@@ -97,7 +98,10 @@ public class UpdateChargeRequest
     public string? TaxCategory { get; set; }
 
     [StringLength(32)]
+    [RegularExpression("^(?i)(Active|Inactive)$", ErrorMessage = "Status must be either 'Active' or 'Inactive'.")]
     public string Status { get; set; } = "Active";
+
+    public string? RowVersion { get; set; }
 }
 
 public class CalculateChargesRequest

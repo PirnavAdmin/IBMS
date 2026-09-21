@@ -378,6 +378,14 @@
   margin-bottom: 8px;
 }
 
+.num-derived-number-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #fff9f4;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
 .num-preview-display .preview-text {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.45rem;

@@ -6,6 +6,7 @@ namespace Billing.Tests.Unit.Fakes;
 public class FakeAuditLogRepository : IAuditLogRepository
 {
     private readonly List<AuditLog> _logs = new();
+    public IReadOnlyList<AuditLog> Logs => _logs;
 
     public Task AddAsync(AuditLog log, CancellationToken cancellationToken = default)
     {

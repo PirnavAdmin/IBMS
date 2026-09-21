@@ -15,6 +15,12 @@ public class FakeChargeRepository : IChargeRepository
         return Task.FromResult(charge);
     }
 
+    public Task<ChargeConfiguration?> GetByIdForUpdateAsync(int id, int tenantId)
+    {
+        var charge = _charges.FirstOrDefault(c => c.Id == id && c.TenantId == tenantId);
+        return Task.FromResult(charge);
+    }
+
     public Task<ChargeConfiguration?> GetByCodeAsync(string code, int tenantId)
     {
         var normalized = code.Trim().ToUpperInvariant();

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
@@ -11,6 +12,7 @@ namespace Billing.Application.Services;
 public class NumberGenerationService : INumberGenerationService
 {
     private readonly INumberingRepository _numberingRepository;
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 
     public NumberGenerationService(INumberingRepository numberingRepository)
     {
@@ -27,53 +29,77 @@ public class NumberGenerationService : INumberGenerationService
         var docType = string.IsNullOrWhiteSpace(request?.DocumentType) ? "Invoice" : request.DocumentType.Trim();
         var date = request?.TransactionDate ?? DateTime.UtcNow;
 
-        var setting = await _numberingRepository.GetByDocumentTypeAsync(docType, tenantId);
-        if (setting == null)
+        var lockKey = $"{tenantId}:{docType}";
+        var semaphore = _locks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+
+        await semaphore.WaitAsync();
+        try
         {
-            // Auto provision default setting for this document type
-            setting = new NumberingSetting
+            var setting = await _numberingRepository.GetByDocumentTypeAsync(docType, tenantId);
+            if (setting == null)
             {
-                TenantId = tenantId,
+                // Auto provision default setting for this document type
+                try
+                {
+                    setting = new NumberingSetting
+                    {
+                        TenantId = tenantId,
+                        DocumentType = docType,
+                        Prefix = GetDefaultPrefix(docType),
+                        Suffix = string.Empty,
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow,
+                        RowVersion = DateTime.UtcNow
+                    };
+                    setting = await _numberingRepository.AddAsync(setting);
+                }
+                catch
+                {
+                    // If inserted concurrently, re-fetch
+                    setting = await _numberingRepository.GetByDocumentTypeAsync(docType, tenantId);
+                }
+            }
+
+            if (setting == null)
+            {
+                return ApiResponse<GenerateNumberResponseDto>.Fail("Setting provision error", "Unable to load or initialize numbering setting.");
+            }
+
+            // Check and apply reset policy
+            if (ShouldReset(setting.ResetPolicy, setting.LastResetDateUtc, date))
+            {
+                setting.NextNumber = 1;
+                setting.LastResetDateUtc = date;
+                await _numberingRepository.UpdateAsync(setting);
+            }
+
+            // Increment sequence atomically
+            var allocatedNumber = await _numberingRepository.IncrementSequenceAsync(setting.Id, tenantId);
+
+            var generatedNumber = FormatNumber(
+                setting.Prefix,
+                setting.Tokens,
+                allocatedNumber,
+                setting.SequenceLength,
+                setting.Suffix,
+                date);
+
+            return ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto
+            {
                 DocumentType = docType,
-                Prefix = GetDefaultPrefix(docType),
-                Suffix = string.Empty,
-                Tokens = "{YEAR}-",
-                SequenceLength = 4,
-                NextNumber = 1,
-                ResetPolicy = ResetPolicy.FinancialYear,
-                Status = "Active",
-                CreatedAtUtc = DateTime.UtcNow,
-                RowVersion = DateTime.UtcNow
-            };
-            setting = await _numberingRepository.AddAsync(setting);
+                GeneratedNumber = generatedNumber,
+                SequenceNumber = allocatedNumber,
+                GeneratedAtUtc = DateTime.UtcNow
+            }, "Document number generated successfully.");
         }
-
-        // Check and apply reset policy
-        if (ShouldReset(setting.ResetPolicy, setting.LastResetDateUtc, date))
+        finally
         {
-            setting.NextNumber = 1;
-            setting.LastResetDateUtc = date;
-            await _numberingRepository.UpdateAsync(setting);
+            semaphore.Release();
         }
-
-        // Increment sequence atomically
-        var allocatedNumber = await _numberingRepository.IncrementSequenceAsync(setting.Id, tenantId);
-
-        var generatedNumber = FormatNumber(
-            setting.Prefix,
-            setting.Tokens,
-            allocatedNumber,
-            setting.SequenceLength,
-            setting.Suffix,
-            date);
-
-        return ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto
-        {
-            DocumentType = docType,
-            GeneratedNumber = generatedNumber,
-            SequenceNumber = allocatedNumber,
-            GeneratedAtUtc = DateTime.UtcNow
-        }, "Document number generated successfully.");
     }
 
     public string FormatNumber(string prefix, string tokens, long sequenceNumber, int sequenceLength, string suffix, DateTime date)

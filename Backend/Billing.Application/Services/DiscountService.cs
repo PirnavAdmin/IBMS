@@ -361,6 +361,25 @@ public class DiscountService : IDiscountService
         };
 
         var saved = await _discountRuleRepository.AddAsync(rule, cancellationToken);
+
+        try
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "DiscountRule",
+                EntityId = saved.Id.ToString(),
+                Action = "CREATE",
+                UserName = string.IsNullOrWhiteSpace(userRole) ? "Admin" : userRole.Trim(),
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Created discount rule '{saved.Name}' ({saved.Code}) with value {saved.Value}."
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to write audit log for creating discount rule {Code}", saved.Code);
+        }
+
         return ApiResponse<DiscountRuleDto>.Ok(MapToDto(saved), "Discount rule created successfully.");
     }
 
@@ -410,6 +429,25 @@ public class DiscountService : IDiscountService
         rule.UpdatedAtUtc = DateTime.UtcNow;
 
         await _discountRuleRepository.UpdateAsync(rule, cancellationToken);
+
+        try
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "DiscountRule",
+                EntityId = rule.Id.ToString(),
+                Action = "UPDATE",
+                UserName = string.IsNullOrWhiteSpace(userRole) ? "Admin" : userRole.Trim(),
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Updated discount rule '{rule.Name}' ({rule.Code}) with value {rule.Value} and status '{rule.Status}'."
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to write audit log for updating discount rule {Code}", rule.Code);
+        }
+
         return ApiResponse<DiscountRuleDto>.Ok(MapToDto(rule), "Discount rule updated successfully.");
     }
 
@@ -455,6 +493,25 @@ public class DiscountService : IDiscountService
             return ApiResponse<bool>.Fail("Not found", $"Discount rule with ID {id} not found.");
 
         await _discountRuleRepository.DeleteAsync(rule, cancellationToken);
+
+        try
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "DiscountRule",
+                EntityId = id.ToString(),
+                Action = "DELETE",
+                UserName = string.IsNullOrWhiteSpace(userRole) ? "Admin" : userRole.Trim(),
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Deleted discount rule '{rule.Name}' ({rule.Code})."
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to write audit log for deleting discount rule {Id}", id);
+        }
+
         return ApiResponse<bool>.Ok(true, "Discount rule deleted successfully.");
     }
 

@@ -133,11 +133,10 @@ public class TaxSettingService : ITaxSettingService
         settings = await _taxRepository.UpsertSettingsAsync(settings);
         var allRates = await _taxRepository.GetRatesAsync(tenantId);
 
-        // Check for conflicts after update
         var conflictErrors = TaxValidator.ValidateConflicts(allRates);
         if (conflictErrors.Count > 0)
         {
-            return ApiResponse<TaxSettingsDto>.Fail("Tax configuration has conflicts.", conflictErrors);
+            return ApiResponse<TaxSettingsDto>.Fail("Tax configuration has conflicts.", conflictErrors, "TAX_CONFIGURATION_CONFLICT");
         }
 
         if (_auditLogRepository != null)
@@ -162,7 +161,7 @@ public class TaxSettingService : ITaxSettingService
     {
         var rate = await _taxRepository.GetRateByIdAsync(id, tenantId);
         if (rate == null)
-            return ApiResponse<TaxRateDto>.Fail($"Tax rate with ID {id} not found.");
+            return ApiResponse<TaxRateDto>.Fail($"Tax rate with ID {id} not found.", errorCode: "TAX_RATE_NOT_FOUND");
 
         return ApiResponse<TaxRateDto>.Ok(MapToRateDto(rate));
     }
@@ -171,10 +170,10 @@ public class TaxSettingService : ITaxSettingService
     {
         var errors = TaxValidator.ValidateCreateRate(request);
         if (errors.Count > 0)
-            return ApiResponse<TaxRateDto>.Fail("Validation failed.", errors);
+            return ApiResponse<TaxRateDto>.Fail("Validation failed.", errors, "VALIDATION_ERROR");
 
         if (await _taxRepository.ExistsByCodeAsync(request.Code, tenantId))
-            return ApiResponse<TaxRateDto>.Fail($"Tax rate with code '{request.Code}' already exists for this tenant.");
+            return ApiResponse<TaxRateDto>.Fail($"Tax rate with code '{request.Code}' already exists for this tenant.", errorCode: "TAX_RATE_CODE_EXISTS");
 
         var rate = new TaxRate
         {
@@ -198,7 +197,7 @@ public class TaxSettingService : ITaxSettingService
         existingRates.Add(rate);
         var conflictErrors = TaxValidator.ValidateConflicts(existingRates);
         if (conflictErrors.Count > 0)
-            return ApiResponse<TaxRateDto>.Fail("Configuration conflict detected.", conflictErrors);
+            return ApiResponse<TaxRateDto>.Fail("Configuration conflict detected.", conflictErrors, errorCode: "TAX_CONFIGURATION_CONFLICT");
 
         var created = await _taxRepository.CreateRateAsync(rate);
 
@@ -223,16 +222,16 @@ public class TaxSettingService : ITaxSettingService
     {
         var rate = await _taxRepository.GetRateByIdAsync(id, tenantId);
         if (rate == null)
-            return ApiResponse<TaxRateDto>.Fail($"Tax rate with ID {id} not found.");
+            return ApiResponse<TaxRateDto>.Fail($"Tax rate with ID {id} not found.", errorCode: "TAX_RATE_NOT_FOUND");
 
         var errors = TaxValidator.ValidateUpdateRate(request);
         if (errors.Count > 0)
-            return ApiResponse<TaxRateDto>.Fail("Validation failed.", errors);
+            return ApiResponse<TaxRateDto>.Fail("Validation failed.", errors, "VALIDATION_ERROR");
 
         if (request.Code != null && !string.Equals(rate.Code, request.Code.Trim(), StringComparison.OrdinalIgnoreCase))
         {
             if (await _taxRepository.ExistsByCodeAsync(request.Code, tenantId, id))
-                return ApiResponse<TaxRateDto>.Fail($"Tax rate with code '{request.Code}' already exists for this tenant.");
+                return ApiResponse<TaxRateDto>.Fail($"Tax rate with code '{request.Code}' already exists for this tenant.", errorCode: "TAX_RATE_CODE_EXISTS");
 
             rate.Code = request.Code.Trim().ToUpperInvariant();
         }
@@ -272,9 +271,24 @@ public class TaxSettingService : ITaxSettingService
     {
         var rate = await _taxRepository.GetRateByIdAsync(id, tenantId);
         if (rate == null)
-            return ApiResponse<bool>.Fail($"Tax rate with ID {id} not found.");
+            return ApiResponse<bool>.Fail($"Tax rate with ID {id} not found.", errorCode: "TAX_RATE_NOT_FOUND");
 
         var deleted = await _taxRepository.DeleteRateAsync(id, tenantId);
+
+        if (deleted && _auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "TaxRate",
+                EntityId = id.ToString(),
+                Action = "DELETE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Deleted tax rate '{rate.Name}' ({rate.Code})."
+            });
+        }
+
         return ApiResponse<bool>.Ok(deleted, "Tax rate deleted successfully.");
     }
 

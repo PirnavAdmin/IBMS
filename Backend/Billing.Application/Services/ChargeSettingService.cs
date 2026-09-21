@@ -9,10 +9,14 @@ namespace Billing.Application.Services;
 public class ChargeSettingService : IChargeSettingService
 {
     private readonly IChargeRepository _chargeRepository;
+    private readonly IAuditLogRepository? _auditLogRepository;
 
-    public ChargeSettingService(IChargeRepository chargeRepository)
+    public ChargeSettingService(
+        IChargeRepository chargeRepository,
+        IAuditLogRepository? auditLogRepository = null)
     {
         _chargeRepository = chargeRepository;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<ApiResponse<List<ChargeConfigurationDto>>> GetChargesAsync(int tenantId, bool? activeOnly = null, string? chargeType = null)
@@ -55,11 +59,18 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<ChargeConfigurationDto>.Fail("Validation failed", "Request cannot be null.");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            !string.Equals(request.Status.Trim(), "Active", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.Status.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiResponse<ChargeConfigurationDto>.Fail("Status must be either 'Active' or 'Inactive'.", errorCode: "VALIDATION_ERROR");
+        }
+
         var code = request.Code.Trim().ToUpperInvariant();
         var existing = await _chargeRepository.GetByCodeAsync(code, tenantId);
         if (existing != null)
         {
-            return ApiResponse<ChargeConfigurationDto>.Fail($"Charge with code '{code}' already exists for this tenant.");
+            return ApiResponse<ChargeConfigurationDto>.Fail($"Charge with code '{code}' already exists for this tenant.", errorCode: "CHARGE_CODE_EXISTS");
         }
 
         if (!Enum.TryParse<ChargeType>(request.ChargeType, true, out var parsedChargeType))
@@ -91,6 +102,21 @@ public class ChargeSettingService : IChargeSettingService
         };
 
         var created = await _chargeRepository.AddAsync(charge);
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = created.Id.ToString(),
+                Action = "CREATE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Created charge '{created.Name}' ({created.Code}) with amount {created.Amount} and type {created.ChargeType}."
+            });
+        }
+
         return ApiResponse<ChargeConfigurationDto>.Ok(MapToDto(created), "Charge created successfully.");
     }
 
@@ -106,10 +132,29 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<ChargeConfigurationDto>.Fail("Validation failed", "Request cannot be null.");
         }
 
-        var charge = await _chargeRepository.GetByIdAsync(id, tenantId);
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            !string.Equals(request.Status.Trim(), "Active", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.Status.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiResponse<ChargeConfigurationDto>.Fail("Status must be either 'Active' or 'Inactive'.", errorCode: "VALIDATION_ERROR");
+        }
+
+        var charge = await _chargeRepository.GetByIdForUpdateAsync(id, tenantId)
+                     ?? await _chargeRepository.GetByIdAsync(id, tenantId);
         if (charge == null)
         {
             return ApiResponse<ChargeConfigurationDto>.Fail("Not found", $"Charge with ID {id} was not found.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.RowVersion))
+        {
+            var currentBase64 = Convert.ToBase64String(BitConverter.GetBytes(charge.RowVersion.Ticks));
+            if (!string.Equals(request.RowVersion.Trim(), currentBase64, StringComparison.Ordinal))
+            {
+                return ApiResponse<ChargeConfigurationDto>.Fail(
+                    "A concurrency conflict occurred. The requested resource was updated or locked concurrently. Please reload and retry the operation.",
+                    errorCode: "CONCURRENCY_CONFLICT");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Code))
@@ -150,9 +195,23 @@ public class ChargeSettingService : IChargeSettingService
             charge.Status = request.Status.Trim();
         }
         charge.UpdatedAtUtc = DateTime.UtcNow;
-        charge.RowVersion = DateTime.UtcNow;
 
         var updated = await _chargeRepository.UpdateAsync(charge);
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = updated.Id.ToString(),
+                Action = "UPDATE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Updated charge '{updated.Name}' ({updated.Code}) with amount {updated.Amount} and status '{updated.Status}'."
+            });
+        }
+
         return ApiResponse<ChargeConfigurationDto>.Ok(MapToDto(updated), "Charge updated successfully.");
     }
 
@@ -163,10 +222,25 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<bool>.Fail("Invalid identifier", "Valid ID and Tenant ID are required.");
         }
 
+        var charge = await _chargeRepository.GetByIdAsync(id, tenantId);
         var success = await _chargeRepository.DeleteAsync(id, tenantId);
         if (!success)
         {
             return ApiResponse<bool>.Fail("Not found", $"Charge with ID {id} was not found.");
+        }
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = id.ToString(),
+                Action = "DELETE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Deleted charge '{charge?.Name ?? id.ToString()}' ({charge?.Code ?? string.Empty})."
+            });
         }
 
         return ApiResponse<bool>.Ok(true, "Charge deleted successfully.");

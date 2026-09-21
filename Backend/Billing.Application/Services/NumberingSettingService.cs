@@ -10,13 +10,16 @@ public class NumberingSettingService : INumberingSettingService
 {
     private readonly INumberingRepository _numberingRepository;
     private readonly INumberGenerationService _generationService;
+    private readonly IAuditLogRepository? _auditLogRepository;
 
     public NumberingSettingService(
         INumberingRepository numberingRepository,
-        INumberGenerationService generationService)
+        INumberGenerationService generationService,
+        IAuditLogRepository? auditLogRepository = null)
     {
         _numberingRepository = numberingRepository;
         _generationService = generationService;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<ApiResponse<NumberingSettingDto>> GetSettingByDocTypeAsync(string documentType, int tenantId)
@@ -134,6 +137,20 @@ public class NumberingSettingService : INumberingSettingService
             existing.RowVersion = DateTime.UtcNow;
 
             existing = await _numberingRepository.UpdateAsync(existing);
+        }
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "NumberingSetting",
+                EntityId = existing.Id.ToString(),
+                Action = "UPDATE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Updated numbering setting for '{existing.DocumentType}'. Prefix: '{existing.Prefix}', Tokens: '{existing.Tokens}', SequenceLength: {existing.SequenceLength}, NextNumber: {existing.NextNumber}, ResetPolicy: '{existing.ResetPolicy}'."
+            });
         }
 
         var dto = MapToDto(existing);

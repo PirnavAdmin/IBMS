@@ -162,4 +162,98 @@ public class ChargesEngineTests
         var result = await _calculationService.CalculateChargesAsync(new CalculateChargesRequest { Subtotal = 1000.00m }, tenantId: 1);
         Assert.Equal(50.00m, result.Data!.TotalCharges);
     }
+
+    [Fact]
+    public async Task CreateCharge_InvalidStatus_ReturnsValidationError()
+    {
+        var request = new CreateChargeRequest
+        {
+            Name = "Bad Status Charge",
+            Code = "BAD-STAT",
+            Amount = 50.00m,
+            Status = "string" // Invalid status reported by frontend
+        };
+
+        var result = await _settingService.CreateChargeAsync(request, tenantId: 1);
+        Assert.False(result.Success);
+        Assert.Contains("Status must be either 'Active' or 'Inactive'", result.Message);
+    }
+
+    [Fact]
+    public async Task UpdateCharge_MatchingRowVersion_UpdatesSuccessfully()
+    {
+        var createRequest = new CreateChargeRequest
+        {
+            Name = "Initial Charge",
+            Code = "UPD-TEST",
+            Amount = 100.00m,
+            Status = "Active"
+        };
+        var created = await _settingService.CreateChargeAsync(createRequest, tenantId: 1);
+        Assert.True(created.Success);
+
+        var updateRequest = new UpdateChargeRequest
+        {
+            Name = "Updated Charge Name",
+            Amount = 125.00m,
+            Status = "Inactive",
+            RowVersion = created.Data!.RowVersion
+        };
+
+        var updated = await _settingService.UpdateChargeAsync(created.Data.Id, updateRequest, tenantId: 1);
+        Assert.True(updated.Success);
+        Assert.Equal("Updated Charge Name", updated.Data!.Name);
+        Assert.Equal(125.00m, updated.Data.Amount);
+        Assert.Equal("Inactive", updated.Data.Status);
+    }
+
+    [Fact]
+    public async Task UpdateCharge_MismatchedRowVersion_ReturnsConflict()
+    {
+        var createRequest = new CreateChargeRequest
+        {
+            Name = "Concurrency Charge",
+            Code = "CONCUR-TEST",
+            Amount = 100.00m,
+            Status = "Active"
+        };
+        var created = await _settingService.CreateChargeAsync(createRequest, tenantId: 1);
+        Assert.True(created.Success);
+
+        var staleRowVersion = Convert.ToBase64String(BitConverter.GetBytes(DateTime.UtcNow.AddMinutes(-5).Ticks));
+        var updateRequest = new UpdateChargeRequest
+        {
+            Name = "Stale Update",
+            Amount = 150.00m,
+            Status = "Active",
+            RowVersion = staleRowVersion
+        };
+
+        var updated = await _settingService.UpdateChargeAsync(created.Data!.Id, updateRequest, tenantId: 1);
+        Assert.False(updated.Success);
+        Assert.Equal("CONCURRENCY_CONFLICT", updated.ErrorCode);
+        Assert.Contains("concurrency conflict", updated.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateCharge_InvalidStatus_ReturnsValidationError()
+    {
+        var createRequest = new CreateChargeRequest
+        {
+            Name = "Status Test Charge",
+            Code = "STAT-TEST",
+            Amount = 100.00m,
+            Status = "Active"
+        };
+        var created = await _settingService.CreateChargeAsync(createRequest, tenantId: 1);
+
+        var updateRequest = new UpdateChargeRequest
+        {
+            Status = "InvalidStatus"
+        };
+
+        var updated = await _settingService.UpdateChargeAsync(created.Data!.Id, updateRequest, tenantId: 1);
+        Assert.False(updated.Success);
+        Assert.Contains("Status must be either 'Active' or 'Inactive'", updated.Message);
+    }
 }
