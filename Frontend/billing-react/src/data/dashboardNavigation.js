@@ -16,7 +16,6 @@ export const dashboardNavigation = [
   {
     label: 'Operations',
     items: [
-      { id: 'taxes', label: 'Taxes & GST', icon: 'tax' },
       { id: 'recurring', label: 'Recurring Billing', icon: 'recurring' },
     ],
   },

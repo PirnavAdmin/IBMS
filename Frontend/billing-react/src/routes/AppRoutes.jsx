@@ -101,7 +101,7 @@ export const AppRoutes = () => (
       <Route path="/credit-notes" element={<ModulePlaceholder />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />
       <Route path="/expenses" element={<ModulePlaceholder />} />
-      <Route path="/taxes/*" element={<Taxes />} />
+      <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
       <Route path="/templates-branding" element={<ModulePlaceholder />} />
@@ -109,6 +109,7 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/taxes/*" element={<Taxes />} />
       <Route path="/settings/discounts" element={<DiscountConfiguration />} />
       <Route path="/settings/charges" element={<ChargesConfiguration />} />
       <Route path="/support" element={<ModulePlaceholder />} />

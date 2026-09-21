@@ -34,7 +34,7 @@ export const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const activeItem = Object.entries(routeModules).find(([route]) => pathname === route || pathname.startsWith(`${route}/`))?.[1] || 'dashboard';
   const openRoute = (route) => { setSidebarOpen(false); navigate(route); };
-  const hasPageHeader = pathname === '/dashboard' || pathname === '/invoices' || pathname === '/taxes' || pathname.startsWith('/taxes/');
+  const hasPageHeader = pathname === '/dashboard' || pathname === '/invoices' || pathname === '/taxes' || pathname.startsWith('/taxes/') || pathname === '/settings/taxes' || pathname.startsWith('/settings/taxes/');
   const signOut = () => {
     localStorage.removeItem('billing_auth_token');
     localStorage.removeItem('billing_auth_user');

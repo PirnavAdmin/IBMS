@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
@@ -15,11 +16,13 @@ import {
   CheckCircleOutline,
   ErrorOutline,
   InfoOutlined,
+  ArrowBackOutlined,
   ChevronRight,
 } from '@mui/icons-material';
-import { Skeleton } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
 
 export function NumberingSettings() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error' | 'info', message: string }
@@ -147,10 +150,7 @@ export function NumberingSettings() {
           <p>Configure document numbering format, dynamic date tokens, and sequence rules.</p>
         </div>
 
-        <div className="num-header-badge">
-          <FormatListNumberedOutlined style={{ fontSize: '1rem' }} />
-          Active: {currentDocType}
-        </div>
+        <div className="num-header-actions"><Button size="small" variant="text" startIcon={<ArrowBackOutlined />} onClick={() => navigate('/settings')}>Back to Settings</Button><div className="num-header-badge"><FormatListNumberedOutlined style={{ fontSize: '1rem' }} />Active: {currentDocType}</div></div>
       </header>
 
       {/* Feedback Alert Banners */}

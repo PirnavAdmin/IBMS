@@ -82,6 +82,8 @@
 
 .tax-settings-header p { font-size: 13px; margin: 4px 0 0; line-height: 1.5; }
 .tax-settings-header .tax-edit { text-decoration: none; font-size: 13px; }
+.tax-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.tax-back-action { margin-bottom: 12px; }
 .tax-settings-header .tax-edit:hover { color: #8b451f; }
 .tax-settings-page .tax-section-heading p { font-size: 13px; margin: 4px 0 0; }
 .tax-summary-total { background: #fff8ef; border-color: #eadfd2; border-top-color: #d8b99b; }

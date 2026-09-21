@@ -56,6 +56,7 @@
   color: var(--primary);
   border: 1px solid #edd5be;
 }
+.num-header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
 
 /* Main Grid Layout: 2-column on desktop, stacked on mobile */
 .num-settings-layout {
