@@ -22,6 +22,12 @@ public class ChargeRepository : IChargeRepository
             .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
     }
 
+    public async Task<ChargeConfiguration?> GetByIdForUpdateAsync(int id, int tenantId)
+    {
+        return await _context.Set<ChargeConfiguration>()
+            .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
+    }
+
     public async Task<ChargeConfiguration?> GetByCodeAsync(string code, int tenantId)
     {
         var normalized = code.Trim().ToUpperInvariant();
@@ -57,7 +63,11 @@ public class ChargeRepository : IChargeRepository
 
     public async Task<ChargeConfiguration> UpdateAsync(ChargeConfiguration charge)
     {
-        _context.Set<ChargeConfiguration>().Update(charge);
+        var entry = _context.Entry(charge);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.Set<ChargeConfiguration>().Update(charge);
+        }
         await _context.SaveChangesAsync();
         return charge;
     }

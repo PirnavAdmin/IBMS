@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IBMS Billing System: End-to-End API Workflow & Testing Guide</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --code-bg: #1e293b;
+      --code-text: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      padding: 48px;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #0f172a;
+      margin-bottom: 8px;
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 12px;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0 24px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .badge {
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    h2 {
+      font-size: 1.4rem;
+      color: #1e293b;
+      margin: 36px 0 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    h3 {
+      font-size: 1.15rem;
+      color: var(--primary-dark);
+      margin: 24px 0 12px;
+    }
+    p, li { margin-bottom: 10px; color: #334155; }
+    ul { margin-left: 24px; margin-bottom: 16px; }
+    .step-card {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .method-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: #fff;
+      margin-right: 6px;
+    }
+    .method-post { background: #16a34a; }
+    .method-get { background: #2563eb; }
+    .endpoint-title {
+      font-family: monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      margin: 12px 0;
+      line-height: 1.45;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .inline-code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    .flow-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #334155;
+      margin: 16px 0;
+      white-space: pre-wrap;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .container { box-shadow: none; padding: 0; max-width: 100%; }
+      pre { white-space: pre-wrap; word-break: break-all; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IBMS Billing System: End-to-End API Workflow & Testing Guide</h1>
+    <div class="badge-bar">
+      <span class="badge">Version 1.0</span>
+      <span class="badge">.NET 10 | ASP.NET Core</span>
+      <span class="badge">QA & Backend Verified</span>
+    </div>
+
+    <p>This document provides the chronological, verified workflow of the IBMS Billing System APIs. It covers all 8 executed steps—from authentication and master rule setup to product cataloging and final deterministic financial calculation.</p>
+
+    <h2>1. System Architecture & Sequential Flow</h2>
+    <div class="flow-box">
+[1. Login (JWT Token)]
+       ↓
+[2. Tax Settings & Slabs (GST 18%)]
+       ↓
+[3. Product Category ("Computer Hardware")]
+       ↓
+[4. Product Inventory ("Logitech Mouse" @ ₹1,200)]
+       ↓
+[5. Customer Profile ("Rahul Sharma" - Telangana)]
+       ↓
+[6. Additional Charges Policy ("Standard Shipping" @ ₹75)]
+       ↓
+[7. Concurrency-Safe Number Generation ("INV-2026-0001")]
+       ↓
+[8. Master Financial Engine Calculation (Grand Total: ₹2,492.16)]
+    </div>
+
+    <h2>2. Step-by-Step API Specification</h2>
+
+    <!-- STEP 1 -->
+    <div class="step-card">
+      <h3>Step 1: User Authentication & Session</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/auth/login</span></p>
+      <p><strong>Business Purpose:</strong> Enforces multi-tenant data isolation and RBAC. Generates the JWT Bearer token needed for all protected APIs.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "email": "superadmin@ibms.com",
+  "password": "SuperAdmin@123!"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>200 OK</code> with access token and user claims.</p>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+      <h3>Step 2: Tax Slabs & Configuration</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/settings/taxes/rates</span></p>
+      <p><strong>Business Purpose:</strong> Invoices and products legally require tax rates. Registers a persistent 18% GST slab (<code>id: 6</code>, <code>code: "GST_18"</code>).</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "name": "GST 18%",
+  "code": "GST_18",
+  "taxType": "GST",
+  "rate": 18.0,
+  "description": "Standard GST 18% for Electronics and Peripherals",
+  "isCompound": false,
+  "isInclusive": false,
+  "applicationLevel": "Item",
+  "priority": 1,
+  "effectiveFrom": "2026-01-01T00:00:00.000Z",
+  "effectiveTo": null,
+  "status": "Active"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>201 Created</code> with generated tax rate ID.</p>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-card">
+      <h3>Step 3: Product Category Catalog</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/categories</span></p>
+      <p><strong>Business Purpose:</strong> Classifies inventory into business groups for sales analytics, reporting, and grouping.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "name": "Computer Hardware",
+  "description": "Laptops, Desktops, Keyboards, Mice and Peripherals",
+  "status": "Active"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>201 Created</code> with category ID.</p>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-card">
+      <h3>Step 4: Product Inventory Registration</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/products</span></p>
+      <p><strong>Business Purpose:</strong> Registers sellable goods with category, GST HSN code (8471), standard unit price (₹1,200), and max allowed discount.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "productCode": null,
+  "name": "Logitech Wireless Mouse M331",
+  "description": "Silent optical wireless mouse with 2.4GHz USB receiver",
+  "type": "Product",
+  "category": "Computer Hardware",
+  "unit": "Piece",
+  "price": 1200.00,
+  "currency": "INR",
+  "taxCategory": "Standard",
+  "hsnSacCode": "8471",
+  "hsnSac": "8471",
+  "discountAllowed": true,
+  "discountPercent": 10.0,
+  "discount": 10.0,
+  "discountPercentage": 10.0,
+  "status": "Active"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>201 Created</code> with auto-generated product code (e.g. <code>PRD-0001</code>).</p>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-card">
+      <h3>Step 5: Customer Profile Management</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/customers</span></p>
+      <p><strong>Business Purpose:</strong> Stores customer details and GSTIN. Since customer state is <strong>Telangana</strong> (matching seller state), the system automatically splits 18% GST into <strong>CGST (9%) + SGST (9%)</strong>.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "customerCode": null,
+  "name": "Rahul Sharma",
+  "email": "rahul.sharma@example.com",
+  "phone": "9876543210",
+  "companyName": "Sharma Tech Enterprises",
+  "customerType": "Individual",
+  "taxId": "36AAAAA9999Z1Z1",
+  "address": "Plot 42, Hitech City Main Road",
+  "city": "Hyderabad",
+  "state": "Telangana",
+  "postalCode": "500081",
+  "country": "India",
+  "website": "https://sharmatech.in",
+  "notes": "Regular corporate customer",
+  "currency": "INR",
+  "paymentTerms": "Net 30",
+  "addresses": [
+    {
+      "id": 0,
+      "addressType": "Billing",
+      "addressLine1": "Plot 42, Hitech City Main Road",
+      "addressLine2": "Near Cyber Towers, Madhapur",
+      "city": "Hyderabad",
+      "state": "Telangana",
+      "postalCode": "500081",
+      "country": "India",
+      "isDefault": true
+    }
+  ]
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>200 OK</code> with customer record and code.</p>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-card">
+      <h3>Step 6: Additional Charges Policy</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/settings/charges</span></p>
+      <p><strong>Business Purpose:</strong> Predefines tenant-wide shipping rules with minimum order threshold (₹500.00), maximum cap (₹200.00), and taxable GST flag.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "name": "Standard Express Shipping",
+  "code": "SHIP_EXP",
+  "description": "Ground delivery within 2-3 business days",
+  "chargeType": "Shipping",
+  "calculationType": "Fixed",
+  "amount": 75.0,
+  "minInvoiceAmount": 500.0,
+  "maxChargeAmount": 200.0,
+  "isTaxable": true,
+  "taxCategory": "Standard",
+  "status": "Active"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>201 Created</code> with charge rule ID.</p>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step-card">
+      <h3>Step 7: Concurrency-Safe Invoice Number Generation</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/settings/numbering/generate</span></p>
+      <p><strong>Business Purpose:</strong> Prevents duplicate/missing invoice sequence numbers using thread-safe, atomic database sequence locking.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "documentType": "Invoice",
+  "transactionDate": "2026-09-21T00:00:00.000Z"
+}</code></pre>
+      <p><strong>Expected Output:</strong> <code>200 OK</code> returning <code>INV-2026-0001</code>.</p>
+    </div>
+
+    <!-- STEP 8 -->
+    <div class="step-card">
+      <h3>Step 8: Master Financial Calculation Engine (Checkout)</h3>
+      <p><span class="method-badge method-post">POST</span> <span class="endpoint-title">/api/v1/financial/calculate</span></p>
+      <p><strong>Business Purpose:</strong> The core computing engine of the billing system. Applies items, line discounts, coupons, taxes, and shipping in a strict, deterministic sequence.</p>
+      <strong>Request Body:</strong>
+      <pre><code>{
+  "items": [
+    {
+      "name": "Logitech Wireless Mouse M331",
+      "productCode": "PRD-0001",
+      "unitPrice": 1200.0,
+      "quantity": 2,
+      "lineDiscountType": "Percentage",
+      "lineDiscountValue": 10.0,
+      "taxRateId": 6,
+      "taxCode": "GST_18",
+      "taxRatePercent": 18.0,
+      "isTaxInclusive": false
+    }
+  ],
+  "invoiceDiscount": {
+    "discountType": "Percentage",
+    "value": 5.0,
+    "ruleCode": "SPECIAL5",
+    "overrideReason": "Customer loyalty discount"
+  },
+  "charges": [
+    {
+      "name": "Standard Delivery",
+      "chargeCode": "SHIP_STD",
+      "chargeType": "Shipping",
+      "calculationType": "Fixed",
+      "amount": 60.0,
+      "isTaxable": true,
+      "taxRatePercent": 18.0
+    }
+  ],
+  "transactionDate": "2026-09-21T04:43:53.778Z",
+  "pricesIncludeTax": false,
+  "currency": "INR"
+}</code></pre>
+
+      <h4 style="margin: 16px 0 8px; color: #1e293b;">Deterministic Calculation Arithmetic:</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Calculation Step</th>
+            <th>Formula</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Line Gross Amount</td>
+            <td>2 mice × ₹1,200.00</td>
+            <td><strong>₹2,400.00</strong></td>
+          </tr>
+          <tr>
+            <td>2. Line Item Discount (10%)</td>
+            <td>10% of ₹2,400.00 = -₹240.00</td>
+            <td><strong>₹2,160.00</strong> (Net Line Amount)</td>
+          </tr>
+          <tr>
+            <td>3. Order-Level Discount (5%)</td>
+            <td>5% of ₹2,160.00 = -₹108.00</td>
+            <td><strong>₹2,052.00</strong> (Taxable Base)</td>
+          </tr>
+          <tr>
+            <td>4. Product GST (18%)</td>
+            <td>18% on ₹2,052.00</td>
+            <td><strong>+₹369.36</strong></td>
+          </tr>
+          <tr>
+            <td>5. Additional Delivery Charge</td>
+            <td>Fixed shipping fee</td>
+            <td><strong>+₹60.00</strong></td>
+          </tr>
+          <tr>
+            <td>6. Tax on Delivery Charge (18%)</td>
+            <td>18% on ₹60.00</td>
+            <td><strong>+₹10.80</strong></td>
+          </tr>
+          <tr style="background: #e0f2fe;">
+            <td><strong>7. Final Grand Total</strong></td>
+            <td>₹2,052.00 + ₹369.36 + ₹60.00 + ₹10.80</td>
+            <td><strong>₹2,492.16</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Expected Output:</strong> <code>200 OK</code> with line breakdown and <code>grandTotal: 2492.16</code>.</p>
+    </div>
+
+    <h2>3. Master API Summary Matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Module</th>
+          <th>HTTP Method & Endpoint</th>
+          <th>Core Input</th>
+          <th>Key Business Output</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><strong>Auth</strong></td><td><code>POST /api/auth/login</code></td><td>Email, Password</td><td>Bearer JWT Token</td></tr>
+        <tr><td>2</td><td><strong>Taxes</strong></td><td><code>POST /api/v1/settings/taxes/rates</code></td><td>18% Rate, Code GST_18</td><td>Persistent Tax Rate (id: 6)</td></tr>
+        <tr><td>3</td><td><strong>Catalog</strong></td><td><code>POST /api/v1/categories</code></td><td>Name: "Computer Hardware"</td><td>Category created</td></tr>
+        <tr><td>4</td><td><strong>Inventory</strong></td><td><code>POST /api/v1/products</code></td><td>Logitech Mouse, Price: ₹1,200</td><td>Product PRD-0001 created</td></tr>
+        <tr><td>5</td><td><strong>Customer</strong></td><td><code>POST /api/v1/customers</code></td><td>Rahul Sharma, Telangana</td><td>Customer profile & GST State</td></tr>
+        <tr><td>6</td><td><strong>Charges</strong></td><td><code>POST /api/v1/settings/charges</code></td><td>Shipping Express, ₹75</td><td>Persistent Shipping Rule</td></tr>
+        <tr><td>7</td><td><strong>Numbering</strong></td><td><code>POST /api/v1/settings/numbering/generate</code></td><td>DocType: "Invoice"</td><td>Atomic INV-2026-0001</td></tr>
+        <tr><td>8</td><td><strong>Financial</strong></td><td><code>POST /api/v1/financial/calculate</code></td><td>Cart Items, Coupons, Taxes</td><td>Final Bill: ₹2,492.16</td></tr>
+      </tbody>
+    </table>
+
+    <footer style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--muted); text-align: center;">
+      Official Documentation & Testing Manual — IBMS Billing System Backend & QA Engineering Teams
+    </footer>
+  </div>
+</body>
+</html>

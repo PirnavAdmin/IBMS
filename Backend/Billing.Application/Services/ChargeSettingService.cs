@@ -59,6 +59,13 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<ChargeConfigurationDto>.Fail("Validation failed", "Request cannot be null.");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            !string.Equals(request.Status.Trim(), "Active", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.Status.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiResponse<ChargeConfigurationDto>.Fail("Status must be either 'Active' or 'Inactive'.", errorCode: "VALIDATION_ERROR");
+        }
+
         var code = request.Code.Trim().ToUpperInvariant();
         var existing = await _chargeRepository.GetByCodeAsync(code, tenantId);
         if (existing != null)
@@ -125,10 +132,29 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<ChargeConfigurationDto>.Fail("Validation failed", "Request cannot be null.");
         }
 
-        var charge = await _chargeRepository.GetByIdAsync(id, tenantId);
+        if (!string.IsNullOrWhiteSpace(request.Status) &&
+            !string.Equals(request.Status.Trim(), "Active", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.Status.Trim(), "Inactive", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiResponse<ChargeConfigurationDto>.Fail("Status must be either 'Active' or 'Inactive'.", errorCode: "VALIDATION_ERROR");
+        }
+
+        var charge = await _chargeRepository.GetByIdForUpdateAsync(id, tenantId)
+                     ?? await _chargeRepository.GetByIdAsync(id, tenantId);
         if (charge == null)
         {
             return ApiResponse<ChargeConfigurationDto>.Fail("Not found", $"Charge with ID {id} was not found.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.RowVersion))
+        {
+            var currentBase64 = Convert.ToBase64String(BitConverter.GetBytes(charge.RowVersion.Ticks));
+            if (!string.Equals(request.RowVersion.Trim(), currentBase64, StringComparison.Ordinal))
+            {
+                return ApiResponse<ChargeConfigurationDto>.Fail(
+                    "A concurrency conflict occurred. The requested resource was updated or locked concurrently. Please reload and retry the operation.",
+                    errorCode: "CONCURRENCY_CONFLICT");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Code))
@@ -169,7 +195,6 @@ public class ChargeSettingService : IChargeSettingService
             charge.Status = request.Status.Trim();
         }
         charge.UpdatedAtUtc = DateTime.UtcNow;
-        charge.RowVersion = DateTime.UtcNow;
 
         var updated = await _chargeRepository.UpdateAsync(charge);
 

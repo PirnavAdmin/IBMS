@@ -9,6 +9,7 @@ namespace Billing.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/settings/charges")]
+[Route("api/v1/charges")]
 [Consumes("application/json")]
 public class ChargesController : ControllerBase
 {
@@ -73,13 +74,27 @@ public class ChargesController : ControllerBase
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateCharge([FromRoute] int id, [FromBody] UpdateChargeRequest request)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
         var result = await _chargeSettingService.UpdateChargeAsync(id, request, tenantId.Value);
-        if (!result.Success) return BadRequest(result);
+        if (!result.Success)
+        {
+            if (result.ErrorCode == "CONCURRENCY_CONFLICT" || (result.Message != null && result.Message.Contains("concurrency", StringComparison.OrdinalIgnoreCase)))
+            {
+                return Conflict(result);
+            }
+            if (result.Message != null && result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(result);
+            }
+            return BadRequest(result);
+        }
 
         return Ok(result);
     }
