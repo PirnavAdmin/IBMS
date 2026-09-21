@@ -15,7 +15,6 @@ namespace Billing.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/settings/discounts")]
-[Route("api/v1/discounts/settings")]
 [Consumes("application/json")]
 [Produces("application/json")]
 public class DiscountSettingsController : ControllerBase
@@ -76,7 +75,6 @@ public class DiscountSettingsController : ControllerBase
     /// GET /api/v1/settings/discounts/roles - Retrieve configured discount role permissions.
     /// </summary>
     [HttpGet("roles")]
-    [HttpGet("/api/v1/discounts/roles")]
     [ProducesResponseType(typeof(ApiResponse<List<DiscountRolePermissionDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DiscountRolePermissionDto>>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetRolePermissions()
@@ -93,7 +91,6 @@ public class DiscountSettingsController : ControllerBase
     /// PUT /api/v1/settings/discounts/roles - Update configured discount role permissions.
     /// </summary>
     [HttpPut("roles")]
-    [HttpPut("/api/v1/discounts/roles")]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,Manager")]
     [ProducesResponseType(typeof(ApiResponse<List<DiscountRolePermissionDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<List<DiscountRolePermissionDto>>), StatusCodes.Status400BadRequest)]
@@ -113,7 +110,6 @@ public class DiscountSettingsController : ControllerBase
     /// POST /api/v1/settings/discounts/validate-max - Standalone endpoint to validate if a discount exceeds role/org limits.
     /// </summary>
     [HttpPost("validate-max")]
-    [HttpPost("/api/v1/discounts/validate-max")]
     [ProducesResponseType(typeof(ApiResponse<ValidateDiscountResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ValidateDiscountResultDto>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ValidateMaxDiscount([FromBody] ValidateDiscountRequest request)
