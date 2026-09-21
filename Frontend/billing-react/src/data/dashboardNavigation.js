@@ -30,10 +30,9 @@ export const dashboardNavigation = [
     label: 'Configuration & Administration',
     items: [
       { id: 'templates', label: 'Templates & Branding', icon: 'template' },
-      { id: 'numbering', label: 'Invoice Numbering', icon: 'numbering' },
       { id: 'activity', label: 'Audit Activity', icon: 'activity' },
       { id: 'integrations', label: 'Integration Settings', icon: 'integration' },
-      { id: 'settings', label: 'Settings / Administration', icon: 'settings' },
+      { id: 'settings', label: 'Settings / Administration', icon: 'settings', route: '/settings' },
     ],
   },
 ];

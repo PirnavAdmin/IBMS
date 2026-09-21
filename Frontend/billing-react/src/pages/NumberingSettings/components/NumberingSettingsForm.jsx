@@ -132,7 +132,7 @@ export const NumberingSettingsForm = ({
             <input
               id="num-tokens"
               type="text"
-              placeholder="e.g. {YEAR}- or {FY}/"
+              placeholder="e.g. (YEAR)- or (FY)/"
               maxLength={30}
               {...register('tokens')}
             />

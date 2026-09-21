@@ -18,7 +18,6 @@ const routeModules = {
   '/reports': 'reports',
   '/audit-activity': 'activity',
   '/templates-branding': 'templates',
-  '/invoice-numbering': 'numbering',
   '/integration-settings': 'integrations',
   '/settings': 'settings',
   '/support': 'support',

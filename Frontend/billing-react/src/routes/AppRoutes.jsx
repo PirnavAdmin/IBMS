@@ -105,7 +105,7 @@ export const AppRoutes = () => (
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
       <Route path="/templates-branding" element={<ModulePlaceholder />} />
-      <Route path="/invoice-numbering" element={<NumberingSettings />} />
+      <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />

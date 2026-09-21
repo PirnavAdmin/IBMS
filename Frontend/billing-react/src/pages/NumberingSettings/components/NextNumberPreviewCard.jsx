@@ -1,32 +1,21 @@
 import React from 'react';
 import {
-  generateNumberPreview,
-  SUPPORTED_TOKENS,
-} from '../validation/numberingValidation';
-import {
   VisibilityOutlined,
-  BoltOutlined,
-  CalendarMonthOutlined,
-  InfoOutlined,
+  FormatListNumberedOutlined,
+  CheckCircle,
+  LightbulbOutlined,
 } from '@mui/icons-material';
+import { generateNumberPreview } from '../validation/numberingValidation';
 
-const RESET_DESCRIPTIONS = {
-  Never: 'Sequence numbers continue sequentially without resetting.',
-  Yearly: 'Sequence resets to 1 on January 1st of every calendar year.',
-  'Financial Year': 'Sequence resets to 1 on April 1st of every Indian Financial Year.',
-  Monthly: 'Sequence resets to 1 on the 1st of each calendar month.',
-  Daily: 'Sequence resets to 1 at 00:00 every day.',
-};
-
-export const NextNumberPreviewCard = ({ formValues = {}, onInsertToken }) => {
+export const NextNumberPreviewCard = ({ formValues = {} }) => {
   const {
     documentType = 'Invoice',
     prefix = '',
     suffix = '',
     tokens = '',
     sequenceLength = 4,
-    nextNumber = 1,
-    resetPolicy = 'Financial Year',
+    nextNumber = 42,
+    resetPolicy = 'Never (Continuous sequence)',
   } = formValues;
 
   const preview = generateNumberPreview({
@@ -59,106 +48,97 @@ export const NextNumberPreviewCard = ({ formValues = {}, onInsertToken }) => {
     nextNumber: nextSeq2,
   }).fullPreview;
 
+  const docTypeName = documentType.toUpperCase();
+
   return (
-    <div className="num-preview-sticky">
-      <aside className="num-preview-card" aria-label="Next Number Preview">
-        <div className="num-preview-head">
-          <h3>
-            <VisibilityOutlined />
-            Next Number Preview
-          </h3>
-          <span className="live-indicator">
-            <span className="live-dot" />
-            Live Preview
+    <aside className="preview-column" aria-label="Live Preview">
+      {/* Header */}
+      <div className="preview-header">
+        <div className="preview-header-icon">
+          <VisibilityOutlined style={{ fontSize: '1.25rem' }} />
+        </div>
+        <div>
+          <h3>Live Preview</h3>
+          <p>See how your document numbers are generated.</p>
+        </div>
+      </div>
+
+      {/* Main Preview Card */}
+      <div className="preview-main-card">
+        <div className="preview-main-label">NEXT {docTypeName} NUMBER</div>
+        <div className="preview-main-number">
+          {preview.fullPreview || '---'}
+        </div>
+        <div className="preview-badge-row">
+          <span className="valid-format-badge">
+            <CheckCircle style={{ fontSize: '0.95rem' }} />
+            Valid format
           </span>
         </div>
+      </div>
 
-        <div className="num-preview-display">
-          <small>{documentType} Sequence</small>
-          <span className="num-derived-number-label">{documentType} Number</span>
-          <div className="preview-text" title={preview.fullPreview || 'Incomplete Configuration'}>
-            {preview.fullPreview || '---'}
+      {/* Breakdown Section */}
+      <div className="preview-section">
+        <h4>Breakdown</h4>
+        <div className="preview-table">
+          <div className="preview-table-row">
+            <span className="row-label">Prefix</span>
+            <span className="row-value">{preview.parts.prefix || '(none)'}</span>
+          </div>
+          <div className="preview-table-row">
+            <span className="row-label">Date Tokens</span>
+            <span className="row-value">{preview.parts.tokens || '(none)'}</span>
+          </div>
+          <div className="preview-table-row">
+            <span className="row-label">Sequence ({sequenceLength} digits)</span>
+            <span className="row-value">{preview.parts.sequence}</span>
+          </div>
+          <div className="preview-table-row">
+            <span className="row-label">Suffix</span>
+            <span className="row-value">{preview.parts.suffix || '(none)'}</span>
           </div>
         </div>
+      </div>
 
-        {/* Structure Breakdown */}
-        <div className="num-breakdown-section">
-          <div className="num-breakdown-title">Pattern Breakdown</div>
-          <div className="num-breakdown-grid">
-            <div className="num-breakdown-item">
-              <span>Prefix</span>
-              <strong>{preview.parts.prefix || '(none)'}</strong>
-            </div>
-            <div className="num-breakdown-item">
-              <span>Tokens</span>
-              <strong>{preview.parts.tokens || '(none)'}</strong>
-            </div>
-            <div className="num-breakdown-item">
-              <span>Sequence ({sequenceLength} digits)</span>
-              <strong>{preview.parts.sequence}</strong>
-            </div>
-            <div className="num-breakdown-item">
-              <span>Suffix</span>
-              <strong>{preview.parts.suffix || '(none)'}</strong>
-            </div>
+      {/* Upcoming Numbers Section */}
+      <div className="preview-section">
+        <h4 className="with-icon">
+          <span className="section-icon-badge">
+            <FormatListNumberedOutlined style={{ fontSize: '1rem' }} />
+          </span>
+          Upcoming Numbers
+        </h4>
+        <div className="preview-table">
+          <div className="preview-table-row">
+            <span className="row-label">Next Document</span>
+            <span className="row-value monospace">{preview.fullPreview}</span>
+          </div>
+          <div className="preview-table-row">
+            <span className="row-label">Following Document</span>
+            <span className="row-value monospace">{previewNext1}</span>
+          </div>
+          <div className="preview-table-row">
+            <span className="row-label">Subsequent Document</span>
+            <span className="row-value monospace">{previewNext2}</span>
           </div>
         </div>
+      </div>
 
-        {/* Next in Sequence */}
-        <div className="num-progression-section">
-          <h4>Upcoming Sequence</h4>
-          <div className="num-progression-list">
-            <div className="num-progression-item">
-              <span>Next Document</span>
-              <strong>{preview.fullPreview}</strong>
-            </div>
-            <div className="num-progression-item">
-              <span>Following Document</span>
-              <strong>{previewNext1}</strong>
-            </div>
-            <div className="num-progression-item">
-              <span>Subsequent Document</span>
-              <strong>{previewNext2}</strong>
-            </div>
-          </div>
+      {/* Reset Rule Notice */}
+      <div className="reset-rule-card">
+        <div className="reset-rule-icon">
+          <LightbulbOutlined style={{ fontSize: '1.15rem' }} />
         </div>
-
-        {/* Reset Rule explanation */}
-        <div style={{ marginTop: '18px', padding: '12px', background: '#faf6f1', borderRadius: '8px', border: '1px solid #ebd8ca', fontSize: '0.74rem', color: '#665345', display: 'flex', gap: '8px' }}>
-          <CalendarMonthOutlined style={{ fontSize: '1.1rem', color: '#8b451f', flexShrink: 0, marginTop: '1px' }} />
-          <div>
-            <strong style={{ display: 'block', color: '#3a2012', marginBottom: '2px' }}>
-              Reset Rule: {resetPolicy}
-            </strong>
-            <span>{RESET_DESCRIPTIONS[resetPolicy] || 'Configured reset policy.'}</span>
-          </div>
+        <div className="reset-rule-body">
+          <strong>Reset Rule: {resetPolicy.split('(')[0].trim()}</strong>
+          <p>
+            {resetPolicy.includes('(')
+              ? resetPolicy.split('(')[1].replace(')', '')
+              : 'Configured reset sequence rule for this document.'}
+          </p>
         </div>
-
-        {/* Quick Token Reference */}
-        {onInsertToken && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#7a6353', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <BoltOutlined style={{ fontSize: '1rem', color: '#d4864f' }} />
-              Quick Token Insert
-            </div>
-            <div className="num-token-chips">
-              {SUPPORTED_TOKENS.map((t) => (
-                <button
-                  type="button"
-                  key={t.token}
-                  className="num-token-chip"
-                  onClick={() => onInsertToken(t.token)}
-                  title={`${t.desc} — click to insert into tokens`}
-                >
-                  {t.token}
-                  <small>({t.example})</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </aside>
-    </div>
+      </div>
+    </aside>
   );
 };
 

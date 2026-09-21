@@ -3,73 +3,102 @@ import * as yup from 'yup';
 export const DOCUMENT_TYPES = [
   'Invoice',
   'Credit Note',
+  'Payment Receipt',
+  'Debit Note',
   'Estimate / Quote',
   'Recurring Invoice',
   'Delivery Challan',
 ];
 
+export const DOCUMENT_TYPE_CARDS = [
+  { id: 'Invoice', title: 'Invoice', description: 'Customer invoices' },
+  { id: 'Credit Note', title: 'Credit Note', description: 'Credit documents' },
+  { id: 'Payment Receipt', title: 'Payment Receipt', description: 'Payment receipts' },
+  { id: 'Debit Note', title: 'Debit Note', description: 'Debit documents' },
+];
+
 export const RESET_POLICIES = [
-  'Never',
-  'Yearly',
-  'Financial Year',
-  'Monthly',
-  'Daily',
+  'Never (Continuous sequence)',
+  'Yearly (Resets to 1 each calendar year on Jan 1)',
+  'Financial Year (Resets to 1 each FY on Apr 1)',
+  'Monthly (Resets to 1 on the 1st of each month)',
+  'Daily (Resets to 1 each day)',
 ];
 
 export const SUPPORTED_TOKENS = [
-  { token: '{YEAR}', label: 'Year (4-digit)', example: '2026', desc: 'Current 4-digit calendar year' },
-  { token: '{YY}', label: 'Year (2-digit)', example: '26', desc: 'Current 2-digit calendar year' },
-  { token: '{MONTH}', label: 'Month (Name)', example: 'Sep', desc: 'Abbreviated month name' },
-  { token: '{MM}', label: 'Month (2-digit)', example: '09', desc: 'Zero-padded month number (01-12)' },
-  { token: '{FY}', label: 'Financial Year', example: '26-27', desc: 'Indian Financial Year (Apr-Mar)' },
-  { token: '{QUARTER}', label: 'Quarter', example: 'Q3', desc: 'Calendar quarter (Q1-Q4)' },
+  { token: '(YEAR)', label: 'Year', example: '2026', desc: 'Current 4-digit calendar year' },
+  { token: '(YY)', label: '2-digit Year', example: '26', desc: 'Current 2-digit calendar year' },
+  { token: '(MONTH)', label: 'Month', example: 'Sep', desc: 'Abbreviated month name' },
+  { token: '(MM)', label: 'Month (2-digit)', example: '09', desc: 'Zero-padded month number (01-12)' },
+  { token: '(DAY)', label: 'Day', example: '21', desc: 'Current day of month (01-31)' },
+  { token: '(FY)', label: 'Fiscal Year', example: '26-27', desc: 'Financial year (Apr-Mar)' },
+  { token: '(QUARTER)', label: 'Quarter', example: 'Q3', desc: 'Calendar quarter (Q1-Q4)' },
+  { token: '(SEQUENCE)', label: 'Sequence', example: '0042', desc: 'Padded sequence counter' },
 ];
 
 export const DEFAULT_PRESETS_BY_DOC_TYPE = {
   Invoice: {
     documentType: 'Invoice',
-    prefix: 'INV-',
-    suffix: '',
-    tokens: '{YEAR}-',
+    prefix: 'INV-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
     sequenceLength: 4,
     nextNumber: 42,
-    resetPolicy: 'Financial Year',
+    resetPolicy: 'Never (Continuous sequence)',
   },
   'Credit Note': {
     documentType: 'Credit Note',
-    prefix: 'CN-',
-    suffix: '',
-    tokens: '{YEAR}-',
+    prefix: 'CN-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
     sequenceLength: 4,
     nextNumber: 1,
-    resetPolicy: 'Financial Year',
+    resetPolicy: 'Never (Continuous sequence)',
+  },
+  'Payment Receipt': {
+    documentType: 'Payment Receipt',
+    prefix: 'RCP-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
+    sequenceLength: 4,
+    nextNumber: 1,
+    resetPolicy: 'Never (Continuous sequence)',
+  },
+  'Debit Note': {
+    documentType: 'Debit Note',
+    prefix: 'DN-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
+    sequenceLength: 4,
+    nextNumber: 1,
+    resetPolicy: 'Never (Continuous sequence)',
   },
   'Estimate / Quote': {
     documentType: 'Estimate / Quote',
-    prefix: 'EST-',
-    suffix: '',
-    tokens: '{YEAR}-',
+    prefix: 'EST-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
     sequenceLength: 4,
     nextNumber: 1,
-    resetPolicy: 'Yearly',
+    resetPolicy: 'Yearly (Resets to 1 each calendar year on Jan 1)',
   },
   'Recurring Invoice': {
     documentType: 'Recurring Invoice',
-    prefix: 'REC-',
-    suffix: '',
-    tokens: '{YEAR}-',
+    prefix: 'REC-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
     sequenceLength: 4,
     nextNumber: 1,
-    resetPolicy: 'Yearly',
+    resetPolicy: 'Yearly (Resets to 1 each calendar year on Jan 1)',
   },
   'Delivery Challan': {
     documentType: 'Delivery Challan',
-    prefix: 'DC-',
-    suffix: '',
-    tokens: '{YEAR}-',
+    prefix: 'DC-001',
+    suffix: '2026',
+    tokens: '(YEAR)-(MONTH)-',
     sequenceLength: 4,
     nextNumber: 1,
-    resetPolicy: 'Financial Year',
+    resetPolicy: 'Never (Continuous sequence)',
   },
 };
 
@@ -86,6 +115,7 @@ export const evaluateTokens = (text = '', date = new Date()) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthName = monthNames[d.getMonth()];
   const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   
   // Financial year calculation (Apr-Mar for India)
   const fyStart = d.getMonth() >= 3 ? year : year - 1;
@@ -96,12 +126,15 @@ export const evaluateTokens = (text = '', date = new Date()) => {
   const quarter = `Q${Math.floor(d.getMonth() / 3) + 1}`;
 
   return text
-    .replace(/\{YEAR\}/gi, String(year))
-    .replace(/\{YY\}/gi, yy)
-    .replace(/\{MONTH\}/gi, monthName)
-    .replace(/\{MM\}/gi, mm)
-    .replace(/\{FY\}/gi, fy)
-    .replace(/\{QUARTER\}/gi, quarter);
+    .replace(/[({]YEAR[)}]/gi, String(year))
+    .replace(/[({]YYYY[)}]/gi, String(year))
+    .replace(/[({]YY[)}]/gi, yy)
+    .replace(/[({]MONTH[)}]/gi, monthName)
+    .replace(/[({]MM[)}]/gi, mm)
+    .replace(/[({]DAY[)}]/gi, day)
+    .replace(/[({]DD[)}]/gi, day)
+    .replace(/[({]FY[)}]/gi, fy)
+    .replace(/[({]QUARTER[)}]/gi, quarter);
 };
 
 /**
@@ -152,13 +185,13 @@ export const generateNumberPreview = (config = {}) => {
   };
 };
 
-// Regex validating prefix and suffix - allows letters, numbers, hyphens, slashes, underscores, and curly-brace tokens
-const AFFIX_REGEX = /^[A-Za-z0-9_\-\/{}]*$/;
+// Regex validating prefix and suffix - allows letters, numbers, hyphens, slashes, underscores, and brackets
+const AFFIX_REGEX = /^[A-Za-z0-9_\-\/(){}]*$/;
 
 // Extract tokens from a string to validate them
 const extractTokenNames = (str = '') => {
-  const matches = str.match(/\{[^}]+\}/g) || [];
-  return matches.map((m) => m.toUpperCase());
+  const matches = str.match(/(\([^)]+\)|\{[^}]+\})/g) || [];
+  return matches.map((m) => m.toUpperCase().replace(/[{}]/g, (c) => (c === '{' ? '(' : ')')));
 };
 
 const VALID_TOKEN_STRINGS = SUPPORTED_TOKENS.map((t) => t.token.toUpperCase());
@@ -174,7 +207,7 @@ export const numberingValidationSchema = yup.object().shape({
     .trim()
     .max(20, 'Prefix must not exceed 20 characters')
     .matches(AFFIX_REGEX, 'Prefix can only contain letters, numbers, hyphens, slashes, underscores, and tokens')
-    .test('valid-tokens-in-prefix', 'Prefix contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {FY}, {QUARTER}', (val) => {
+    .test('valid-tokens-in-prefix', 'Prefix contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));
@@ -185,7 +218,7 @@ export const numberingValidationSchema = yup.object().shape({
     .trim()
     .max(20, 'Suffix must not exceed 20 characters')
     .matches(AFFIX_REGEX, 'Suffix can only contain letters, numbers, hyphens, slashes, underscores, and tokens')
-    .test('valid-tokens-in-suffix', 'Suffix contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {FY}, {QUARTER}', (val) => {
+    .test('valid-tokens-in-suffix', 'Suffix contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));
@@ -195,7 +228,7 @@ export const numberingValidationSchema = yup.object().shape({
     .string()
     .trim()
     .max(30, 'Tokens expression must not exceed 30 characters')
-    .test('valid-tokens-field', 'Tokens field contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {FY}, {QUARTER}', (val) => {
+    .test('valid-tokens-field', 'Tokens field contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));
