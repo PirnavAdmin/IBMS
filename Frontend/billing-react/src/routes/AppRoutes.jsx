@@ -25,6 +25,7 @@ import { ProductDetails } from '../pages/Products/pages/ProductDetails';
 import { CreateProduct } from '../pages/Products/pages/CreateProduct';
 import { EditProduct } from '../pages/Products/pages/EditProduct';
 import { NumberingSettings } from '../pages/NumberingSettings';
+import { QuotationManagement } from '../pages/Quotations';
 
 // ==============================
 // CUSTOMER MODULE
@@ -58,6 +59,9 @@ export const AppRoutes = () => (
       <Route path="/invoices" element={<Invoices />} />
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
+
+      {/* Quotation Management — isolated frontend mock prototype */}
+      <Route path="/quotations" element={<QuotationManagement />} />
 
       {/* Payments */}
       <Route path="/payments" element={<Payments />} />

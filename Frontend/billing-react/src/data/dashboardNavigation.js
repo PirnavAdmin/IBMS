@@ -7,6 +7,7 @@ export const dashboardNavigation = [
     label: 'Billing',
     items: [
       { id: 'invoices', label: 'Invoices', icon: 'invoice', route: '/invoices' },
+      { id: 'quotations', label: 'Quotation Management', icon: 'quotation', route: '/quotations' },
       { id: 'payments', label: 'Payments', icon: 'payment' },
       { id: 'customers', label: 'Customers', icon: 'customer' },
       { id: 'products', label: 'Products & Services', icon: 'product' },

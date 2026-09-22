@@ -8,6 +8,7 @@ import '../styles/Dashboard.css';
 const routeModules = {
   '/dashboard': 'dashboard',
   '/invoices': 'invoices',
+  '/quotations': 'quotations',
   '/payments': 'payments',
   '/customers': 'customers',
   '/products': 'products',
