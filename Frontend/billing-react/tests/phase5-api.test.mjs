@@ -2,6 +2,38 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { apiClient } from '../../billing-api-client/apiClient.js';
+import { numberingService } from '../src/pages/NumberingSettings/services/numberingService.js';
+import { RESET_POLICIES, numberingValidationSchema, generateNumberPreview } from '../src/pages/NumberingSettings/validation/numberingValidation.js';
+
+test('Numbering propagates failed GET/PUT and rejects malformed success data', async () => {
+  for (const method of ['get', 'put']) {
+    const call = () => method === 'get' ? numberingService.getSettings() : numberingService.updateSettings({ resetPolicy: RESET_POLICIES[0] });
+    await mock(method, async () => { throw new Error('Backend unavailable'); }, async () => assert.rejects(call(), /Backend unavailable/));
+    await mock(method, async () => ({ success: true, data: null }), async () => assert.rejects(call(), /invalid numbering/));
+    await mock(method, async () => ({ success: false, message: 'Rejected' }), async () => assert.rejects(call(), /Rejected/));
+  }
+});
+
+test('Numbering maps reset policies and day tokens, preserves empty fields and validates counters', async () => {
+  const input = { documentType: 'Invoice', prefix: '', suffix: '', tokens: '{DAY}-', sequenceLength: 4, nextNumber: 1 };
+  for (const resetPolicy of RESET_POLICIES) {
+    await mock('put', async (path, body) => {
+      assert.equal(path, '/api/v1/settings/numbering');
+      assert.equal(body.resetPolicy, resetPolicy.split(' (')[0]);
+      assert.equal(body.tokens, '{DD}-');
+      return { success: true, data: body };
+    }, async () => {
+      const result = await numberingService.updateSettings({ ...input, resetPolicy });
+      assert.equal(result.resetPolicy, resetPolicy);
+      assert.equal(result.prefix, ''); assert.equal(result.suffix, '');
+      assert.equal(result.tokens, '{DAY}-');
+    });
+  }
+  for (const nextNumber of ['', 0, 1.5, 1000000000000]) {
+    await assert.rejects(numberingValidationSchema.validate({ ...input, resetPolicy: RESET_POLICIES[0], nextNumber }));
+  }
+  assert.equal(generateNumberPreview({ ...input, tokens: '' }).fullPreview, '0001');
+});
 import { chargeFromApi, chargeToApi, discountConfigurationFromApi, discountConfigurationToApi, discountRuleToApi, phase5Api, phase5Error, validateDiscountConfiguration, validateDiscountRule, validateRolePermissions } from '../src/pages/Settings/services/phase5Api.js';
 
 const charge = { id: 42, name: ' Shipping ', code: ' ship ', description: '', type: 'Shipping', calculationType: 'Fixed', value: '12.5', taxable: true, status: 'Active', minInvoiceAmount: 100, maxChargeAmount: 20, taxCategory: 'GST' };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { SettingsPageHeader } from '../../Settings/SettingsPageHeader';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
@@ -32,8 +32,9 @@ import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
 import '../styles/numbering-settings.css';
 
 export function NumberingSettings() {
-  const navigate = useNavigate();
   const requestLock = useRef(false);
+  const loadRevision = useRef(0);
+  const [loaded, setLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -57,54 +58,40 @@ export function NumberingSettings() {
   const currentSuffix = watch('suffix') || '';
   const currentTokens = watch('tokens') || '';
   const currentSeqLength = watch('sequenceLength') || 4;
-  const currentNextNum = watch('nextNumber') || 42;
+  const currentNextNum = watch('nextNumber') ?? '';
   const currentResetPolicy = watch('resetPolicy') || 'Never (Continuous sequence)';
 
   // Load configuration for document type
   const loadSettingsForType = useCallback(async (docType) => {
+    const revision = ++loadRevision.current;
     setIsLoading(true);
+    setLoaded(false);
     setApiError('');
-    const preset = DEFAULT_PRESETS_BY_DOC_TYPE[docType] || DEFAULT_NUMBERING_CONFIG;
+    setToast('');
     try {
       const data = await numberingService.getSettings(docType);
-      if (data) {
-        // Normalize any backend curly braces to normal brackets for the UI
-        const normalizedTokens = (data.tokens || preset.tokens)
-          .replace(/\{/g, '(')
-          .replace(/\}/g, ')');
-
-        reset({
-          documentType: data.documentType || docType,
-          prefix: (data.prefix || preset.prefix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          suffix: (data.suffix || preset.suffix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          tokens: normalizedTokens,
-          sequenceLength: Number(data.sequenceLength || preset.sequenceLength || 4),
-          nextNumber: Number(data.nextNumber || preset.nextNumber || 1),
-          resetPolicy: data.resetPolicy || preset.resetPolicy || 'Never (Continuous sequence)',
-        });
-      } else {
-        reset({
-          ...preset,
-          documentType: docType,
-        });
-      }
-    } catch (err) {
-      console.warn('API getSettings error, falling back to preset:', err);
-      reset({
-        ...preset,
-        documentType: docType,
+      if (revision !== loadRevision.current) return;
+      reset({ ...data,
+        prefix: data.prefix.replace(/\{/g, '(').replace(/\}/g, ')'),
+        suffix: data.suffix.replace(/\{/g, '(').replace(/\}/g, ')'),
+        tokens: data.tokens.replace(/\{/g, '(').replace(/\}/g, ')'),
       });
+      setLoaded(true);
+    } catch (err) {
+      if (revision === loadRevision.current) setApiError(err.userMessage || err.message || 'Unable to load numbering settings. Please retry.');
     } finally {
-      setIsLoading(false);
+      if (revision === loadRevision.current) setIsLoading(false);
     }
   }, [reset]);
 
   useEffect(() => {
-    loadSettingsForType(currentDocType);
+    loadSettingsForType('Invoice');
+    return () => { loadRevision.current += 1; };
   }, [loadSettingsForType]);
 
   // Handle switching document type
   const handleSelectDocType = (docType) => {
+    if (requestLock.current) return;
     setValue('documentType', docType);
     loadSettingsForType(docType);
   };
@@ -135,9 +122,10 @@ export function NumberingSettings() {
 
   // Save handler
   const onSave = async (isDraft = false) => {
-    if (requestLock.current || isSubmitting) return;
+    if (requestLock.current || isSubmitting || isLoading || !loaded) return;
     requestLock.current = true;
     setIsSubmitting(true);
+    setToast('');
     setApiError('');
 
     try {
@@ -192,67 +180,31 @@ export function NumberingSettings() {
 
   return (
     <div className="numbering-page-root">
-      {/* Top Breadcrumbs */}
-      <nav className="numbering-breadcrumbs" aria-label="Breadcrumb">
-        <span
-          className="crumb-root"
-          onClick={() => navigate('/settings')}
-          style={{ cursor: 'pointer' }}
-          title="Back to Settings"
-        >
-          Settings
-        </span>
-        <span className="crumb-sep">&gt;</span>
-        <span className="crumb-mid">General Settings</span>
-        <span className="crumb-sep">&gt;</span>
-        <span className="crumb-current">Invoice Numbering</span>
-      </nav>
-
-      {/* Page Title & Decorative Header */}
-      <header className="numbering-hero-header">
-        <div className="numbering-hero-titles">
-          <h1>Invoice Numbering Configuration</h1>
-          <p>
-            Define how your document numbers are generated. Use tokens, set sequence rules, and preview in real-time.
-          </p>
-        </div>
-
-        {/* Decorative Quote Banner matching mockup */}
-        <div className="numbering-quote-card" aria-hidden="true">
-          <div className="quote-card-glow" />
-          <div className="quote-text-wrap">
-            <span className="quote-line-1">Organize today,</span>
-            <span className="quote-line-2">Invoice better tomorrow</span>
-          </div>
-          <div className="quote-invoice-icon">
-            <div className="mini-invoice-sheet">
-              <div className="mini-invoice-line" style={{ width: '60%' }} />
-              <div className="mini-invoice-line" style={{ width: '80%' }} />
-              <div className="mini-invoice-line" style={{ width: '40%' }} />
-            </div>
-          </div>
-        </div>
-      </header>
+      <SettingsPageHeader
+        title="Invoice Numbering"
+        description="Define document formats, set sequence rules, and preview your next invoice number."
+      />
 
       {/* Error Alert */}
       {apiError && (
         <Alert
           severity="error"
           sx={{ mb: 3 }}
-          action={
-            <Button color="inherit" size="small" onClick={() => loadSettingsForType(currentDocType)}>
+          action={!loaded ? (
+            <Button disabled={isLoading} color="inherit" size="small" onClick={() => loadSettingsForType(currentDocType)}>
               Retry
             </Button>
-          }
+          ) : undefined}
         >
           {apiError}
         </Alert>
       )}
 
+      {isLoading && <Alert severity="info" role="status">Loading numbering settings...</Alert>}
       {/* Main 2-Column Layout */}
       <div className="numbering-content-grid">
         {/* Left Column: Configuration Steps 1, 2, 3 */}
-        <div className="numbering-steps-column">
+        <fieldset className="numbering-steps-column" disabled={isLoading || isSubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           {/* STEP 1: Select Document Type */}
           <section className="numbering-card-panel">
             <div className="panel-step-header">
@@ -337,8 +289,11 @@ export function NumberingSettings() {
                   <option value={6}>6 Digits (000001)</option>
                   <option value={7}>7 Digits (0000001)</option>
                   <option value={8}>8 Digits (00000001)</option>
+                  <option value={9}>9 Digits (000000001)</option>
+                  <option value={10}>10 Digits (0000000001)</option>
                 </select>
                 <span className="field-helper-text">Total digits for the sequence number</span>
+                {errors.sequenceLength && <span className="field-error-text">{errors.sequenceLength.message}</span>}
               </div>
 
               {/* Next Sequence Number */}
@@ -402,6 +357,7 @@ export function NumberingSettings() {
               </button>
             </div>
 
+            {errors.tokens && <span className="field-error-text">{errors.tokens.message}</span>}
             <FormatBuilder
               prefix={currentPrefix}
               suffix={currentSuffix}
@@ -410,7 +366,7 @@ export function NumberingSettings() {
               onClearTokens={handleClearTokens}
             />
           </section>
-        </div>
+        </fieldset>
 
         {/* Right Column: Live Preview Panel */}
         <NextNumberPreviewCard formValues={formValues} />
@@ -423,7 +379,7 @@ export function NumberingSettings() {
             type="button"
             className="bar-btn bar-btn-outline"
             onClick={handleResetChanges}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading || !loaded}
           >
             <RestartAlt style={{ fontSize: '1.1rem' }} />
             Reset Changes
@@ -434,8 +390,8 @@ export function NumberingSettings() {
           <button
             type="button"
             className="bar-btn bar-btn-outline"
-            onClick={() => onSave(true)}
-            disabled={isSubmitting}
+            onClick={handleSubmit(() => onSave(true))}
+            disabled={isSubmitting || isLoading || !loaded}
           >
             <SaveOutlined style={{ fontSize: '1.1rem' }} />
             Save as Draft
@@ -444,8 +400,8 @@ export function NumberingSettings() {
           <button
             type="button"
             className="bar-btn bar-btn-primary"
-            onClick={() => onSave(false)}
-            disabled={isSubmitting}
+            onClick={handleSubmit(() => onSave(false))}
+            disabled={isSubmitting || isLoading || !loaded}
           >
             {isSubmitting ? (
               <>

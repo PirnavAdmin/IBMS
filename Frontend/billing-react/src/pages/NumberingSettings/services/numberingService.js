@@ -1,48 +1,37 @@
-import { numberingApi } from 'billing-api-client';
+import { RESET_POLICIES } from '../validation/numberingValidation.js';
+import { numberingApi } from '../../../../../billing-api-client/numberingApi.js';
 
 const mapSettings = settings => {
-  if (!settings) return null;
+  if (!settings || typeof settings.documentType !== 'string' || !Number.isInteger(settings.sequenceLength) || !Number.isSafeInteger(settings.nextNumber)) throw new Error('The backend returned invalid numbering settings. Please retry.');
   return {
     documentType: settings.documentType ?? 'Invoice',
-    prefix: settings.prefix ?? '',
-    suffix: settings.suffix ?? '',
-    tokens: settings.tokens ?? '',
+    prefix: (settings.prefix ?? '').replace(/\{DD\}/gi, '{DAY}'),
+    suffix: (settings.suffix ?? '').replace(/\{DD\}/gi, '{DAY}'),
+    tokens: (settings.tokens ?? '').replace(/\{DD\}/gi, '{DAY}'),
     sequenceLength: Number(settings.sequenceLength ?? 4),
     nextNumber: Number(settings.nextNumber ?? 1),
-    resetPolicy: settings.resetPolicy ?? 'Never (Continuous sequence)',
+    resetPolicy: RESET_POLICIES.find(policy => policy.split(' (')[0] === settings.resetPolicy?.split(' (')[0]) ?? settings.resetPolicy,
     status: settings.status ?? 'Active',
   };
 };
 
 const toRequest = values => ({
   documentType: values.documentType,
-  prefix: (values.prefix || '').trim(),
-  suffix: (values.suffix || '').trim(),
-  tokens: (values.tokens || '').trim(),
+  prefix: (values.prefix || '').trim().replace(/\{DAY\}/gi, '{DD}'),
+  suffix: (values.suffix || '').trim().replace(/\{DAY\}/gi, '{DD}'),
+  tokens: (values.tokens || '').trim().replace(/\{DAY\}/gi, '{DD}'),
   sequenceLength: Number(values.sequenceLength),
   nextNumber: Number(values.nextNumber),
-  resetPolicy: values.resetPolicy,
+  resetPolicy: values.resetPolicy.split(' (')[0],
   status: values.status ?? 'Active',
 });
 
 export const numberingService = {
   async getSettings(documentType = 'Invoice') {
-    try {
-      const response = await numberingApi.getNumberingSettings({ documentType });
-      return mapSettings(response);
-    } catch (err) {
-      console.warn('Backend API getSettings returned error, falling back:', err?.message);
-      return null;
-    }
+    return mapSettings(await numberingApi.getNumberingSettings({ documentType }));
   },
   async updateSettings(payload) {
-    try {
-      const response = await numberingApi.updateNumberingSettings(toRequest(payload));
-      return mapSettings(response) || mapSettings(payload);
-    } catch (err) {
-      console.warn('Backend API updateSettings returned error, persisting locally:', err?.message);
-      return mapSettings(payload);
-    }
+    return mapSettings(await numberingApi.updateNumberingSettings(toRequest(payload)));
   },
 };
 

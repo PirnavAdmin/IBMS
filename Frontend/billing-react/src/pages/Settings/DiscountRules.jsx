@@ -10,6 +10,7 @@ export function DiscountRules() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
+  const [touched, setTouched] = useState({});
   const [form, setForm] = useState(null);
   const [baseline, setBaseline] = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -29,9 +30,11 @@ export function DiscountRules() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [page, revision]);
-  const open = (rule = blank) => { const next = { ...blank, ...rule }; setForm(next); setBaseline(next); setFormError(''); };
+  const open = (rule = blank) => { const next = { ...blank, ...rule }; setForm(next); setBaseline(next); setTouched({}); setFormError(''); };
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const errors = form ? validateDiscountRule(form) : {};
+  const fieldError = (key) => touched[key] ? errors[key] : '';
+  const touch = (key) => setTouched((current) => ({ ...current, [key]: true }));
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline);
   const mutate = async (operation, message) => {
     if (lock.current) return;
@@ -52,15 +55,15 @@ export function DiscountRules() {
     </> : <div className="settings-empty">No discount rules configured yet.</div>)}
     <Dialog open={Boolean(form)} onClose={() => { if (!busy) setForm(null); }} fullWidth maxWidth="sm"><DialogTitle>{form?.id ? 'Edit Discount Rule' : 'Add Discount Rule'}</DialogTitle><DialogContent dividers>
       {form && <div className="settings-dialog-form">
-        {['name', 'code'].map((key) => <TextField key={key} required label={key === 'name' ? 'Rule Name' : 'Rule Code'} value={form[key]} disabled={busy || (key === 'code' && Boolean(form.id))} onChange={(e) => update(key, e.target.value)} error={Boolean(errors[key])} helperText={errors[key]} />)}
-        {[['type', 'Discount Type', discountTypes], ['scope', 'Application Level', discountScopes]].map(([key, label, choices]) => <TextField key={key} select label={label} value={form[key]} disabled={busy || Boolean(form.id)} onChange={(e) => update(key, e.target.value)}>{Object.entries(choices).map(([value, text]) => <MenuItem key={value} value={value}>{text}</MenuItem>)}</TextField>)}
-        {[['value', 'Value'], ['minInvoiceAmount', 'Minimum Invoice Amount'], ['maxDiscountAmount', 'Maximum Discount Amount']].map(([key, label]) => <TextField key={key} type="number" required={key === 'value'} label={label} value={form[key] ?? ''} disabled={busy} onChange={(e) => update(key, e.target.value)} error={Boolean(errors[key])} helperText={errors[key]} inputProps={{ min: 0, step: 'any' }} />)}
-        {['startDateUtc', 'endDateUtc'].map((key) => <TextField key={key} label={key === 'startDateUtc' ? 'Start Date (UTC)' : 'End Date (UTC)'} placeholder="2026-09-21T00:00:00Z" value={form[key] ?? ''} disabled={busy} onChange={(e) => update(key, e.target.value)} error={Boolean(errors[key])} helperText={errors[key] || 'Optional ISO date and time in UTC.'} />)}
-        <TextField label="Applicable Role" value={form.applicableRole ?? ''} disabled={busy} onChange={(e) => update('applicableRole', e.target.value)} error={Boolean(errors.applicableRole)} helperText={errors.applicableRole || 'Optional backend role name; this does not grant permissions.'} />
-        {form.id && <TextField select label="Status" value={form.status} disabled={busy} onChange={(e) => update('status', e.target.value)}>{[...new Set(['Active', 'Inactive', form.status])].map((status) => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>}
-        <TextField label="Description" multiline value={form.description ?? ''} disabled={busy} onChange={(e) => update('description', e.target.value)} error={Boolean(errors.description)} helperText={errors.description} />
+        {['name', 'code'].map((key) => <TextField size="small" key={key} required label={key === 'name' ? 'Rule Name' : 'Rule Code'} value={form[key]} disabled={busy || (key === 'code' && Boolean(form.id))} onChange={(e) => update(key, e.target.value)} onBlur={() => touch(key)} error={Boolean(fieldError(key))} helperText={fieldError(key)} />)}
+        {[['type', 'Discount Type', discountTypes], ['scope', 'Application Level', discountScopes]].map(([key, label, choices]) => <TextField size="small" key={key} select label={label} value={form[key]} disabled={busy || Boolean(form.id)} onChange={(e) => update(key, e.target.value)}>{Object.entries(choices).map(([value, text]) => <MenuItem key={value} value={value}>{text}</MenuItem>)}</TextField>)}
+        {[['value', 'Value'], ['minInvoiceAmount', 'Minimum Invoice Amount'], ['maxDiscountAmount', 'Maximum Discount Amount']].map(([key, label]) => <TextField size="small" key={key} type="number" required={key === 'value'} label={label} value={form[key] ?? ''} disabled={busy} onChange={(e) => update(key, e.target.value)} onBlur={() => touch(key)} error={Boolean(fieldError(key))} helperText={fieldError(key)} inputProps={{ min: 0, step: 'any' }} />)}
+        {['startDateUtc', 'endDateUtc'].map((key) => <TextField size="small" key={key} label={key === 'startDateUtc' ? 'Start Date (UTC)' : 'End Date (UTC)'} placeholder="2026-09-21T00:00:00Z" value={form[key] ?? ''} disabled={busy} onChange={(e) => update(key, e.target.value)} onBlur={() => touch(key)} error={Boolean(fieldError(key))} helperText={fieldError(key) || 'Optional ISO date and time in UTC.'} />)}
+        <TextField size="small" label="Applicable Role" value={form.applicableRole ?? ''} disabled={busy} onChange={(e) => update('applicableRole', e.target.value)} onBlur={() => touch('applicableRole')} error={Boolean(fieldError('applicableRole'))} helperText={fieldError('applicableRole') || 'Optional backend role name; this does not grant permissions.'} />
+        {form.id && <TextField size="small" select label="Status" value={form.status} disabled={busy} onChange={(e) => update('status', e.target.value)}>{[...new Set(['Active', 'Inactive', form.status])].map((status) => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>}
+        <TextField size="small" label="Description" multiline value={form.description ?? ''} disabled={busy} onChange={(e) => update('description', e.target.value)} onBlur={() => touch('description')} error={Boolean(fieldError('description'))} helperText={fieldError('description')} />
       </div>}{formError && <Alert severity="error" sx={{ mt: 2 }}>{formError}</Alert>}
-    </DialogContent><DialogActions><Button disabled={busy || !dirty} onClick={() => setForm({ ...baseline })}>Reset</Button><Button disabled={busy} onClick={() => setForm(null)}>Cancel</Button><Button variant="contained" disabled={busy || !dirty || Object.keys(errors).length > 0} onClick={() => mutate(() => form.id ? phase5Api.updateDiscountRule(form.id, form) : phase5Api.createDiscountRule(form), 'Discount rule saved.')}>{busy ? 'Saving...' : 'Save Changes'}</Button></DialogActions></Dialog>
+    </DialogContent><DialogActions><Button disabled={busy || !dirty} onClick={() => { setForm({ ...baseline }); setTouched({}); }}>Reset</Button><Button disabled={busy} onClick={() => setForm(null)}>Cancel</Button><Button variant="contained" disabled={busy || !dirty || Object.keys(errors).length > 0} onClick={() => mutate(() => form.id ? phase5Api.updateDiscountRule(form.id, form) : phase5Api.createDiscountRule(form), 'Discount rule saved.')}>{busy ? 'Saving...' : 'Save Changes'}</Button></DialogActions></Dialog>
     <Dialog open={Boolean(confirm)} onClose={() => { if (!busy) setConfirm(null); }}><DialogTitle>Delete Discount Rule?</DialogTitle><DialogContent>Delete {confirm?.name} ({confirm?.code})?{formError && <Alert severity="error">{formError}</Alert>}</DialogContent><DialogActions><Button disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button><Button disabled={busy} color="error" onClick={() => mutate(() => phase5Api.deleteDiscountRule(confirm.id), 'Discount rule deleted.')}>{busy ? 'Deleting...' : 'Delete'}</Button></DialogActions></Dialog>
     <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast('')} message={toast} />
   </Paper>;

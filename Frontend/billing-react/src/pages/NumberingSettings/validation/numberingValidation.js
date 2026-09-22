@@ -33,7 +33,6 @@ export const SUPPORTED_TOKENS = [
   { token: '(DAY)', label: 'Day', example: '21', desc: 'Current day of month (01-31)' },
   { token: '(FY)', label: 'Fiscal Year', example: '26-27', desc: 'Financial year (Apr-Mar)' },
   { token: '(QUARTER)', label: 'Quarter', example: 'Q3', desc: 'Calendar quarter (Q1-Q4)' },
-  { token: '(SEQUENCE)', label: 'Sequence', example: '0042', desc: 'Padded sequence counter' },
 ];
 
 export const DEFAULT_PRESETS_BY_DOC_TYPE = {
@@ -247,7 +246,8 @@ export const numberingValidationSchema = yup.object().shape({
     .typeError('Next Number must be a valid number')
     .required('Starting / Next Number is required')
     .integer('Next Number must be a whole number')
-    .min(1, 'Next Number must be at least 1'),
+    .min(1, 'Next Number must be at least 1')
+    .max(999999999999, 'Next Number must not exceed 999999999999'),
 
   resetPolicy: yup
     .string()

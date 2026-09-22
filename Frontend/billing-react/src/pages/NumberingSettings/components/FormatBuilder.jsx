@@ -57,19 +57,7 @@ export const FormatBuilder = ({
                 </React.Fragment>
               );
             })
-          ) : (
-            <>
-              <div className="format-block-item">
-                <div className="format-pill is-token">{'(YEAR)'}</div>
-                <span className="format-pill-label">Year</span>
-              </div>
-              <span className="format-divider">-</span>
-              <div className="format-block-item">
-                <div className="format-pill is-token">{'(MONTH)'}</div>
-                <span className="format-pill-label">Month</span>
-              </div>
-            </>
-          )}
+          ) : null}
 
           <span className="format-divider">-</span>
 

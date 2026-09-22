@@ -5,7 +5,7 @@
 
 .numbering-page-root {
   min-height: 100vh;
-  padding: 24px clamp(18px, 2.5vw, 40px) 110px; /* Space for bottom action bar */
+  padding: 24px clamp(18px, 2.5vw, 40px) 24px;
   background: var(--bg-main, #f8f1e7);
   color: var(--text-primary, #171717);
   font-family: inherit;
@@ -653,24 +653,27 @@
    BOTTOM STICKY ACTION BAR
    ========================================================================== */
 .numbering-bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: #ffffff;
-  border-top: 1px solid var(--border, #eadfd2);
+  position: sticky;
+  bottom: 16px;
+  min-height: 72px;
+  margin-top: 24px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #eadfd2);
+  border-radius: 12px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: space-between;
   align-items: center;
-  padding: 0 clamp(18px, 3vw, 48px);
+  padding: 14px 20px;
   box-shadow: 0 -4px 18px rgba(90, 37, 8, 0.05);
-  z-index: 100;
+  z-index: 5;
 }
 
-.bottom-bar-left,
-.bottom-bar-right {
+.numbering-bottom-bar .bottom-bar-left,
+.numbering-bottom-bar .bottom-bar-right {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
@@ -737,6 +740,24 @@
 }
 
 @media (max-width: 760px) {
+  .numbering-bottom-bar {
+    bottom: 8px;
+    padding: 12px;
+  }
+
+  .numbering-bottom-bar .bottom-bar-left,
+  .numbering-bottom-bar .bottom-bar-right {
+    flex: 1 1 100%;
+  }
+
+  .numbering-bottom-bar .bar-btn {
+    flex: 1 1 150px;
+    justify-content: center;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 12px;
+  }
+
   .numbering-hero-header {
     flex-direction: column;
     align-items: flex-start;

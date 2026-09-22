@@ -5,7 +5,7 @@ import {
   CheckCircle,
   LightbulbOutlined,
 } from '@mui/icons-material';
-import { generateNumberPreview } from '../validation/numberingValidation';
+import { generateNumberPreview, numberingValidationSchema } from '../validation/numberingValidation';
 
 export const NextNumberPreviewCard = ({ formValues = {} }) => {
   const {
@@ -18,6 +18,7 @@ export const NextNumberPreviewCard = ({ formValues = {} }) => {
     resetPolicy = 'Never (Continuous sequence)',
   } = formValues;
 
+  const valid = numberingValidationSchema.isValidSync(formValues);
   const preview = generateNumberPreview({
     documentType,
     prefix,
@@ -67,12 +68,12 @@ export const NextNumberPreviewCard = ({ formValues = {} }) => {
       <div className="preview-main-card">
         <div className="preview-main-label">NEXT {docTypeName} NUMBER</div>
         <div className="preview-main-number">
-          {preview.fullPreview || '---'}
+          {valid ? preview.fullPreview : '---'}
         </div>
         <div className="preview-badge-row">
           <span className="valid-format-badge">
-            <CheckCircle style={{ fontSize: '0.95rem' }} />
-            Valid format
+            {valid && <CheckCircle style={{ fontSize: '0.95rem' }} />}
+            {valid ? 'Valid format' : 'Check format values'}
           </span>
         </div>
       </div>
