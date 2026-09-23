@@ -22,6 +22,7 @@ import { dashboardNavigation } from '../../data/dashboardNavigation';
 const iconMap = {
   dashboard: DashboardOutlined,
   invoice: ReceiptLongOutlined,
+  quotation: RequestQuoteOutlined,
   payment: PaymentsOutlined,
   customer: PeopleOutline,
   product: Inventory2Outlined,
