@@ -43,7 +43,7 @@ public class CustomerService : ICustomerService
         }
 
         var customerCode = string.IsNullOrWhiteSpace(request.CustomerCode)
-            ? $"CUST-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}"
+            ? await _customerRepository.GetNextCustomerCodeAsync(tenantId, "CUST-")
             : request.CustomerCode.Trim().ToUpperInvariant();
 
         var existingWithCode = await _customerRepository.GetByCodeAsync(customerCode, tenantId);
@@ -613,5 +613,16 @@ public class CustomerService : ICustomerService
                 IsDefault = a.IsDefault
             }).ToList() ?? new()
         };
+    }
+
+    public async Task<ApiResponse<string>> GetNextCustomerCodeAsync(int tenantId)
+    {
+        if (tenantId <= 0)
+        {
+            return ApiResponse<string>.Fail("Invalid tenant", "Tenant ID must be specified.");
+        }
+
+        var nextCode = await _customerRepository.GetNextCustomerCodeAsync(tenantId, "CUST-");
+        return ApiResponse<string>.Ok(nextCode, "Next customer code generated successfully.");
     }
 }

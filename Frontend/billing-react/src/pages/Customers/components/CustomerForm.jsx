@@ -9,6 +9,7 @@ import {
   DEFAULT_CUSTOMER_VALUES,
   STEP_FIELDS,
   getNextCustomerCode,
+  COUNTRY_PHONE_CONFIG,
 } from '../validation/customerValidation';
 import {
   PersonOutline,
@@ -69,8 +70,8 @@ const STEPS = [
 ];
 
 const QUICK_TIPS = {
-  0: 'Customer code is a unique identifier (e.g. CUST-001, CUST-002). It is automatically assigned sequentially, or you can customize it.',
-  1: 'Ensure the email address is accurate for dispatching invoices, payment receipts, and billing notifications.',
+  0: 'Customer code is a unique sequential identifier (e.g. CUST-001, CUST-002). It is automatically assigned in sequence order and locked from editing.',
+  1: 'Ensure email and phone number are accurate. The phone number must contain the exact digit count required for the selected country.',
   2: 'Choose GST Registered to automatically validate 15-character GST numbers and ensure seamless tax compliance.',
   3: 'You can check "Shipping address is identical" to quickly mirror billing details into shipping.',
   4: 'Review all customer details before final submission. Click any "Edit" link to quickly jump back to a section.',
@@ -85,6 +86,7 @@ export const CustomerForm = ({
   mode = 'create',
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [loadingNextCode, setLoadingNextCode] = useState(false);
 
   const getInitialValues = (values) => {
     const rawTax = values?.taxId || values?.gstin || '';
@@ -209,24 +211,41 @@ export const CustomerForm = ({
     if (mode === 'create') {
       const activeCode = getValues('customerCode');
       if (!initialValues?.customerCode && (!activeCode || activeCode.trim() === '')) {
+        setLoadingNextCode(true);
         customerApi
-          .getCustomers({ pageSize: 100 })
-          .then((res) => {
+          .getNextCustomerCode()
+          .then((code) => {
             if (!isMounted) return;
-            const items = res?.items || (Array.isArray(res) ? res : []);
-            const nextCode = getNextCustomerCode(items);
-            const currentVal = getValues('customerCode');
-            if (!currentVal || currentVal.trim() === '') {
-              setValue('customerCode', nextCode, { shouldValidate: true, shouldDirty: false });
+            if (code && typeof code === 'string' && code.trim()) {
+              setValue('customerCode', code.trim(), { shouldValidate: true, shouldDirty: false });
+            } else {
+              return customerApi.getCustomers({ pageSize: 100 }).then((res) => {
+                if (!isMounted) return;
+                const items = res?.items || (Array.isArray(res) ? res : []);
+                const nextCode = getNextCustomerCode(items);
+                setValue('customerCode', nextCode, { shouldValidate: true, shouldDirty: false });
+              });
             }
           })
           .catch(() => {
             if (isMounted) {
-              const currentVal = getValues('customerCode');
-              if (!currentVal || currentVal.trim() === '') {
-                setValue('customerCode', 'CUST-001', { shouldValidate: true, shouldDirty: false });
-              }
+              customerApi
+                .getCustomers({ pageSize: 100 })
+                .then((res) => {
+                  if (!isMounted) return;
+                  const items = res?.items || (Array.isArray(res) ? res : []);
+                  const nextCode = getNextCustomerCode(items);
+                  setValue('customerCode', nextCode, { shouldValidate: true, shouldDirty: false });
+                })
+                .catch(() => {
+                  if (isMounted) {
+                    setValue('customerCode', 'CUST-001', { shouldValidate: true, shouldDirty: false });
+                  }
+                });
             }
+          })
+          .finally(() => {
+            if (isMounted) setLoadingNextCode(false);
           });
       }
     }
@@ -239,6 +258,16 @@ export const CustomerForm = ({
   const billingAddress = watch('billingAddress');
   const taxRegistrationType = watch('taxRegistrationType');
   const watchedValues = watch();
+  const watchedPhoneCode = watch('phoneCountryCode') || '+91';
+  const currentPhoneConfig = COUNTRY_PHONE_CONFIG[watchedPhoneCode] || COUNTRY_PHONE_CONFIG['+91'];
+
+  // Trigger phone re-validation when country dialing code changes
+  useEffect(() => {
+    const currentPhone = getValues('phone');
+    if (currentPhone && currentPhone.trim() !== '') {
+      trigger('phone');
+    }
+  }, [watchedPhoneCode, trigger, getValues]);
 
   // Synchronize shipping address whenever billing changes while "Same as Billing" is active
   useEffect(() => {
@@ -511,6 +540,9 @@ export const CustomerForm = ({
                 <div className="cust-field">
                   <label htmlFor="customer-code">
                     Customer Code <span className="cust-required">*</span>
+                    <span className="cust-field-badge">
+                      {loadingNextCode ? 'Generating…' : (mode === 'create' ? 'Auto-assigned' : 'Locked')}
+                    </span>
                   </label>
                   <div className="cust-input-with-icon">
                     <span className="cust-input-icon" aria-hidden="true">
@@ -519,7 +551,10 @@ export const CustomerForm = ({
                     <input
                       id="customer-code"
                       type="text"
-                      placeholder="e.g. CUST-001 (auto-generated if empty)"
+                      readOnly={true}
+                      tabIndex={-1}
+                      placeholder={loadingNextCode ? 'Generating code…' : 'e.g. CUST-016'}
+                      className={`cust-input-readonly ${errors.customerCode ? 'has-error' : ''}`}
                       aria-invalid={Boolean(errors.customerCode)}
                       aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
                       {...register('customerCode')}
@@ -610,7 +645,9 @@ export const CustomerForm = ({
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-phone">Mobile / Phone Number</label>
+                  <label htmlFor="customer-phone">
+                    Mobile / Phone Number <span className="cust-required">*</span>
+                  </label>
                   <div className="cust-phone-group">
                     <select
                       id="customer-phone-code"
@@ -618,16 +655,11 @@ export const CustomerForm = ({
                       aria-label="Country Dialing Code"
                       {...register('phoneCountryCode')}
                     >
-                      <option value="+91">+91 (IN)</option>
-                      <option value="+1">+1 (US)</option>
-                      <option value="+44">+44 (UK)</option>
-                      <option value="+971">+971 (AE)</option>
-                      <option value="+65">+65 (SG)</option>
-                      <option value="+61">+61 (AU)</option>
-                      <option value="+49">+49 (DE)</option>
-                      <option value="+33">+33 (FR)</option>
-                      <option value="+81">+81 (JP)</option>
-                      <option value="+966">+966 (SA)</option>
+                      {Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => (
+                        <option key={code} value={code}>
+                          {code} ({cfg.code})
+                        </option>
+                      ))}
                     </select>
                     <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
                       <span className="cust-input-icon" aria-hidden="true">
@@ -637,16 +669,20 @@ export const CustomerForm = ({
                         id="customer-phone"
                         type="tel"
                         className="cust-phone-input"
-                        placeholder="e.g. 98490 12345"
+                        placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
                         aria-invalid={Boolean(errors.phone)}
-                        aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
+                        aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
                         {...register('phone')}
                       />
                     </div>
                   </div>
-                  {errors.phone && (
+                  {errors.phone ? (
                     <span id="customer-phone-err" className="cust-field-error" role="alert">
                       {errors.phone.message}
+                    </span>
+                  ) : (
+                    <span id="customer-phone-hint" className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
+                      Requires {currentPhoneConfig.label} for {currentPhoneConfig.country}
                     </span>
                   )}
                 </div>

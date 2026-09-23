@@ -16,4 +16,5 @@ public interface ICustomerService
 
     Task<ApiResponse<CustomerDetailsDto>> GetCustomerDetailsAsync(int id, int? tenantId);
     Task<ApiResponse<CustomerKpiSummaryDto>> GetCustomerSummaryAsync(int? tenantId);
+    Task<ApiResponse<string>> GetNextCustomerCodeAsync(int tenantId);
 }

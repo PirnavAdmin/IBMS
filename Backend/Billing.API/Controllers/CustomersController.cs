@@ -67,6 +67,33 @@ public class CustomersController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieve the next auto-increment customer code for the current tenant.
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]
+    [HttpGet("next-code")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextCustomerCode()
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue)
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
+            }
+            return Forbid();
+        }
+
+        var result = await _customerService.GetNextCustomerCodeAsync(tenantId.Value);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Retrieve a paginated list of customers with search, filtering, and sorting.
     /// </summary>
     /// <param name="pageNumber">Page number for pagination (Default: 1)</param>

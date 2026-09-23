@@ -8,6 +8,19 @@ const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
 const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
 
+export const COUNTRY_PHONE_CONFIG = {
+  '+91': { country: 'India', code: 'IN', min: 10, max: 10, example: '98490 12345', label: '10 digits' },
+  '+1': { country: 'USA / Canada', code: 'US', min: 10, max: 10, example: '202 555 0143', label: '10 digits' },
+  '+44': { country: 'UK', code: 'UK', min: 10, max: 10, example: '7911 123456', label: '10 digits' },
+  '+971': { country: 'UAE', code: 'AE', min: 9, max: 9, example: '50 123 4567', label: '9 digits' },
+  '+65': { country: 'Singapore', code: 'SG', min: 8, max: 8, example: '8123 4567', label: '8 digits' },
+  '+61': { country: 'Australia', code: 'AU', min: 9, max: 9, example: '412 345 678', label: '9 digits' },
+  '+49': { country: 'Germany', code: 'DE', min: 10, max: 11, example: '151 12345678', label: '10-11 digits' },
+  '+33': { country: 'France', code: 'FR', min: 9, max: 9, example: '6 12 34 56 78', label: '9 digits' },
+  '+81': { country: 'Japan', code: 'JP', min: 10, max: 10, example: '90 1234 5678', label: '10 digits' },
+  '+966': { country: 'Saudi Arabia', code: 'SA', min: 9, max: 9, example: '50 123 4567', label: '9 digits' },
+};
+
 export const customerValidationSchema = yup.object({
   // 1. Basic Information
   name: yup
@@ -60,13 +73,36 @@ export const customerValidationSchema = yup.object({
   phone: yup
     .string()
     .trim()
-    .max(64, 'Phone number must not exceed 64 characters')
-    .test('phone-format', 'Enter a valid phone number', (val) => {
-      if (!val || val.trim() === '') return true;
-      return PHONE_REGEX.test(val.trim());
+    .required('Phone number is required')
+    .test('phone-digits', 'Phone number must contain only numbers and standard separators', (val) => {
+      if (!val || !val.trim()) return false;
+      return /^[0-9\s\-()+.]+$/.test(val.trim());
     })
-    .nullable()
-    .transform((curr, orig) => (orig === '' ? null : curr)),
+    .test('country-phone-length', function (val) {
+      if (!val || !val.trim()) return false;
+      let digits = val.replace(/\D/g, '');
+      const code = this.parent?.phoneCountryCode || '+91';
+      const config = COUNTRY_PHONE_CONFIG[code] || { country: 'Selected country', min: 7, max: 15, label: '7-15 digits' };
+      const codeDigits = code.replace(/\D/g, '');
+      if (digits.startsWith(codeDigits) && digits.length > config.max) {
+        digits = digits.slice(codeDigits.length);
+      }
+
+      if (config.min === config.max) {
+        if (digits.length !== config.min) {
+          return this.createError({
+            message: `Phone number for ${config.country} (${code}) must be exactly ${config.min} digits (currently entered ${digits.length} digits)`,
+          });
+        }
+      } else {
+        if (digits.length < config.min || digits.length > config.max) {
+          return this.createError({
+            message: `Phone number for ${config.country} (${code}) must be between ${config.min} and ${config.max} digits (currently entered ${digits.length} digits)`,
+          });
+        }
+      }
+      return true;
+    }),
   website: yup
     .string()
     .trim()
@@ -275,10 +311,10 @@ export const getNextCustomerCode = (existingItems = []) => {
     for (const item of existingItems) {
       const code = typeof item === 'string' ? item : item?.customerCode || item?.code || item?.CustomerCode || '';
       if (code) {
-        const match = code.trim().match(/^CUST-(\d+)$/i);
+        const match = code.trim().match(/^CUST\s*-\s*(\d+)$/i);
         if (match) {
           const num = parseInt(match[1], 10);
-          if (!isNaN(num) && num > maxNum) {
+          if (!isNaN(num) && num < 100000 && num > maxNum) {
             maxNum = num;
           }
         }
