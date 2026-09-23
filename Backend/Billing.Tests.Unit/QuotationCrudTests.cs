@@ -50,7 +50,8 @@ public class QuotationCrudTests
 
         _numberGenerationService = new NumberGenerationService(_numberingRepo);
         _quotationService = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService);
-        _controller = new QuotationsController(_quotationService, NullLogger<QuotationsController>.Instance);
+        var mockActionService = new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>();
+        _controller = new QuotationsController(_quotationService, mockActionService.Object, NullLogger<QuotationsController>.Instance);
 
         SetUserContext(_controller, tenantId: 1);
     }
