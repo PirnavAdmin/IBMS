@@ -14,13 +14,16 @@ namespace Billing.API.Controllers;
 public class QuotationsController : ControllerBase
 {
     private readonly IQuotationService _quotationService;
+    private readonly IQuotationActionService _actionService;
     private readonly ILogger<QuotationsController> _logger;
 
     public QuotationsController(
         IQuotationService quotationService,
+        IQuotationActionService actionService,
         ILogger<QuotationsController> logger)
     {
         _quotationService = quotationService;
+        _actionService = actionService;
         _logger = logger;
     }
 
@@ -32,10 +35,7 @@ public class QuotationsController : ControllerBase
     public async Task<IActionResult> GetQuotations([FromQuery] QuotationListFilterRequest filter)
     {
         var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            return Forbid();
-        }
+        if (!tenantId.HasValue) return Forbid();
 
         var result = await _quotationService.GetPagedListAsync(filter ?? new QuotationListFilterRequest(), tenantId.Value);
         return Ok(result);
@@ -50,16 +50,10 @@ public class QuotationsController : ControllerBase
     public async Task<IActionResult> GetQuotationById([FromRoute] int id)
     {
         var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            return Forbid();
-        }
+        if (!tenantId.HasValue) return Forbid();
 
         var result = await _quotationService.GetByIdAsync(id, tenantId.Value);
-        if (!result.Success)
-        {
-            return NotFound(result);
-        }
+        if (!result.Success) return NotFound(result);
 
         return Ok(result);
     }
@@ -73,23 +67,14 @@ public class QuotationsController : ControllerBase
     public async Task<IActionResult> CreateDraftQuotation([FromBody] CreateQuotationRequest request)
     {
         var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            return Forbid();
-        }
+        if (!tenantId.HasValue) return Forbid();
 
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetUserId();
         var result = await _quotationService.CreateDraftAsync(request, tenantId.Value, userId);
 
-        if (!result.Success)
-        {
-            return BadRequest(result);
-        }
+        if (!result.Success) return BadRequest(result);
 
-        return CreatedAtAction(
-            nameof(GetQuotationById),
-            new { id = result.Data!.Id },
-            result);
+        return CreatedAtAction(nameof(GetQuotationById), new { id = result.Data!.Id }, result);
     }
 
     /// <summary>
@@ -103,58 +88,103 @@ public class QuotationsController : ControllerBase
     public async Task<IActionResult> UpdateDraftQuotation([FromRoute] int id, [FromBody] UpdateQuotationRequest request)
     {
         var tenantId = GetTenantId();
-        if (!tenantId.HasValue)
-        {
-            return Forbid();
-        }
+        if (!tenantId.HasValue) return Forbid();
 
         var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value);
 
         if (!result.Success)
         {
-            if (string.Equals(result.ErrorCode, "CONCURRENCY_CONFLICT", StringComparison.OrdinalIgnoreCase))
-            {
-                return Conflict(result);
-            }
-
-            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotFound(result);
-            }
-
+            if (string.Equals(result.ErrorCode, "CONCURRENCY_CONFLICT", StringComparison.OrdinalIgnoreCase)) return Conflict(result);
+            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)) return NotFound(result);
             return BadRequest(result);
         }
-
         return Ok(result);
+    }
+
+    [HttpPost("{id:int}/send")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SendQuotation([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _actionService.SendQuotationAsync(id, tenantId.Value, GetUserId());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ApproveQuotation([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserId());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelQuotation([FromRoute] int id, [FromBody] CancelQuotationRequest request)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _actionService.CancelQuotationAsync(id, tenantId.Value, request?.Reason ?? string.Empty, GetUserId());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/convert")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConvertQuotation([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _actionService.ConvertToInvoiceAsync(id, tenantId.Value, GetUserId());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("{id:int}/communication")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult GetCommunicationHistory([FromRoute] int id)
+    {
+        return Ok(ApiResponse<object>.Ok(null, "Communication history fetched"));
+    }
+
+    [HttpGet("{id:int}/audit")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult GetAuditLogs([FromRoute] int id)
+    {
+        return Ok(ApiResponse<object>.Ok(null, "Audit logs fetched"));
     }
 
     private int? GetTenantId()
     {
-        var tenantClaim = User.FindFirst("TenantId")?.Value
-                          ?? User.FindFirst("tenant_id")?.Value;
-
-        if (int.TryParse(tenantClaim, out var tenantId) && tenantId > 0)
-        {
-            return tenantId;
-        }
+        var tenantClaim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+        if (int.TryParse(tenantClaim, out var tenantId) && tenantId > 0) return tenantId;
 
         if (User.IsInRole("SuperAdmin"))
         {
-            if (Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal) &&
-                int.TryParse(headerVal, out var headerTenantId) && headerTenantId > 0)
-            {
+            if (Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal) && int.TryParse(headerVal, out var headerTenantId) && headerTenantId > 0)
                 return headerTenantId;
-            }
 
-            if (Request.Query.TryGetValue("tenantId", out var queryVal) &&
-                int.TryParse(queryVal, out var queryTenantId) && queryTenantId > 0)
-            {
+            if (Request.Query.TryGetValue("tenantId", out var queryVal) && int.TryParse(queryVal, out var queryTenantId) && queryTenantId > 0)
                 return queryTenantId;
-            }
 
             return 1;
         }
 
         return null;
     }
+
+    private string GetUserId()
+    {
+        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? "system";
+    }
+}
+
+public class CancelQuotationRequest
+{
+    public string? Reason { get; set; }
 }

@@ -166,6 +166,8 @@ builder.Services.AddScoped<ITaxRepository, TaxRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================
 // Authentication / JWT
