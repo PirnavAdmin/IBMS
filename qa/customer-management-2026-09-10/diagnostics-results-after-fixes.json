@@ -54,8 +54,8 @@
     "id": "FORM-FINANCIAL-PERSISTENCE",
     "status": "PASS",
     "observed": {
-      "creditLimitControl": true,
-      "openingBalanceControl": true,
+      "creditLimitControl": false,
+      "openingBalanceControl": false,
       "creditLimitInDto": false,
       "openingBalanceInDto": false,
       "swaggerSupportsTheseFields": false
@@ -65,7 +65,7 @@
     "id": "CREATE-STATUS-PERSISTENCE",
     "status": "PASS",
     "observed": {
-      "controlPresent": true,
+      "controlPresent": false,
       "statusInCreateDto": false,
       "isActiveInCreateDto": false
     }

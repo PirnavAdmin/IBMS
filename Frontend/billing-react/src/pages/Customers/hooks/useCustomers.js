@@ -6,5 +6,5 @@ export const useCustomerSummary = () => useQuery({ queryKey: ['customers', 'summ
 export function useCustomerStatus() {
   const client = useQueryClient();
   return useMutation({ mutationFn: (customer) => deactivateCustomer(customer.id),
-    onSuccess: (_, customer) => Promise.all([['customers'], ['customer', customer.id], ['customer-details', customer.id], ['customer-audit', customer.id]].map(queryKey => client.invalidateQueries({ queryKey }))) });
+    onSuccess: (_, customer) => Promise.all([['customers'], ['customer', String(customer.id)], ['customer-details', String(customer.id)], ['customer-audit', String(customer.id)]].map(queryKey => client.invalidateQueries({ queryKey }))) });
 }

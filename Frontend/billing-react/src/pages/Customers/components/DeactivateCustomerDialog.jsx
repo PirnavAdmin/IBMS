@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar } from '@mui/material';
 import { useCustomerMutation } from '../hooks/useCustomer';
 import { deactivateCustomer } from '../api/customerService';
 
 export function DeactivateCustomerDialog({ customer }) {
+  const requestLock = useRef(false);
   const [open, setOpen] = useState(false);
   const [success, setSuccess] = useState(false);
   const mutation = useCustomerMutation(customer.id, deactivateCustomer);
@@ -13,7 +14,7 @@ export function DeactivateCustomerDialog({ customer }) {
     <Dialog open={open} onClose={close} fullWidth maxWidth="sm" aria-labelledby="deactivate-customer-title" aria-describedby="deactivate-customer-message">
       <DialogTitle id="deactivate-customer-title">Deactivate Customer</DialogTitle>
       <DialogContent><DialogContentText id="deactivate-customer-message">This customer will become inactive. Are you sure you want to continue? Existing invoices, payments, statements and audit history will be preserved.</DialogContentText><p>{customer.name} · {customer.id}</p>{mutation.isError && <Alert severity="error">{mutation.error.message}</Alert>}</DialogContent>
-      <DialogActions><Button autoFocus disabled={mutation.isPending} onClick={close}>Cancel</Button><Button variant="contained" disabled={!open || mutation.isPending} onClick={() => { if (open && !mutation.isPending) mutation.mutate([], { onSuccess: () => { setOpen(false); setSuccess(true); } }); }}>{mutation.isPending ? 'Deactivating…' : 'Deactivate Customer'}</Button></DialogActions>
+      <DialogActions><Button autoFocus disabled={mutation.isPending} onClick={close}>Cancel</Button><Button variant="contained" disabled={!open || mutation.isPending} onClick={() => { if (!open || requestLock.current) return; requestLock.current = true; mutation.mutate([], { onSuccess: () => { setOpen(false); setSuccess(true); }, onSettled: () => { requestLock.current = false; } }); }}>{mutation.isPending ? 'Deactivating…' : 'Deactivate Customer'}</Button></DialogActions>
     </Dialog>
     <Snackbar open={success} autoHideDuration={5000} onClose={() => setSuccess(false)}><Alert severity="success" onClose={() => setSuccess(false)}>Customer deactivated successfully.</Alert></Snackbar>
   </>;

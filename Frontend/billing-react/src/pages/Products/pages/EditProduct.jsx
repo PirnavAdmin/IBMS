@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button, CircularProgress } from '@mui/material';
@@ -12,6 +12,7 @@ export function EditProduct() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -20,23 +21,24 @@ export function EditProduct() {
     queryFn: ({ signal }) => productService.getProductById(id, { signal }),
     enabled: Boolean(id),
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const handleSubmit = async (formData) => {
-    if (isSubmitting || !id) return;
+    if (requestLock.current || !id) return;
+    requestLock.current = true;
     setIsSubmitting(true);
     setSubmitError('');
 
     try {
       await productService.updateProduct(id, formData);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['products'] }),
-        queryClient.invalidateQueries({ queryKey: ['products', 'detail', id] }),
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'none' });
       navigate('/products', {
         state: { productNotice: `Product "${formData.name}" updated successfully.` },
       });
     } catch (err) {
+      requestLock.current = false;
       setSubmitError(err.message || 'Failed to update product. Please check your entries.');
       setIsSubmitting(false);
     }

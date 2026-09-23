@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Breadcrumbs, Button } from '@mui/material';
@@ -10,11 +10,13 @@ import '../styles/product-form.css';
 export function CreateProduct() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (formData) => {
-    if (isSubmitting) return;
+    if (requestLock.current) return;
+    requestLock.current = true;
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -26,6 +28,7 @@ export function CreateProduct() {
         state: { productNotice: `Product "${formData.name}" created successfully.` },
       });
     } catch (err) {
+      requestLock.current = false;
       setSubmitError(err.message || 'Failed to create product. Please check your entries.');
       setIsSubmitting(false);
     }

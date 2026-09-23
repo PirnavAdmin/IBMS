@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,11 +9,13 @@ import '../styles/customer-form.css';
 export const CreateCustomer = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (formData) => {
-    if (isSubmitting) return;
+    if (requestLock.current) return;
+    requestLock.current = true;
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -22,6 +24,7 @@ export const CreateCustomer = () => {
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
       navigate('/customers', { state: { customerNotice: 'Customer created successfully.' } });
     } catch (err) {
+      requestLock.current = false;
       setSubmitError(err.userMessage || err.message || 'Failed to create customer');
       setIsSubmitting(false);
     }

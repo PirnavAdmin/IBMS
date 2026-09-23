@@ -64,6 +64,8 @@ export function ProductForm({
 }) {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [loadingNextCode, setLoadingNextCode] = useState(mode === 'create' && !initialValues?.productCode);
+  const [codeError, setCodeError] = useState('');
+  const [codeRevision, setCodeRevision] = useState(0);
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
 
@@ -95,15 +97,17 @@ export function ProductForm({
     let isMounted = true;
     if (mode === 'create' && !initialValues?.productCode) {
       setLoadingNextCode(true);
+      setCodeError('');
       productService
         .getNextProductCode()
         .then((code) => {
-          if (isMounted && code) {
+          if (typeof code !== 'string' || !code.trim()) throw new Error('The backend did not return a product code. Please retry.');
+          if (isMounted) {
             setValue('productCode', code, { shouldValidate: true });
           }
         })
         .catch((err) => {
-          console.error('Failed to load next product code:', err);
+          if (isMounted) setCodeError(err.message || 'Unable to generate the product code. Please retry.');
         })
         .finally(() => {
           if (isMounted) setLoadingNextCode(false);
@@ -112,7 +116,7 @@ export function ProductForm({
     return () => {
       isMounted = false;
     };
-  }, [mode, initialValues?.productCode, setValue]);
+  }, [mode, initialValues?.productCode, setValue, codeRevision]);
 
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
@@ -131,7 +135,7 @@ export function ProductForm({
   }
 
   const handleValidSubmit = (data) => {
-    if (isSubmitting || loadingNextCode || categoriesQuery.isPending || categoriesQuery.isError) return;
+    if (isSubmitting || loadingNextCode || codeError || categoriesQuery.isPending || categoriesQuery.isError) return;
     const selected = categoryOptions.find(category => String(category.id) === String(data.categoryId));
     if (!selected || (selected.status !== 'Active' && !(mode === 'edit' && String(selected.id) === String(currentCategoryId)))) {
       setError('categoryId', { message: 'Select an active category.' });
@@ -160,6 +164,7 @@ export function ProductForm({
   return (
     <div className="product-form-container">
       {categoriesQuery.isPending && <Alert severity="info">Loading categories...</Alert>}
+      {codeError && <Alert severity="error" action={<Button disabled={loadingNextCode} onClick={() => setCodeRevision(value => value + 1)}>Retry</Button>}>{codeError}</Alert>}
       {categoriesQuery.isError && <Alert severity="error" action={<Button onClick={() => categoriesQuery.refetch()}>Retry</Button>}>{categoryError(categoriesQuery.error)}</Alert>}
       {!categoriesQuery.isPending && !categoriesQuery.isError && !categoryOptions.length && <Alert severity="info">No active categories are available. Activate or add a category before saving a product.</Alert>}
       {submitError && (
@@ -545,7 +550,7 @@ export function ProductForm({
           <Button
             type="submit"
             variant="contained"
-            disabled={isSubmitting || loadingNextCode || categoriesQuery.isPending || categoriesQuery.isError}
+            disabled={isSubmitting || loadingNextCode || Boolean(codeError) || categoriesQuery.isPending || categoriesQuery.isError}
             className="product-btn-submit"
             startIcon={
               isSubmitting ? (

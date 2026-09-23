@@ -39,9 +39,9 @@ const form = renderToStaticMarkup(<CustomerForm initialValues={parsed} onSubmit=
 const createForm = renderToStaticMarkup(<CustomerForm onSubmit={() => {}} mode="create" />);
 const disabledControl = (html, id) => new RegExp(`<(?:input|select)[^>]*id="${id}"[^>]*disabled`).test(html);
 const financialPayload = createUpdateCustomerRequest({ ...parsed, creditLimit: 500, openingBalance: 50 });
-check('FORM-FINANCIAL-PERSISTENCE', disabledControl(form, 'customer-credit-limit') && disabledControl(form, 'customer-opening-balance') && form.includes('does not support saving them') && !Object.hasOwn(financialPayload, 'creditLimit') && !Object.hasOwn(financialPayload, 'openingBalance'), { creditLimitControl: form.includes('customer-credit-limit'), openingBalanceControl: form.includes('customer-opening-balance'), creditLimitInDto: Object.hasOwn(financialPayload, 'creditLimit'), openingBalanceInDto: Object.hasOwn(financialPayload, 'openingBalance'), swaggerSupportsTheseFields: false });
+check('FORM-FINANCIAL-PERSISTENCE', !form.includes('customer-credit-limit') && !form.includes('customer-opening-balance') && !Object.hasOwn(financialPayload, 'creditLimit') && !Object.hasOwn(financialPayload, 'openingBalance'), { creditLimitControl: form.includes('customer-credit-limit'), openingBalanceControl: form.includes('customer-opening-balance'), creditLimitInDto: Object.hasOwn(financialPayload, 'creditLimit'), openingBalanceInDto: Object.hasOwn(financialPayload, 'openingBalance'), swaggerSupportsTheseFields: false });
 const inactiveCreate = createCustomerRequest({ ...parsed, status: 'Inactive', isActive: false });
-check('CREATE-STATUS-PERSISTENCE', disabledControl(createForm, 'customer-status') && createForm.includes('Initial status is assigned') && !Object.hasOwn(inactiveCreate, 'status') && !Object.hasOwn(inactiveCreate, 'isActive'), { controlPresent: form.includes('customer-status'), statusInCreateDto: Object.hasOwn(inactiveCreate, 'status'), isActiveInCreateDto: Object.hasOwn(inactiveCreate, 'isActive') });
+check('CREATE-STATUS-PERSISTENCE', !/<select[^>]*id="customer-status"/.test(createForm) && createForm.includes('New customers are active when created') && !Object.hasOwn(inactiveCreate, 'status') && !Object.hasOwn(inactiveCreate, 'isActive'), { controlPresent: /<select[^>]*id="customer-status"/.test(createForm), statusInCreateDto: Object.hasOwn(inactiveCreate, 'status'), isActiveInCreateDto: Object.hasOwn(inactiveCreate, 'isActive') });
 const query = customerQuery({ page: 2, pageSize: 25, search: ' QA & Co ', customerType: 'Business', taxRegistration: 'Registered', outstanding: 'Has Outstanding', status: 'active', sortBy: 'name', sortOrder: 'asc' });
 const allowed = spec.paths['/api/v1/customers'].get.parameters.map(p => p.name);
 check('QUERY-CURRENT-SWAGGER', Object.keys(query).every(k => allowed.includes(k)), query);
@@ -64,11 +64,11 @@ data = { totalCustomers: 1, activeCustomers: 1, inactiveCustomers: 0, totalOutst
 const missingCurrency = await getCustomerSummary();
 check('SUMMARY-MISSING-CURRENCY', !missingCurrency.currency, missingCurrency);
 const client = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity, staleTime: Infinity } } });
-const params = {page: 1, pageSize: 10, taxId: '', search: '', sortBy: '', sortOrder: 'asc', status: '', customerType: '', taxRegistration: '', outstanding: ''};
+const params = {page: 1, pageSize: 10, taxId: '', search: '', sortBy: 'customerCode', sortOrder: 'asc', status: '', customerType: '', taxRegistration: '', outstanding: ''};
 client.setQueryData(['customers', 'list', params], mapCustomerPage({items: [{id: 17, name: '', email: '', customerCode: '', outstandingBalance: 50}], totalCount: 1}, params));
 client.setQueryData(['customers', 'summary'], {total: 1, active: 1, inactive: 0, outstanding: 50, currency: 'EUR'});
 const list = renderToStaticMarkup(<StaticRouter location="/customers"><QueryClientProvider client={client}><CustomerListPage /></QueryClientProvider></StaticRouter>);
-const cell = key => list.match(new RegExp(`<td[^>]*data-label="${key}"[^>]*>(.*?)</td>`))?.[1] || '';
+const cell = key => list.match(new RegExp(`<td[^>]*data-label="${key}"[^>]*>([\\s\\S]*?)</td>`))?.[1] || '';
 check('LIST-MISSING-CURRENCY', !cell('Outstanding').includes('$') && cell('Outstanding').includes('—'), { outstandingCell: cell('Outstanding') });
 check('LIST-MISSING-FIELDS', ['Code', 'Customer', 'Contact', 'Status'].every(k => cell(k).includes('—')) && !cell('Status').includes('unknown'), { code: cell('Code'), contact: cell('Contact'), status: cell('Status') });
 check('SSR-FILTER-ASSERTION-DIAGNOSIS', list.includes('Outstanding') && !list.includes('Has Outstanding'), { closedSelectHasLabel: list.includes('Outstanding'), unselectedOptionInSSR: list.includes('Has Outstanding') });
@@ -91,7 +91,7 @@ rejectPatch = false;
 calls = [];
 try { await customerApi.getCustomerById('not-a-number'); } catch {}
 check('EDIT-INVALID-ID-NO-REQUEST', calls.length === 0, calls.map(c => ({method:c.method,url:c.url})));
-const valid = {...DEFAULT_CUSTOMER_VALUES, name:'QA Only', email:'qa@example.invalid', billingAddress:{street:'Line',city:'City',state:'State',postalCode:'12345',country:'India'}};
+const valid = {...DEFAULT_CUSTOMER_VALUES, name:'QA Only', customerCode:'QA-ONLY', email:'qa@example.invalid', taxRegistrationType:'non-gst', billingAddress:{street:'Line',city:'City',state:'State',postalCode:'123456',country:'India'}};
 for (const [name, change, expected] of [['valid',{},true],['blank-name',{name:''},false],['bad-email',{email:'invalid'},false],['phone-letters',{phone:'abc'},false],['bad-gstin',{taxId:'BAD',taxRegistrationType:'gst'},false],['bad-postal',{billingAddress:{...valid.billingAddress,postalCode:'@'}},false],['separate-shipping-empty',{isShippingSameAsBilling:false},false]]) {
   const actual = await customerValidationSchema.isValid({...valid,...change});
   check(`VALIDATION-${name}`, actual === expected, {valid:actual, expected});

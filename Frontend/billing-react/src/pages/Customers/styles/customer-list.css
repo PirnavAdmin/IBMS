@@ -206,7 +206,10 @@
   .customers-page .customer-identity { min-width: 0; }
   .customers-page .customer-contact { overflow-wrap: anywhere; }
 }
+.customer-compact-sort { display: none; gap: 12px; align-items: center; }
+.customer-compact-sort > .MuiTextField-root { min-width: 180px; }
 @container customer-directory (max-width: 919px) {
+  .customers-page .customer-compact-sort { display: flex; flex-wrap: wrap; }
   .customers-page .customer-table { overflow-x: hidden; }
   .customers-page .customer-table .MuiTable-root { min-width: 0; display: block; }
   .customers-page .customer-table thead { display: none; }

@@ -2,9 +2,12 @@ import { apiClient } from '../../../billing-api-client/apiClient.js';
 
 const endpoint = '/api/v1/settings/taxes';
 const ratesEndpoint = `${endpoint}/rates`;
+const safeMessage = value => typeof value === 'string' && value.length <= 500 && !/[<>]|\bat System\.|\bstack trace\b|SqlException/i.test(value) ? value : '';
 const unwrap = response => {
-  if (response?.success === false) throw new Error(response.message || 'The tax request was rejected.');
-  return response?.data ?? response;
+  if (response?.success === false) throw new Error(safeMessage(response.message) || 'The tax request was rejected.');
+  const data = response && Object.hasOwn(response, 'data') ? response.data : response;
+  if (!data || typeof data !== 'object') throw new Error('The backend returned invalid tax settings. Please retry.');
+  return data;
 };
 const dateOnly = value => value ? String(value).slice(0, 10) : '';
 const uiType = value => value === 'Custom' ? 'Custom Tax' : value;
@@ -30,20 +33,28 @@ export const taxApi = {
 export const taxService = {
   async list() {
     const settings = unwrap(await taxApi.getSettings());
-    return (settings.taxRates ?? settings.TaxRates ?? []).map(mapRate);
+    const rates = settings.taxRates ?? settings.TaxRates;
+    if (!Array.isArray(rates) || rates.some(rate => !rate || rate.id == null)) throw new Error('The backend returned an invalid tax list. Please retry.');
+    return rates.map(mapRate);
   },
   async save(values, id) {
     const response = id ? await taxApi.updateRate(id, ratePayload(values)) : await taxApi.createRate(ratePayload(values));
-    return mapRate(unwrap(response));
+    const rate = unwrap(response);
+    if (rate.id == null) throw new Error('The backend did not confirm the saved tax rule. Reload before trying again.');
+    return mapRate(rate);
   },
 };
 export function taxError(error) {
   const status = error?.response?.status;
-  if (status === 400) return error?.message || 'The tax settings request was rejected. Check the entered values.';
+  if (status === 400) {
+    const data = error.response.data;
+    const messages = data?.errors && typeof data.errors === 'object' ? Object.values(data.errors).flat().map(safeMessage).filter(Boolean) : [];
+    return messages.join(' ') || safeMessage(data?.message) || 'The tax settings request was rejected. Check the entered values.';
+  }
   if (status === 401) return 'Your session has expired. Please sign in again.';
   if (status === 403) return 'You do not have permission to manage tax settings.';
   if (status === 404) return 'The requested tax rule was not found.';
   if (status === 409) return 'Tax settings have changed. Reload before trying again.';
   if (status >= 500) return 'The server could not load tax settings. Please retry.';
-  return error?.message || 'Unable to connect to tax settings. Check your connection and retry.';
+  return error?.message !== 'Network Error' && safeMessage(error?.message) || 'Unable to connect to tax settings. Check your connection and retry.';
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button } from '@mui/material';
@@ -11,15 +11,17 @@ import '../styles/categories.css';
 function CategoryForm({ category, categories }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
   const [values, setValues] = useState(category || { name: '', description: '', status: 'Active' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(false);
   const change = event => { setValues(previous => ({ ...previous, [event.target.name]: event.target.value })); setError(''); };
   const save = async () => {
-    if (busy) return;
+    if (requestLock.current) return;
     const validation = validateCategory(values, categories, category?.id);
     if (validation) { setError(validation); setConfirm(false); return; }
+    requestLock.current = true;
     setBusy(true);
     setError('');
     try {
@@ -27,7 +29,7 @@ function CategoryForm({ category, categories }) {
       await invalidateCategories(queryClient);
       navigate('/products/categories', { replace: true, state: { categoryNotice: `Category "${values.name.trim()}" ${category ? 'updated' : 'created'} successfully.` } });
     } catch (err) { setConfirm(false); setError(categoryError(err, 'Unable to save category. Please try again.')); }
-    finally { setBusy(false); }
+    finally { requestLock.current = false; setBusy(false); }
   };
   const submit = event => {
     event.preventDefault();

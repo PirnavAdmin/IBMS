@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
@@ -14,6 +14,7 @@ export function CategoryList() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [notice, setNotice] = useState(location.state?.categoryNotice || '');
@@ -25,7 +26,8 @@ export function CategoryList() {
   }, [location.state, location.pathname, navigate]);
   const [confirm, setConfirm] = useState(null);
   const changeStatus = async (category, status) => {
-    if (busy) return;
+    if (requestLock.current) return;
+    requestLock.current = true;
     setBusy(true);
     setError('');
     try {
@@ -34,7 +36,7 @@ export function CategoryList() {
       setNotice(`Category "${category.name}" ${status === 'Active' ? 'activated' : 'deactivated'} successfully.`);
       await invalidateCategories(queryClient);
     } catch (err) { setError(categoryError(err, 'Unable to change category status. Please try again.')); }
-    finally { setBusy(false); }
+    finally { requestLock.current = false; setBusy(false); }
   };
 
   return <main className="product-page">

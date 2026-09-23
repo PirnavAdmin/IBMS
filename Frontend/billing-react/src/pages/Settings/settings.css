@@ -61,3 +61,9 @@
 @media (prefers-reduced-motion: reduce) {
   .settings-nav-card { transition: none; }
 }
+
+/* Keep wide configuration tables inside their panel on compact layouts. */
+.settings-page .settings-panel { min-width: 0; }
+.settings-page .settings-panel-heading { flex-wrap: wrap; }
+.settings-page .settings-table td { overflow-wrap: anywhere; max-width: 320px; }
+.settings-page .settings-switch-row > div { min-width: 0; overflow-wrap: anywhere; }

@@ -6,23 +6,17 @@ import {
   Alert,
   Button,
   CircularProgress,
-  MenuItem,
-  Select,
   Snackbar,
-  TextField,
 } from '@mui/material';
 import {
   RestartAlt,
   SaveOutlined,
   DeleteOutline,
   HelpOutline,
-  CheckCircle,
 } from '@mui/icons-material';
 import {
-  DOCUMENT_TYPES,
   RESET_POLICIES,
   DEFAULT_NUMBERING_CONFIG,
-  DEFAULT_PRESETS_BY_DOC_TYPE,
   numberingValidationSchema,
 } from '../validation/numberingValidation';
 import { numberingService } from '../services/numberingService';
@@ -34,6 +28,7 @@ import '../styles/numbering-settings.css';
 export function NumberingSettings() {
   const requestLock = useRef(false);
   const loadRevision = useRef(0);
+  const savedSettings = useRef(null);
   const [loaded, setLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +36,6 @@ export function NumberingSettings() {
   const [toast, setToast] = useState('');
 
   const {
-    register,
     handleSubmit,
     watch,
     setValue,
@@ -71,11 +65,13 @@ export function NumberingSettings() {
     try {
       const data = await numberingService.getSettings(docType);
       if (revision !== loadRevision.current) return;
-      reset({ ...data,
+      const settings = { ...data,
         prefix: data.prefix.replace(/\{/g, '(').replace(/\}/g, ')'),
         suffix: data.suffix.replace(/\{/g, '(').replace(/\}/g, ')'),
         tokens: data.tokens.replace(/\{/g, '(').replace(/\}/g, ')'),
-      });
+      };
+      savedSettings.current = settings;
+      reset(settings);
       setLoaded(true);
     } catch (err) {
       if (revision === loadRevision.current) setApiError(err.userMessage || err.message || 'Unable to load numbering settings. Please retry.');
@@ -96,15 +92,12 @@ export function NumberingSettings() {
     loadSettingsForType(docType);
   };
 
-  // Reset to default preset
+  // Restore the last successful GET/PUT, including its sequence counter.
   const handleResetChanges = () => {
-    const preset =
-      DEFAULT_PRESETS_BY_DOC_TYPE[currentDocType] || DEFAULT_NUMBERING_CONFIG;
-    reset({
-      ...preset,
-      documentType: currentDocType,
-    });
-    setToast(`Reset changes for ${currentDocType} to default format.`);
+    if (!savedSettings.current || requestLock.current) return;
+    reset(savedSettings.current);
+    setApiError('');
+    setToast(`Restored saved settings for ${currentDocType}.`);
   };
 
   // Append token
@@ -145,7 +138,7 @@ export function NumberingSettings() {
 
       const result = await numberingService.updateSettings(payload);
       if (result) {
-        reset({
+        const settings = {
           documentType: result.documentType || currentDocType,
           prefix: (result.prefix ?? currentPrefix).replace(/\{/g, '(').replace(/\}/g, ')'),
           suffix: (result.suffix ?? currentSuffix).replace(/\{/g, '(').replace(/\}/g, ')'),
@@ -153,7 +146,9 @@ export function NumberingSettings() {
           sequenceLength: Number(result.sequenceLength ?? currentSeqLength),
           nextNumber: Number(result.nextNumber ?? currentNextNum),
           resetPolicy: result.resetPolicy || currentResetPolicy,
-        });
+        };
+        savedSettings.current = settings;
+        reset(settings);
       }
       setToast(
         isDraft

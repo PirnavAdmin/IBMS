@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +11,7 @@ export const EditCustomer = () => {
   const id = paramId || customerId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const requestLock = useRef(false);
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,8 @@ export const EditCustomer = () => {
   }, [id]);
 
   const handleSubmit = async (formData) => {
-    if (isSubmitting || !id) return;
+    if (requestLock.current || !id) return;
+    requestLock.current = true;
     setIsSubmitting(true);
     setSubmitError('');
 
@@ -75,6 +77,7 @@ export const EditCustomer = () => {
       ].map((queryKey) => queryClient.invalidateQueries({ queryKey, refetchType: 'all' })));
       navigate(`/customers/${id}`, { state: { customerNotice: 'Customer updated successfully.' } });
     } catch (err) {
+      requestLock.current = false;
       setSubmitError(err.userMessage || err.message || 'Failed to update customer');
       setIsSubmitting(false);
     }
