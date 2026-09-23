@@ -97,6 +97,17 @@ export const customerApi = {
       throw Object.assign(new Error(parseCustomerError(err, `Failed to load details for customer with ID ${id}.`)), { code: err.code, status: err.response?.status ?? err.status });
     }
   },
+
+  getNextCustomerCode: async () => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.NEXT_CODE);
+      const res = ensureSuccess(response);
+      return res?.data || res?.code || res;
+    } catch (err) {
+      console.warn('Failed to retrieve next customer code from API:', err);
+      return null;
+    }
+  },
 };
 
 export default customerApi;

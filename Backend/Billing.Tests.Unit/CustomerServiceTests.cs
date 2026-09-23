@@ -831,4 +831,76 @@ public class CustomerServiceTests
     }
 
     #endregion
+
+    #region Sequential Customer Code Tests
+
+    [Fact]
+    public async Task GetNextCustomerCode_WhenNoCustomersExist_ReturnsCUST001()
+    {
+        // Arrange
+        const int tenantId = 10;
+
+        // Act
+        var result = await _service.GetNextCustomerCodeAsync(tenantId);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("CUST-001", result.Data);
+    }
+
+    [Fact]
+    public async Task GetNextCustomerCode_WithSequentialExistingCodes_ReturnsNextSequentialCode()
+    {
+        // Arrange
+        const int tenantId = 1;
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = tenantId, CustomerCode = "CUST-001", Name = "A", Email = "a@a.com" });
+        _fakeRepo.Customers.Add(new Customer { Id = 2, TenantId = tenantId, CustomerCode = "CUST-002", Name = "B", Email = "b@b.com" });
+        _fakeRepo.Customers.Add(new Customer { Id = 3, TenantId = tenantId, CustomerCode = "CUST-003", Name = "C", Email = "c@c.com" });
+
+        // Act
+        var result = await _service.GetNextCustomerCodeAsync(tenantId);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("CUST-004", result.Data);
+    }
+
+    [Fact]
+    public async Task GetNextCustomerCode_IsScopedToTenant()
+    {
+        // Arrange
+        _fakeRepo.Customers.Add(new Customer { Id = 1, TenantId = 1, CustomerCode = "CUST-005", Name = "A", Email = "a@a.com" });
+
+        // Act
+        var tenant1Result = await _service.GetNextCustomerCodeAsync(1);
+        var tenant2Result = await _service.GetNextCustomerCodeAsync(2);
+
+        // Assert
+        Assert.True(tenant1Result.Success);
+        Assert.Equal("CUST-006", tenant1Result.Data);
+
+        Assert.True(tenant2Result.Success);
+        Assert.Equal("CUST-001", tenant2Result.Data);
+    }
+
+    [Fact]
+    public async Task CreateCustomer_WhenCustomerCodeOmitted_AutoAssignsSequentialCode()
+    {
+        // Arrange
+        var req1 = new CreateCustomerRequest { Name = "Customer One", Email = "c1@test.com" };
+        var req2 = new CreateCustomerRequest { Name = "Customer Two", Email = "c2@test.com" };
+
+        // Act
+        var res1 = await _service.CreateCustomerAsync(req1, tenantId: 3);
+        var res2 = await _service.CreateCustomerAsync(req2, tenantId: 3);
+
+        // Assert
+        Assert.True(res1.Success);
+        Assert.Equal("CUST-001", res1.Data!.CustomerCode);
+
+        Assert.True(res2.Success);
+        Assert.Equal("CUST-002", res2.Data!.CustomerCode);
+    }
+
+    #endregion
 }

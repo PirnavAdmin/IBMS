@@ -162,7 +162,7 @@ export const CustomerList = () => {
             <Search aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search by name, company, email, phone or GSTIN..."
+              placeholder="Search by name, company, email or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               aria-label="Search customers"

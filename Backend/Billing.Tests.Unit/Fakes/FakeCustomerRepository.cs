@@ -157,4 +157,36 @@ public class FakeCustomerRepository : ICustomerRepository
 
         return Task.FromResult(exists);
     }
+
+    public Task<string> GetNextCustomerCodeAsync(int tenantId, string prefix = "CUST-")
+    {
+        var existingCodes = Customers
+            .Where(c => (tenantId <= 0 || c.TenantId == tenantId) && c.CustomerCode != null && c.CustomerCode.StartsWith(prefix))
+            .Select(c => c.CustomerCode)
+            .ToList();
+
+        var maxNumber = 0;
+        foreach (var code in existingCodes)
+        {
+            var numberPart = code.Substring(prefix.Length).Trim();
+            if (int.TryParse(numberPart, out var n) && n > maxNumber)
+            {
+                if (n < 100000)
+                {
+                    maxNumber = n;
+                }
+            }
+        }
+
+        var nextNumber = maxNumber + 1;
+        var candidate = $"{prefix}{nextNumber:D3}";
+
+        while (Customers.Any(c => (tenantId <= 0 || c.TenantId == tenantId) && c.CustomerCode == candidate))
+        {
+            nextNumber++;
+            candidate = $"{prefix}{nextNumber:D3}";
+        }
+
+        return Task.FromResult(candidate);
+    }
 }

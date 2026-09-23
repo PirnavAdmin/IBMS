@@ -20,4 +20,6 @@ public interface ICustomerRepository
     Task UpdateAsync(Customer customer);
 
     Task<bool> ExistsAsync(int id, int? tenantId = null);
+
+    Task<string> GetNextCustomerCodeAsync(int tenantId, string prefix = "CUST-");
 }
