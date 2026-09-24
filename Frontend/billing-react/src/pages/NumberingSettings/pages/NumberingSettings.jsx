@@ -1,3 +1,5 @@
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import '../../../styles/Dashboard.css';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SettingsPageHeader } from '../../Settings/SettingsPageHeader';
 import { useForm } from 'react-hook-form';
@@ -34,6 +36,7 @@ export function NumberingSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
+  const [toastSeverity, setToastSeverity] = useState('info');
 
   const {
     handleSubmit,
@@ -97,6 +100,7 @@ export function NumberingSettings() {
     if (!savedSettings.current || requestLock.current) return;
     reset(savedSettings.current);
     setApiError('');
+    setToastSeverity('info');
     setToast(`Restored saved settings for ${currentDocType}.`);
   };
 
@@ -110,6 +114,7 @@ export function NumberingSettings() {
   // Clear middle tokens
   const handleClearTokens = () => {
     setValue('tokens', '', { shouldValidate: true, shouldDirty: true });
+    setToastSeverity('info');
     setToast('Cleared format tokens.');
   };
 
@@ -150,6 +155,7 @@ export function NumberingSettings() {
         savedSettings.current = settings;
         reset(settings);
       }
+      setToastSeverity('success');
       setToast(
         isDraft
           ? `Numbering format for ${currentDocType} saved as draft.`
@@ -181,19 +187,9 @@ export function NumberingSettings() {
       />
 
       {/* Error Alert */}
-      {apiError && (
-        <Alert
-          severity="error"
-          sx={{ mb: 3 }}
-          action={!loaded ? (
-            <Button disabled={isLoading} color="inherit" size="small" onClick={() => loadSettingsForType(currentDocType)}>
-              Retry
-            </Button>
-          ) : undefined}
-        >
-          {apiError}
-        </Alert>
-      )}
+      {apiError && (!loaded ? (
+        <DashboardErrorState title="Unable to load numbering settings" message={apiError} onRetry={() => loadSettingsForType(currentDocType)} />
+      ) : <Alert severity="error" sx={{ mb: 3 }}>{apiError}</Alert>)}
 
       {isLoading && <Alert severity="info" role="status">Loading numbering settings...</Alert>}
       {/* Main 2-Column Layout */}
@@ -213,6 +209,7 @@ export function NumberingSettings() {
                 className="panel-help-link"
                 onClick={(e) => {
                   e.preventDefault();
+    setToastSeverity('info');
                   setToast('Select any document type to configure its independent sequence format.');
                 }}
               >
@@ -416,10 +413,12 @@ export function NumberingSettings() {
       {/* Snackbar Toast */}
       <Snackbar
         open={Boolean(toast)}
-        autoHideDuration={3500}
-        onClose={() => setToast('')}
-        message={toast}
-      />
+        autoHideDuration={4000}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={(_event, reason) => { if (reason !== 'clickaway') setToast(''); }}
+      >
+        <Alert severity={toastSeverity} variant="filled" onClose={() => setToast('')} sx={{ width: '100%' }}>{toast}</Alert>
+      </Snackbar>
     </div>
   );
 }

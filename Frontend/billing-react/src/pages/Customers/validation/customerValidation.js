@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
@@ -60,13 +61,15 @@ export const customerValidationSchema = yup.object({
   phone: yup
     .string()
     .trim()
+    .required('Mobile / Phone number is required')
     .max(64, 'Phone number must not exceed 64 characters')
-    .test('phone-format', 'Enter a valid phone number', (val) => {
-      if (!val || val.trim() === '') return true;
-      return PHONE_REGEX.test(val.trim());
-    })
-    .nullable()
-    .transform((curr, orig) => (orig === '' ? null : curr)),
+    .test('phone-format', 'Enter a complete phone number for the selected country', function (val) {
+      if (!val) return true; // The required validator handles empty input.
+      if (!PHONE_REGEX.test(val)) return false;
+      const code = this.parent.phoneCountryCode || '+91';
+      const number = parsePhoneNumberFromString(val.startsWith('+') ? val : `${code} ${val}`);
+      return Boolean(number && `+${number.countryCallingCode}` === code && number.isValid());
+    }),
   website: yup
     .string()
     .trim()

@@ -610,13 +610,15 @@ export const CustomerForm = ({
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-phone">Mobile / Phone Number</label>
+                  <label htmlFor="customer-phone">
+                    Mobile / Phone Number <span className="cust-required">*</span>
+                  </label>
                   <div className="cust-phone-group">
                     <select
                       id="customer-phone-code"
                       className="cust-phone-code-select"
                       aria-label="Country Dialing Code"
-                      {...register('phoneCountryCode')}
+                      {...register('phoneCountryCode', { onChange: () => trigger('phone') })}
                     >
                       <option value="+91">+91 (IN)</option>
                       <option value="+1">+1 (US)</option>
@@ -636,6 +638,7 @@ export const CustomerForm = ({
                       <input
                         id="customer-phone"
                         type="tel"
+                        aria-required="true"
                         className="cust-phone-input"
                         placeholder="e.g. 98490 12345"
                         aria-invalid={Boolean(errors.phone)}

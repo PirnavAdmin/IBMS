@@ -1,3 +1,5 @@
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
+import '../../styles/Dashboard.css';
 ﻿import { useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +10,8 @@ import { taxService, taxError } from '../../services/taxService';
 import { TAX_TYPES, emptyTax, validateTax, calculatePreview } from './taxModel';
 import './TaxSettings.css';
 import { SettingsPageHeader } from '../Settings/SettingsPageHeader';
+import { useSearchDebounce } from '../../hooks/useSearchDebounce';
+import { prioritizePrefix } from '../../utils/search';
 const activeTaxService = taxService;
 const taxQueryKey = ['tax-settings'];
 
@@ -42,16 +46,16 @@ function Loading() {
   return <div className="tax-card" role="status" aria-label="Loading tax settings" aria-busy="true"><Skeleton width="35%" height={40} />{[0, 1, 2, 3].map(i => <Skeleton key={i} height={55} />)}</div>;
 }
 function LoadError({ query }) {
-  return <div className="tax-card" role="alert"><h2>Unable to load tax settings</h2><p>{taxError(query.error)}</p><button className="tax-secondary-btn" onClick={() => query.refetch()} disabled={query.isFetching}>{query.isFetching ? 'Retrying…' : 'Retry'}</button></div>;
+  return <DashboardErrorState title="Unable to load tax settings" message={taxError(query.error)} onRetry={() => query.refetch()} />;
 }
-function TaxList() {
+function TaxList({ search, setSearch }) {
   const query = useTaxes();
   const { state } = useLocation();
-  const [search, setSearch] = useState('');
+  const term = useSearchDebounce(search).toLowerCase();
   const [type, setType] = useState('All');
   const [status, setStatus] = useState('All');
   const taxes = query.data || [];
-  const filtered = taxes.filter(tax => `${tax.name} ${tax.code}`.toLowerCase().includes(search.toLowerCase()) && (type === 'All' || tax.type === type) && (status === 'All' || tax.status === status));
+  const filtered = prioritizePrefix(taxes.filter(tax => `${tax.name} ${tax.code}`.toLowerCase().includes(term) && (type === 'All' || tax.type === type) && (status === 'All' || tax.status === status)), term, tax => [tax.name, tax.code]);
   return <><SettingsPageHeader title="Taxes & GST" description="Configure taxes used for invoice and billing calculations."><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></SettingsPageHeader>
     {state?.taxNotice && <Alert severity="success">{state.taxNotice}</Alert>}
     {query.isPending ? <Loading /> : query.isError ? <LoadError query={query} /> : <>
@@ -62,7 +66,7 @@ function TaxList() {
         { label: 'Tax Types', value: new Set(taxes.map(t => t.type)).size, text: 'Across all tax rules', icon: <AccountTreeOutlined />, tone: 'types' },
       ].map(stat => <article className={`tax-summary-card tax-summary-${stat.tone}`} key={stat.label}><div className="tax-summary-top"><span>{stat.label}</span><span className="tax-summary-icon" aria-hidden="true">{stat.icon}</span></div><strong>{stat.value}</strong><small>{stat.text}</small></article>)}</section>
       <section className="tax-card"><div className="tax-toolbar"><Field name="search" label="Search Tax" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or code" type="search" /><Field name="filter-type" label="Tax Type" options={['All', ...TAX_TYPES]} value={type} onChange={e => setType(e.target.value)} /><Field name="filter-status" label="Status" options={['All', 'Active', 'Inactive']} value={status} onChange={e => setStatus(e.target.value)} /></div>
-        {!taxes.length ? <div className="tax-empty-state"><h2>No tax configurations found.</h2><p>Create your first tax rule to start configuring invoice taxes.</p><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></div> : !filtered.length ? <div className="tax-empty-state"><h2>No matching tax rules.</h2><button className="tax-secondary-btn" onClick={() => { setSearch(''); setType('All'); setStatus('All'); }}>Clear filters</button></div> : <div className="tax-table-container" tabIndex={0} role="region" aria-label="Tax configurations"><table className="tax-table"><thead><tr>{['Tax Name', 'Tax Code', 'Tax Type', 'Rate', 'Calculation', 'Priority', 'Effective From', 'Effective To', 'Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{filtered.map(tax => <tr key={tax.id}><th scope="row">{tax.name}</th><td>{tax.code}</td><td>{tax.type}</td><td>{tax.rate}%</td><td>{tax.calculation}</td><td>{tax.priority}</td><td>{tax.effectiveFrom}</td><td>{tax.effectiveTo || 'No end date'}</td><td><span className={`tax-status tax-status-${tax.status.toLowerCase()}`}>{tax.status}</span></td><td><Link className="tax-edit" aria-label={`Edit ${tax.name}`} to={`/settings/taxes/${encodeURIComponent(tax.id)}/edit`}>Edit</Link></td></tr>)}</tbody></table></div>}
+        {!taxes.length ? <div className="tax-empty-state"><h2>No tax configurations found.</h2><p>Create your first tax rule to start configuring invoice taxes.</p><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></div> : !filtered.length ? <div className="tax-empty-state"><h2>No matching records found.</h2><button className="tax-secondary-btn" onClick={() => { setSearch(''); setType('All'); setStatus('All'); }}>Clear filters</button></div> : <div className="tax-table-container" tabIndex={0} role="region" aria-label="Tax configurations"><table className="tax-table"><thead><tr>{['Tax Name', 'Tax Code', 'Tax Type', 'Rate', 'Calculation', 'Priority', 'Effective From', 'Effective To', 'Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{filtered.map(tax => <tr key={tax.id}><th scope="row">{tax.name}</th><td>{tax.code}</td><td>{tax.type}</td><td>{tax.rate}%</td><td>{tax.calculation}</td><td>{tax.priority}</td><td>{tax.effectiveFrom}</td><td>{tax.effectiveTo || 'No end date'}</td><td><span className={`tax-status tax-status-${tax.status.toLowerCase()}`}>{tax.status}</span></td><td><Link className="tax-edit" aria-label={`Edit ${tax.name}`} to={`/settings/taxes/${encodeURIComponent(tax.id)}/edit`}>Edit</Link></td></tr>)}</tbody></table></div>}
       </section></>}
     <Preview />
   </>;
@@ -112,5 +116,5 @@ export function Taxes() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const signOut = () => { localStorage.removeItem('billing_auth_token'); localStorage.removeItem('billing_auth_user'); navigate('/login'); };
-  return <div className="tax-module"><DashboardHeader searchQuery={search} onSearch={setSearch} onSignOut={signOut} /><main className="tax-settings-page"><Routes><Route index element={<TaxList />} /><Route path="new" element={<TaxForm />} /><Route path=":id/edit" element={<EditTax />} /><Route path="*" element={<Navigate to="/settings/taxes" replace />} /></Routes></main></div>;
+  return <div className="tax-module"><DashboardHeader searchQuery={search} onSearch={setSearch} onSignOut={signOut} /><main className="tax-settings-page"><Routes><Route index element={<TaxList search={search} setSearch={setSearch} />} /><Route path="new" element={<TaxForm />} /><Route path=":id/edit" element={<EditTax />} /><Route path="*" element={<Navigate to="/settings/taxes" replace />} /></Routes></main></div>;
 }
