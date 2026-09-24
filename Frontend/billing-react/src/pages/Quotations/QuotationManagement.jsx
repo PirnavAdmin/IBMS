@@ -1,20 +1,79 @@
-import { useEffect, useState } from 'react';
-import { Alert, Snackbar } from '@mui/material';
-import { mockCustomers, mockProducts, mockQuotations } from './data/quotationMockData';
-import { quotationTotals } from './utils/quotationCalculations';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, LinearProgress, Snackbar } from '@mui/material';
+import { apiClient } from 'billing-api-client/apiClient.js';
+import { quotationApi, normalizeQuotation, normalizeQuotationProduct, normalizeCommunication, unwrap, fetchAllPages } from 'billing-api-client/quotationApi.js';
+import { parseCustomerResponse } from 'billing-contracts/customer.contracts.js';
 import { QuotationList } from './pages/QuotationList';
 import { QuotationForm, newQuotation } from './components/QuotationForm';
 import { QuotationDetails } from './pages/QuotationDetails';
 import { QuotationDialog } from './components/QuotationDialogs';
 import './styles/quotations.css';
-const storageKey = 'ibms_quotation_demo_data';
-const hydrate = quote => ({ ...quote, ...quotationTotals(quote.items, quote.invoiceDiscount, quote.charges) });
-// TODO: Replace these local mock operations with /api/v1/quotations during integration.
-export const quotationMockRepository = { getQuotations: quotes => quotes, getQuotationById: (quotes,id) => quotes.find(q=>q.id===id), createQuotation: (quotes,quote) => [...quotes,quote], updateQuotation: (quotes,quote) => quotes.map(q=>q.id===quote.id?quote:q), sendQuotation: (quotes,id) => quotes.map(q=>q.id===id?{...q,status:'Sent'}:q), approveQuotation: (quotes,id) => quotes.map(q=>q.id===id?{...q,status:'Approved'}:q), cancelQuotation: (quotes,id,reason) => quotes.map(q=>q.id===id?{...q,status:'Cancelled',cancellationReason:reason}:q), convertQuotation: (quotes,id,invoice) => quotes.map(q=>q.id===id?{...q,status:'Converted',convertedInvoiceId:invoice}:q) };
-export function QuotationManagement() { const [quotes,setQuotes]=useState(()=>{try{return JSON.parse(localStorage.getItem(storageKey))?.map(hydrate)||mockQuotations.map(hydrate)}catch{return mockQuotations.map(hydrate)}}); const [screen,setScreen]=useState('list'); const [current,setCurrent]=useState(null); const [dialog,setDialog]=useState(null); const [notice,setNotice]=useState('');
- useEffect(()=>localStorage.setItem(storageKey,JSON.stringify(quotes)),[quotes]); const open=(mode,quote=null)=>{setCurrent(quote);setScreen(mode)}; const persist=(quote,isNew=false)=>{const finished=hydrate({...quote,id:quote.id||`q-${Date.now()}`,quoteNumber:quote.quoteNumber||`QT-2026-${String(quotes.length+1).padStart(6,'0')}`,status:quote.status||'Draft',communications:quote.communications||[],auditLogs:[...(quote.auditLogs||[]),{date:new Date().toISOString().slice(0,10),action:isNew?'Created':'Edited',user:'Admin',description:isNew?'Quotation saved as draft.':'Draft updated.'}],convertedInvoiceId:quote.convertedInvoiceId||null});setQuotes(all=>isNew?quotationMockRepository.createQuotation(all,finished):quotationMockRepository.updateQuotation(all,finished));setNotice(isNew?'Quotation saved as draft.':'Quotation draft updated.');setScreen('details');setCurrent(finished)};
- const transition=(type,reason)=>{const quote=current; if(type==='approve'&&!reason){setDialog(null);setNotice('You do not have permission to approve this quotation.');return;} if(type==='send'&&quote.validUntil<new Date().toISOString().slice(0,10)){setDialog(null);setNotice('This quotation has expired and cannot be sent.');return;} if(type==='convert'&&quote.status==='Converted'){setDialog(null);setNotice('This quotation has already been converted to an invoice.');return;} const action={send:'Sent',approve:'Approved',cancel:'Cancelled',convert:'Converted'}[type]; const invoice=type==='convert'?`INV-2026-${String(quotes.length+1).padStart(6,'0')}`:null; const message={send:'Quotation sent successfully.',approve:'Quotation approved successfully.',cancel:'Quotation cancelled.',convert:'Invoice created successfully.'}[type]; const updated=hydrate({...quote,status:action,convertedInvoiceId:invoice||quote.convertedInvoiceId,cancellationReason:reason||quote.cancellationReason,cancelledBy:type==='cancel'?'Admin':quote.cancelledBy,cancelledAt:type==='cancel'?new Date().toISOString():quote.cancelledAt,communications:type==='send'?[...(quote.communications||[]),{date:new Date().toISOString().slice(0,10),type:'Email',recipient:quote.customer.email,subject:`Quotation ${quote.quoteNumber}`,status:'Sent',sentBy:'Admin',message:'Your quotation is ready for review.'}]:quote.communications,auditLogs:[...(quote.auditLogs||[]),{date:new Date().toISOString().slice(0,10),action:type==='send'?'Sent':type==='approve'?'Approved':type==='cancel'?'Cancelled':'Converted to Invoice',user:'Admin',description:type==='cancel'?`Cancelled: ${reason||'No reason provided'}`:type==='convert'?`Converted to ${invoice}`:`${action} by Admin`} ]}); setQuotes(all=>quotationMockRepository.updateQuotation(all,updated));setCurrent(updated);setDialog(null);setNotice(message);};
- if(screen==='create'||screen==='edit')return <QuotationForm initial={screen==='edit'?current:newQuotation()} customers={mockCustomers} products={mockProducts} onSave={quote=>persist(quote,screen==='create')} onCancel={()=>setScreen(current?'details':'list')} />;
- if(screen==='details'&&current)return <><QuotationDetails quotation={current} onBack={()=>setScreen('list')} onEdit={quote=>open('edit',quote)} onAction={(type,quote)=>{setCurrent(quote);setDialog(type)}}/><QuotationDialog type={dialog} quotation={current} onClose={()=>setDialog(null)} onConfirm={transition}/><Snackbar open={!!notice} autoHideDuration={4000} onClose={()=>setNotice('')}><Alert severity="success" variant="filled">{notice}</Alert></Snackbar></>;
- return <><QuotationList quotations={quotes} customers={mockCustomers} onCreate={()=>open('create')} onView={quote=>open('details',quote)} onEdit={quote=>open('edit',quote)} onAction={(type,quote)=>{setCurrent(quote);setDialog(type)}}/><QuotationDialog type={dialog} quotation={current} onClose={()=>setDialog(null)} onConfirm={transition}/><Snackbar open={!!notice} autoHideDuration={4000} onClose={()=>setNotice('')}><Alert severity="success" variant="filled">{notice}</Alert></Snackbar></>;
+const address = value => typeof value === 'string' ? value : Object.values(value || {}).filter(v => typeof v === 'string' && v).join(', ');
+const message = e => e.response?.status === 401 ? 'Please sign in to load quotations.' : e.response?.status === 403 ? 'Your account does not have access to these quotations.' : e.message;
+export function QuotationManagement() {
+  const [quotes,setQuotes]=useState([]), [customers,setCustomers]=useState([]), [products,setProducts]=useState([]);
+  const [screen,setScreen]=useState('list'), [current,setCurrent]=useState(null), [dialog,setDialog]=useState(null);
+  const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
+  const [listFailed,setListFailed]=useState(false);
+  const locked=useRef(false), generation=useRef(0);
+  const load=async()=>{
+    const version=++generation.current; setLoading(true); setError('');
+    const results=await Promise.allSettled([
+      fetchAllPages(quotationApi.list),
+      fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/customers',{params}))),
+      fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/products',{params}))),
+    ]);
+    if(version!==generation.current)return;
+    try {
+      const [q,c,p]=results; setListFailed(q.status==='rejected');
+      if(q.status==='fulfilled')setQuotes(q.value.map(normalizeQuotation));
+      if(c.status==='fulfilled')setCustomers(c.value.map(parseCustomerResponse).filter(Boolean).map(row=>({...row,id:String(row.id),code:row.customerCode,mobile:row.phone,billingAddress:address(row.billingAddress),shippingAddress:address(row.shippingAddress),taxInfo:row.taxId||''})));
+      if(p.status==='fulfilled')setProducts(p.value.filter(row=>row.isActive!==false&&row.status!=='Inactive').map(normalizeQuotationProduct));
+      setError(results.map((r,i)=>r.status==='rejected'?`${['Quotations','Customers','Products'][i]}: ${message(r.reason)}`:'').filter(Boolean).join(' '));
+    }catch(e){setListFailed(true);setError(message(e));}finally{setLoading(false);}
+  };
+  useEffect(()=>{load();return()=>{generation.current++;};},[]);
+  const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});
+  const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};
+  const run=async task=>{
+    if(locked.current)return;locked.current=true;setBusy(true);setError('');
+    try{await task();}catch(e){setError(message(e));}finally{locked.current=false;setBusy(false);}
+  };
+  const open=(mode,q)=>run(async()=>{
+    const detail=await quotationApi.get(q.id);setCurrent(detail);setScreen(mode);
+    if(mode==='details'){
+      const results=await Promise.allSettled([quotationApi.communication(q.id),quotationApi.audit(q.id)]);
+      const [communication,audit]=results;
+      setCurrent({...detail,
+        communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,
+        auditLogs:audit.status==='fulfilled'&&Array.isArray(audit.value)?audit.value.map(e=>({...e,date:e.timestamp||e.date,user:e.userName||e.user,description:e.changes||e.description})):[],
+      });
+      const failure=results.find(r=>r.status==='rejected');if(failure)setError(`History could not be loaded. ${message(failure.reason)}`);
+    }
+  });
+  const save=q=>run(async()=>{replace(await quotationApi.save(q));setScreen('details');setNotice('Quotation draft saved.');});
+  const action=(type,q)=>run(async()=>{
+    const detail=await quotationApi.get(q.id);replace(detail);
+    const allowed={send:['Draft'],approve:['Sent'],cancel:['Draft','Sent','Approved'],convert:['Approved']};
+    if(!allowed[type]?.includes(detail.status))throw new Error(`This quotation is ${detail.status}. The requested action is no longer available.`);
+    setDialog(type);
+  });
+  const transition=reason=>run(async()=>{
+    await quotationApi.action(current.id,dialog,reason);const completed=dialog;setDialog(null);
+    setNotice({send:'Quotation marked as sent.',approve:'Quotation approved.',cancel:'Quotation cancelled.',convert:'Quotation converted to invoice.'}[completed]);
+    try{replace(await quotationApi.get(current.id));}catch(e){setScreen('list');await load();setError(`Action completed, but details could not be refreshed. ${message(e)}`);}
+  });
+  return <>
+    {(loading||busy)&&<LinearProgress/>}
+    {error&&<Alert severity="error" action={screen==='list'?<button disabled={loading||busy} onClick={load}>Retry</button>:undefined}>{error}</Alert>}
+    <fieldset disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
+      {screen==='create'||screen==='edit'
+        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} onSave={save} onCancel={()=>setScreen(current?'details':'list')}/>
+        :screen==='details'&&current
+          ?<QuotationDetails quotation={enrich(current)} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
+          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} onCreate={()=>{setCurrent(null);setScreen('create');}} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
+      <QuotationDialog key={dialog||'closed'} type={dialog} quotation={current&&enrich(current)} error={error} onClose={()=>setDialog(null)} onConfirm={transition}/>
+    </fieldset>
+    <Snackbar open={!!notice} autoHideDuration={5000} onClose={()=>setNotice('')}><Alert severity="success">{notice}</Alert></Snackbar>
+  </>;
 }
