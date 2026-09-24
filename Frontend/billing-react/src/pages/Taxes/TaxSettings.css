@@ -42,7 +42,8 @@
 .tax-status { display: inline-block; border-radius: 5px; padding: 4px 8px; font-size: 12px; font-weight: 600; }
 .tax-status-active { background: #edf5ef; color: #3f7d58; }
 .tax-status-inactive { background: #f5efea; color: #75645d; }
-.tax-edit { color: var(--coffee-primary); font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.tax-edit { color: var(--coffee-primary); font-weight: 600; font-size: 14px; text-decoration: none; }
+.tax-edit:hover { color: var(--coffee-dark); text-decoration: none; }
 .tax-empty-state { text-align: center; padding: 40px 12px; }
 .tax-preview-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-top: 12px; }
 .tax-preview-controls, .tax-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
@@ -84,6 +85,8 @@
 .tax-settings-header .tax-edit { text-decoration: none; font-size: 13px; }
 .tax-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .tax-back-action { margin-bottom: 12px; }
+.tax-settings-page .tax-back-action .tax-settings-back { min-height: 38px; padding: 8px 13px; background: #826056; border-color: #826056; font-size: 13px; }
+.tax-settings-page .tax-back-action .tax-settings-back:hover { background: #705047; border-color: #705047; }
 .tax-settings-header .tax-edit:hover { color: #8b451f; }
 .tax-settings-page .tax-section-heading p { font-size: 13px; margin: 4px 0 0; }
 .tax-summary-total { background: #fff8ef; border-color: #eadfd2; border-top-color: #d8b99b; }
@@ -102,6 +105,10 @@
 /* Compact, shared alignment for the Taxes & GST workspace. */
 .tax-settings-page { padding: 24px; }
 .tax-settings-header { margin-bottom: 12px; padding: 10px 14px; }
+.tax-success-toast.MuiAlert-root { min-width: 0; padding: 5px 10px; font-size: 13px; }
+.tax-success-toast .MuiAlert-icon { margin-right: 7px; padding: 2px 0; font-size: 18px; }
+.tax-success-toast .MuiAlert-message { padding: 2px 0; }
+.tax-success-toast .MuiAlert-action { padding: 0 0 0 6px; }
 @media (max-width: 600px) {
   .tax-settings-page { padding: 16px; }
   .tax-summary-card { min-height: 104px; }
