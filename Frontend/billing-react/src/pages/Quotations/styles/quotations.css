@@ -3,7 +3,7 @@
 
 /* Compact list filters: reveal the filter fields only when the Filters button is selected. */
 .quote-list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
-.quote-list-toolbar .quote-search { flex: 1; max-width: 520px; }
+.quote-list-toolbar .quote-search { flex: 1; max-width: 520px; min-width: 0; }
 .quote-filter-menu { position: relative; }
 .quote-filter-menu > .quote-btn.active { border-color: var(--primary); background: #f8eee8; }
 .quote-filter-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 5; width: min(680px, calc(100vw - 56px)); padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 14px 28px rgba(60, 37, 24, .16); }
@@ -15,7 +15,7 @@
 .quote-list-toolbar .quote-search { min-height: 44px; display: flex; align-items: center; border: 1px solid #d9cec5; border-radius: 9px; background: #fff; transition: border-color .18s ease, box-shadow .18s ease; }
 .quote-list-toolbar .quote-search:focus-within { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(212, 134, 79, .18); }
 .quote-list-toolbar .quote-search svg { position: static; flex: 0 0 auto; margin-left: 13px; color: var(--secondary); }
-.quote-list-toolbar .quote-search input { border: 0; outline: 0; padding: 11px 12px 11px 10px; background: transparent; font-size: .9rem; }
+.quote-list-toolbar .quote-search input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 11px 12px 11px 10px; background: transparent; font-size: .9rem; }
 .quote-list-toolbar .quote-search input::placeholder { color: #8b7d76; }
 .quote-actions { align-items: center; flex-wrap: nowrap; }
 .quote-actions .quote-action-icon { width: 31px; height: 31px; padding: 0; border: 1px solid #e2d8d1; border-radius: 7px; background: #fff; color: var(--primary); }
@@ -75,11 +75,11 @@
 /* Searchable mock selectors, ready to swap for API-backed autocomplete later. */
 .quote-picker { position: relative; min-width: 0; }
 .quote-picker-input { display: flex; align-items: center; border: 1px solid #d9cec5; border-radius: 7px; background: #fff; }
-.quote-picker-input:focus-within { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(212,134,79,.14); }
+.quote-picker-input:focus-within { border-color: #d9cec5; box-shadow: none; }
 .quote-picker-input svg { margin-left: 9px; color: var(--secondary); font-size: 17px; }
 .quote-picker-input input { border: 0 !important; outline: 0; padding-left: 7px !important; background: transparent; }
 .quote-picker-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 12; max-height: 210px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; box-shadow: 0 10px 22px rgba(50,30,18,.16); }
-.quote-picker-menu button { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 0; border-bottom: 1px solid #f1e9e4; background: #fff; color: var(--text-primary); text-align: left; font-size: .8rem; cursor: pointer; }
+.quote-picker-menu button { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 0; border-bottom: 0; background: #fff; color: var(--text-primary); text-align: left; font-size: .8rem; cursor: pointer; }
 .quote-picker-menu button:hover { background: #fbf3ed; }
 .quote-picker-menu button:disabled { cursor: not-allowed; color: #9a918d; background: #f6f3f1; }
 .quote-picker-menu small { color: #b42318; font-weight: 700; }
