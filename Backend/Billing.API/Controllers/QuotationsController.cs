@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Quotation;
+using Billing.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,16 +16,19 @@ public class QuotationsController : ControllerBase
 {
     private readonly IQuotationService _quotationService;
     private readonly IQuotationActionService _actionService;
+    private readonly IAuditLogRepository? _auditLogRepo;
     private readonly ILogger<QuotationsController> _logger;
 
     public QuotationsController(
         IQuotationService quotationService,
         IQuotationActionService actionService,
-        ILogger<QuotationsController> logger)
+        ILogger<QuotationsController> logger,
+        IAuditLogRepository? auditLogRepo = null)
     {
         _quotationService = quotationService;
         _actionService = actionService;
         _logger = logger;
+        _auditLogRepo = auditLogRepo;
     }
 
     /// <summary>
@@ -146,17 +150,29 @@ public class QuotationsController : ControllerBase
     }
 
     [HttpGet("{id:int}/communication")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult GetCommunicationHistory([FromRoute] int id)
+    [ProducesResponseType(typeof(ApiResponse<List<QuotationCommunicationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCommunicationHistory([FromRoute] int id)
     {
-        return Ok(ApiResponse<object>.Ok(null, "Communication history fetched"));
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var detail = await _quotationService.GetByIdAsync(id, tenantId.Value);
+        if (!detail.Success || detail.Data == null) return NotFound(detail);
+
+        return Ok(ApiResponse<List<QuotationCommunicationDto>>.Ok(detail.Data.Communications, "Communication history fetched"));
     }
 
     [HttpGet("{id:int}/audit")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult GetAuditLogs([FromRoute] int id)
+    [ProducesResponseType(typeof(ApiResponse<List<AuditLog>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAuditLogs([FromRoute] int id)
     {
-        return Ok(ApiResponse<object>.Ok(null, "Audit logs fetched"));
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var logs = _auditLogRepo != null
+            ? await _auditLogRepo.GetByEntityAsync(tenantId.Value, "Quotation", id.ToString())
+            : new List<AuditLog>();
+        return Ok(ApiResponse<List<AuditLog>>.Ok(logs ?? new List<AuditLog>(), "Audit logs fetched"));
     }
 
     private int? GetTenantId()

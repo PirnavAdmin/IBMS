@@ -141,7 +141,13 @@ public class QuotationRepository : IQuotationRepository
     {
         quotation.UpdatedAtUtc = DateTime.UtcNow;
         quotation.RowVersion = DateTime.UtcNow;
-        _context.Quotations.Update(quotation);
+
+        var entry = _context.Entry(quotation);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.Quotations.Update(quotation);
+        }
+
         await _context.SaveChangesAsync();
         return quotation;
     }

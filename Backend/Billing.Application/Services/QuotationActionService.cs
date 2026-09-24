@@ -35,7 +35,8 @@ public class QuotationActionService : IQuotationActionService
 
     public async Task<ApiResponse<bool>> CalculateAndFreezeSnapshotAsync(int quotationId, int tenantId)
     {
-        var quotation = await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        var quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId) 
+            ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null)
             return ApiResponse<bool>.Fail("Quotation not found");
 
@@ -101,7 +102,8 @@ public class QuotationActionService : IQuotationActionService
 
     public async Task<ApiResponse<bool>> SendQuotationAsync(int quotationId, int tenantId, string userId)
     {
-        var quotation = await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        var quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
+            ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null) return ApiResponse<bool>.Fail("Not found");
 
         if (quotation.Status != QuotationStatus.Draft)
@@ -111,6 +113,17 @@ public class QuotationActionService : IQuotationActionService
             return ApiResponse<bool>.Fail("Customer is required before sending.");
 
         quotation.Status = QuotationStatus.Sent;
+        quotation.Communications.Add(new QuotationCommunication
+        {
+            QuotationId = quotationId,
+            CommunicationType = "Email",
+            Recipient = quotation.Customer?.Email ?? "customer@example.com",
+            Subject = $"Quotation #{quotation.QuoteNumber}",
+            Message = $"Quotation #{quotation.QuoteNumber} has been sent.",
+            Status = "Sent",
+            SentAt = DateTime.UtcNow,
+            SentBy = userId
+        });
         await _quotationRepository.UpdateAsync(quotation);
         
         var auditLog = new AuditLog
@@ -131,7 +144,8 @@ public class QuotationActionService : IQuotationActionService
 
     public async Task<ApiResponse<bool>> ApproveQuotationAsync(int quotationId, int tenantId, string approverId)
     {
-        var quotation = await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        var quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
+            ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null) return ApiResponse<bool>.Fail("Not found");
 
         if (quotation.Status != QuotationStatus.Sent)
@@ -161,7 +175,8 @@ public class QuotationActionService : IQuotationActionService
         if (string.IsNullOrWhiteSpace(reason))
             return ApiResponse<bool>.Fail("Cancellation reason is mandatory.");
 
-        var quotation = await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        var quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
+            ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null) return ApiResponse<bool>.Fail("Not found");
 
         if (quotation.Status == QuotationStatus.Converted)

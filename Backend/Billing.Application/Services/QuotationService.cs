@@ -114,7 +114,6 @@ public class QuotationService : IQuotationService
             TenantId = tenantId,
             QuoteNumber = quoteNumber,
             CustomerId = request.CustomerId,
-            Customer = customer,
             QuotationDate = request.QuotationDate ?? DateTime.UtcNow,
             ValidUntil = request.ValidUntil,
             Reference = request.Reference?.Trim(),
@@ -185,6 +184,7 @@ public class QuotationService : IQuotationService
         quotation.TotalAmount = subtotal - totalDiscount + totalTax;
 
         await _quotationRepository.AddAsync(quotation);
+        quotation.Customer = customer;
 
         return ApiResponse<QuotationDetailResponse>.Ok(MapToDetailResponse(quotation), "Quotation draft created successfully.");
     }
@@ -239,7 +239,6 @@ public class QuotationService : IQuotationService
 
         // Update fields
         quotation.CustomerId = request.CustomerId;
-        quotation.Customer = customer;
         quotation.QuotationDate = request.QuotationDate;
         quotation.ValidUntil = request.ValidUntil;
         quotation.Reference = request.Reference?.Trim();
@@ -308,6 +307,7 @@ public class QuotationService : IQuotationService
         quotation.TotalAmount = subtotal - totalDiscount + totalTax + quotation.ChargesAmount;
 
         await _quotationRepository.UpdateAsync(quotation);
+        quotation.Customer = customer;
 
         return ApiResponse<QuotationDetailResponse>.Ok(MapToDetailResponse(quotation), "Quotation draft updated successfully.");
     }

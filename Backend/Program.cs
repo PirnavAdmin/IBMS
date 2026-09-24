@@ -149,6 +149,7 @@ builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
 builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<LandingPageService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
+builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
 
 // ============================================================
 // Repositories
