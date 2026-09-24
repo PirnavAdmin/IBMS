@@ -148,6 +148,7 @@ builder.Services.AddScoped<INumberingSettingService, NumberingSettingService>();
 builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
 builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<LandingPageService>();
+builder.Services.AddScoped<IQuotationService, QuotationService>();
 
 // ============================================================
 // Repositories
@@ -164,6 +165,9 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ITaxRepository, TaxRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
+builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
+builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================
 // Authentication / JWT

@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     DEACTIVATE: (id) => `/api/v1/customers/${id}/deactivate`,
     DETAILS: (id) => `/api/v1/customers/${id}/details`,
     AUDIT: (id) => `/api/v1/customers/${id}/audit`,
+    NEXT_CODE: '/api/v1/customers/next-code',
   },
   PRODUCTS: {
     BASE: '/api/v1/products',

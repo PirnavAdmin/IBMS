@@ -9,6 +9,19 @@ const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
 const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
 
+export const COUNTRY_PHONE_CONFIG = {
+  '+91': { country: 'India', code: 'IN', min: 10, max: 10, example: '98490 12345', label: '10 digits' },
+  '+1': { country: 'USA / Canada', code: 'US', min: 10, max: 10, example: '202 555 0143', label: '10 digits' },
+  '+44': { country: 'UK', code: 'UK', min: 10, max: 10, example: '7911 123456', label: '10 digits' },
+  '+971': { country: 'UAE', code: 'AE', min: 9, max: 9, example: '50 123 4567', label: '9 digits' },
+  '+65': { country: 'Singapore', code: 'SG', min: 8, max: 8, example: '8123 4567', label: '8 digits' },
+  '+61': { country: 'Australia', code: 'AU', min: 9, max: 9, example: '412 345 678', label: '9 digits' },
+  '+49': { country: 'Germany', code: 'DE', min: 10, max: 11, example: '151 12345678', label: '10-11 digits' },
+  '+33': { country: 'France', code: 'FR', min: 9, max: 9, example: '6 12 34 56 78', label: '9 digits' },
+  '+81': { country: 'Japan', code: 'JP', min: 10, max: 10, example: '90 1234 5678', label: '10 digits' },
+  '+966': { country: 'Saudi Arabia', code: 'SA', min: 9, max: 9, example: '50 123 4567', label: '9 digits' },
+};
+
 export const customerValidationSchema = yup.object({
   // 1. Basic Information
   name: yup
@@ -68,7 +81,18 @@ export const customerValidationSchema = yup.object({
       if (!PHONE_REGEX.test(val)) return false;
       const code = this.parent.phoneCountryCode || '+91';
       const number = parsePhoneNumberFromString(val.startsWith('+') ? val : `${code} ${val}`);
-      return Boolean(number && `+${number.countryCallingCode}` === code && number.isValid());
+      if (number && `+${number.countryCallingCode}` === code && number.isValid()) return true;
+
+      // Keep country-specific guidance, but let phone metadata validate the number.
+      // Never strip a dialing code from a national number merely because it starts with it.
+      const config = COUNTRY_PHONE_CONFIG[code];
+      const digits = number?.nationalNumber?.length ?? val.replace(/\D/g, '').length;
+      if (config && !val.startsWith('+') && (digits < config.min || digits > config.max)) {
+        return this.createError({
+          message: `Phone number for ${config.country} (${code}) requires ${config.label} (currently entered ${digits} digits)`,
+        });
+      }
+      return false;
     }),
   website: yup
     .string()
@@ -278,10 +302,10 @@ export const getNextCustomerCode = (existingItems = []) => {
     for (const item of existingItems) {
       const code = typeof item === 'string' ? item : item?.customerCode || item?.code || item?.CustomerCode || '';
       if (code) {
-        const match = code.trim().match(/^CUST-(\d+)$/i);
+        const match = code.trim().match(/^CUST\s*-\s*(\d+)$/i);
         if (match) {
           const num = parseInt(match[1], 10);
-          if (!isNaN(num) && num > maxNum) {
+          if (!isNaN(num) && num < 100000 && num > maxNum) {
             maxNum = num;
           }
         }

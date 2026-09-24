@@ -38,6 +38,16 @@ public class BillingDbContext : DbContext
 
     public DbSet<DiscountSetting> DiscountSettings { get; set; }
 
+    public DbSet<Quotation> Quotations { get; set; }
+
+    public DbSet<QuotationItem> QuotationItems { get; set; }
+
+    public DbSet<QuotationCommunication> QuotationCommunications { get; set; }
+
+    public DbSet<Invoice> Invoices { get; set; }
+
+    public DbSet<InvoiceItem> InvoiceItems { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -413,6 +423,125 @@ public class BillingDbContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(s => s.TenantId).IsUnique();
+        });
+
+        modelBuilder.Entity<Quotation>(entity =>
+        {
+            entity.HasKey(q => q.Id);
+            entity.Property(q => q.QuoteNumber).HasMaxLength(64).IsRequired();
+            entity.HasIndex(q => new { q.TenantId, q.QuoteNumber }).IsUnique();
+            entity.Property(q => q.Status).HasConversion<int>().IsRequired();
+            entity.Property(q => q.Reference).HasMaxLength(128);
+            entity.Property(q => q.Subtotal).HasPrecision(18, 2);
+            entity.Property(q => q.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(q => q.TaxAmount).HasPrecision(18, 2);
+            entity.Property(q => q.ChargesAmount).HasPrecision(18, 2);
+            entity.Property(q => q.TotalAmount).HasPrecision(18, 2);
+            entity.Property(q => q.RowVersion).IsRowVersion();
+
+            entity.HasOne(q => q.Tenant)
+                  .WithMany()
+                  .HasForeignKey(q => q.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(q => q.Customer)
+                  .WithMany()
+                  .HasForeignKey(q => q.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(q => q.Items)
+                  .WithOne(i => i.Quotation)
+                  .HasForeignKey(i => i.QuotationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(q => q.Communications)
+                  .WithOne(c => c.Quotation)
+                  .HasForeignKey(c => c.QuotationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<QuotationItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Description).HasMaxLength(500).IsRequired();
+            entity.Property(i => i.Quantity).HasPrecision(18, 4);
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountType).HasMaxLength(32);
+            entity.Property(i => i.DiscountRate).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TaxType).HasMaxLength(32);
+            entity.Property(i => i.TaxRate).HasPrecision(18, 2);
+            entity.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TotalAmount).HasPrecision(18, 2);
+            entity.Property(i => i.HSNSAC).HasMaxLength(64);
+
+            entity.HasOne(i => i.Product)
+                  .WithMany()
+                  .HasForeignKey(i => i.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<QuotationCommunication>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.CommunicationType).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.Recipient).HasMaxLength(256).IsRequired();
+            entity.Property(c => c.Subject).HasMaxLength(256).IsRequired();
+            entity.Property(c => c.Status).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.SentBy).HasMaxLength(128).IsRequired();
+        });
+
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.HasKey(inv => inv.Id);
+            entity.Property(inv => inv.InvoiceNumber).HasMaxLength(64).IsRequired();
+            entity.HasIndex(inv => new { inv.TenantId, inv.InvoiceNumber }).IsUnique();
+            entity.Property(inv => inv.Status).HasMaxLength(32).HasDefaultValue("Draft").IsRequired();
+            entity.Property(inv => inv.Reference).HasMaxLength(128);
+            entity.Property(inv => inv.Subtotal).HasPrecision(18, 2);
+            entity.Property(inv => inv.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.TaxAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.ChargesAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.TotalAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.PaidAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.BalanceAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.RowVersion).IsRowVersion();
+
+            entity.HasOne(inv => inv.Tenant)
+                  .WithMany()
+                  .HasForeignKey(inv => inv.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(inv => inv.Customer)
+                  .WithMany()
+                  .HasForeignKey(inv => inv.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(inv => inv.Items)
+                  .WithOne(i => i.Invoice)
+                  .HasForeignKey(i => i.InvoiceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InvoiceItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Description).HasMaxLength(500).IsRequired();
+            entity.Property(i => i.Quantity).HasPrecision(18, 4);
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountType).HasMaxLength(32);
+            entity.Property(i => i.DiscountRate).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TaxType).HasMaxLength(32);
+            entity.Property(i => i.TaxRate).HasPrecision(18, 2);
+            entity.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TotalAmount).HasPrecision(18, 2);
+            entity.Property(i => i.HSNSAC).HasMaxLength(64);
+
+            entity.HasOne(i => i.Product)
+                  .WithMany()
+                  .HasForeignKey(i => i.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
