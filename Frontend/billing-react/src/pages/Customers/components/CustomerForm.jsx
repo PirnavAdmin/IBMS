@@ -653,7 +653,7 @@ export const CustomerForm = ({
                       id="customer-phone-code"
                       className="cust-phone-code-select"
                       aria-label="Country Dialing Code"
-                      {...register('phoneCountryCode')}
+                      {...register('phoneCountryCode', { onChange: () => trigger('phone') })}
                     >
                       {Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => (
                         <option key={code} value={code}>
@@ -668,6 +668,7 @@ export const CustomerForm = ({
                       <input
                         id="customer-phone"
                         type="tel"
+                        aria-required="true"
                         className="cust-phone-input"
                         placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
                         aria-invalid={Boolean(errors.phone)}

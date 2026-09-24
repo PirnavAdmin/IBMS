@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
@@ -73,35 +74,25 @@ export const customerValidationSchema = yup.object({
   phone: yup
     .string()
     .trim()
-    .required('Phone number is required')
-    .test('phone-digits', 'Phone number must contain only numbers and standard separators', (val) => {
-      if (!val || !val.trim()) return false;
-      return /^[0-9\s\-()+.]+$/.test(val.trim());
-    })
-    .test('country-phone-length', function (val) {
-      if (!val || !val.trim()) return false;
-      let digits = val.replace(/\D/g, '');
-      const code = this.parent?.phoneCountryCode || '+91';
-      const config = COUNTRY_PHONE_CONFIG[code] || { country: 'Selected country', min: 7, max: 15, label: '7-15 digits' };
-      const codeDigits = code.replace(/\D/g, '');
-      if (digits.startsWith(codeDigits) && digits.length > config.max) {
-        digits = digits.slice(codeDigits.length);
-      }
+    .required('Mobile / Phone number is required')
+    .max(64, 'Phone number must not exceed 64 characters')
+    .test('phone-format', 'Enter a complete phone number for the selected country', function (val) {
+      if (!val) return true; // The required validator handles empty input.
+      if (!PHONE_REGEX.test(val)) return false;
+      const code = this.parent.phoneCountryCode || '+91';
+      const number = parsePhoneNumberFromString(val.startsWith('+') ? val : `${code} ${val}`);
+      if (number && `+${number.countryCallingCode}` === code && number.isValid()) return true;
 
-      if (config.min === config.max) {
-        if (digits.length !== config.min) {
-          return this.createError({
-            message: `Phone number for ${config.country} (${code}) must be exactly ${config.min} digits (currently entered ${digits.length} digits)`,
-          });
-        }
-      } else {
-        if (digits.length < config.min || digits.length > config.max) {
-          return this.createError({
-            message: `Phone number for ${config.country} (${code}) must be between ${config.min} and ${config.max} digits (currently entered ${digits.length} digits)`,
-          });
-        }
+      // Keep country-specific guidance, but let phone metadata validate the number.
+      // Never strip a dialing code from a national number merely because it starts with it.
+      const config = COUNTRY_PHONE_CONFIG[code];
+      const digits = number?.nationalNumber?.length ?? val.replace(/\D/g, '').length;
+      if (config && !val.startsWith('+') && (digits < config.min || digits > config.max)) {
+        return this.createError({
+          message: `Phone number for ${config.country} (${code}) requires ${config.label} (currently entered ${digits} digits)`,
+        });
       }
-      return true;
+      return false;
     }),
   website: yup
     .string()
