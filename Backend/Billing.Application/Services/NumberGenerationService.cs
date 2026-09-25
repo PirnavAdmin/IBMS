@@ -47,8 +47,8 @@ public class NumberGenerationService : INumberGenerationService
                         DocumentType = docType,
                         Prefix = GetDefaultPrefix(docType),
                         Suffix = string.Empty,
-                        Tokens = "{YEAR}-",
-                        SequenceLength = 4,
+                        Tokens = GetDefaultTokens(docType),
+                        SequenceLength = GetDefaultSequenceLength(docType),
                         NextNumber = 1,
                         ResetPolicy = ResetPolicy.FinancialYear,
                         Status = "Active",
@@ -167,9 +167,24 @@ public class NumberGenerationService : INumberGenerationService
     {
         var norm = documentType.Trim().ToLowerInvariant();
         if (norm.Contains("credit")) return "CN-";
-        if (norm.Contains("estimate") || norm.Contains("quote")) return "EST-";
+        if (norm.Contains("estimate")) return "EST-";
+        if (norm.Contains("quote") || norm.Contains("quotation")) return "QT-";
         if (norm.Contains("recurring")) return "REC-";
         if (norm.Contains("challan")) return "DC-";
         return "INV-";
+    }
+
+    private static string GetDefaultTokens(string documentType)
+    {
+        var norm = documentType.Trim().ToLowerInvariant();
+        if (norm.Contains("quote") || norm.Contains("quotation")) return "{YYYY}-{MM}-";
+        return "{YEAR}-";
+    }
+
+    private static int GetDefaultSequenceLength(string documentType)
+    {
+        var norm = documentType.Trim().ToLowerInvariant();
+        if (norm.Contains("quote") || norm.Contains("quotation")) return 6;
+        return 4;
     }
 }
