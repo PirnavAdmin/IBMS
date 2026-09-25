@@ -37,10 +37,9 @@ export function QuotationAudit({ entries = [] }) {
   return <section className="quote-card quote-audit-panel" aria-labelledby="quote-audit-title">
     <div className="quote-audit-heading">
       <div className="quote-audit-title"><span className="quote-audit-symbol"><History /></span><div>
-        <h2 id="quote-audit-title">Audit trail <span className="quote-audit-count">{entries.length}</span></h2>
+        <h2 id="quote-audit-title">Audit trail</h2>
         <p>A record of activity and changes to this quotation.</p>
       </div></div>
-      <span className="quote-audit-timezone">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
     </div>
     <div className="quote-audit-filters" aria-label="Filter audit events">
       {['All', ...events].map(event => <button key={event} type="button" aria-pressed={filter === event}
