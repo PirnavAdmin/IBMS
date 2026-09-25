@@ -78,6 +78,7 @@
 .quote-picker-input:focus-within { border-color: #d9cec5; box-shadow: none; }
 .quote-picker-input svg { margin-left: 9px; color: var(--secondary); font-size: 17px; }
 .quote-picker-input input { border: 0 !important; outline: 0; padding-left: 7px !important; background: transparent; }
+.quote-picker-input input:focus-visible { outline: 0; outline-offset: 0; }
 .quote-picker-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 12; max-height: 210px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; box-shadow: 0 10px 22px rgba(50,30,18,.16); }
 .quote-picker-menu button { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 0; border-bottom: 0; background: #fff; color: var(--text-primary); text-align: left; font-size: .8rem; cursor: pointer; }
 .quote-picker-menu button:hover { background: #fbf3ed; }

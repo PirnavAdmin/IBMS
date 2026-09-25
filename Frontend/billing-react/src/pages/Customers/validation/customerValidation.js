@@ -1,5 +1,22 @@
 import * as yup from 'yup';
-import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
+
+function parsePhoneNumberFromString(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+
+  const normalized = text.startsWith('+') ? text : `+${text}`;
+  const match = normalized.match(/^\+(\d+)\s*(.*)$/);
+  if (!match) return null;
+
+  const countryCallingCode = match[1];
+  const nationalNumber = match[2].replace(/\D/g, '');
+
+  return {
+    countryCallingCode,
+    nationalNumber,
+    isValid: () => nationalNumber.length >= 7,
+  };
+}
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
