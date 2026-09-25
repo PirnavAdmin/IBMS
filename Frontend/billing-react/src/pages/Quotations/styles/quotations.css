@@ -85,3 +85,47 @@
 .quote-picker-menu small { color: #b42318; font-weight: 700; }
 .quote-picker-menu p { padding: 11px; color: var(--text-secondary); font-size: .8rem; }
 .quote-product-picker .quote-picker-input input { min-width: 150px; }
+
+/* Quotation audit history. */
+.quote-audit-panel { padding: 24px; }
+.quote-audit-heading, .quote-audit-title, .quote-audit-toolbar { display: flex; align-items: center; gap: 14px; }
+.quote-audit-heading { justify-content: space-between; flex-wrap: wrap; margin-bottom: 22px; }
+.quote-audit-symbol { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #f8eee6; color: var(--primary); flex-shrink: 0; }
+.quote-audit-title h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 5px; font-size: 1.12rem; }
+.quote-audit-title p, .quote-audit-timezone, .quote-audit-footer { color: var(--text-secondary); font-size: .78rem; line-height: 1.5; }
+.quote-audit-count { padding: 2px 8px; border-radius: 6px; background: #f4eee8; color: var(--primary); font-size: .72rem; }
+.quote-audit-filters { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.quote-audit-filters button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px; color: #655651; background: var(--surface); font: inherit; font-size: .76rem; cursor: pointer; }
+.quote-audit-filters button span { font-size: .69rem; background: #f3eee9; border-radius: 4px; padding: 1px 5px; }
+.quote-audit-filters button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.quote-audit-filters button.active span { background: #ffffff26; }
+.quote-audit-panel button:focus-visible, .quote-audit-panel select:focus-visible, .quote-audit-panel input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.quote-audit-toolbar { justify-content: space-between; margin: 18px 0; flex-wrap: wrap; }
+.quote-audit-search { display: flex; align-items: center; gap: 8px; width: min(100%, 370px); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text-secondary); }
+.quote-audit-search svg { font-size: 19px; }
+.quote-audit-search input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: .8rem; }
+.quote-audit-sort { display: flex; align-items: center; gap: 8px; font-size: .76rem; color: var(--text-secondary); }
+.quote-audit-sort select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text-primary); font: inherit; }
+.quote-audit-table { width: 100%; min-width: 740px; border-collapse: collapse; text-align: left; }
+.quote-audit-table th { background: #fcfaf8; color: #655651; font-size: .72rem; font-weight: 700; padding: 13px 16px; }
+.quote-audit-table td { padding: 19px 16px; border-top: 1px solid #eee5df; font-size: .8rem; line-height: 1.6; vertical-align: top; }
+.quote-audit-table tbody tr:hover { background: #fdfbf9; }
+.quote-audit-table time { white-space: nowrap; color: var(--text-secondary); font-size: .77rem; }
+.quote-audit-badge { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; padding: 4px 9px; border-radius: 6px; font-size: .72rem; font-weight: 700; background: #edf0f5; color: #475569; }
+.quote-audit-badge > span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.quote-audit-badge.created { background: #eaf2ff; color: #285b9b; }
+.quote-audit-badge.edited, .quote-audit-badge.statuschanges { background: #edf0f5; color: #475569; }
+.quote-audit-badge.sent { background: #fff1d6; color: #8a5100; }
+.quote-audit-badge.approved { background: #dcf6e8; color: #147243; }
+.quote-audit-badge.cancelled { background: #fde5e3; color: #ad2c25; }
+.quote-audit-badge.converted { background: #eee6fa; color: #6543a0; }
+.quote-audit-badge.discountoverride { background: #fff0e5; color: #9c481b; }
+.quote-audit-user { display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.quote-audit-user svg { font-size: 18px; color: var(--text-secondary); flex-shrink: 0; }
+.quote-audit-description { width: 40%; min-width: 220px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.quote-audit-footer { margin: 14px 0 0; }
+.quote-audit-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 42px 16px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
+.quote-audit-empty > svg { font-size: 32px; color: var(--secondary); }
+.quote-audit-empty p { color: var(--text-secondary); font-size: .83rem; }
+.quote-audit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 700px) { .quote-audit-panel { padding: 16px; } .quote-audit-toolbar { align-items: stretch; flex-direction: column; } .quote-audit-search { width: 100%; box-sizing: border-box; } .quote-audit-sort { justify-content: space-between; } .quote-audit-timezone { padding-left: 58px; } }
