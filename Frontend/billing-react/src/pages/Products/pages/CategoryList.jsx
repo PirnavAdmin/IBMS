@@ -1,7 +1,8 @@
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Breadcrumbs, Button, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Alert, Breadcrumbs, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { Add, CategoryOutlined } from '@mui/icons-material';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
@@ -59,6 +60,6 @@ export function CategoryList() {
       </TableContainer>
     </section>
     <DeactivateCategoryDialog open={Boolean(confirm)} activating={confirm?.status === 'Inactive'} busy={busy} error={error} onClose={() => { setConfirm(null); setError(''); }} onConfirm={() => confirm && changeStatus(confirm, confirm.status === 'Active' ? 'Inactive' : 'Active')} />
-    <Snackbar open={Boolean(notice)} autoHideDuration={4000} onClose={() => setNotice('')}><Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert></Snackbar>
+    <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
   </main>;
 }

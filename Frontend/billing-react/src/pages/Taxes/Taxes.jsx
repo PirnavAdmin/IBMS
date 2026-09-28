@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
 import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
 import "../../styles/Dashboard.css";
 import { useRef, useState } from "react";
@@ -11,7 +12,7 @@ import {
   useParams,
 } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, CircularProgress, Skeleton, Snackbar } from "@mui/material";
+import { Alert, CircularProgress, Skeleton } from "@mui/material";
 import {
   AccountTreeOutlined,
   CheckCircleOutline,
@@ -422,21 +423,7 @@ function TaxList({ search, setSearch }) {
         </>
       )}
       <Preview />
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={3500}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        onClose={() => setNotice("")}
-      >
-        <Alert
-          className="tax-success-toast"
-          severity="success"
-          variant="filled"
-          onClose={() => setNotice("")}
-        >
-          {notice}
-        </Alert>
-      </Snackbar>
+      <FeedbackSnackbar message={notice} onClose={() => setNotice("")} />
     </>
   );
 }
