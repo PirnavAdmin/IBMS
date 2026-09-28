@@ -283,7 +283,7 @@ public class QuotationActionService : IQuotationActionService
                 EntityId = quotationId.ToString(),
                 Action = "Converted",
                 UserName = userId,
-                Changes = $"Converted to Invoice {savedInvoice.Id}",
+                Changes = "Converted to Invoice",
                 Timestamp = DateTime.UtcNow
             };
             await _auditLogRepository.AddAsync(auditLog);
