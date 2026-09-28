@@ -87,6 +87,13 @@
 .quote-picker-menu p { padding: 11px; color: var(--text-secondary); font-size: .8rem; }
 .quote-product-picker .quote-picker-input input { min-width: 150px; }
 
+.quote-items-table tbody td:nth-child(5) .quote-inline-controls { display: grid; gap: 6px; }
+.quote-items-table tbody td:nth-child(5) .quote-inline-controls > *,
+.quote-items-table tbody td:nth-child(6) > select,
+.quote-items-table tbody td:nth-child(6) > input { display: block; width: 100%; box-sizing: border-box; }
+.quote-items-table tbody td:nth-child(6) > input { margin-top: 6px; }
+.quote-items-table tbody td:nth-child(6) > small { display: none; }
+
 /* Quotation audit history. */
 .quote-audit-panel { padding: 24px; }
 .quote-audit-heading, .quote-audit-title, .quote-audit-toolbar { display: flex; align-items: center; gap: 14px; }
