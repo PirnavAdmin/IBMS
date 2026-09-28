@@ -177,14 +177,14 @@ public class NumberGenerationService : INumberGenerationService
     private static string GetDefaultTokens(string documentType)
     {
         var norm = documentType.Trim().ToLowerInvariant();
-        if (norm.Contains("quote") || norm.Contains("quotation")) return "{YYYY}-{MM}-";
+        if (norm.Contains("quote") || norm.Contains("quotation")) return "{YEAR}-{MM}-";
         return "{YEAR}-";
     }
 
     private static int GetDefaultSequenceLength(string documentType)
     {
         var norm = documentType.Trim().ToLowerInvariant();
-        if (norm.Contains("quote") || norm.Contains("quotation")) return 6;
+        if (norm.Contains("quote") || norm.Contains("quotation")) return 4;
         return 4;
     }
 }

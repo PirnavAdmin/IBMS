@@ -5,6 +5,7 @@ export const DOCUMENT_TYPES = [
   'Credit Note',
   'Payment Receipt',
   'Debit Note',
+  'Quotation',
   'Estimate / Quote',
   'Recurring Invoice',
   'Delivery Challan',
@@ -15,6 +16,7 @@ export const DOCUMENT_TYPE_CARDS = [
   { id: 'Credit Note', title: 'Credit Note', description: 'Credit documents' },
   { id: 'Payment Receipt', title: 'Payment Receipt', description: 'Payment receipts' },
   { id: 'Debit Note', title: 'Debit Note', description: 'Debit documents' },
+  { id: 'Quotation', title: 'Quotation', description: 'Sales quotations' },
 ];
 
 export const RESET_POLICIES = [
@@ -71,6 +73,15 @@ export const DEFAULT_PRESETS_BY_DOC_TYPE = {
     sequenceLength: 4,
     nextNumber: 1,
     resetPolicy: 'Never (Continuous sequence)',
+  },
+  Quotation: {
+    documentType: 'Quotation',
+    prefix: 'QT-',
+    suffix: '',
+    tokens: '(YEAR)-(MM)-',
+    sequenceLength: 4,
+    nextNumber: 1,
+    resetPolicy: 'Financial Year (Resets to 1 each FY on Apr 1)',
   },
   'Estimate / Quote': {
     documentType: 'Estimate / Quote',

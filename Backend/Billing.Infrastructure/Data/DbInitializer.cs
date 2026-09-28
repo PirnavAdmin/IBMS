@@ -267,6 +267,18 @@ public static class DbInitializer
                     new()
                     {
                         TenantId = 1,
+                        DocumentType = "Quotation",
+                        Prefix = "QT-",
+                        Tokens = "{YEAR}-{MM}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
                         DocumentType = "Estimate / Quote",
                         Prefix = "EST-",
                         Tokens = "{YEAR}-",

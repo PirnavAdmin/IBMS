@@ -382,4 +382,109 @@ public class QuotationCrudTests
         Assert.False(response.Success);
         Assert.Equal("CONCURRENCY_CONFLICT", response.ErrorCode);
     }
+
+    [Fact]
+    public async Task CreateQuotation_ShouldLogAuditCreatedEvent()
+    {
+        var auditRepo = new FakeAuditLogRepository();
+        var serviceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+
+        var req = new CreateQuotationRequest
+        {
+            CustomerId = 10,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(7),
+            Items = new List<CreateQuotationItemRequest>
+            {
+                new() { Description = "Test Item", Quantity = 2, UnitPrice = 500, DiscountRate = 10, DiscountType = "Percentage" }
+            }
+        };
+
+        var res = await serviceWithAudit.CreateDraftAsync(req, 1, "test-user-1");
+        Assert.True(res.Success);
+
+        var createdLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Created");
+        Assert.NotNull(createdLog);
+        Assert.Equal("test-user-1", createdLog.UserName);
+
+        var discountLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Discount Override");
+        Assert.NotNull(discountLog);
+    }
+
+    [Fact]
+    public async Task UpdateDraftQuotation_ShouldLogAuditEditedEvent()
+    {
+        var auditRepo = new FakeAuditLogRepository();
+        var serviceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+
+        var quote = new Quotation
+        {
+            Id = 401,
+            TenantId = 1,
+            QuoteNumber = "QT-EDIT-401",
+            CustomerId = 10,
+            Status = QuotationStatus.Draft,
+            RowVersion = DateTime.UtcNow
+        };
+        await _quotationRepo.AddAsync(quote);
+
+        var updateReq = new UpdateQuotationRequest
+        {
+            CustomerId = 10,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(14),
+            Items = new List<CreateQuotationItemRequest>
+            {
+                new() { Description = "Edited Item", Quantity = 3, UnitPrice = 200 }
+            }
+        };
+
+        var res = await serviceWithAudit.UpdateDraftAsync(401, updateReq, 1, "editor-user");
+        Assert.True(res.Success);
+
+        var editLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Edited");
+        Assert.NotNull(editLog);
+        Assert.Equal("editor-user", editLog.UserName);
+    }
+
+    [Fact]
+    public async Task QuotationNumbering_DefaultPrefixAndTokens_ShouldBeQTAndYearMonth()
+    {
+        var genReq = new Billing.Contracts.Numbering.GenerateNumberRequest
+        {
+            DocumentType = "Quotation",
+            TransactionDate = new DateTime(2026, 9, 28)
+        };
+
+        var numberResult = await _numberGenerationService.GenerateNextNumberAsync(genReq, 1);
+        Assert.True(numberResult.Success);
+        Assert.StartsWith("QT-2026-09-", numberResult.Data!.GeneratedNumber);
+    }
+
+    [Fact]
+    public async Task GetAuditLogs_WhenNoCreatedLogExists_ShouldSynthesizeInitialCreatedEntry()
+    {
+        var auditRepo = new FakeAuditLogRepository();
+        var quote = new Quotation
+        {
+            Id = 501,
+            TenantId = 1,
+            QuoteNumber = "QT-SYNTH-501",
+            CustomerId = 10,
+            QuotationDate = new DateTime(2026, 9, 25),
+            Status = QuotationStatus.Approved,
+            RowVersion = DateTime.UtcNow
+        };
+        await _quotationRepo.AddAsync(quote);
+
+        var controllerWithAudit = new QuotationsController(_quotationService, new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>().Object, NullLogger<QuotationsController>.Instance, auditRepo);
+        SetUserContext(controllerWithAudit, 1);
+
+        var result = await controllerWithAudit.GetAuditLogs(501);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ApiResponse<List<AuditLog>>>(okResult.Value);
+
+        Assert.True(response.Success);
+        Assert.Contains(response.Data!, l => l.Action == "Created");
+    }
 }

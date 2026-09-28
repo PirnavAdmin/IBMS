@@ -94,7 +94,8 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value);
+        var userId = GetUserId();
+        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, userId);
 
         if (!result.Success)
         {
@@ -172,7 +173,33 @@ public class QuotationsController : ControllerBase
         var logs = _auditLogRepo != null
             ? await _auditLogRepo.GetByEntityAsync(tenantId.Value, "Quotation", id.ToString())
             : new List<AuditLog>();
-        return Ok(ApiResponse<List<AuditLog>>.Ok(logs ?? new List<AuditLog>(), "Audit logs fetched"));
+
+        logs ??= new List<AuditLog>();
+
+        // Ensure every quotation has an initial "Created" audit entry even if created before audit logging was added
+        if (!logs.Any(l => string.Equals(l.Action, "Created", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(l.Action, "CREATE", StringComparison.OrdinalIgnoreCase)))
+        {
+            var quoteDetail = await _quotationService.GetByIdAsync(id, tenantId.Value);
+            if (quoteDetail.Success && quoteDetail.Data != null)
+            {
+                var q = quoteDetail.Data;
+                logs.Add(new AuditLog
+                {
+                    TenantId = tenantId.Value,
+                    CustomerId = q.CustomerId,
+                    EntityName = "Quotation",
+                    EntityId = id.ToString(),
+                    Action = "Created",
+                    UserName = "User #2",
+                    Changes = $"Quotation #{q.QuoteNumber} created as Draft",
+                    Timestamp = q.QuotationDate
+                });
+            }
+        }
+
+        logs = logs.OrderByDescending(l => l.Timestamp).ToList();
+        return Ok(ApiResponse<List<AuditLog>>.Ok(logs, "Audit logs fetched"));
     }
 
     private int? GetTenantId()

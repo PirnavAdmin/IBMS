@@ -51,7 +51,7 @@ export function QuotationManagement() {
       const failure=results.find(r=>r.status==='rejected');if(failure)setError(`History could not be loaded. ${message(failure.reason)}`);
     }
   });
-  const save=q=>run(async()=>{replace(await quotationApi.save(q));setScreen('details');setNotice('Quotation draft saved.');});
+  const save=q=>run(async()=>{const saved=await quotationApi.save(q);await open('details',saved);setNotice('Quotation draft saved.');});
   const action=(type,q)=>run(async()=>{
     const detail=await quotationApi.get(q.id);replace(detail);
     const allowed={send:['Draft'],approve:['Sent'],cancel:['Draft','Sent','Approved'],convert:['Approved']};
@@ -61,7 +61,7 @@ export function QuotationManagement() {
   const transition=reason=>run(async()=>{
     await quotationApi.action(current.id,dialog,reason);const completed=dialog;setDialog(null);
     setNotice({send:'Quotation marked as sent.',approve:'Quotation approved.',cancel:'Quotation cancelled.',convert:'Quotation converted to invoice.'}[completed]);
-    try{replace(await quotationApi.get(current.id));}catch(e){setScreen('list');await load();setError(`Action completed, but details could not be refreshed. ${message(e)}`);}
+    try{await open('details',{id:current.id});}catch(e){setScreen('list');await load();setError(`Action completed, but details could not be refreshed. ${message(e)}`);}
   });
   return <>
     {(loading||busy)&&<LinearProgress/>}
