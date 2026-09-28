@@ -2,12 +2,40 @@ import { useState } from 'react';
 import { History, Search, PersonOutline } from '@mui/icons-material';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];
+const STATUS_EVENTS = new Set(['Sent', 'Approved', 'Cancelled', 'Converted', 'Status Changes']);
 const eventKey = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
+
 function eventLabel(action) {
   const key = eventKey(action);
-  if (['statuschange', 'statuschanged', 'statuschanges'].includes(key)) return 'Status Changes';
+  if (['create', 'created', 'creation', 'draft', 'new'].includes(key) || key.startsWith('creat')) return 'Created';
+  if (['edit', 'edited', 'update', 'updated', 'modify', 'modified'].includes(key) || key.startsWith('edit') || key.startsWith('updat')) return 'Edited';
+  if (['sent', 'send', 'sending'].includes(key)) return 'Sent';
+  if (['approved', 'approve', 'approval'].includes(key)) return 'Approved';
+  if (['cancelled', 'canceled', 'cancel'].includes(key)) return 'Cancelled';
+  if (['converted', 'convert', 'conversion'].includes(key)) return 'Converted';
+  if (['discountoverride', 'manualoverride', 'discount', 'override'].includes(key) || key.includes('discount')) return 'Discount Override';
+  if (['statuschange', 'statuschanged', 'statuschanges'].includes(key) || key.includes('status')) return 'Status Changes';
   return events.find(event => eventKey(event) === key) || action || 'Activity';
 }
+
+function isStatusChangeEvent(row) {
+  if (STATUS_EVENTS.has(row.label)) return true;
+  const desc = String(row.description || '').toLowerCase();
+  const act = String(row.action || '').toLowerCase();
+  return desc.includes('status changed') || desc.includes('converted to invoice') || act.includes('status');
+}
+
+function matchesFilter(row, filterType) {
+  if (filterType === 'All') return true;
+  if (filterType === 'Status Changes') return isStatusChangeEvent(row);
+  return row.label === filterType;
+}
+
+function getCount(rows, filterType) {
+  if (filterType === 'All') return rows.length;
+  return rows.filter(row => matchesFilter(row, filterType)).length;
+}
+
 function timestamp(value) {
   const parsed = value ? Date.parse(value) : NaN;
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -30,7 +58,7 @@ export function QuotationAudit({ entries = [] }) {
   const [order, setOrder] = useState('newest');
   const rows = entries.map(entry => ({ ...entry, label: eventLabel(entry.action) }));
   const query = search.trim().toLowerCase();
-  const visible = rows.filter(entry => (filter === 'All' || entry.label === filter)
+  const visible = rows.filter(entry => matchesFilter(entry, filter)
     && `${entry.label} ${userLabel(entry.user)} ${entry.description || ''}`.toLowerCase().includes(query))
     .sort((a, b) => order === 'newest' ? timestamp(b.date) - timestamp(a.date) : timestamp(a.date) - timestamp(b.date));
 
@@ -44,7 +72,7 @@ export function QuotationAudit({ entries = [] }) {
     <div className="quote-audit-filters" aria-label="Filter audit events">
       {['All', ...events].map(event => <button key={event} type="button" aria-pressed={filter === event}
         className={filter === event ? 'active' : ''} onClick={() => setFilter(event)}>
-        {event}<span>{event === 'All' ? rows.length : rows.filter(row => row.label === event).length}</span>
+        {event}<span>{getCount(rows, event)}</span>
       </button>)}
     </div>
     <div className="quote-audit-toolbar">
