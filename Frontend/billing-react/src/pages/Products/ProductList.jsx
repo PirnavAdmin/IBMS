@@ -1,7 +1,8 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Breadcrumbs, Button, Snackbar } from '@mui/material';
+import { Breadcrumbs, Button } from '@mui/material';
 import { Add, Inventory2Outlined } from '@mui/icons-material';
 import { productService } from './services/productService';
 import { ProductFilters } from './components/ProductFilters';
@@ -46,14 +47,7 @@ export function ProductList() {
   return <main className="product-page product-list-page">
     <Breadcrumbs aria-label="Breadcrumb"><span>Products &amp; Services</span><span>Product List</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button></div></header>
-    <Snackbar
-      open={Boolean(notice)}
-      autoHideDuration={4000}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      onClose={(_event, reason) => { if (reason !== 'clickaway') setNotice(''); }}
-    >
-      <Alert severity="success" variant="filled" role="status" onClose={() => setNotice('')} sx={{ width: '100%' }}>{notice}</Alert>
-    </Snackbar>
+    <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
     <ProductSummaryCards summary={catalog.data?.summary} />
     <section className="product-panel" aria-label="Product list">
       <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><Inventory2Outlined fontSize="small" /></span><div><h2>Product catalog</h2><p>Everything you bill, organized in one place.</p></div></div><span className="product-result-count" role="status">{loading ? 'Loading catalog…' : error ? 'Catalog unavailable' : updating ? 'Updating results?' : `${query.data?.totalCount ?? 0} ${active ? 'matching ' : ''}items`}</span></div>

@@ -1,9 +1,10 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import '../../styles/Dashboard.css';
 ﻿import { useRef, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, CircularProgress, Skeleton, Snackbar } from '@mui/material';
+import { Alert, CircularProgress, Skeleton } from '@mui/material';
 import { AccountTreeOutlined, CheckCircleOutline, ReceiptLongOutlined, RemoveCircleOutline } from '@mui/icons-material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { taxService, taxError } from '../../services/taxService';
@@ -69,9 +70,7 @@ function TaxList({ search, setSearch }) {
         {!taxes.length ? <div className="tax-empty-state"><h2>No tax configurations found.</h2><p>Create your first tax rule to start configuring invoice taxes.</p><Link className="tax-primary-btn" to="/settings/taxes/new">+ Add Tax</Link></div> : !filtered.length ? <div className="tax-empty-state"><h2>No matching records found.</h2><button className="tax-secondary-btn" onClick={() => { setSearch(''); setType('All'); setStatus('All'); }}>Clear filters</button></div> : <div className="tax-table-container" tabIndex={0} role="region" aria-label="Tax configurations"><table className="tax-table"><thead><tr>{['Tax Name', 'Tax Code', 'Tax Type', 'Rate', 'Calculation', 'Priority', 'Effective From', 'Effective To', 'Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{filtered.map(tax => <tr key={tax.id}><th scope="row">{tax.name}</th><td>{tax.code}</td><td>{tax.type}</td><td>{tax.rate}%</td><td>{tax.calculation}</td><td>{tax.priority}</td><td>{tax.effectiveFrom}</td><td>{tax.effectiveTo || 'No end date'}</td><td><span className={`tax-status tax-status-${tax.status.toLowerCase()}`}>{tax.status}</span></td><td><Link className="tax-edit" aria-label={`Edit ${tax.name}`} to={`/settings/taxes/${encodeURIComponent(tax.id)}/edit`}>Edit</Link></td></tr>)}</tbody></table></div>}
       </section></>}
     <Preview />
-    <Snackbar open={Boolean(notice)} autoHideDuration={3500} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} onClose={() => setNotice('')}>
-      <Alert className="tax-success-toast" severity="success" variant="filled" onClose={() => setNotice('')}>{notice}</Alert>
-    </Snackbar>
+    <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
   </>;
 }
 

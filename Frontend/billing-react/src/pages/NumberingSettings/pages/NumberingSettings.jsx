@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import '../../../styles/Dashboard.css';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
@@ -8,8 +9,7 @@ import {
   Alert,
   Button,
   CircularProgress,
-  Snackbar,
-} from '@mui/material';
+  } from '@mui/material';
 import {
   RestartAlt,
   SaveOutlined,
@@ -411,14 +411,7 @@ export function NumberingSettings() {
       </footer>
 
       {/* Snackbar Toast */}
-      <Snackbar
-        open={Boolean(toast)}
-        autoHideDuration={4000}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        onClose={(_event, reason) => { if (reason !== 'clickaway') setToast(''); }}
-      >
-        <Alert severity={toastSeverity} variant="filled" onClose={() => setToast('')} sx={{ width: '100%' }}>{toast}</Alert>
-      </Snackbar>
+      <FeedbackSnackbar message={toast} onClose={() => setToast('')} severity={toastSeverity} />
     </div>
   );
 }

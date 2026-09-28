@@ -1,5 +1,6 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, Snackbar, TextField } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField } from '@mui/material';
 import { discountScopes, discountTypes, phase5Api, validateDiscountRule } from './services/phase5Api.js';
 
 const blank = { name: '', code: '', description: '', type: 'Percentage', scope: 'Invoice', value: '', minInvoiceAmount: '', maxDiscountAmount: '', startDateUtc: '', endDateUtc: '', applicableRole: '', status: 'Active' };
@@ -65,6 +66,6 @@ export function DiscountRules() {
       </div>}{formError && <Alert severity="error" sx={{ mt: 2 }}>{formError}</Alert>}
     </DialogContent><DialogActions><Button disabled={busy || !dirty} onClick={() => { setForm({ ...baseline }); setTouched({}); }}>Reset</Button><Button disabled={busy} onClick={() => setForm(null)}>Cancel</Button><Button variant="contained" disabled={busy || !dirty || Object.keys(errors).length > 0} onClick={() => mutate(() => form.id ? phase5Api.updateDiscountRule(form.id, form) : phase5Api.createDiscountRule(form), 'Discount rule saved.')}>{busy ? 'Saving...' : 'Save Changes'}</Button></DialogActions></Dialog>
     <Dialog open={Boolean(confirm)} onClose={() => { if (!busy) setConfirm(null); }}><DialogTitle>Delete Discount Rule?</DialogTitle><DialogContent>Delete {confirm?.name} ({confirm?.code})?{formError && <Alert severity="error">{formError}</Alert>}</DialogContent><DialogActions><Button disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button><Button disabled={busy} color="error" onClick={() => mutate(() => phase5Api.deleteDiscountRule(confirm.id), 'Discount rule deleted.')}>{busy ? 'Deleting...' : 'Delete'}</Button></DialogActions></Dialog>
-    <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast('')} message={toast} />
+    <FeedbackSnackbar message={toast} onClose={() => setToast('')} />
   </Paper>;
 }
