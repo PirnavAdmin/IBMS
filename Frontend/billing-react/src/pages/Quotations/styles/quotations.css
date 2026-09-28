@@ -130,3 +130,11 @@
 .quote-audit-empty p { color: var(--text-secondary); font-size: .83rem; }
 .quote-audit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 @media (max-width: 700px) { .quote-audit-panel { padding: 16px; } .quote-audit-toolbar { align-items: stretch; flex-direction: column; } .quote-audit-search { width: 100%; box-sizing: border-box; } .quote-audit-sort { justify-content: space-between; } .quote-audit-timezone { padding-left: 58px; } }
+
+/* Keep paired discount and tax controls visually distinct in the item editor. */
+.quote-inline-controls{display:grid;grid-template-columns:minmax(58px,.8fr) minmax(72px,1.2fr);gap:8px;align-items:center}.quote-items-table td.quote-item-discount{min-width:152px}.quote-items-table td:nth-child(6){min-width:132px}.quote-items-table td:nth-child(6)>select,.quote-items-table td:nth-child(6)>input{display:block;margin-bottom:7px}.quote-items-table td:nth-child(6)>small{margin-top:2px}
+
+
+.quote-inline-controls{grid-template-columns:minmax(0,1fr);gap:7px}
+.quote-items-table td.quote-item-discount{min-width:132px}
+
