@@ -51,7 +51,15 @@ export function QuotationManagement() {
       const failure=results.find(r=>r.status==='rejected');if(failure)setError(`History could not be loaded. ${message(failure.reason)}`);
     }
   });
-  const save=q=>run(async()=>{const saved=await quotationApi.save(q);await open('details',saved);setNotice('Quotation draft saved.');});
+  const save=q=>run(async()=>{
+    const saved=await quotationApi.save(q);
+    // Do not call open() here: it also uses run(), and the save already holds
+    // the shared lock. Update the list from the successful save response.
+    setQuotes(rows=>[saved,...rows.filter(row=>row.id!==saved.id)]);
+    setCurrent(saved);
+    setScreen('details');
+    setNotice('Quotation draft saved.');
+  });
   const action=(type,q)=>run(async()=>{
     const detail=await quotationApi.get(q.id);replace(detail);
     const allowed={send:['Draft'],approve:['Sent'],cancel:['Draft','Sent','Approved'],convert:['Approved']};
