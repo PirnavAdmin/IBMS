@@ -56,7 +56,13 @@ export function QuotationAudit({ entries = [] }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [order, setOrder] = useState('newest');
-  const rows = entries.map(entry => ({ ...entry, label: eventLabel(entry.action) }));
+  const rows = entries.map(entry => {
+    const label = eventLabel(entry.action);
+    const description = label === 'Converted'
+      ? String(entry.description || '').replace(/^Converted to Invoice\s+#?\d+\s*$/i, 'Converted to Invoice')
+      : entry.description;
+    return { ...entry, label, description };
+  });
   const query = search.trim().toLowerCase();
   const visible = rows.filter(entry => matchesFilter(entry, filter)
     && `${entry.label} ${userLabel(entry.user)} ${entry.description || ''}`.toLowerCase().includes(query))
