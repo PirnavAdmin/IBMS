@@ -42,7 +42,8 @@
 .app-layout > .bd-sidebar { position: sticky; top: 0; height: 100vh; min-height: 100vh; align-self: flex-start; }
 .app-layout > .bd-sidebar .bd-sidebar-footer { margin-top: auto; }
 .app-layout-main { flex: 1; min-width: 0; min-height: 100vh; }
-.app-layout-main > * { width: 100%; }
+/* Page content fills the shell; fixed snackbar notifications keep their natural width. */
+.app-layout-main > :not(.MuiSnackbar-root) { width: 100%; }
 .app-layout-menu { display: none; }
 .module-placeholder { min-height: 100vh; padding: clamp(28px,5vw,72px); display: grid; place-items: start; background: var(--bg-main); }
 .module-placeholder > div { width: min(720px,100%); padding: clamp(26px,4vw,48px); background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
