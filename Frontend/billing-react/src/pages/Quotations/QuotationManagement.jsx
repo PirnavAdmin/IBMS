@@ -4,6 +4,7 @@ import { Alert, LinearProgress } from '@mui/material';
 import { apiClient } from 'billing-api-client/apiClient.js';
 import { quotationApi, normalizeQuotation, normalizeQuotationProduct, normalizeCommunication, unwrap, fetchAllPages } from 'billing-api-client/quotationApi.js';
 import { parseCustomerResponse } from 'billing-contracts/customer.contracts.js';
+import { saveInvoice } from '../../data/billingStore';
 import { QuotationList } from './pages/QuotationList';
 import { QuotationForm, newQuotation } from './components/QuotationForm';
 import { QuotationDetails } from './pages/QuotationDetails';
@@ -68,8 +69,28 @@ export function QuotationManagement() {
     setDialog(type);
   });
   const transition=reason=>run(async()=>{
-    await quotationApi.action(current.id,dialog,reason);const completed=dialog;setDialog(null);
+    const res = await quotationApi.action(current.id,dialog,reason);const completed=dialog;setDialog(null);
     setNotice({send:'Quotation sent.',approve:'Approved.',cancel:'Cancelled.',convert:'Invoice created.'}[completed]);
+    if (completed === 'convert' && current) {
+      const invId = current.quoteNumber ? current.quoteNumber.replace(/^QT-?/i, 'INV-') : `INV-${Date.now()}`;
+      try {
+        saveInvoice({
+          id: invId,
+          customer: current.customer?.name || current.customerName || 'Customer',
+          email: current.customer?.email || current.customerEmail || '',
+          issueDate: new Date().toISOString().slice(0, 10),
+          dueDate: current.validUntil?.slice(0, 10) || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+          total: Number(current.totalAmount || 0),
+          status: 'draft',
+          items: current.items || [],
+          notes: current.notes || '',
+          terms: current.termsAndConditions || '',
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Could not cache converted invoice:', err);
+      }
+    }
     try{await refresh('details',{id:current.id});}catch(e){setScreen('list');await load();setError(`Action completed, but details could not be refreshed. ${message(e)}`);}
   });
   return <>

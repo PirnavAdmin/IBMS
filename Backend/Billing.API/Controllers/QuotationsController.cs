@@ -118,13 +118,15 @@ public class QuotationsController : ControllerBase
     }
 
     [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,Manager")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ApproveQuotation([FromRoute] int id)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserId());
+        var userRole = string.Join(",", User.FindAll(ClaimTypes.Role).Select(c => c.Value));
+        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserId(), userRole);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
