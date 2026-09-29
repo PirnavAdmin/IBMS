@@ -16,6 +16,5 @@ export function validateQuotation(form) {
     if(!Number.isFinite(Number(item.taxRate))||Number(item.taxRate)<0||Number(item.taxRate)>100)errors[key]='Tax rate must be between 0 and 100.';
   });
   for(const [field,max] of [['reference',128],['notes',2000],['termsAndConditions',4000]])if((form[field]||'').length>max)errors[field]=`${field}: maximum ${max} characters allowed.`;
-  if(Number(form.invoiceDiscount?.value||0)||form.charges?.length)errors.discount='Only item discounts are supported for quotations.';
   return errors;
 }
