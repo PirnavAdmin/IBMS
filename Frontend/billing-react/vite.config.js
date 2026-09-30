@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      axios: path.resolve(__dirname, './node_modules/axios/index.js'),
       'billing-contracts': path.resolve(__dirname, '../billing-contracts'),
       'billing-api-client': path.resolve(__dirname, '../billing-api-client'),
       'billing-react': path.resolve(__dirname, './src/components'),
