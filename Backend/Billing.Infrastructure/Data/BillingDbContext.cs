@@ -1,13 +1,17 @@
 using Billing.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Billing.Application.Interfaces;
+using System.Text.Json;
 
 namespace Billing.Infrastructure.Data;
 
 public class BillingDbContext : DbContext
 {
-    public BillingDbContext(DbContextOptions<BillingDbContext> options)
+    private readonly ICurrentUserService? _currentUserService;
+    public BillingDbContext(DbContextOptions<BillingDbContext> options, ICurrentUserService? currentUserService = null)
         : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     public DbSet<Tenant> Tenants { get; set; }
@@ -48,6 +52,75 @@ public class BillingDbContext : DbContext
 
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
 
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = _currentUserService?.TenantId;
+        var userName = _currentUserService?.UserName ?? "System";
+
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+
+        var auditLogs = new List<AuditLog>();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is AuditLog) continue; // Prevent infinite loop
+
+            var entityName = entry.Entity.GetType().Name;
+            var entityId = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "Unknown";
+            
+            var oldValues = new Dictionary<string, object?>();
+            var newValues = new Dictionary<string, object?>();
+
+            foreach (var property in entry.Properties)
+            {
+                if (property.IsTemporary) continue;
+                
+                string propertyName = property.Metadata.Name;
+                
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        newValues[propertyName] = property.CurrentValue;
+                        break;
+                    case EntityState.Deleted:
+                        oldValues[propertyName] = property.OriginalValue;
+                        break;
+                    case EntityState.Modified:
+                        if (property.IsModified)
+                        {
+                            oldValues[propertyName] = property.OriginalValue;
+                            newValues[propertyName] = property.CurrentValue;
+                        }
+                        break;
+                }
+            }
+
+            if (oldValues.Count == 0 && newValues.Count == 0) continue;
+
+            auditLogs.Add(new AuditLog
+            {
+                TenantId = tenantId ?? 1,
+                EntityName = entityName,
+                EntityId = entityId,
+                Action = entry.State.ToString().ToUpper(),
+                UserName = userName,
+                Timestamp = DateTime.UtcNow,
+                OldValues = oldValues.Count > 0 ? JsonSerializer.Serialize(oldValues) : null,
+                NewValues = newValues.Count > 0 ? JsonSerializer.Serialize(newValues) : null,
+                Changes = "Automated data mutation log"
+            });
+        }
+
+        if (auditLogs.Any())
+        {
+            AuditLogs.AddRange(auditLogs);
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
