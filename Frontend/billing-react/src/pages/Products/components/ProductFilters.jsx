@@ -7,10 +7,10 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
       endAdornment: search ? <InputAdornment position="end"><IconButton size="small" aria-label="Clear search" onClick={() => onSearch('')}><Close fontSize="small" /></IconButton></InputAdornment> : null,
     }} />
-    <TextField disabled={categoriesLoading} select label="Category" size="small" value={params.category} onChange={event => onChange({ category: event.target.value })}>
+    <TextField disabled={categoriesLoading} select SelectProps={{ MenuProps: { PaperProps: { className: 'product-select-menu' } } }} label="Category" size="small" value={params.category} onChange={event => onChange({ category: event.target.value })}>
       <MenuItem value="">All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </TextField>
-    <TextField select label="Status" size="small" value={params.status} onChange={event => onChange({ status: event.target.value })}>
+    <TextField select SelectProps={{ MenuProps: { PaperProps: { className: 'product-select-menu' } } }} label="Status" size="small" value={params.status} onChange={event => onChange({ status: event.target.value })}>
       <MenuItem value="">All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </TextField>
     <Button disabled={!active} onClick={onClear}>Clear Filters</Button>
