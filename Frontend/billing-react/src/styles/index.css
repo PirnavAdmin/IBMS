@@ -85,3 +85,184 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .dark-glass-input .MuiOutlinedInput-root.Mui-focused fieldset { border-color: #9A4F2F !important; border-width: 1.5px !important; box-shadow: 0 0 0 3px rgba(154, 79, 47, 0.18) !important; }
 .dark-glass-input input { color: #2D211C !important; font-size: 0.92rem !important; }
 .dark-glass-input input::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
+
+/* ==========================================================================
+   Coordinated Dark Mode Theme System - Preserving Warm Brand Identity
+   ========================================================================== */
+[data-theme="dark"], body.dark-mode {
+  --bg-main: #140e0a;
+  --surface: #1e1612;
+  --primary: #e0935c;
+  --secondary: #f4c18e;
+  --orange: #e0935c;
+  --primary-light: #8b451f;
+  --light-orange: #5a2508;
+  --text-primary: #f5ece3;
+  --text-secondary: #ad9c8f;
+  --border: #35261d;
+  --success: #16a05d;
+  --danger: #ff5252;
+  --warning: #f59e0b;
+  --purple: #8b5cf6;
+  --shadow-card: 0 7px 22px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track, body.dark-mode ::-webkit-scrollbar-track {
+  background: #140e0a;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb, body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #35261d;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover, body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #4a372b;
+}
+
+/* Theme Toggle Button */
+.bd-theme-toggle {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+}
+.bd-theme-toggle:hover {
+  transform: rotate(18deg) scale(1.08);
+}
+
+/* Dark Mode Global & Component Overrides */
+[data-theme="dark"] .bd-header, body.dark-mode .bd-header {
+  background: #1e1612;
+  border-bottom-color: #35261d;
+  color: #f5ece3;
+}
+[data-theme="dark"] .bd-search, body.dark-mode .bd-search {
+  background: #140e0a;
+  border-color: #35261d;
+  color: #f5ece3;
+}
+[data-theme="dark"] .bd-search input, body.dark-mode .bd-search input {
+  color: #f5ece3;
+}
+[data-theme="dark"] .bd-icon-button, body.dark-mode .bd-icon-button {
+  background: #281e18;
+  border-color: #35261d;
+  color: #e0935c;
+}
+[data-theme="dark"] .bd-icon-button:hover, body.dark-mode .bd-icon-button:hover {
+  background: #35261d;
+  color: #f4c18e;
+}
+[data-theme="dark"] .bd-sidebar, body.dark-mode .bd-sidebar {
+  background: #18120e;
+  border-right-color: #35261d;
+}
+[data-theme="dark"] .bd-user-copy strong, body.dark-mode .bd-user-copy strong {
+  color: #f5ece3;
+}
+[data-theme="dark"] .bd-profile-menu, body.dark-mode .bd-profile-menu {
+  background: #251c17;
+  border-color: #35261d;
+  color: #f5ece3;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+/* Customer & Numbering & Settings Dark Styling */
+[data-theme="dark"] .cust-form,
+[data-theme="dark"] .cust-wizard-card,
+[data-theme="dark"] .cust-wizard-tips,
+[data-theme="dark"] .cust-card,
+[data-theme="dark"] .numbering-card-panel,
+[data-theme="dark"] .preview-main-card,
+[data-theme="dark"] .preview-section,
+[data-theme="dark"] .settings-nav-card,
+[data-theme="dark"] .settings-panel,
+body.dark-mode .cust-form,
+body.dark-mode .cust-wizard-card,
+body.dark-mode .cust-wizard-tips,
+body.dark-mode .cust-card,
+body.dark-mode .numbering-card-panel,
+body.dark-mode .preview-main-card,
+body.dark-mode .preview-section,
+body.dark-mode .settings-nav-card,
+body.dark-mode .settings-panel {
+  background: #1e1612 !important;
+  border-color: #35261d !important;
+  color: #f5ece3 !important;
+}
+
+[data-theme="dark"] .cust-field input,
+[data-theme="dark"] .cust-field select,
+[data-theme="dark"] .cust-field textarea,
+[data-theme="dark"] .form-field-group input,
+[data-theme="dark"] .form-field-group select,
+[data-theme="dark"] .form-field-group textarea,
+body.dark-mode .cust-field input,
+body.dark-mode .cust-field select,
+body.dark-mode .cust-field textarea,
+body.dark-mode .form-field-group input,
+body.dark-mode .form-field-group select,
+body.dark-mode .form-field-group textarea {
+  background: #251c17 !important;
+  border-color: #3d2c22 !important;
+  color: #f5ece3 !important;
+}
+[data-theme="dark"] .cust-field input:focus,
+[data-theme="dark"] .cust-field select:focus,
+[data-theme="dark"] .cust-field textarea:focus,
+[data-theme="dark"] .form-field-group input:focus,
+[data-theme="dark"] .form-field-group select:focus,
+[data-theme="dark"] .form-field-group textarea:focus,
+body.dark-mode .cust-field input:focus,
+body.dark-mode .cust-field select:focus,
+body.dark-mode .cust-field textarea:focus,
+body.dark-mode .form-field-group input:focus,
+body.dark-mode .form-field-group select:focus,
+body.dark-mode .form-field-group textarea:focus {
+  border-color: #e0935c !important;
+  box-shadow: 0 0 0 3px rgba(224, 147, 92, 0.2) !important;
+}
+
+[data-theme="dark"] .cust-step-circle, body.dark-mode .cust-step-circle {
+  border-color: #3d2c22;
+  background: #251c17;
+  color: #ad9c8f;
+}
+[data-theme="dark"] .cust-step-item.active .cust-step-circle,
+body.dark-mode .cust-step-item.active .cust-step-circle {
+  background: #e0935c;
+  color: #18120e;
+  border-color: #e0935c;
+}
+[data-theme="dark"] .cust-step-item.completed .cust-step-circle,
+body.dark-mode .cust-step-item.completed .cust-step-circle {
+  background: #16a05d;
+  color: #ffffff;
+  border-color: #16a05d;
+}
+[data-theme="dark"] .cust-step-line.completed, body.dark-mode .cust-step-line.completed {
+  background: #16a05d;
+}
+[data-theme="dark"] .cust-review-section, body.dark-mode .cust-review-section {
+  background: #251c17;
+  border-color: #35261d;
+}
+[data-theme="dark"] .cust-review-value, body.dark-mode .cust-review-value {
+  color: #f5ece3;
+}
+[data-theme="dark"] .doc-type-card, body.dark-mode .doc-type-card {
+  background: #251c17;
+  border-color: #35261d;
+  color: #f5ece3;
+}
+[data-theme="dark"] .doc-type-card.is-active, body.dark-mode .doc-type-card.is-active {
+  background: #2d2019;
+  border-color: #e0935c;
+}
+[data-theme="dark"] .numbering-quote-card, body.dark-mode .numbering-quote-card {
+  background: linear-gradient(135deg, #2a1f18 0%, #1f1612 100%);
+  border-color: #3d2c22;
+}
+[data-theme="dark"] .quote-line-2, body.dark-mode .quote-line-2 {
+  color: #f4c18e;
+}
+[data-theme="dark"] .numbering-bottom-bar, body.dark-mode .numbering-bottom-bar {
+  background: rgba(30, 22, 18, 0.95);
+  border-top-color: #35261d;
+}
+

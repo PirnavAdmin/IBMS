@@ -113,7 +113,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   currency: 'INR',
   taxCategory: 'GST 18%',
   hsnSac: '',
-  discountPercentage: 0,
+  discountPercentage: '',
   discountAllowed: false,
   status: 'Active',
 };

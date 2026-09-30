@@ -86,6 +86,7 @@ export const CustomerForm = ({
   mode = 'create',
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [slideDirection, setSlideDirection] = useState('forward');
   const [loadingNextCode, setLoadingNextCode] = useState(false);
 
   const getInitialValues = (values) => {
@@ -311,6 +312,7 @@ export const CustomerForm = ({
     const fieldsToValidate = getStepValidationFields(currentStep);
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
+      setSlideDirection('forward');
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -319,7 +321,9 @@ export const CustomerForm = ({
   const handleStepClick = async (targetStep) => {
     if (targetStep === currentStep) return;
     if (targetStep < currentStep) {
+      setSlideDirection('backward');
       setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -330,12 +334,16 @@ export const CustomerForm = ({
       const passed = await trigger(stepFields);
       if (!passed) {
         allPassed = false;
+        setSlideDirection(s > currentStep ? 'forward' : 'backward');
         setCurrentStep(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       }
     }
     if (allPassed) {
+      setSlideDirection('forward');
       setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -510,26 +518,28 @@ export const CustomerForm = ({
               </div>
             </div>
 
-            {/* STEP 0: Basic Information */}
-            {currentStep === 0 && (
-              <div className="cust-grid cust-grid-2">
-                <div className="cust-field">
-                  <label htmlFor="customer-name">
-                    Contact / Customer Name <span className="cust-required">*</span>
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <PersonOutline />
-                    </span>
-                    <input
-                      id="customer-name"
-                      type="text"
-                      placeholder="e.g. Venkat Rao"
-                      aria-invalid={Boolean(errors.name)}
-                      aria-describedby={errors.name ? 'customer-name-err' : undefined}
-                      {...register('name')}
-                    />
-                  </div>
+            <div key={currentStep} className={`cust-step-panel slide-${slideDirection}`}>
+              {/* STEP 0: Basic Information */}
+              {currentStep === 0 && (
+                <div className="cust-grid cust-grid-2">
+                  <div className="cust-field">
+                    <label htmlFor="customer-name">
+                      Contact / Customer Name <span className="cust-required">*</span>
+                    </label>
+                    <div className="cust-input-with-icon">
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <PersonOutline />
+                      </span>
+                      <input
+                        id="customer-name"
+                        type="text"
+                        maxLength={100}
+                        placeholder="e.g. Venkat Rao"
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? 'customer-name-err' : undefined}
+                        {...register('name')}
+                      />
+                    </div>
                   {errors.name && (
                     <span id="customer-name-err" className="cust-field-error" role="alert">
                       {errors.name.message}
@@ -653,7 +663,19 @@ export const CustomerForm = ({
                       id="customer-phone-code"
                       className="cust-phone-code-select"
                       aria-label="Country Dialing Code"
-                      {...register('phoneCountryCode', { onChange: () => trigger('phone') })}
+                      {...register('phoneCountryCode', {
+                        onChange: (e) => {
+                          const newCode = e.target.value;
+                          const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
+                          const maxLen = newCfg.max || 10;
+                          const currentVal = getValues('phone') || '';
+                          if (currentVal.length > maxLen) {
+                            setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
+                          } else {
+                            trigger('phone');
+                          }
+                        },
+                      })}
                     >
                       {Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => (
                         <option key={code} value={code}>
@@ -668,12 +690,62 @@ export const CustomerForm = ({
                       <input
                         id="customer-phone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={currentPhoneConfig.max || 10}
                         aria-required="true"
                         className="cust-phone-input"
                         placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
                         aria-invalid={Boolean(errors.phone)}
                         aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
-                        {...register('phone')}
+                        {...register('phone', {
+                          onChange: (e) => {
+                            const maxLen = currentPhoneConfig.max || 10;
+                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                            setValue('phone', digitsOnly, { shouldValidate: true, shouldDirty: true });
+                          },
+                        })}
+                        onKeyDown={(e) => {
+                          const allowedKeys = [
+                            'Backspace',
+                            'Tab',
+                            'Delete',
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'ArrowUp',
+                            'ArrowDown',
+                            'Home',
+                            'End',
+                            'Enter',
+                          ];
+                          if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+                            return;
+                          }
+                          if (!/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                            return;
+                          }
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const input = e.currentTarget;
+                          const selectedLength = (input.selectionEnd || 0) - (input.selectionStart || 0);
+                          if (input.value.length >= maxLen && selectedLength === 0) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasteText = e.clipboardData?.getData('text') || '';
+                          const digitsOnly = pasteText.replace(/\D/g, '');
+                          if (!digitsOnly) return;
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const currentVal = getValues('phone') || '';
+                          const input = e.currentTarget;
+                          const start = input.selectionStart || 0;
+                          const end = input.selectionEnd || 0;
+                          const combined = (currentVal.slice(0, start) + digitsOnly + currentVal.slice(end))
+                            .replace(/\D/g, '')
+                            .slice(0, maxLen);
+                          setValue('phone', combined, { shouldValidate: true, shouldDirty: true });
+                        }}
                       />
                     </div>
                   </div>
@@ -767,7 +839,12 @@ export const CustomerForm = ({
                       maxLength={taxRegistrationType === 'gst' ? 15 : taxRegistrationType === 'pan' ? 10 : 64}
                       aria-invalid={Boolean(errors.taxId)}
                       aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
-                      {...register('taxId')}
+                      {...register('taxId', {
+                        onChange: (e) => {
+                          const upper = (e.target.value || '').toUpperCase();
+                          setValue('taxId', upper, { shouldValidate: true, shouldDirty: true });
+                        },
+                      })}
                     />
                   </div>
                   {errors.taxId && (
@@ -778,22 +855,29 @@ export const CustomerForm = ({
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-currency">Billing Currency</label>
-                  <select
-                    id="customer-currency"
-                    aria-invalid={Boolean(errors.currency)}
-                    {...register('currency')}
-                  >
-                    <option value="INR">INR (₹)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                  </select>
-                  {errors.currency && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.currency.message}
+                  <label htmlFor="customer-currency">
+                    Billing Currency
+                    <span className="cust-field-badge">Base Currency</span>
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true" style={{ fontWeight: 600, color: '#754d34' }}>
+                      ₹
                     </span>
-                  )}
+                    <input
+                      id="customer-currency"
+                      type="text"
+                      readOnly={true}
+                      tabIndex={-1}
+                      value="INR (₹) - Indian Rupee"
+                      className="cust-input-readonly"
+                      style={{ paddingLeft: '38px' }}
+                      title="Billing currency is fixed to Indian Rupee (INR)"
+                    />
+                    <input type="hidden" value="INR" {...register('currency')} />
+                  </div>
+                  <span className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
+                    Fixed to base currency (INR) for Indian GST & tax compliance
+                  </span>
                 </div>
 
                 <div className="cust-field">
@@ -828,6 +912,10 @@ export const CustomerForm = ({
                     prefix="billingAddress"
                     title="Billing Address Details"
                     register={register}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     country={billingAddress?.country}
                   />
@@ -849,6 +937,10 @@ export const CustomerForm = ({
                     prefix="shippingAddress"
                     title="Shipping Address Details"
                     register={register}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     disabled={isShippingSameAsBilling}
                     country={watchedValues.shippingAddress?.country}
@@ -867,7 +959,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(0)}
+                      onClick={() => handleStepClick(0)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -899,7 +991,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(1)}
+                      onClick={() => handleStepClick(1)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -931,7 +1023,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(2)}
+                      onClick={() => handleStepClick(2)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -953,7 +1045,7 @@ export const CustomerForm = ({
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Currency</span>
-                      <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
+                      <span className="cust-review-value">INR (₹) - Indian Rupee</span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>
@@ -969,7 +1061,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(3)}
+                      onClick={() => handleStepClick(3)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -1029,6 +1121,7 @@ export const CustomerForm = ({
                 </div>
               </div>
             )}
+            </div>
 
             {/* Bottom Actions Bar */}
             <div className="cust-wizard-actions">
@@ -1047,6 +1140,7 @@ export const CustomerForm = ({
                     type="button"
                     className="cust-btn cust-btn-secondary"
                     onClick={() => {
+                      setSlideDirection('backward');
                       setCurrentStep((prev) => Math.max(prev - 1, 0));
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
