@@ -16,6 +16,8 @@ import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
 import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
 
 import { Payments } from '../pages/Payments/Payments';
+import { RecordPayment } from '../pages/Payments/RecordPayment';
+import { PaymentDetails } from '../pages/Payments/PaymentDetails';
 import { Invoices } from '../pages/Invoices/Invoices';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { CategoryList } from '../pages/Products/pages/CategoryList';
@@ -65,6 +67,8 @@ export const AppRoutes = () => (
 
       {/* Payments */}
       <Route path="/payments" element={<Payments />} />
+      <Route path="/payments/new" element={<RecordPayment />} />
+      <Route path="/payments/:id" element={<PaymentDetails />} />
 
       {/* ==============================
           CUSTOMER MODULE

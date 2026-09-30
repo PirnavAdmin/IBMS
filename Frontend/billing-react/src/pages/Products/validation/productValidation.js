@@ -52,6 +52,13 @@ export const productValidationSchema = yup.object({
     .max(32, 'Unit must not exceed 32 characters')
     .default('Piece'),
 
+  customUnit: yup.string().when('unit', {
+    is: 'Others',
+    then: schema => schema.trim().required('Please enter a custom unit of measurement.')
+      .max(32, 'Unit must not exceed 32 characters'),
+    otherwise: schema => schema.strip(),
+  }),
+
   price: yup
     .number()
     .typeError('Price must be a valid number')
@@ -114,6 +121,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   categoryId: '',
   description: '',
   unit: 'Piece',
+  customUnit: '',
   price: '',
   currency: 'INR',
   taxCategory: 'GST 18%',
@@ -122,3 +130,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   discountAllowed: false,
   status: 'Active',
 };
+
+export function resolveProductUnit({ unit, customUnit }) {
+  return (unit === 'Others' ? customUnit : unit)?.trim();
+}

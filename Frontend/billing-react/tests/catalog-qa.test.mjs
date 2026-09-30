@@ -7,7 +7,7 @@ import { productApi } from '../../billing-api-client/productApi.js';
 import { categoryApi } from '../../billing-api-client/categoryApi.js';
 import { productApiService, normalizeProduct, normalizeProductPage } from '../src/pages/Products/services/productService.js';
 import { categoryService, normalizeCategory, validateCategory, categoryError } from '../src/pages/Products/services/categoryService.js';
-import { productValidationSchema, DEFAULT_PRODUCT_VALUES, PRODUCT_TYPES } from '../src/pages/Products/validation/productValidation.js';
+import { productValidationSchema, DEFAULT_PRODUCT_VALUES, PRODUCT_TYPES, resolveProductUnit } from '../src/pages/Products/validation/productValidation.js';
 import { formatProductPrice } from '../src/pages/Products/utils/formatProductPrice.js';
 
 const valid = { ...DEFAULT_PRODUCT_VALUES, name: 'QA product', categoryId: '7', price: 10 };
@@ -181,5 +181,22 @@ test('PQA HSN/SAC: exact type-specific digits, optional empty, and type switches
   }
   for (const [type, hsnSac] of [['Service', '12345678'], ['Product', '998313']]) {
     assert.throws(() => productValidationSchema.validateSync({ ...valid, type, hsnSac }));
+  }
+});
+
+
+test('PQA custom unit validation and actual API unit value', () => {
+  for (const customUnit of ['', '   ', undefined]) {
+    assert.throws(() => productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit }),
+      error => error.message === 'Please enter a custom unit of measurement.');
+  }
+  const custom = productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit: '  Box  ' });
+  assert.equal(custom.customUnit, 'Box');
+  assert.equal(resolveProductUnit(custom), 'Box');
+  assert.throws(() => productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit: 'x'.repeat(33) }));
+  for (const unit of ['Piece', 'Set']) {
+    const data = productValidationSchema.validateSync({ ...valid, unit, customUnit: '' });
+    assert.equal(resolveProductUnit(data), unit);
+    assert.equal(Object.hasOwn(data, 'customUnit'), false);
   }
 });
