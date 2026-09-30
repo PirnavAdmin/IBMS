@@ -113,3 +113,14 @@
   .tax-settings-page { padding: 16px; }
   .tax-summary-card { min-height: 104px; }
 }
+
+.tax-name-button { padding: 0; border: 0; background: transparent; color: #714b37; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.tax-name-button:hover { color: #8b451f; }
+.tax-name-button:focus-visible { outline: 2px solid #8d6e63; outline-offset: 3px; border-radius: 2px; }
+.tax-detail-panel { margin-top: 18px; padding: 20px; border: 1px solid #dfcfc3; border-radius: 10px; background: #fffaf5; }
+.tax-detail-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.tax-detail-heading h2 { margin: 4px 0 0; color: #4e342e; }
+.tax-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 0; }
+.tax-detail-grid > div { padding: 12px; border-radius: 8px; background: #f7efe8; }
+.tax-detail-grid dt { color: #756763; font-size: 12px; }
+.tax-detail-grid dd { margin: 5px 0 0; color: #3f302b; font-weight: 600; }

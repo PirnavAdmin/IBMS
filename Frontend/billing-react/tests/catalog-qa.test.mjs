@@ -7,7 +7,7 @@ import { productApi } from '../../billing-api-client/productApi.js';
 import { categoryApi } from '../../billing-api-client/categoryApi.js';
 import { productApiService, normalizeProduct, normalizeProductPage } from '../src/pages/Products/services/productService.js';
 import { categoryService, normalizeCategory, validateCategory, categoryError } from '../src/pages/Products/services/categoryService.js';
-import { productValidationSchema, DEFAULT_PRODUCT_VALUES, PRODUCT_TYPES } from '../src/pages/Products/validation/productValidation.js';
+import { productValidationSchema, DEFAULT_PRODUCT_VALUES, PRODUCT_TYPES, resolveProductUnit } from '../src/pages/Products/validation/productValidation.js';
 import { formatProductPrice } from '../src/pages/Products/utils/formatProductPrice.js';
 
 const valid = { ...DEFAULT_PRODUCT_VALUES, name: 'QA product', categoryId: '7', price: 10 };
@@ -61,7 +61,7 @@ test('PQA validation: whitespace, category, price, types, status and optional fi
     assert.throws(() => productValidationSchema.validateSync({ ...valid, ...patch }));
   }
   for (const type of PRODUCT_TYPES) assert.equal(productValidationSchema.validateSync({ ...valid, type }).type, type);
-  assert.equal(productValidationSchema.validateSync({ ...valid, price: 0, hsnSac: '001234' }).hsnSac, '001234');
+  assert.equal(productValidationSchema.validateSync({ ...valid, price: 0, hsnSac: '00123456' }).hsnSac, '00123456');
 });
 
 test('PQA validation: current Swagger length and price boundaries', () => {
@@ -164,4 +164,39 @@ test('PQA categories: GET/POST/PUT/PATCH never report success on HTTP or busines
     await assert.rejects(categoryApi.setCategoryStatus(7, false));
     assert.doesNotMatch(categoryError({ response: { status: 500, data: { message: 'SqlException' } } }), /SqlException/);
   } finally { Object.assign(apiClient, originals); }
+});
+
+
+test('PQA HSN/SAC: exact type-specific digits, optional empty, and type switches', () => {
+  for (const [type, code, message, invalid] of [
+    ['Product', '12345678', 'HSN code must contain exactly 8 digits.', ['123456', '123456789', '12AB5678', '1234-5678', ' 12345678', '12345678 ', '1234 678', '        ']],
+    ['Service', '998313', 'SAC code must contain exactly 6 digits.', ['99831', '99831344', '99AB13', ' 998313', '998313 ', '99-313', '      ']],
+  ]) {
+    for (const hsnSac of [code, '', null, undefined, '0'.repeat(code.length)]) {
+      assert.doesNotThrow(() => productValidationSchema.validateSync({ ...valid, type, hsnSac }));
+    }
+    for (const hsnSac of invalid) {
+      assert.throws(() => productValidationSchema.validateSync({ ...valid, type, hsnSac }), error => error.message === message);
+    }
+  }
+  for (const [type, hsnSac] of [['Service', '12345678'], ['Product', '998313']]) {
+    assert.throws(() => productValidationSchema.validateSync({ ...valid, type, hsnSac }));
+  }
+});
+
+
+test('PQA custom unit validation and actual API unit value', () => {
+  for (const customUnit of ['', '   ', undefined]) {
+    assert.throws(() => productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit }),
+      error => error.message === 'Please enter a custom unit of measurement.');
+  }
+  const custom = productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit: '  Box  ' });
+  assert.equal(custom.customUnit, 'Box');
+  assert.equal(resolveProductUnit(custom), 'Box');
+  assert.throws(() => productValidationSchema.validateSync({ ...valid, unit: 'Others', customUnit: 'x'.repeat(33) }));
+  for (const unit of ['Piece', 'Set']) {
+    const data = productValidationSchema.validateSync({ ...valid, unit, customUnit: '' });
+    assert.equal(resolveProductUnit(data), unit);
+    assert.equal(Object.hasOwn(data, 'customUnit'), false);
+  }
 });

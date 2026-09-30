@@ -1,7 +1,7 @@
 import { Alert } from '@mui/material';
 import { useState } from 'react';
 import { currency } from '../utils/quotationCalculations';
-export function QuotationDialog({ type, quotation, onClose, onConfirm, error }) {
+export function QuotationDialog({ type, quotation, onClose, onConfirm, error, busy = false }) {
   const [reason,setReason]=useState('Customer requested cancellation');
   const [other,setOther]=useState('');
   if(!type||!quotation)return null;
@@ -12,6 +12,6 @@ export function QuotationDialog({ type, quotation, onClose, onConfirm, error }) 
     {error&&<Alert severity="error">{error}</Alert>}
     <dl><div><dt>Recipient</dt><dd>{quotation.customer.email||'Not provided'}</dd></div><div><dt>Amount</dt><dd>{currency(quotation.totalAmount)}</dd></div><div><dt>Valid until</dt><dd>{quotation.validUntil}</dd></div></dl>
     {type==='cancel'&&<label>Cancellation reason<select value={reason} onChange={e=>setReason(e.target.value)}>{['Customer requested cancellation','Pricing changed','Duplicate quotation','Expired requirement','Other'].map(v=><option key={v}>{v}</option>)}</select>{reason==='Other'&&<input value={other} onChange={e=>setOther(e.target.value)} placeholder="Enter cancellation reason"/>}</label>}
-    <div className="quote-dialog-actions"><button className="quote-btn secondary" onClick={onClose}>Back</button><button disabled={type==='cancel'&&!cancellationReason} className={`quote-btn ${type==='cancel'?'danger':'primary'}`} onClick={()=>onConfirm(type==='cancel'?cancellationReason:undefined)}>{action}</button></div>
+    <div className="quote-dialog-actions"><button className="quote-btn secondary" disabled={busy} onClick={onClose}>Back</button><button disabled={busy||(type==='cancel'&&!cancellationReason)} className={`quote-btn ${type==='cancel'?'danger':'primary'}`} onClick={()=>onConfirm(type==='cancel'?cancellationReason:undefined)}>{busy ? (type==='convert'?'Converting?':'Processing?') : action}</button></div>
   </section></div>;
 }

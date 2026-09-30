@@ -52,6 +52,13 @@ export const productValidationSchema = yup.object({
     .max(32, 'Unit must not exceed 32 characters')
     .default('Piece'),
 
+  customUnit: yup.string().when('unit', {
+    is: 'Others',
+    then: schema => schema.trim().required('Please enter a custom unit of measurement.')
+      .max(32, 'Unit must not exceed 32 characters'),
+    otherwise: schema => schema.strip(),
+  }),
+
   price: yup
     .number()
     .typeError('Price must be a valid number')
@@ -71,11 +78,16 @@ export const productValidationSchema = yup.object({
 
   hsnSac: yup
     .string()
-    .trim()
-    .max(16, 'HSN/SAC must not exceed 16 characters')
-    .test('hsn-sac-format', 'HSN/SAC must be 4 to 8 digits', (val) => {
-      if (!val || val.trim() === '') return true;
-      return HSN_SAC_REGEX.test(val.trim());
+    .when('type', {
+      is: 'Product',
+      then: schema => schema.matches(/^[0-9]{8}$/, { message: 'HSN code must contain exactly 8 digits.', excludeEmptyString: true }),
+      otherwise: schema => schema.when('type', {
+        is: 'Service',
+        then: serviceSchema => serviceSchema.matches(/^[0-9]{6}$/, { message: 'SAC code must contain exactly 6 digits.', excludeEmptyString: true }),
+        // Preserve the existing rule for the other supported product type.
+        otherwise: otherSchema => otherSchema.trim().max(16, 'HSN/SAC must not exceed 16 characters')
+          .matches(HSN_SAC_REGEX, { message: 'HSN/SAC must be 4 to 8 digits', excludeEmptyString: true }),
+      }),
     })
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
@@ -109,6 +121,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   categoryId: '',
   description: '',
   unit: 'Piece',
+  customUnit: '',
   price: '',
   currency: 'INR',
   taxCategory: 'GST 18%',
@@ -117,3 +130,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   discountAllowed: false,
   status: 'Active',
 };
+
+export function resolveProductUnit({ unit, customUnit }) {
+  return (unit === 'Others' ? customUnit : unit)?.trim();
+}

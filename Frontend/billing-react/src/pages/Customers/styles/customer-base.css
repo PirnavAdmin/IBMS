@@ -963,6 +963,25 @@
 .cust-page input,
 .cust-page select,
 .cust-page textarea { font-family: inherit; font-size: 15px; }
+.cust-page select:focus,
+.customers-page select:focus,
+.customer-page select:focus {
+  border-color: #9a6c49;
+  outline-color: #9a6c49;
+  box-shadow: 0 0 0 2px rgba(154, 108, 73, 0.18);
+}
+.cust-page select option:checked,
+.customers-page select option:checked,
+.customer-page select option:checked {
+  color: #ffffff;
+  background: #9a6c49;
+}
+.cust-page select option:hover,
+.customers-page select option:hover,
+.customer-page select option:hover {
+  color: #ffffff;
+  background: #ad805d;
+}
 .cust-page input::placeholder,
 .cust-page textarea::placeholder { color: #6b625b; opacity: 1; }
 

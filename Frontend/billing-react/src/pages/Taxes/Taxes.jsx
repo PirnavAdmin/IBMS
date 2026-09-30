@@ -236,6 +236,7 @@ function TaxList({ search, setSearch }) {
   const [type, setType] = useState("All");
   const [status, setStatus] = useState("All");
   const [notice, setNotice] = useState(() => state?.taxNotice || "");
+  const [selectedTax, setSelectedTax] = useState(null);
   const taxes = query.data || [];
   const filtered = prioritizePrefix(
     taxes.filter(
@@ -389,7 +390,7 @@ function TaxList({ search, setSearch }) {
                   <tbody>
                     {filtered.map((tax) => (
                       <tr key={tax.id}>
-                        <th scope="row">{tax.name}</th>
+                        <th scope="row"><button type="button" className="tax-name-button" aria-expanded={selectedTax?.id === tax.id} onClick={() => setSelectedTax((current) => current?.id === tax.id ? null : tax)}>{tax.name}</button></th>
                         <td>{tax.code}</td>
                         <td>{tax.type}</td>
                         <td>{tax.rate}%</td>
@@ -421,6 +422,14 @@ function TaxList({ search, setSearch }) {
             )}
           </section>
         </>
+      )}
+      {selectedTax && (
+        <section className="tax-detail-panel" aria-label={`${selectedTax.name} details`} aria-live="polite">
+          <div className="tax-detail-heading"><div><span className="tax-eyebrow">TAX RULE DETAILS</span><h2>{selectedTax.name}</h2></div><button type="button" className="tax-secondary-btn" onClick={() => setSelectedTax(null)}>Close</button></div>
+          <dl className="tax-detail-grid">
+            {[["Tax Code", selectedTax.code], ["Tax Type", selectedTax.type], ["Rate", `${selectedTax.rate}%`], ["Calculation", selectedTax.calculation], ["Priority", selectedTax.priority], ["Effective From", selectedTax.effectiveFrom], ["Effective To", selectedTax.effectiveTo || "No end date"], ["Status", selectedTax.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}
+          </dl>
+        </section>
       )}
       <Preview />
       <FeedbackSnackbar message={notice} onClose={() => setNotice("")} />

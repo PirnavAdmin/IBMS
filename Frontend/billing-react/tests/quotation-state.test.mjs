@@ -1,3 +1,4 @@
+import * as queries from '../src/pages/Quotations/utils/quotationQuery.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -11,7 +12,7 @@ async function harness(loadFailure = null) {
   let record = { id: 1, customerId: '1', customer: {}, status: 'Draft', items: [], communications: [], auditLogs: [], rowVersion: 'v1' };
   let failGet = false, failAudit = false, failSave = false, saveGate;
   const api = {
-    list: async () => { if (loadFailure) throw loadFailure; return [record]; },
+    list: async () => { if (loadFailure) throw loadFailure; return {items:[record],totalCount:1}; },
     get: async () => { calls.push('get'); if (failGet) throw new Error('Refresh failed'); return { ...record }; },
     save: async q => { calls.push('save'); if (saveGate) await saveGate; if (failSave) throw new Error('Invalid quotation data'); record = { ...record, ...q, rowVersion: 'v2' }; return { ...record }; },
     action: async (id, action) => { calls.push(action); record = { ...record, status: { send: 'Sent', approve: 'Approved', cancel: 'Cancelled', convert: 'Converted' }[action] }; },
@@ -27,9 +28,11 @@ async function harness(loadFailure = null) {
   const source = await readFile(new URL('../src/pages/Quotations/QuotationManagement.jsx', import.meta.url), 'utf8');
   const compiled = await transform(source, { loader: 'jsx', format: 'cjs', jsx: 'transform' });
   const module = { exports: {} };
-  vm.runInNewContext(compiled.code, { module, exports: module.exports, React: react, require: id => {
+  vm.runInNewContext(compiled.code, { module, exports: module.exports, React: react, setTimeout, clearTimeout, require: id => {
     if (id === 'react') return react;
-    if (id.includes('quotationApi')) return { quotationApi: api, fetchAllPages: fn => fn(), normalizeQuotation: q => q, normalizeQuotationProduct: q => q, normalizeCommunication: q => q, unwrap: q => q };
+    if (id.includes('quotationQuery')) return queries;
+    if (id.includes('quotationDiscount')) return {validateQuotationDiscounts:async()=>{}};
+    if (id.includes('quotationApi')) return { quotationApi: api, normalizeQuotation: q => q, normalizeCommunication: q => q, unwrap: q => q };
     if (id.includes('apiClient')) return { apiClient: { get: async () => { if (loadFailure) throw loadFailure; return []; } } };
     if (id.includes('customer.contracts')) return { parseCustomerResponse: q => q };
     if (id.includes('quotationErrors')) return { quotationErrorMessage: e => e.message };
@@ -57,6 +60,7 @@ test('create and edit refresh details/history and update the list without reload
   assert.equal(h.props('QuotationForm').initial.rowVersion, 'v2');
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Edited' });
   h.props('QuotationDetails').onBack();
+  await new Promise(resolve=>setImmediate(resolve));
   const rows = h.props('QuotationList').quotations;
   assert.equal(rows.find(q => q.id === 2).reference, 'Edited');
   assert.equal(rows.filter(q => q.id === 2).length, 1);
@@ -77,6 +81,7 @@ for (const action of ['send', 'approve', 'cancel', 'convert']) {
     assert.equal(q.auditLogs[0].action, q.status);
     assert.equal(q.communications[0].type, q.status);
     h.props('QuotationDetails').onBack();
+  await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.props('QuotationList').quotations[0].status, q.status);
   });
 }
@@ -146,4 +151,43 @@ test('simultaneous loading failures show one message in the customer-style error
   assert.equal(list.loadFailed, true);
   assert.equal(list.error, 'Network Error');
   assert.equal(typeof list.onRetry, 'function');
+});
+
+// Public callbacks allow the same response races as a real server, without DOM dependencies.
+test('server paging sends query parameters and stale responses cannot replace newer results', async () => {
+  const h=await harness();
+  let resolveOld;
+  h.api.list=async params=>new Promise(resolve=>{resolveOld=()=>resolve({items:[{id:99}],totalCount:99});});
+  const old=h.props('QuotationList').onRetry();
+  h.props('QuotationList').onParams({pageNumber:3,pageSize:25,status:'Sent',sortBy:'totalAmount',sortOrder:'asc'});
+  let received;
+  h.api.list=async params=>{received=params;return {items:[{id:3}],totalCount:60};};
+  await h.props('QuotationList').onRetry();
+  resolveOld();await old;
+  assert.equal(received.pageNumber,3);assert.equal(received.pageSize,25);assert.equal(received.status,'Sent');
+  assert.equal(h.props('QuotationList').quotations[0].id,3);
+  assert.equal(h.props('QuotationList').totalCount,60);
+});
+test('changing filters resets the server page and non-Draft editing is rejected', async()=>{
+  const h=await harness();
+  h.props('QuotationList').onParams({pageNumber:4});
+  h.props('QuotationList').onParams({customerId:'9'});
+  assert.equal(h.props('QuotationList').params.pageNumber,1);
+  await h.api.action(1,'send');
+  await h.props('QuotationList').onEdit({id:1});
+  assert.equal(h.props('QuotationForm'),undefined);
+  assert.match(h.props('Alert').children.join(''),/Only Draft/);
+});
+
+
+test('converted quotation cannot start another conversion and duplicate confirmation is locked',async()=>{
+  const h=await harness();await h.api.action(1,'send');await h.api.action(1,'approve');
+  await h.props('QuotationList').onAction('convert',{id:1});
+  let release;const original=h.api.action;
+  h.api.action=async(...args)=>{await new Promise(resolve=>{release=resolve;});return original(...args);};
+  const confirm=h.props('QuotationDialog').onConfirm;
+  const pending=confirm();await confirm();release();await pending;
+  assert.equal(h.calls.filter(call=>call==='convert').length,1);
+  await h.props('QuotationDetails').onAction('convert',{id:1});
+  assert.match(h.props('Alert').children.join(''),/no longer available/);
 });

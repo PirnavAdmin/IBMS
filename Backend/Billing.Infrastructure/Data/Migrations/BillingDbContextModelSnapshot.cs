@@ -53,6 +53,12 @@ namespace Billing.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("NewValues")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("longtext");
+
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
 
