@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
+    dedupe: ['axios'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       'billing-contracts': path.resolve(__dirname, '../billing-contracts'),

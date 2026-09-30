@@ -1,7 +1,10 @@
+import { CustomerSelectField } from './CustomerSelectField';
+
 export const AddressSection = ({
   prefix,
   title,
   register,
+  control,
   errors = {},
   disabled = false,
   country = 'India',
@@ -147,17 +150,27 @@ export const AddressSection = ({
           <label htmlFor={getFieldId('country')}>
             Country <span className="cust-required">*</span>
           </label>
-          <select
+          {control ? <CustomerSelectField
+            control={control}
+            name={`${prefix}.country`}
+            id={getFieldId('country')}
+            disabled={disabled}
+            ariaLabel="Country"
+            invalid={Boolean(countryError)}
+            options={[
+              { value: 'India', label: 'India' },
+              { value: 'United States', label: 'United States' },
+              { value: 'United Kingdom', label: 'United Kingdom' },
+              { value: 'Singapore', label: 'Singapore' },
+              { value: 'United Arab Emirates', label: 'United Arab Emirates' },
+              { value: 'Australia', label: 'Australia' },
+            ]}
+          /> : <select
             id={getFieldId('country')}
             disabled={disabled}
             aria-invalid={Boolean(countryError)}
             aria-describedby={countryError ? `${getFieldId('country')}-err` : undefined}
-            {...(register
-              ? register(`${prefix}.country`)
-              : {
-                  value: values.country || 'India',
-                  onChange: (e) => onChange && onChange('country', e.target.value),
-                })}
+            {...(register ? register(`${prefix}.country`) : { value: values.country || 'India', onChange: (e) => onChange && onChange('country', e.target.value) })}
           >
             <option value="India">India</option>
             <option value="United States">United States</option>
@@ -165,7 +178,7 @@ export const AddressSection = ({
             <option value="Singapore">Singapore</option>
             <option value="United Arab Emirates">United Arab Emirates</option>
             <option value="Australia">Australia</option>
-          </select>
+          </select>}
           {countryError && (
             <span id={`${getFieldId('country')}-err`} className="cust-field-error" role="alert">
               {countryError}

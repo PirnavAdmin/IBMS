@@ -513,7 +513,7 @@ public class BillingDbContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(inv => inv.Customer)
-                  .WithMany()
+                  .WithMany(c => c.Invoices)
                   .HasForeignKey(inv => inv.CustomerId)
                   .OnDelete(DeleteBehavior.Restrict);
 

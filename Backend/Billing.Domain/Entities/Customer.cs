@@ -54,5 +54,7 @@ public class Customer
 
     public DateTime RowVersion { get; set; }
 
+    public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+
     public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
 }
