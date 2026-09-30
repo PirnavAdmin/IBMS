@@ -15,7 +15,7 @@ export function ProductTable({ items, loading, error, params, onSort, filtered, 
   return <TableContainer className="product-table" tabIndex={0} aria-label="Scrollable product catalog" aria-busy={loading}>
     <Table aria-label="Products and services catalog" size="small">
       <TableHead><TableRow>{columns.map(([key, label, sortable]) => <TableCell key={key} align={key === 'price' ? 'right' : 'left'} sortDirection={params.sortBy === key ? params.sortOrder : false}>
-        {sortable ? <TableSortLabel sx={key === 'price' ? { marginRight: '8px', flexDirection: 'row-reverse', '& .MuiTableSortLabel-icon': { marginRight: '4px', marginLeft: 0 } } : undefined} active={params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => onSort(key)}>{label}</TableSortLabel> : label}
+        {sortable ? <TableSortLabel sx={key === 'price' ? { marginRight: 0, flexDirection: 'row', whiteSpace: 'nowrap', '& .MuiTableSortLabel-icon': { marginRight: 0, marginLeft: '4px' } } : undefined} active={params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => onSort(key)}>{label}</TableSortLabel> : label}
       </TableCell>)}</TableRow></TableHead>
       <TableBody>{loading ? Array.from({ length: 7 }, (_, row) => <TableRow key={row}>{columns.map(([key]) => <TableCell key={key}><Skeleton height={28} /></TableCell>)}</TableRow>)
         : error ? <TableRow><TableCell colSpan={9}><ProductErrorState message={error?.message} onRetry={onRetry} /></TableCell></TableRow>

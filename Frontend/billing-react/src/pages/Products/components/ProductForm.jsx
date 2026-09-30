@@ -84,6 +84,7 @@ export function ProductForm({
     reset,
     setValue,
     setError,
+    trigger,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -131,8 +132,7 @@ export function ProductForm({
   const customDiscount = watch('discountPercentage');
   const discountPercent = Number(customDiscount);
   const discountError = errors.discountPercentage?.message || '';
-  const hasDiscountInput = customDiscount !== '' && customDiscount != null && String(customDiscount).trim() !== '' && !isNaN(discountPercent);
-  const discountPreview = hasDiscountInput && discountPercent >= 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
+  const discountPreview = discountAllowed && customDiscount !== '' && customDiscount != null && Number.isFinite(discountPercent) && discountPercent > 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice > 0
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: selectedCurrency }).format(unitPrice * (1 - discountPercent / 100)) : null;
 
   const currentCategoryId = initialValues?.categoryId;
@@ -254,7 +254,7 @@ export function ProductForm({
                 id="productType"
                 className={`product-select ${errors.type ? 'has-error' : ''}`}
                 aria-invalid={Boolean(errors.type)}
-                {...register('type')}
+                {...register('type', { onChange: () => trigger('hsnSac') })}
               >
                 {PRODUCT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -509,7 +509,7 @@ export function ProductForm({
                 <span id="product-discount-note" className="product-switch-desc">Enter 0 if there is no discount. This percentage is saved with the product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
-                    : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}
+                    : discountPreview && <span className="product-discount-total"><span className="product-discount-label">Price after discount:</span><span className="product-discount-amount"><strong>{discountPreview}</strong> <span>(before tax)</span></span></span>}
                 </div>
               </div>
               </Collapse>
