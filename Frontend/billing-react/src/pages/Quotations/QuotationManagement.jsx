@@ -42,18 +42,26 @@ export function QuotationManagement() {
   const open=(mode,q)=>run(async()=>{
     const detail=await quotationApi.get(q.id);setCurrent(detail);setScreen(mode);
     if(mode==='details'){
+<<<<<<< Updated upstream
       const results=await Promise.allSettled([quotationApi.communication(q.id),quotationApi.audit(q.id)]);
       const [communication,audit]=results;
       setCurrent({...detail,
+=======
+      const [communication]=await Promise.allSettled([quotationApi.communication(q.id)]);
+      replace({...detail,
+>>>>>>> Stashed changes
         communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,
-        auditLogs:audit.status==='fulfilled'&&Array.isArray(audit.value)?audit.value.map(e=>({...e,date:e.timestamp||e.date,user:e.userName||e.user,description:e.changes||e.description})):[],
       });
-      const failure=results.find(r=>r.status==='rejected');if(failure)setError(`History could not be loaded. ${message(failure.reason)}`);
+      if(communication.status==='rejected')setError(`Communication history could not be loaded. ${message(communication.reason)}`);
     }
   });
   const save=q=>run(async()=>{replace(await quotationApi.save(q));setScreen('details');setNotice('Quotation draft saved.');});
   const action=(type,q)=>run(async()=>{
+<<<<<<< Updated upstream
     const detail=await quotationApi.get(q.id);replace(detail);
+=======
+    const detail=await quotationApi.get(q.id);replace({...detail,communications:current?.id===detail.id?current.communications:detail.communications});
+>>>>>>> Stashed changes
     const allowed={send:['Draft'],approve:['Sent'],cancel:['Draft','Sent','Approved'],convert:['Approved']};
     if(!allowed[type]?.includes(detail.status))throw new Error(`This quotation is ${detail.status}. The requested action is no longer available.`);
     setDialog(type);

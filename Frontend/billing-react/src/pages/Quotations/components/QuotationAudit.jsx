@@ -3,7 +3,20 @@ import { History, Search, PersonOutline } from '@mui/icons-material';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];
 const eventKey = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
+<<<<<<< Updated upstream
 function eventLabel(action) {
+=======
+
+function eventLabel(action, description = '') {
+  const detail = String(description || '');
+  const statusMatch = detail.match(/status changed to\s+(draft|sent|approved|cancelled|canceled|converted)/i);
+  if (statusMatch) {
+    const status = statusMatch[1].toLowerCase();
+    return status === 'draft' ? 'Created' : status === 'canceled' ? 'Cancelled' : status[0].toUpperCase() + status.slice(1);
+  }
+  if (/converted to invoice/i.test(detail)) return 'Converted';
+  if (/discount\s+(applied|override)/i.test(detail)) return 'Discount Override';
+>>>>>>> Stashed changes
   const key = eventKey(action);
   if (['statuschange', 'statuschanged', 'statuschanges'].includes(key)) return 'Status Changes';
   return events.find(event => eventKey(event) === key) || action || 'Activity';
@@ -28,7 +41,17 @@ export function QuotationAudit({ entries = [] }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [order, setOrder] = useState('newest');
+<<<<<<< Updated upstream
   const rows = entries.map(entry => ({ ...entry, label: eventLabel(entry.action) }));
+=======
+  const rows = entries.map(entry => {
+    const label = eventLabel(entry.action, entry.description);
+    const description = label === 'Converted'
+      ? String(entry.description || '').replace(/^Converted to Invoice\s+#?\d+\s*$/i, 'Converted to Invoice')
+      : entry.description;
+    return { ...entry, label, description };
+  });
+>>>>>>> Stashed changes
   const query = search.trim().toLowerCase();
   const visible = rows.filter(entry => (filter === 'All' || entry.label === filter)
     && `${entry.label} ${userLabel(entry.user)} ${entry.description || ''}`.toLowerCase().includes(query))
