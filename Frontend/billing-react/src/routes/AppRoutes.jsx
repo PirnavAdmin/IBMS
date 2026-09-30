@@ -41,6 +41,7 @@ import { EditCustomer } from '../pages/Customers/pages/EditCustomer';
 
 // Sumanth - Customer Details
 import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';
+import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';
 
 export const AppRoutes = () => (
   <Routes>
@@ -62,7 +63,7 @@ export const AppRoutes = () => (
       <Route path="/invoices/create" element={<CreateInvoice />} />
       <Route path="/invoices/:invoiceId/pdf" element={<InvoicePdfView />} />
 
-      {/* Quotation Management — isolated frontend mock prototype */}
+      {/* Quotation Management — backend API integration */}
       <Route path="/quotations" element={<QuotationManagement />} />
 
       {/* Payments */}
@@ -91,6 +92,10 @@ export const AppRoutes = () => (
       />
 
       {/* Sumanth - Customer Details */}
+      <Route
+        path="/customers/:customerId/print"
+        element={<CustomerPrintPage />}
+      />
       <Route
         path="/customers/:customerId"
         element={<CustomerDetailsPage />}

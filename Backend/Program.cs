@@ -131,6 +131,8 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
 // ============================================================
 // Application Services
 // ============================================================
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, Billing.API.Services.CurrentUserService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();

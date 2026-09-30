@@ -6,10 +6,21 @@ const CardTitle = ({ title, warning, onViewAll }) => <div className="bd-section-
 
 export const DataTableCard = ({ title, columns, rows, className = '', icon, onViewAll }) => {
   const tableClass = `bd-table-${title.toLowerCase().replaceAll(' ', '-')}`;
-  return <article className={`bd-card bd-table-card ${tableClass} ${className}`}><CardTitle title={title} warning={icon === 'warning'} onViewAll={onViewAll} /><div className="bd-table-scroll"><table><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => <tr key={`${title}-${index}`}>{columns.map((column) => <td key={column.key} className={`bd-cell-${column.key} ${column.type === 'danger' ? 'bd-danger' : ''}`}>{column.type === 'currency' ? formatInr(row[column.key]) : column.type === 'status' ? <StatusBadge value={row[column.key]} /> : row[column.key]}</td>)}</tr>) : <tr><td className="bd-no-results" colSpan={columns.length}>No matching records found.</td></tr>}</tbody></table></div></article>;
+  return <article className={`bd-card bd-table-card ${tableClass} ${className}`}><CardTitle title={title} warning={icon === 'warning'} onViewAll={onViewAll} /><div className="bd-table-scroll"><table><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => {
+    const paymentStatus = String(row.status || '').toLowerCase().replaceAll(' ', '-');
+    const rowClass = title === 'Recent Payments' ? `bd-recent-payment-row bd-payment-${paymentStatus} bd-payment-ribbon-${index % 5}` : '';
+    return <tr className={rowClass} key={`${title}-${index}`}>{columns.map((column) => <td key={column.key} className={`bd-cell-${column.key} ${column.type === 'danger' ? 'bd-danger' : ''}`}>{column.type === 'currency' ? formatInr(row[column.key]) : column.type === 'status' ? <StatusBadge value={row[column.key]} /> : row[column.key]}</td>)}</tr>;
+  }) : <tr><td className="bd-no-results" colSpan={columns.length}>No matching records found.</td></tr>}</tbody></table></div></article>;
 };
 
-export const TopCustomers = ({ data, onViewAll }) => <article className="bd-card bd-span-3"><CardTitle title="Top Customers" onViewAll={onViewAll} /><div className="bd-customer-head"><span>#</span><span>Customer</span><span>Amount</span></div>{data.length ? data.map((customer, index) => <div className="bd-customer-row" key={customer.customer}><span>{customer.rank}</span><span><i className={`bd-customer-avatar avatar-${index}`}>{customer.initials}</i>{customer.customer}</span><strong>{formatInr(customer.amount)}</strong></div>) : <p className="bd-no-results">No matching customers.</p>}</article>;
+export const TopCustomers = ({ data, onViewAll }) => <article className="bd-card bd-span-3 bd-top-customers"><CardTitle title="Top Customers" onViewAll={onViewAll} /><div className="bd-customer-head"><span>#</span><span>Customer</span><span>Amount</span></div>{data.length ? data.map((customer, index) => {
+  const rank = customer.rank ?? index + 1;
+  return <div className={`bd-customer-row bd-rank-${rank}`} key={customer.customer}>
+    <span className="bd-customer-rank">{rank}</span>
+    <span><i className={`bd-customer-avatar avatar-${index}`}>{customer.initials}</i>{customer.customer}</span>
+    <strong>{formatInr(customer.amount)}</strong>
+  </div>;
+}) : <p className="bd-no-results">No matching customers.</p>}</article>;
 
 const activityIcons = { payment: CurrencyRupee, invoice: Description, sent: MailOutline, overdue: Warning };
 export const RecentActivity = ({ data }) => <article className="bd-card bd-span-4"><CardTitle title="Recent Activity" /><div className="bd-activity-list">{data.length ? data.map((activity) => { const Icon = activityIcons[activity.type] || ReceiptLong; return <div className={`bd-activity bd-activity-${activity.type}`} key={activity.id}><i><Icon /></i><span><strong>{activity.text}</strong><small>{activity.timestamp}</small></span></div>; }) : <p className="bd-no-results">No matching activity.</p>}</div></article>;

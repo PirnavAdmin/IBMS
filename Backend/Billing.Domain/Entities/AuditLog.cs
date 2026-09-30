@@ -21,4 +21,8 @@ public class AuditLog
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public string? Changes { get; set; } // Human-readable change description
+
+    public string? OldValues { get; set; } // JSON of previous state
+
+    public string? NewValues { get; set; } // JSON of new state
 }

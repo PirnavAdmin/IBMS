@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
+import { CustomerSelectField } from './CustomerSelectField';
 import { shippingFromBilling } from 'billing-contracts';
 import { customerApi } from 'billing-api-client';
 import {
@@ -86,6 +87,7 @@ export const CustomerForm = ({
   mode = 'create',
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [slideDirection, setSlideDirection] = useState('forward');
   const [loadingNextCode, setLoadingNextCode] = useState(false);
 
   const getInitialValues = (values) => {
@@ -185,6 +187,7 @@ export const CustomerForm = ({
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -311,6 +314,7 @@ export const CustomerForm = ({
     const fieldsToValidate = getStepValidationFields(currentStep);
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
+      setSlideDirection('forward');
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -319,7 +323,9 @@ export const CustomerForm = ({
   const handleStepClick = async (targetStep) => {
     if (targetStep === currentStep) return;
     if (targetStep < currentStep) {
+      setSlideDirection('backward');
       setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -330,12 +336,16 @@ export const CustomerForm = ({
       const passed = await trigger(stepFields);
       if (!passed) {
         allPassed = false;
+        setSlideDirection(s > currentStep ? 'forward' : 'backward');
         setCurrentStep(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       }
     }
     if (allPassed) {
+      setSlideDirection('forward');
       setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -510,26 +520,28 @@ export const CustomerForm = ({
               </div>
             </div>
 
-            {/* STEP 0: Basic Information */}
-            {currentStep === 0 && (
-              <div className="cust-grid cust-grid-2">
-                <div className="cust-field">
-                  <label htmlFor="customer-name">
-                    Contact / Customer Name <span className="cust-required">*</span>
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <PersonOutline />
-                    </span>
-                    <input
-                      id="customer-name"
-                      type="text"
-                      placeholder="e.g. Venkat Rao"
-                      aria-invalid={Boolean(errors.name)}
-                      aria-describedby={errors.name ? 'customer-name-err' : undefined}
-                      {...register('name')}
-                    />
-                  </div>
+            <div key={currentStep} className={`cust-step-panel slide-${slideDirection}`}>
+              {/* STEP 0: Basic Information */}
+              {currentStep === 0 && (
+                <div className="cust-grid cust-grid-2">
+                  <div className="cust-field">
+                    <label htmlFor="customer-name">
+                      Contact / Customer Name <span className="cust-required">*</span>
+                    </label>
+                    <div className="cust-input-with-icon">
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <PersonOutline />
+                      </span>
+                      <input
+                        id="customer-name"
+                        type="text"
+                        maxLength={100}
+                        placeholder="e.g. Venkat Rao"
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? 'customer-name-err' : undefined}
+                        {...register('name')}
+                      />
+                    </div>
                   {errors.name && (
                     <span id="customer-name-err" className="cust-field-error" role="alert">
                       {errors.name.message}
@@ -598,14 +610,17 @@ export const CustomerForm = ({
                       }`}
                       aria-hidden="true"
                     />
-                    <select
+                    <CustomerSelectField
+                      control={control}
+                      name="status"
                       id="customer-status"
-                      aria-invalid={Boolean(errors.status)}
-                      {...register('status')}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
+                      ariaLabel="Account status"
+                      invalid={Boolean(errors.status)}
+                      options={[
+                        { value: 'Active', label: 'Active' },
+                        { value: 'Inactive', label: 'Inactive' },
+                      ]}
+                    />
                   </div>}
 
                   {errors.status && (
@@ -649,18 +664,28 @@ export const CustomerForm = ({
                     Mobile / Phone Number <span className="cust-required">*</span>
                   </label>
                   <div className="cust-phone-group">
-                    <select
+                    <CustomerSelectField
+                      control={control}
+                      name="phoneCountryCode"
                       id="customer-phone-code"
                       className="cust-phone-code-select"
-                      aria-label="Country Dialing Code"
-                      {...register('phoneCountryCode', { onChange: () => trigger('phone') })}
-                    >
-                      {Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => (
-                        <option key={code} value={code}>
-                          {code} ({cfg.code})
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Country Dialing Code"
+                      invalid={Boolean(errors.phoneCountryCode)}
+                      onValueChange={(newCode) => {
+                        const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
+                        const maxLen = newCfg.max || 10;
+                        const currentVal = getValues('phone') || '';
+                        if (currentVal.length > maxLen) {
+                          setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
+                        } else {
+                          trigger('phone');
+                        }
+                      }}
+                      options={Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => ({
+                        value: code,
+                        label: `${code} (${cfg.code})`,
+                      }))}
+                    />
                     <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
                       <span className="cust-input-icon" aria-hidden="true">
                         <PhoneOutlined />
@@ -668,12 +693,62 @@ export const CustomerForm = ({
                       <input
                         id="customer-phone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={currentPhoneConfig.max || 10}
                         aria-required="true"
                         className="cust-phone-input"
                         placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
                         aria-invalid={Boolean(errors.phone)}
                         aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
-                        {...register('phone')}
+                        {...register('phone', {
+                          onChange: (e) => {
+                            const maxLen = currentPhoneConfig.max || 10;
+                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                            setValue('phone', digitsOnly, { shouldValidate: true, shouldDirty: true });
+                          },
+                        })}
+                        onKeyDown={(e) => {
+                          const allowedKeys = [
+                            'Backspace',
+                            'Tab',
+                            'Delete',
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'ArrowUp',
+                            'ArrowDown',
+                            'Home',
+                            'End',
+                            'Enter',
+                          ];
+                          if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+                            return;
+                          }
+                          if (!/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                            return;
+                          }
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const input = e.currentTarget;
+                          const selectedLength = (input.selectionEnd || 0) - (input.selectionStart || 0);
+                          if (input.value.length >= maxLen && selectedLength === 0) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasteText = e.clipboardData?.getData('text') || '';
+                          const digitsOnly = pasteText.replace(/\D/g, '');
+                          if (!digitsOnly) return;
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const currentVal = getValues('phone') || '';
+                          const input = e.currentTarget;
+                          const start = input.selectionStart || 0;
+                          const end = input.selectionEnd || 0;
+                          const combined = (currentVal.slice(0, start) + digitsOnly + currentVal.slice(end))
+                            .replace(/\D/g, '')
+                            .slice(0, maxLen);
+                          setValue('phone', combined, { shouldValidate: true, shouldDirty: true });
+                        }}
                       />
                     </div>
                   </div>
@@ -719,15 +794,18 @@ export const CustomerForm = ({
                   <label htmlFor="customer-tax-type">
                     Tax Registration Status <span className="cust-required">*</span>
                   </label>
-                  <select
+                  <CustomerSelectField
+                    control={control}
+                    name="taxRegistrationType"
                     id="customer-tax-type"
-                    aria-invalid={Boolean(errors.taxRegistrationType)}
-                    {...register('taxRegistrationType')}
-                  >
-                    <option value="gst">GST Registered</option>
-                    <option value="pan">PAN Available</option>
-                    <option value="non-gst">Non-GST / Unregistered</option>
-                  </select>
+                    ariaLabel="Tax Registration Status"
+                    invalid={Boolean(errors.taxRegistrationType)}
+                    options={[
+                      { value: 'gst', label: 'GST Registered' },
+                      { value: 'pan', label: 'PAN Available' },
+                      { value: 'non-gst', label: 'Non-GST / Unregistered' },
+                    ]}
+                  />
                   {errors.taxRegistrationType && (
                     <span className="cust-field-error" role="alert">
                       {errors.taxRegistrationType.message}
@@ -767,7 +845,12 @@ export const CustomerForm = ({
                       maxLength={taxRegistrationType === 'gst' ? 15 : taxRegistrationType === 'pan' ? 10 : 64}
                       aria-invalid={Boolean(errors.taxId)}
                       aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
-                      {...register('taxId')}
+                      {...register('taxId', {
+                        onChange: (e) => {
+                          const upper = (e.target.value || '').toUpperCase();
+                          setValue('taxId', upper, { shouldValidate: true, shouldDirty: true });
+                        },
+                      })}
                     />
                   </div>
                   {errors.taxId && (
@@ -779,37 +862,39 @@ export const CustomerForm = ({
 
                 <div className="cust-field">
                   <label htmlFor="customer-currency">Billing Currency</label>
-                  <select
+                  <CustomerSelectField
+                    control={control}
+                    name="currency"
                     id="customer-currency"
-                    aria-invalid={Boolean(errors.currency)}
-                    {...register('currency')}
-                  >
-                    <option value="INR">INR (₹)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                  </select>
-                  {errors.currency && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.currency.message}
-                    </span>
-                  )}
+                    ariaLabel="Billing currency"
+                    invalid={Boolean(errors.currency)}
+                    options={[
+                      { value: 'INR', label: 'INR (₹)' },
+                      { value: 'USD', label: 'USD ($)' },
+                      { value: 'EUR', label: 'EUR (€)' },
+                      { value: 'GBP', label: 'GBP (£)' },
+                    ]}
+                  />
+                  {errors.currency && <span className="cust-field-error" role="alert">{errors.currency.message}</span>}
                 </div>
 
                 <div className="cust-field">
                   <label htmlFor="customer-payment-terms">Payment Terms</label>
-                  <select
+                  <CustomerSelectField
+                    control={control}
+                    name="paymentTerms"
                     id="customer-payment-terms"
-                    aria-invalid={Boolean(errors.paymentTerms)}
-                    {...register('paymentTerms')}
-                  >
-                    <option value="">Select Payment Terms</option>
-                    <option value="Due on Receipt">Due on Receipt</option>
-                    <option value="Net 15">Net 15</option>
-                    <option value="Net 30">Net 30</option>
-                    <option value="Net 45">Net 45</option>
-                    <option value="Net 60">Net 60</option>
-                  </select>
+                    ariaLabel="Payment terms"
+                    invalid={Boolean(errors.paymentTerms)}
+                    options={[
+                      { value: '', label: 'Select Payment Terms' },
+                      { value: 'Due on Receipt', label: 'Due on Receipt' },
+                      { value: 'Net 15', label: 'Net 15' },
+                      { value: 'Net 30', label: 'Net 30' },
+                      { value: 'Net 45', label: 'Net 45' },
+                      { value: 'Net 60', label: 'Net 60' },
+                    ]}
+                  />
                   {errors.paymentTerms && (
                     <span className="cust-field-error" role="alert">
                       {errors.paymentTerms.message}
@@ -828,6 +913,11 @@ export const CustomerForm = ({
                     prefix="billingAddress"
                     title="Billing Address Details"
                     register={register}
+                    control={control}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     country={billingAddress?.country}
                   />
@@ -849,6 +939,11 @@ export const CustomerForm = ({
                     prefix="shippingAddress"
                     title="Shipping Address Details"
                     register={register}
+                    control={control}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     disabled={isShippingSameAsBilling}
                     country={watchedValues.shippingAddress?.country}
@@ -867,7 +962,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(0)}
+                      onClick={() => handleStepClick(0)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -899,7 +994,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(1)}
+                      onClick={() => handleStepClick(1)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -931,7 +1026,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(2)}
+                      onClick={() => handleStepClick(2)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -953,7 +1048,7 @@ export const CustomerForm = ({
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Currency</span>
-                      <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
+                        <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>
@@ -969,7 +1064,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-review-edit-btn"
-                      onClick={() => setCurrentStep(3)}
+                      onClick={() => handleStepClick(3)}
                     >
                       <EditOutlined fontSize="small" /> Edit
                     </button>
@@ -1029,6 +1124,7 @@ export const CustomerForm = ({
                 </div>
               </div>
             )}
+            </div>
 
             {/* Bottom Actions Bar */}
             <div className="cust-wizard-actions">
@@ -1047,6 +1143,7 @@ export const CustomerForm = ({
                     type="button"
                     className="cust-btn cust-btn-secondary"
                     onClick={() => {
+                      setSlideDirection('backward');
                       setCurrentStep((prev) => Math.max(prev - 1, 0));
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MenuItem, Select } from '@mui/material';
 import {
   Add,
   Search,
@@ -173,16 +174,18 @@ export const CustomerList = () => {
             <label htmlFor="cust-status-filter" className="cust-sr-only">
               Filter by Status
             </label>
-            <select
+            <Select
               id="cust-status-filter"
+              size="small"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Filter by customer status"
+              MenuProps={{ classes: { paper: 'customer-dropdown-menu' } }}
             >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+              <MenuItem value="All">All Statuses</MenuItem>
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Inactive">Inactive</MenuItem>
+            </Select>
 
             {(searchTerm || statusFilter !== 'All') && (
               <button

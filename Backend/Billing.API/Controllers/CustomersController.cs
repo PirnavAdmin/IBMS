@@ -378,7 +378,7 @@ public class CustomersController : ControllerBase
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPatch("{id:int}/deactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> DeactivateCustomer([FromRoute] int id)
+    public async Task<IActionResult> DeactivateCustomer([FromRoute] int id, [FromQuery, System.ComponentModel.DataAnnotations.StringLength(500)] string? reason = null)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
@@ -399,7 +399,7 @@ public class CustomersController : ControllerBase
             id,
             result.Data?.Name ?? "Customer",
             GetUserName(),
-            "Deactivated via customer management");
+            string.IsNullOrWhiteSpace(reason) ? "Deactivated via customer management" : reason.Trim());
 
         return Ok(result);
     }

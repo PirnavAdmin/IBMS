@@ -72,7 +72,7 @@
 .quotation-list-header > .quote-btn { min-height: 40px; padding: 8px 15px; }
 @media (max-width: 700px) { .quotation-list-header { padding: 0; } }
 
-/* Searchable mock selectors, ready to swap for API-backed autocomplete later. */
+/* Searchable selectors backed by existing customer and product services. */
 .quote-picker { position: relative; min-width: 0; }
 .quote-picker-input { display: flex; align-items: center; border: 1px solid #d9cec5; border-radius: 7px; background: #fff; }
 .quote-picker-input:focus-within { border-color: #d9cec5; box-shadow: none; }

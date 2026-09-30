@@ -1,9 +1,10 @@
+import { printCatalogReport } from '../utils/printCatalogReport';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { Add, CategoryOutlined } from '@mui/icons-material';
+import { Add, CategoryOutlined, PictureAsPdfOutlined } from '@mui/icons-material';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
 import '../styles/products.css';
@@ -11,7 +12,10 @@ import '../styles/categories.css';
 
 export function CategoryList() {
   const query = useCategories();
-  const categories = query.data || [];
+  // The service loads the complete list; sort a copy to preserve the query cache.
+  const statusRank = { Active: 0, Unknown: 1, Inactive: 2 };
+  const categories = [...(query.data || [])].sort((a, b) => (statusRank[a.status] ?? 1) - (statusRank[b.status] ?? 1));
+  const [exportError, setExportError] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
@@ -40,9 +44,17 @@ export function CategoryList() {
     finally { requestLock.current = false; setBusy(false); }
   };
 
+  const exportPdf = () => {
+    setExportError('');
+    try {
+      printCatalogReport({ title: 'Product Categories', columns: ['Category Name', 'Description', 'Status', 'Products'], rows: categories.map(category => [category.name, category.description || '-', category.status, category.productCount ?? '-']) });
+    } catch (error) { setExportError(error.message); }
+  };
+
   return <main className="product-page">
     <Breadcrumbs aria-label="Breadcrumb"><Link to="/products">Products &amp; Services</Link><span>Product Categories</span></Breadcrumbs>
-    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Categories</h1><p>Manage categories used to organize products and services.</p></div><Button component={Link} to="/products/categories/new" variant="contained" startIcon={<Add />}>Add Category</Button></header>
+    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Categories</h1><p>Manage categories used to organize products and services.</p></div><div className="product-row-actions"><Button variant="outlined" startIcon={<PictureAsPdfOutlined />} disabled={query.isPending || query.isError} onClick={exportPdf}>Print / Export PDF</Button><Button component={Link} to="/products/categories/new" variant="contained" startIcon={<Add />}>Add Category</Button></div></header>
+    {exportError && <Alert severity="error" onClose={() => setExportError('')}>{exportError}</Alert>}
     {error && !confirm && <Alert severity="error">{error}</Alert>}
     <section className="product-panel" aria-label="Category list">
       <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><CategoryOutlined /></span><div><h2>Categories</h2><p>Organize your billing catalog.</p></div></div><span className="product-result-count">{query.isPending ? 'Loading categories...' : query.isError ? 'Categories unavailable' : `${categories.length} categories`}</span></div>

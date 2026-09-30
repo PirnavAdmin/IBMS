@@ -69,9 +69,9 @@ export async function updateCustomer(id, values, original) {
     apiClient.put(customerPath(id), customerPayload(values, existing), config)
   );
 }
-export async function deactivateCustomer(id) {
+export async function deactivateCustomer(id, reason) {
   await request(() =>
-    apiClient.patch(`${customerPath(id)}/deactivate`, undefined, config)
+    apiClient.patch(`${customerPath(id)}/deactivate`, undefined, { ...config, params: { reason } })
   );
 }
 // Existing activation action uses documented PUT fields, not an invented PATCH endpoint.

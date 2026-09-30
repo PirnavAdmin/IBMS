@@ -27,14 +27,14 @@
 .product-summary-card div > span { color: #756763; font-size: 12px; }
 .product-summary-card strong { display: block; font-size: 24px; letter-spacing: -.5px; line-height: 1.25; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .product-panel { background: #fffefd; border: 1px solid #eee2d2; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 22px #69513907; }
-.product-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px; border-bottom: 1px solid #f0e9e4; }
+.product-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f0e9e4; }
 .product-panel-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .product-panel-icon { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; background: #f5efea; color: #8d6e63; border-radius: 10px; }
 .product-panel-title p { margin: 4px 0 0; color: #756763; font-size: 12px; }
 .product-panel-heading .product-result-count { background: #f5efea; color: #5d4037; border: 1px solid #e8ddd7; border-radius: 20px; padding: 5px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .product-panel-heading h2 { font-size: 16px; margin: 0; }
 .product-panel-heading > span { color: #756763; font-size: 12px; }
-.product-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 150px auto; gap: 14px; padding: 24px 22px; }
+.product-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 150px auto; gap: 14px; padding: 14px 16px; }
 .product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #8d6e63; }
 .product-table { max-width: 100%; overflow-x: auto; }
 .product-table table { min-width: 1080px; }
@@ -65,7 +65,7 @@
 .product-badge.active { background: #edf5ef; color: #386449; }
 .product-badge.inactive { background: #f8eeee; color: #945454; }
 .product-badge.active::before, .product-badge.inactive::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.product-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 22px; background: #fffbf5; border-top: 1px solid #eee6e1; }
+.product-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 12px 16px; background: #fffbf5; border-top: 1px solid #eee6e1; }
 .product-pagination > span { margin-right: auto; font-size: 12px; color: #756763; }
 .product-pagination .MuiTextField-root { width: 115px; }
 .product-pagination .Mui-selected { background-color: #4a2c2a !important; color: white; }
@@ -83,8 +83,47 @@
 /* Keep summary and list edges aligned at the same compact desktop width. */
 @media (min-width: 1101px) {
   .product-page:not(.product-list-page) .product-panel {
-    width: 96%;
+    width: 100%;
     margin-inline: auto;
     box-sizing: border-box;
   }
+}
+
+.product-heading .product-row-actions { flex-wrap: wrap; }
+
+/* Scope both native selects and MUI's portaled menus to the catalog. */
+.product-page .product-select,
+.product-page .MuiInputBase-root:has(.MuiSelect-select),
+.product-select-menu.MuiPaper-root {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  border-radius: 8px;
+}
+.product-page .product-select { border-color: var(--border); }
+.product-page .product-select option {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+.product-page .product-select:focus { border-color: var(--secondary); }
+.product-page .product-select option:checked,
+.product-page .product-select option:hover,
+.product-select-menu .MuiMenuItem-root.Mui-selected,
+.product-select-menu .MuiMenuItem-root.Mui-selected:hover,
+.product-select-menu .MuiMenuItem-root:hover,
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible {
+  background-color: var(--border);
+  color: var(--primary);
+}
+.product-select-menu.MuiPaper-root { border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible { outline: 2px solid var(--secondary); outline-offset: -2px; }
+.product-page .product-select:disabled,
+.product-page .product-select option:disabled { color: var(--text-secondary); }
+
+/* Native popup painting remains browser/OS controlled where option CSS is ignored. */
+.product-page .product-select option:checked,
+.product-select-menu .MuiMenuItem-root.Mui-selected,
+.product-select-menu .MuiMenuItem-root.Mui-selected:hover,
+.product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible {
+  background-color: var(--primary);
+  color: var(--surface);
 }
