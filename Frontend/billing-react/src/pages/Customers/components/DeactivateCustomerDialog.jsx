@@ -1,21 +1,22 @@
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useRef, useState } from 'react';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from '@mui/material';
 import { useCustomerMutation } from '../hooks/useCustomer';
 import { deactivateCustomer } from '../api/customerService';
 
 export function DeactivateCustomerDialog({ customer }) {
   const requestLock = useRef(false);
+  const [reason, setReason] = useState('');
   const [open, setOpen] = useState(false);
   const [success, setSuccess] = useState(false);
   const mutation = useCustomerMutation(customer.id, deactivateCustomer);
   const close = () => { if (!mutation.isPending) setOpen(false); };
   return <>
-    {customer.isActive === true && <Button variant="contained" disabled={mutation.isPending} onClick={() => { mutation.reset(); setOpen(true); }}>Deactivate Customer</Button>}
+    {customer.isActive === true && <Button variant="contained" disabled={mutation.isPending} onClick={() => { mutation.reset(); setReason(''); setOpen(true); }}>Deactivate Customer</Button>}
     <Dialog open={open} onClose={close} fullWidth maxWidth="sm" aria-labelledby="deactivate-customer-title" aria-describedby="deactivate-customer-message">
       <DialogTitle id="deactivate-customer-title">Deactivate Customer</DialogTitle>
-      <DialogContent><DialogContentText id="deactivate-customer-message">This customer will become inactive. Are you sure you want to continue? Existing invoices, payments, statements and audit history will be preserved.</DialogContentText><p>{customer.name} · {customer.id}</p>{mutation.isError && <Alert severity="error">{mutation.error.message}</Alert>}</DialogContent>
-      <DialogActions><Button autoFocus disabled={mutation.isPending} onClick={close}>Cancel</Button><Button variant="contained" disabled={!open || mutation.isPending} onClick={() => { if (!open || requestLock.current) return; requestLock.current = true; mutation.mutate([], { onSuccess: () => { setOpen(false); setSuccess(true); }, onSettled: () => { requestLock.current = false; } }); }}>{mutation.isPending ? 'Deactivating…' : 'Deactivate Customer'}</Button></DialogActions>
+      <DialogContent><DialogContentText id="deactivate-customer-message">This customer will become inactive. Are you sure you want to continue? Existing invoices, payments, statements and audit history will be preserved.</DialogContentText><p>{customer.name} · {customer.id}</p><TextField fullWidth required multiline minRows={2} margin="normal" label="Reason for deactivation" value={reason} inputProps={{ maxLength: 500 }} onChange={event => setReason(event.target.value)} />{mutation.isError && <Alert severity="error">{mutation.error.message}</Alert>}</DialogContent>
+      <DialogActions><Button autoFocus disabled={mutation.isPending} onClick={close}>Cancel</Button><Button variant="contained" disabled={!open || mutation.isPending || !reason.trim()} onClick={() => { if (!open || requestLock.current) return; requestLock.current = true; mutation.mutate([reason.trim()], { onSuccess: () => { setOpen(false); setSuccess(true); }, onSettled: () => { requestLock.current = false; } }); }}>{mutation.isPending ? 'Deactivating…' : 'Deactivate Customer'}</Button></DialogActions>
     </Dialog>
     <FeedbackSnackbar message={success ? 'Customer deactivated successfully.' : ''} onClose={() => setSuccess(false)} />
   </>;

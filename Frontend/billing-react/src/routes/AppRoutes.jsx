@@ -28,6 +28,7 @@ import { CreateProduct } from '../pages/Products/pages/CreateProduct';
 import { EditProduct } from '../pages/Products/pages/EditProduct';
 import { NumberingSettings } from '../pages/NumberingSettings';
 import { QuotationManagement } from '../pages/Quotations';
+import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory, InvoicePdfView } from '../pages/InvoiceTemplates/InvoiceTemplates';
 
 // ==============================
 // CUSTOMER MODULE
@@ -42,6 +43,7 @@ import { EditCustomer } from '../pages/Customers/pages/EditCustomer';
 
 // Sumanth - Customer Details
 import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';
+import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';
 
 export const AppRoutes = () => (
   <Routes>
@@ -61,6 +63,7 @@ export const AppRoutes = () => (
       <Route path="/invoices" element={<Invoices />} />
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
+      <Route path="/invoices/:invoiceId/pdf" element={<InvoicePdfView />} />
 
       {/* Quotation Management — backend API integration */}
       <Route path="/quotations" element={<QuotationManagement />} />
@@ -94,6 +97,10 @@ export const AppRoutes = () => (
 
       {/* Sumanth - Customer Details */}
       <Route
+        path="/customers/:customerId/print"
+        element={<CustomerPrintPage />}
+      />
+      <Route
         path="/customers/:customerId"
         element={<CustomerDetailsPage />}
       />
@@ -112,7 +119,13 @@ export const AppRoutes = () => (
       <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
-      <Route path="/templates-branding" element={<ModulePlaceholder />} />
+      <Route path="/templates-branding" element={<InvoiceTemplates />} />
+      <Route path="/templates-branding/new" element={<CreateTemplate />} />
+      <Route path="/templates-branding/branding" element={<BrandingSettings />} />
+      <Route path="/templates-branding/preview" element={<TemplatePreview />} />
+      <Route path="/templates-branding/versions" element={<TemplateVersionHistory />} />
+      <Route path="/templates-branding/audit" element={<TemplateAuditHistory />} />
+      <Route path="/templates-branding/:templateId/edit" element={<EditTemplate />} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />

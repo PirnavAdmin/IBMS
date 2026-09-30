@@ -1,3 +1,4 @@
+import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from "react";
 import {
@@ -17,7 +18,6 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
-  LinearProgress,
   Tooltip,
   MenuItem,
   Pagination,
@@ -36,8 +36,9 @@ import {
   Add,
   CheckCircleOutline,
   GroupOutlined,
-  VisibilityOutlined,
   EditOutlined,
+  VisibilityOutlined,
+  PrintOutlined,
   ReceiptLongOutlined,
   PersonOffOutlined,
   Search,
@@ -178,6 +179,12 @@ export function CustomerListPage() {
   const mutation = useCustomerStatus();
   const statusLock = useRef(false);
   const [confirm, setConfirm] = useState(null);
+  const [reason, setReason] = useState("");
+  const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
+  const selectCard = (view) => {
+    setSearch(""); setTaxId("");
+    setUrl(view === "total" ? {} : view === "outstanding" ? { outstanding: "Has Outstanding" } : { status: view });
+  };
   const [notice, setNotice] = useState(location.state?.customerNotice || "");
   useEffect(() => {
     if (location.state?.customerNotice)
@@ -211,18 +218,31 @@ export function CustomerListPage() {
             Manage customer profiles, billing information and account activity.
           </p>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate("/customers/create")}
-        >
-          Create Customer
-        </Button>
+        <div className="customers-heading-actions">
+          <Tooltip title="Print current customer page">
+            <Button
+              aria-label="Print current customer page"
+              onClick={() => window.print()}
+              variant="outlined"
+              startIcon={<PrintOutlined />}
+            >
+              Print
+            </Button>
+          </Tooltip>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate("/customers/create")}
+          >
+            Create Customer
+          </Button>
+        </div>
       </header>
       <section className="customer-stats" aria-label="Customer summary">
         {[
           {
             label: "Total Customers",
+            view: "total",
             value: summaryQuery.data?.total,
             text: "Your customer network",
             icon: <GroupOutlined />,
@@ -230,6 +250,7 @@ export function CustomerListPage() {
           },
           {
             label: "Active Customers",
+            view: "active",
             value: summaryQuery.data?.active,
             text: "Ready for new invoices",
             icon: <CheckCircleOutline />,
@@ -237,6 +258,7 @@ export function CustomerListPage() {
           },
           {
             label: "Inactive Customers",
+            view: "inactive",
             value: summaryQuery.data?.inactive,
             text: "History safely retained",
             icon: <PersonOffOutlined />,
@@ -244,6 +266,7 @@ export function CustomerListPage() {
           },
           {
             label: "Total Outstanding",
+            view: "outstanding",
             value: summaryQuery.data
               ? moneyWithCurrency(
                   summaryQuery.data.outstanding,
@@ -255,7 +278,7 @@ export function CustomerListPage() {
             tone: "orange",
           },
         ].map((stat) => (
-          <article key={stat.label} className={`customer-stat ${stat.tone}`}>
+          <button type="button" key={stat.label} className={`customer-stat ${stat.tone}`} aria-pressed={cardView === stat.view} onClick={() => selectCard(stat.view)}>
             <div className="customer-stat-top">
               <span>{stat.label}</span>
               <span className="customer-stat-icon">{stat.icon}</span>
@@ -268,24 +291,22 @@ export function CustomerListPage() {
               )}
             </strong>
             <small>{stat.text}</small>
-          </article>
+          </button>
         ))}
       </section>
-      {summaryQuery.isError && !query.isError && (
-        <DashboardErrorState
-          title="Unable to load customer summary"
-          message={summaryQuery.error.message}
-          onRetry={() => summaryQuery.refetch()}
-        />
-      )}
       <section className="customer-panel">
         <div className="customer-panel-heading">
           <div>
             <h2>
-              Customer directory <span>{data?.totalCount ?? "—"}</span>
+              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"} <span>{data?.totalCount ?? "—"}</span>
             </h2>
-            <p>All your customer relationships, in one place.</p>
+            <p>{cardView === "inactive" ? "Review each inactive profile, its recorded reason and deactivation details." : cardView === "outstanding" ? "Unpaid invoices are listed by due date, earliest first." : "Select a customer name to view their profile and transactions."}</p>
           </div>
+          {(query.isError || summaryQuery.isError) && (
+            <span className="customer-result-count unavailable" role="status">
+              {query.isError ? "Directory unavailable" : "Summary unavailable"}
+            </span>
+          )}
         </div>
         <div className="customer-filters">
           <TextField
@@ -404,9 +425,6 @@ export function CustomerListPage() {
             </div>
           )}
         </div>
-        <div className="customer-progress">
-          {query.isFetching && <LinearProgress />}
-        </div>
         {query.isError ? (
           <DashboardErrorState
             title="Unable to load customers"
@@ -444,7 +462,7 @@ export function CustomerListPage() {
           </div>
         ) : (
           <>
-            <TableContainer className="customer-table">
+            <TableContainer className={`customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
               <Table size="small" aria-label="Customer directory">
                 <TableHead>
                   <TableRow>
@@ -489,7 +507,7 @@ export function CustomerListPage() {
                 </TableHead>
                 <TableBody>
                   {visibleCustomers.map((customer) => (
-                    <TableRow key={customer.id} hover>
+                    <TableRow hover key={customer.id}>
                       <TableCell data-label="Code">
                         <span className="customer-code">
                           {(customer.customerCode || "").trim() || "—"}
@@ -518,6 +536,9 @@ export function CustomerListPage() {
                             </small>
                           </div>
                         </div>
+                        {cardView === "inactive" && (
+                          <CustomerCardDetails customerId={customer.id} view="inactive" compact />
+                        )}
                       </TableCell>
                       <TableCell data-label="Type">
                         <span className="customer-type">
@@ -563,6 +584,8 @@ export function CustomerListPage() {
                             customer.currency
                           )}
                         </strong>
+                        <Link className="customer-detail-link" to={`/customers/${customer.id}?tab=invoices`}>View invoices</Link>
+                        {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
                       </TableCell>
                       <TableCell data-label="Status">
                         <StatusChip status={customer.status} />
@@ -578,9 +601,8 @@ export function CustomerListPage() {
                               className="action-view"
                               size="small"
                               aria-label={`View ${customer.name}`}
-                              onClick={() =>
-                                navigate(`/customers/${customer.id}`)
-                              }
+                              component={Link}
+                              to={`/customers/${encodeURIComponent(customer.id)}`}
                             >
                               <VisibilityOutlined />
                             </IconButton>
@@ -628,6 +650,7 @@ export function CustomerListPage() {
                                 aria-label={`Deactivate ${customer.name}`}
                                 onClick={() => {
                                   mutation.reset();
+                                  setReason("");
                                   setConfirm(customer);
                                 }}
                               >
@@ -700,6 +723,7 @@ export function CustomerListPage() {
             The customer will become inactive. Existing invoices, payments and
             historical records will be preserved.
           </p>
+          <TextField autoFocus fullWidth required multiline minRows={2} margin="normal" label="Reason for deactivation" value={reason} inputProps={{ maxLength: 500 }} onChange={(event) => setReason(event.target.value)} />
           {mutation.isError && (
             <Alert severity="error">
               Unable to update customer. {mutation.error?.message}
@@ -715,11 +739,11 @@ export function CustomerListPage() {
           </Button>
           <Button
             variant="contained"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !reason.trim()}
             onClick={() => {
               if (!confirm || statusLock.current) return;
               statusLock.current = true;
-              mutation.mutate(confirm, {
+              mutation.mutate({ ...confirm, reason: reason.trim() }, {
                 onSuccess: () => {
                   setNotice(`Customer deactivated successfully.`);
                   setConfirm(null);

@@ -18,7 +18,7 @@ public class CustomerRepository : ICustomerRepository
     public async Task<Customer?> GetByIdAsync(int id, int? tenantId = null)
     {
         var query = _context.Customers
-            .AsNoTracking()
+            .AsNoTracking().Include(c => c.Invoices)
             .Include(c => c.Addresses)
             .Where(c => c.Id == id);
 
@@ -77,7 +77,7 @@ public class CustomerRepository : ICustomerRepository
     public async Task<(List<Customer> Items, int TotalCount)> GetPagedListAsync(int? tenantId, CustomerQueryParameters query)
     {
         var queryable = _context.Customers
-            .AsNoTracking()
+            .AsNoTracking().Include(c => c.Invoices)
             .Include(c => c.Addresses)
             .AsQueryable();
 
@@ -136,12 +136,11 @@ public class CustomerRepository : ICustomerRepository
             var outLower = query.Outstanding.Trim().ToLower().Replace("-", "").Replace("_", "").Replace(" ", "");
             if (outLower is "hasbalance" or "withbalance" or "unpaid" or "yes" or "true" or "hasoutstanding")
             {
-                // In Phase 3, invoices/payments do not exist yet, so no customers have outstanding balances > 0
-                queryable = queryable.Where(c => false);
+                queryable = queryable.Where(c => c.Invoices.Any(i => i.TenantId == c.TenantId && i.Status != "Draft" && i.Status != "Cancelled" && i.Status != "Void" && i.BalanceAmount > 0));
             }
             else if (outLower is "none" or "nobalance" or "paid" or "zero" or "no" or "false" or "nooutstanding")
             {
-                // All customers currently have 0 balance, keep all
+                queryable = queryable.Where(c => !c.Invoices.Any(i => i.TenantId == c.TenantId && i.Status != "Draft" && i.Status != "Cancelled" && i.Status != "Void" && i.BalanceAmount > 0));
             }
         }
 
