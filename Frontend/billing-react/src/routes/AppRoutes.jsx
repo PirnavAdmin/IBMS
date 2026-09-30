@@ -61,7 +61,7 @@ export const AppRoutes = () => (
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
 
-      {/* Quotation Management — isolated frontend mock prototype */}
+      {/* Quotation Management — backend API integration */}
       <Route path="/quotations" element={<QuotationManagement />} />
 
       {/* Payments */}

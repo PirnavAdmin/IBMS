@@ -1,3 +1,4 @@
+import { parseQuotationTimestamp, formatQuotationTimestamp } from '../utils/quotationDates';
 import { useState } from 'react';
 import { History, Search, PersonOutline } from '@mui/icons-material';
 
@@ -37,15 +38,10 @@ function getCount(rows, filterType) {
 }
 
 function timestamp(value) {
-  const parsed = value ? Date.parse(value) : NaN;
-  return Number.isNaN(parsed) ? 0 : parsed;
+  return parseQuotationTimestamp(value)?.getTime() ?? 0;
 }
 function dateLabel(value) {
-  if (!timestamp(value)) return 'Date unavailable';
-  return new Date(value).toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
-  });
+  return formatQuotationTimestamp(value, { second: '2-digit' });
 }
 function userLabel(user) {
   if (user == null || user === '') return 'Unknown user';
@@ -93,7 +89,7 @@ export function QuotationAudit({ entries = [] }) {
       <thead><tr><th scope="col">Event</th><th scope="col">Date & time</th><th scope="col">Performed by</th><th scope="col">Description</th></tr></thead>
       <tbody>{visible.map((entry, index) => <tr key={entry.id || `${entry.date}-${entry.action}-${index}`}>
         <td><span className={`quote-audit-badge ${eventKey(entry.label)}`}><span aria-hidden="true" />{entry.label}</span></td>
-        <td>{timestamp(entry.date) ? <time dateTime={new Date(entry.date).toISOString()}>{dateLabel(entry.date)}</time> : 'Date unavailable'}</td>
+        <td>{timestamp(entry.date) ? <time dateTime={parseQuotationTimestamp(entry.date).toISOString()}>{dateLabel(entry.date)}</time> : 'Date unavailable'}</td>
         <td><span className="quote-audit-user"><PersonOutline aria-hidden="true" />{userLabel(entry.user)}</span></td>
         <td className="quote-audit-description">{entry.description || 'No additional details recorded.'}</td>
       </tr>)}</tbody>

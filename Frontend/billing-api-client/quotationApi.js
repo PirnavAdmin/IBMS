@@ -30,27 +30,8 @@ export function normalizeQuotation(q) {
     items: (q.items || []).map(i => ({ ...i, productId: i.productId == null ? '' : String(i.productId),
       productName: i.productName || i.description || '', description: i.description || '',
       discountType: i.discountType?.toLowerCase() || 'percentage', discountRate: i.discountRate || 0,
-      discountAmount: i.discountAmount || 0, taxType: i.taxType || 'GST', taxRate: i.taxRate || 0, hsnSac: i.hsnsac || i.hsnSac || '' })),
+      discountAmount: i.discountAmount || 0, taxType: i.taxType || '', taxRate: i.taxRate || 0, hsnSac: i.hsnsac || i.hsnSac || '' })),
     communications: (q.communications || []).map(normalizeCommunication), auditLogs: [] };
-}
-export function normalizeQuotationProduct(p) {
-  const label = p.taxCategory || '';
-  const rate = label.match(/(\d+(?:\.\d+)?)\s*%/);
-  const type = label.match(/\b(CGST|SGST|IGST|GST|VAT)\b/i)?.[1]?.toUpperCase() || 'Custom Tax';
-  return { ...p, id: String(p.id), code: p.productCode || '', price: p.price ?? 0,
-    description: p.description || p.name || '', hsnSac: p.hsnSacCode || p.hsnSac || '',
-    taxCategory: type, taxRate: p.taxRate ?? (rate ? Number(rate[1]) : 0) };
-}
-export async function fetchAllPages(fetchPage) {
-  const rows=[];
-  for (let pageNumber=1;;pageNumber++) {
-    const page=await fetchPage({pageNumber,pageSize:100});
-    const items=Array.isArray(page)?page:page?.items;
-    if (!Array.isArray(items)) throw new Error('Invalid list response.');
-    rows.push(...items);
-    if (Array.isArray(page) || !items.length || rows.length>=page.totalCount || pageNumber>=page.totalPages ||
-      (page.totalCount == null && page.totalPages == null && items.length<100)) return rows;
-  }
 }
 export const quotationApi = {
   list: async params => unwrap(await apiClient.get(base,{params})),

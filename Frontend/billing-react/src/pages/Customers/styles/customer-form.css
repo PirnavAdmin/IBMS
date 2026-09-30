@@ -877,3 +877,201 @@
   box-shadow: none !important;
 }
 
+/* ==========================================================================
+   Smooth Wizard Directional Transitions
+   ========================================================================== */
+.cust-step-panel {
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+@keyframes stepSlideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stepSlideInFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cust-step-panel.slide-forward {
+  animation: stepSlideInFromRight 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cust-step-panel.slide-backward {
+  animation: stepSlideInFromLeft 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cust-step-panel,
+  .cust-step-panel.slide-forward,
+  .cust-step-panel.slide-backward {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   PIN Code Lookup & Locality Selection Styles
+   ========================================================================== */
+.cust-input-with-action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cust-input-with-action input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.cust-input-status-icon {
+  position: absolute;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cust-input-status-icon.cust-spin svg {
+  animation: custRotate 1s linear infinite;
+  color: #754d34;
+}
+
+.cust-input-status-icon.cust-success svg {
+  color: #2e7d32;
+}
+
+@keyframes custRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cust-pin-status {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.cust-pin-success {
+  color: #2e7d32;
+}
+
+.cust-pin-loading {
+  color: #8c7d71;
+  font-style: italic;
+}
+
+.cust-pin-warning {
+  color: #b76e00;
+}
+
+/* Locality Selection Chips under Address Line 2 */
+.cust-locality-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cust-locality-chips-label {
+  font-size: 0.72rem;
+  color: #8c7d71;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cust-locality-chip {
+  background: #f7f3ef;
+  border: 1px solid #dfd7cf;
+  color: #64442e;
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  outline: none;
+}
+
+.cust-locality-chip:hover {
+  background: #eae0d6;
+  border-color: #8c674b;
+  color: #3b2516;
+}
+
+.cust-locality-chip.active {
+  background: #754d34;
+  border-color: #754d34;
+  color: #ffffff;
+}
+
+/* Dark Mode Overrides for PIN Status and Locality Chips */
+body.dark-mode .cust-locality-chip,
+[data-theme="dark"] .cust-locality-chip {
+  background: #231B15;
+  border-color: #3B2E24;
+  color: #D6C2B2;
+}
+
+body.dark-mode .cust-locality-chip:hover,
+[data-theme="dark"] .cust-locality-chip:hover {
+  background: #33251C;
+  border-color: #E0935C;
+  color: #FFFFFF;
+}
+
+body.dark-mode .cust-locality-chip.active,
+[data-theme="dark"] .cust-locality-chip.active {
+  background: #E0935C;
+  border-color: #E0935C;
+  color: #140E0A;
+}
+
+body.dark-mode .cust-pin-success,
+[data-theme="dark"] .cust-pin-success {
+  color: #7ee787;
+}
+
+body.dark-mode .cust-input-status-icon.cust-success svg,
+[data-theme="dark"] .cust-input-status-icon.cust-success svg {
+  color: #7ee787;
+}
+
+body.dark-mode .cust-input-status-icon.cust-spin svg,
+[data-theme="dark"] .cust-input-status-icon.cust-spin svg {
+  color: #E0935C;
+}
+
+body.dark-mode .cust-pin-warning,
+[data-theme="dark"] .cust-pin-warning {
+  color: #f0b757;
+}
+
+
+

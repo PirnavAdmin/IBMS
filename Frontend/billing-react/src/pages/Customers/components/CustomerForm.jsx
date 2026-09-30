@@ -8,6 +8,7 @@ import { customerApi } from 'billing-api-client';
 import {
   customerValidationSchema,
   DEFAULT_CUSTOMER_VALUES,
+  STEP_FIELDS,
   getNextCustomerCode,
   COUNTRY_PHONE_CONFIG,
 } from '../validation/customerValidation';
@@ -18,11 +19,64 @@ import {
   EmailOutlined,
   PhoneOutlined,
   LanguageOutlined,
+  ReceiptLongOutlined,
+  HomeOutlined,
+  CheckCircleOutlined,
   LightbulbOutlined,
+  ArrowForward,
+  ArrowBack,
   InfoOutlined,
+  Check,
+  EditOutlined,
   DescriptionOutlined,
 } from '@mui/icons-material';
 import '../styles/customer-form.css';
+
+const STEPS = [
+  {
+    id: 0,
+    label: 'Basic Info',
+    title: 'Basic Information',
+    subtitle: 'Enter the main details about your customer',
+    icon: BusinessOutlined,
+  },
+  {
+    id: 1,
+    label: 'Contact Info',
+    title: 'Contact Information',
+    subtitle: 'Provide communication and web contacts',
+    icon: EmailOutlined,
+  },
+  {
+    id: 2,
+    label: 'Billing & Tax',
+    title: 'Billing & Tax Information',
+    subtitle: 'Configure tax registration, billing currency, and payment terms',
+    icon: ReceiptLongOutlined,
+  },
+  {
+    id: 3,
+    label: 'Address',
+    title: 'Address Information',
+    subtitle: 'Enter billing and shipping address details',
+    icon: HomeOutlined,
+  },
+  {
+    id: 4,
+    label: 'Review',
+    title: 'Review & Confirm',
+    subtitle: 'Review all information before finalizing customer record',
+    icon: CheckCircleOutlined,
+  },
+];
+
+const QUICK_TIPS = {
+  0: 'Customer code is a unique sequential identifier (e.g. CUST-001, CUST-002). It is automatically assigned in sequence order and locked from editing.',
+  1: 'Ensure email and phone number are accurate. The phone number must contain the exact digit count required for the selected country.',
+  2: 'Choose GST Registered to automatically validate 15-character GST numbers and ensure seamless tax compliance.',
+  3: 'You can check "Shipping address is identical" to quickly mirror billing details into shipping.',
+  4: 'Review all customer details before final submission. Click any "Edit" link to quickly jump back to a section.',
+};
 
 export const CustomerForm = ({
   initialValues = null,
@@ -32,6 +86,8 @@ export const CustomerForm = ({
   onCancel,
   mode = 'create',
 }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [slideDirection, setSlideDirection] = useState('forward');
   const [loadingNextCode, setLoadingNextCode] = useState(false);
 
   const getInitialValues = (values) => {
@@ -237,6 +293,62 @@ export const CustomerForm = ({
     getValues,
   ]);
 
+  const getStepValidationFields = (stepIndex) => {
+    const fields = [...(STEP_FIELDS[stepIndex] || [])];
+    if (stepIndex === 3 && !isShippingSameAsBilling) {
+      fields.push(
+        'shippingAddress.street',
+        'shippingAddress.city',
+        'shippingAddress.state',
+        'shippingAddress.postalCode',
+        'shippingAddress.country'
+      );
+    }
+    return fields;
+  };
+
+  const handleNextStep = async (event) => {
+    // Cancel the click's native default before validation changes the final
+    // navigation button into the Review step's submit button.
+    event?.preventDefault();
+    const fieldsToValidate = getStepValidationFields(currentStep);
+    const isValid = await trigger(fieldsToValidate);
+    if (isValid) {
+      setSlideDirection('forward');
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleStepClick = async (targetStep) => {
+    if (targetStep === currentStep) return;
+    if (targetStep < currentStep) {
+      setSlideDirection('backward');
+      setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Validate steps prior to jumping forward
+    let allPassed = true;
+    for (let s = currentStep; s < targetStep; s++) {
+      const stepFields = getStepValidationFields(s);
+      const passed = await trigger(stepFields);
+      if (!passed) {
+        allPassed = false;
+        setSlideDirection(s > currentStep ? 'forward' : 'backward');
+        setCurrentStep(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      }
+    }
+    if (allPassed) {
+      setSlideDirection('forward');
+      setCurrentStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleValidSubmit = (data) => {
     if (isSubmitting) return;
 
@@ -302,24 +414,83 @@ export const CustomerForm = ({
     onSubmit(payload);
   };
 
-  const handleInvalidSubmit = () => {
-    window.requestAnimationFrame(() => {
-      const firstInvalidField = document.querySelector('.cust-form [aria-invalid="true"]');
-      if (firstInvalidField) {
-        firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstInvalidField.focus({ preventScroll: true });
+  const handleInvalidSubmit = (formErrors) => {
+    // If validation fails on submit, switch to the first step containing an error
+    const errorKeys = Object.keys(formErrors);
+    for (let s = 0; s < STEPS.length; s++) {
+      const stepFields = getStepValidationFields(s);
+      const hasErrorInStep = errorKeys.some((key) =>
+        stepFields.some((f) => f === key || f.startsWith(`${key}.`))
+      );
+      if (hasErrorInStep) {
+        setCurrentStep(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
       }
-    });
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+      // A field's Enter key must not implicitly activate the Review step's
+      // submit button. Keyboard users can still activate that button directly.
+      e.preventDefault();
+      if (currentStep < STEPS.length - 1) {
+        handleNextStep();
+      }
+    }
+  };
+
+  const currentStepData = STEPS[currentStep];
+  const StepHeaderIcon = currentStepData.icon;
+  const handleFormSubmit = (event) => {
+    if (currentStep !== STEPS.length - 1 || event.nativeEvent?.submitter?.dataset?.customerAction !== 'submit') {
+      event.preventDefault();
+      return;
+    }
+    return handleSubmit(handleValidSubmit, handleInvalidSubmit)(event);
   };
 
   return (
     <div className="cust-wizard-container">
+      {/* 5-Step Stepper Header */}
+      <nav className="cust-wizard-stepper" aria-label="Customer Registration Progress">
+        {STEPS.map((step, index) => {
+          const isActive = step.id === currentStep;
+          const isCompleted = step.id < currentStep;
+          return (
+            <React.Fragment key={step.id}>
+              <button
+                type="button"
+                className={`cust-step-item ${isActive ? 'active' : ''} ${
+                  isCompleted ? 'completed' : ''
+                }`}
+                onClick={() => handleStepClick(step.id)}
+                aria-current={isActive ? 'step' : undefined}
+              >
+                <div className="cust-step-circle">
+                  {isCompleted ? <Check fontSize="small" /> : step.id + 1}
+                </div>
+                <span className="cust-step-label">{step.label}</span>
+              </button>
+              {index < STEPS.length - 1 && (
+                <div
+                  className={`cust-step-line ${isCompleted ? 'completed' : ''}`}
+                  aria-hidden="true"
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </nav>
+
       {/* 2-Column Layout */}
       <div className="cust-wizard-layout">
         {/* Main Form Card */}
         <div className="cust-wizard-main">
           <form
-            onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+            onSubmit={handleFormSubmit}
+            onKeyDown={handleKeyDown}
             className="cust-form cust-wizard-card"
             noValidate
           >
@@ -334,11 +505,11 @@ export const CustomerForm = ({
             <div className="cust-wizard-card-header">
               <div className="cust-wizard-header-left">
                 <div className="cust-step-icon-badge" aria-hidden="true">
-                  <BusinessOutlined />
+                  <StepHeaderIcon />
                 </div>
                 <div>
-                  <h2 className="cust-step-title">Customer Information</h2>
-                  <p className="cust-step-subtitle">Complete each section below, then review and save the customer record.</p>
+                  <h2 className="cust-step-title">{currentStepData.title}</h2>
+                  <p className="cust-step-subtitle">{currentStepData.subtitle}</p>
                 </div>
               </div>
               <div className="cust-required-pill">
@@ -349,27 +520,28 @@ export const CustomerForm = ({
               </div>
             </div>
 
-            {/* Basic Information */}
-            <section className="cust-form-section" aria-labelledby="customer-basic-heading">
-              <h3 id="customer-basic-heading" className="cust-form-section-title">Basic Information</h3>
-              <div className="cust-grid cust-grid-2">
-                <div className="cust-field">
-                  <label htmlFor="customer-name">
-                    Contact / Customer Name <span className="cust-required">*</span>
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <PersonOutline />
-                    </span>
-                    <input
-                      id="customer-name"
-                      type="text"
-                      placeholder="e.g. Venkat Rao"
-                      aria-invalid={Boolean(errors.name)}
-                      aria-describedby={errors.name ? 'customer-name-err' : undefined}
-                      {...register('name')}
-                    />
-                  </div>
+            <div key={currentStep} className={`cust-step-panel slide-${slideDirection}`}>
+              {/* STEP 0: Basic Information */}
+              {currentStep === 0 && (
+                <div className="cust-grid cust-grid-2">
+                  <div className="cust-field">
+                    <label htmlFor="customer-name">
+                      Contact / Customer Name <span className="cust-required">*</span>
+                    </label>
+                    <div className="cust-input-with-icon">
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <PersonOutline />
+                      </span>
+                      <input
+                        id="customer-name"
+                        type="text"
+                        maxLength={100}
+                        placeholder="e.g. Venkat Rao"
+                        aria-invalid={Boolean(errors.name)}
+                        aria-describedby={errors.name ? 'customer-name-err' : undefined}
+                        {...register('name')}
+                      />
+                    </div>
                   {errors.name && (
                     <span id="customer-name-err" className="cust-field-error" role="alert">
                       {errors.name.message}
@@ -444,7 +616,10 @@ export const CustomerForm = ({
                       id="customer-status"
                       ariaLabel="Account status"
                       invalid={Boolean(errors.status)}
-                      options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
+                      options={[
+                        { value: 'Active', label: 'Active' },
+                        { value: 'Inactive', label: 'Inactive' },
+                      ]}
                     />
                   </div>}
 
@@ -455,11 +630,10 @@ export const CustomerForm = ({
                   )}
                 </div>
               </div>
-            </section>
+            )}
 
-            {/* Contact Information */}
-            <section className="cust-form-section" aria-labelledby="customer-contact-heading">
-              <h3 id="customer-contact-heading" className="cust-form-section-title">Contact Information</h3>
+            {/* STEP 1: Contact Information */}
+            {currentStep === 1 && (
               <div className="cust-grid cust-grid-2">
                 <div className="cust-field">
                   <label htmlFor="customer-email">
@@ -497,8 +671,20 @@ export const CustomerForm = ({
                       className="cust-phone-code-select"
                       ariaLabel="Country Dialing Code"
                       invalid={Boolean(errors.phoneCountryCode)}
-                      onValueChange={() => trigger('phone')}
-                      options={Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => ({ value: code, label: `${code} (${cfg.code})` }))}
+                      onValueChange={(newCode) => {
+                        const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
+                        const maxLen = newCfg.max || 10;
+                        const currentVal = getValues('phone') || '';
+                        if (currentVal.length > maxLen) {
+                          setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
+                        } else {
+                          trigger('phone');
+                        }
+                      }}
+                      options={Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => ({
+                        value: code,
+                        label: `${code} (${cfg.code})`,
+                      }))}
                     />
                     <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
                       <span className="cust-input-icon" aria-hidden="true">
@@ -507,12 +693,62 @@ export const CustomerForm = ({
                       <input
                         id="customer-phone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={currentPhoneConfig.max || 10}
                         aria-required="true"
                         className="cust-phone-input"
                         placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
                         aria-invalid={Boolean(errors.phone)}
                         aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
-                        {...register('phone')}
+                        {...register('phone', {
+                          onChange: (e) => {
+                            const maxLen = currentPhoneConfig.max || 10;
+                            const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxLen);
+                            setValue('phone', digitsOnly, { shouldValidate: true, shouldDirty: true });
+                          },
+                        })}
+                        onKeyDown={(e) => {
+                          const allowedKeys = [
+                            'Backspace',
+                            'Tab',
+                            'Delete',
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'ArrowUp',
+                            'ArrowDown',
+                            'Home',
+                            'End',
+                            'Enter',
+                          ];
+                          if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+                            return;
+                          }
+                          if (!/^[0-9]$/.test(e.key)) {
+                            e.preventDefault();
+                            return;
+                          }
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const input = e.currentTarget;
+                          const selectedLength = (input.selectionEnd || 0) - (input.selectionStart || 0);
+                          if (input.value.length >= maxLen && selectedLength === 0) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pasteText = e.clipboardData?.getData('text') || '';
+                          const digitsOnly = pasteText.replace(/\D/g, '');
+                          if (!digitsOnly) return;
+                          const maxLen = currentPhoneConfig.max || 10;
+                          const currentVal = getValues('phone') || '';
+                          const input = e.currentTarget;
+                          const start = input.selectionStart || 0;
+                          const end = input.selectionEnd || 0;
+                          const combined = (currentVal.slice(0, start) + digitsOnly + currentVal.slice(end))
+                            .replace(/\D/g, '')
+                            .slice(0, maxLen);
+                          setValue('phone', combined, { shouldValidate: true, shouldDirty: true });
+                        }}
                       />
                     </div>
                   </div>
@@ -549,11 +785,10 @@ export const CustomerForm = ({
                   )}
                 </div>
               </div>
-            </section>
+            )}
 
-            {/* Billing & Tax Information */}
-            <section className="cust-form-section" aria-labelledby="customer-billing-heading">
-              <h3 id="customer-billing-heading" className="cust-form-section-title">Billing &amp; Tax</h3>
+            {/* STEP 2: Billing & Tax Information */}
+            {currentStep === 2 && (
               <div className="cust-grid cust-grid-2">
                 <div className="cust-field">
                   <label htmlFor="customer-tax-type">
@@ -563,7 +798,7 @@ export const CustomerForm = ({
                     control={control}
                     name="taxRegistrationType"
                     id="customer-tax-type"
-                    ariaLabel="Tax registration status"
+                    ariaLabel="Tax Registration Status"
                     invalid={Boolean(errors.taxRegistrationType)}
                     options={[
                       { value: 'gst', label: 'GST Registered' },
@@ -610,7 +845,12 @@ export const CustomerForm = ({
                       maxLength={taxRegistrationType === 'gst' ? 15 : taxRegistrationType === 'pan' ? 10 : 64}
                       aria-invalid={Boolean(errors.taxId)}
                       aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
-                      {...register('taxId')}
+                      {...register('taxId', {
+                        onChange: (e) => {
+                          const upper = (e.target.value || '').toUpperCase();
+                          setValue('taxId', upper, { shouldValidate: true, shouldDirty: true });
+                        },
+                      })}
                     />
                   </div>
                   {errors.taxId && (
@@ -629,17 +869,13 @@ export const CustomerForm = ({
                     ariaLabel="Billing currency"
                     invalid={Boolean(errors.currency)}
                     options={[
-                      { value: 'INR', label: 'INR (?)' },
+                      { value: 'INR', label: 'INR (₹)' },
                       { value: 'USD', label: 'USD ($)' },
-                      { value: 'EUR', label: 'EUR (?)' },
-                      { value: 'GBP', label: 'GBP (?)' },
+                      { value: 'EUR', label: 'EUR (€)' },
+                      { value: 'GBP', label: 'GBP (£)' },
                     ]}
                   />
-                  {errors.currency && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.currency.message}
-                    </span>
-                  )}
+                  {errors.currency && <span className="cust-field-error" role="alert">{errors.currency.message}</span>}
                 </div>
 
                 <div className="cust-field">
@@ -667,11 +903,10 @@ export const CustomerForm = ({
                 </div>
 
               </div>
-            </section>
+            )}
 
-            {/* Address Information */}
-            <section className="cust-form-section" aria-labelledby="customer-address-heading">
-              <h3 id="customer-address-heading" className="cust-form-section-title">Address</h3>
+            {/* STEP 3: Address Information */}
+            {currentStep === 3 && (
               <div className="cust-step-address-content">
                 <div className="cust-subcard">
                   <AddressSection
@@ -679,6 +914,10 @@ export const CustomerForm = ({
                     title="Billing Address Details"
                     register={register}
                     control={control}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     country={billingAddress?.country}
                   />
@@ -701,22 +940,32 @@ export const CustomerForm = ({
                     title="Shipping Address Details"
                     register={register}
                     control={control}
+                    setValue={setValue}
+                    trigger={trigger}
+                    getValues={getValues}
+                    watch={watch}
                     errors={errors}
                     disabled={isShippingSameAsBilling}
                     country={watchedValues.shippingAddress?.country}
                   />
                 </div>
               </div>
-            </section>
+            )}
 
-            {/* Review & Confirm */}
-            <section className="cust-form-section cust-review-section" aria-labelledby="customer-review-heading">
-              <h3 id="customer-review-heading" className="cust-form-section-title">Review</h3>
+            {/* STEP 4: Review & Confirm */}
+            {currentStep === 4 && (
               <div className="cust-review-sections">
                 {/* 1. Basic Info Review */}
                 <div className="cust-review-card">
                   <div className="cust-review-card-header">
                     <h4>Basic Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => handleStepClick(0)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
                   </div>
                   <div className="cust-review-grid">
                     <div className="cust-review-row">
@@ -742,6 +991,13 @@ export const CustomerForm = ({
                 <div className="cust-review-card">
                   <div className="cust-review-card-header">
                     <h4>Contact Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => handleStepClick(1)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
                   </div>
                   <div className="cust-review-grid">
                     <div className="cust-review-row">
@@ -767,6 +1023,13 @@ export const CustomerForm = ({
                 <div className="cust-review-card">
                   <div className="cust-review-card-header">
                     <h4>Billing & Tax Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => handleStepClick(2)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
                   </div>
                   <div className="cust-review-grid">
                     <div className="cust-review-row">
@@ -785,7 +1048,7 @@ export const CustomerForm = ({
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Currency</span>
-                      <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
+                        <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>
@@ -798,6 +1061,13 @@ export const CustomerForm = ({
                 <div className="cust-review-card">
                   <div className="cust-review-card-header">
                     <h4>Address Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => handleStepClick(3)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
                   </div>
                   <div className="cust-review-grid">
                     <div className="cust-review-row cust-col-span-2">
@@ -853,35 +1123,66 @@ export const CustomerForm = ({
                   )}
                 </div>
               </div>
-            </section>
+            )}
+            </div>
 
             {/* Bottom Actions Bar */}
             <div className="cust-wizard-actions">
               <div className="cust-actions-left">
-                <button
-                  type="button"
-                  className="cust-btn cust-btn-secondary"
-                  onClick={onCancel}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
+                {currentStep === 0 ? (
+                  <button
+                    type="button"
+                    className="cust-btn cust-btn-secondary"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="cust-btn cust-btn-secondary"
+                    onClick={() => {
+                      setSlideDirection('backward');
+                      setCurrentStep((prev) => Math.max(prev - 1, 0));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <ArrowBack /> Back
+                  </button>
+                )}
               </div>
 
               <div className="cust-actions-right">
-                <button
-                  type="submit"
-                  className="cust-btn cust-btn-primary"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting
-                    ? mode === 'edit'
-                      ? 'Saving...'
-                      : 'Creating...'
-                    : mode === 'edit'
-                    ? 'Save Changes'
-                    : 'Create Customer'}
-                </button>
+                {currentStep < STEPS.length - 1 ? (
+                  <button
+                    key="customer-next"
+                    type="button"
+                    data-customer-action="next"
+                    className="cust-btn cust-btn-primary"
+                    onClick={handleNextStep}
+                    disabled={isSubmitting}
+                  >
+                    Next: {STEPS[currentStep + 1].label} <ArrowForward />
+                  </button>
+                ) : (
+                  <button
+                    key="customer-submit"
+                    type="submit"
+                    data-customer-action="submit"
+                    className="cust-btn cust-btn-primary"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting
+                      ? mode === 'edit'
+                        ? 'Saving...'
+                        : 'Creating...'
+                      : mode === 'edit'
+                      ? 'Save Changes'
+                      : 'Create Customer'}
+                  </button>
+                )}
               </div>
             </div>
           </form>
@@ -934,7 +1235,7 @@ export const CustomerForm = ({
               {mode === 'edit' ? 'Edit Customer' : 'Add a New Customer'}
             </h3>
             <p className="cust-guide-text">
-              Complete the sections below, review the customer details, then save.
+              Fill in the details step by step. You can review all information before saving.
             </p>
           </div>
 
@@ -946,7 +1247,7 @@ export const CustomerForm = ({
               </span>
               <h4 className="cust-tip-title">Quick Tip</h4>
             </div>
-            <p className="cust-tip-text">Customer code is assigned automatically. Check the contact, tax, and address details in the review section before saving.</p>
+            <p className="cust-tip-text">{QUICK_TIPS[currentStep]}</p>
           </div>
         </aside>
       </div>

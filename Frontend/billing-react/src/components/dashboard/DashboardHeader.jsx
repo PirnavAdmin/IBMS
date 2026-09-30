@@ -1,7 +1,14 @@
 import { authApi } from 'billing-api-client';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
 import { useState } from 'react';
-import { Search, NotificationsNone, HelpOutline, KeyboardArrowDown, Logout, Menu } from '@mui/icons-material';
+import {
+  Search,
+  NotificationsNone,
+  HelpOutline,
+  KeyboardArrowDown,
+  Logout,
+  Menu,
+} from '@mui/icons-material';
 
 export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu }) => {
   const [menuOpen, setMenuOpen] = useState(false);

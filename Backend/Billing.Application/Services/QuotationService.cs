@@ -1,5 +1,6 @@
 using Billing.Application.Interfaces;
 using Billing.Contracts;
+using Billing.Contracts.Financial;
 using Billing.Contracts.Numbering;
 using Billing.Contracts.Quotation;
 using Billing.Domain.Entities;
@@ -13,17 +14,23 @@ public class QuotationService : IQuotationService
     private readonly ICustomerRepository _customerRepository;
     private readonly INumberGenerationService _numberGenerationService;
     private readonly IAuditLogRepository? _auditLogRepository;
+    private readonly IProductRepository? _productRepository;
+    private readonly IFinancialCalculationEngine? _financialEngine;
 
     public QuotationService(
         IQuotationRepository quotationRepository,
         ICustomerRepository customerRepository,
         INumberGenerationService numberGenerationService,
-        IAuditLogRepository? auditLogRepository = null)
+        IAuditLogRepository? auditLogRepository = null,
+        IProductRepository? productRepository = null,
+        IFinancialCalculationEngine? financialEngine = null)
     {
         _quotationRepository = quotationRepository;
         _customerRepository = customerRepository;
         _numberGenerationService = numberGenerationService;
         _auditLogRepository = auditLogRepository;
+        _productRepository = productRepository;
+        _financialEngine = financialEngine;
     }
 
     public async Task<ApiResponse<PagedResult<QuotationResponse>>> GetPagedListAsync(QuotationListFilterRequest filter, int tenantId)
@@ -74,11 +81,48 @@ public class QuotationService : IQuotationService
             return ApiResponse<QuotationDetailResponse>.Fail("Validation error", "At least one line item is required in the quotation.");
         }
 
+        // Validate Date Ordering: ValidUntil must be on or after QuotationDate
+        var quoteDate = (request.QuotationDate ?? DateTime.UtcNow).Date;
+        if (request.ValidUntil.Date < quoteDate)
+        {
+            return ApiResponse<QuotationDetailResponse>.Fail(
+                "Validation error",
+                "Valid Until date must be on or after Quotation Date.",
+                errorCode: "INVALID_VALIDITY_DATE");
+        }
+
         // Validate Customer
         var customer = await _customerRepository.GetByIdAsync(request.CustomerId, tenantId);
         if (customer == null)
         {
             return ApiResponse<QuotationDetailResponse>.Fail("Validation error", $"Customer with ID {request.CustomerId} was not found for current organization.");
+        }
+
+        // Validate Products if repository available
+        if (_productRepository != null)
+        {
+            foreach (var itemReq in request.Items)
+            {
+                if (itemReq.ProductId.HasValue && itemReq.ProductId.Value > 0)
+                {
+                    var product = await _productRepository.GetByIdAsync(itemReq.ProductId.Value, tenantId);
+                    if (product == null || product.TenantId != tenantId)
+                    {
+                        return ApiResponse<QuotationDetailResponse>.Fail(
+                            "Validation error",
+                            $"Product with ID {itemReq.ProductId.Value} was not found for current organization.",
+                            errorCode: "INVALID_PRODUCT");
+                    }
+
+                    if (!product.IsActive)
+                    {
+                        return ApiResponse<QuotationDetailResponse>.Fail(
+                            "Validation error",
+                            $"Product '{product.Name}' is inactive and cannot be added to quotation.",
+                            errorCode: "INACTIVE_PRODUCT");
+                    }
+                }
+            }
         }
 
         // Generate or Validate QuoteNumber
@@ -108,7 +152,9 @@ public class QuotationService : IQuotationService
             }
             else
             {
-                quoteNumber = $"QT-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+                return ApiResponse<QuotationDetailResponse>.Fail(
+                    numberGenResult?.Message ?? "Quotation number generation failed.",
+                    errorCode: "NUMBERING_FAILED");
             }
         }
 
@@ -127,64 +173,138 @@ public class QuotationService : IQuotationService
             RowVersion = DateTime.UtcNow
         };
 
-        // Calculate and add items
-        decimal subtotal = 0m;
-        decimal totalDiscount = 0m;
-        decimal totalTax = 0m;
-
-        foreach (var itemReq in request.Items)
+        decimal initialCharges = request.ChargesAmount.GetValueOrDefault(0m);
+        if (request.Charges != null && request.Charges.Any())
         {
-            var gross = Math.Round(itemReq.Quantity * itemReq.UnitPrice, 2, MidpointRounding.AwayFromZero);
-
-            decimal discountAmount = 0m;
-            if (itemReq.DiscountRate.HasValue && itemReq.DiscountRate.Value > 0)
-            {
-                if (string.Equals(itemReq.DiscountType, "Percentage", StringComparison.OrdinalIgnoreCase))
-                {
-                    var rate = Math.Min(100m, itemReq.DiscountRate.Value);
-                    discountAmount = Math.Round(gross * (rate / 100m), 2, MidpointRounding.AwayFromZero);
-                }
-                else
-                {
-                    discountAmount = Math.Min(gross, itemReq.DiscountRate.Value);
-                }
-            }
-
-            var taxable = Math.Max(0m, gross - discountAmount);
-            decimal taxAmount = 0m;
-            if (itemReq.TaxRate.HasValue && itemReq.TaxRate.Value > 0)
-            {
-                taxAmount = Math.Round(taxable * (itemReq.TaxRate.Value / 100m), 2, MidpointRounding.AwayFromZero);
-            }
-
-            var lineTotal = taxable + taxAmount;
-
-            subtotal += gross;
-            totalDiscount += discountAmount;
-            totalTax += taxAmount;
-
-            quotation.Items.Add(new QuotationItem
-            {
-                ProductId = itemReq.ProductId,
-                Description = itemReq.Description.Trim(),
-                Quantity = itemReq.Quantity,
-                UnitPrice = itemReq.UnitPrice,
-                DiscountType = itemReq.DiscountType,
-                DiscountRate = itemReq.DiscountRate,
-                DiscountAmount = discountAmount,
-                TaxType = itemReq.TaxType,
-                TaxRate = itemReq.TaxRate,
-                TaxAmount = taxAmount,
-                TotalAmount = lineTotal,
-                HSNSAC = itemReq.HSNSAC?.Trim()
-            });
+            initialCharges = request.Charges.Sum(c => c.Amount);
         }
+        quotation.ChargesAmount = initialCharges;
 
-        quotation.Subtotal = subtotal;
-        quotation.DiscountAmount = totalDiscount;
-        quotation.TaxAmount = totalTax;
-        quotation.ChargesAmount = 0m;
-        quotation.TotalAmount = subtotal - totalDiscount + totalTax;
+        // Authoritative Financial Engine Calculation
+        if (_financialEngine != null)
+        {
+            var finRequest = new FinancialCalculationRequest
+            {
+                TransactionDate = quotation.QuotationDate,
+                Items = request.Items.Select(i => new FinancialLineItemRequest
+                {
+                    Name = i.Description,
+                    ProductCode = i.ProductId?.ToString(),
+                    UnitPrice = i.UnitPrice,
+                    Quantity = i.Quantity,
+                    LineDiscountType = i.DiscountType,
+                    LineDiscountValue = i.DiscountRate,
+                    TaxCode = i.TaxType,
+                    TaxRatePercent = i.TaxRate
+                }).ToList(),
+                InvoiceDiscount = request.InvoiceDiscount,
+                Charges = request.Charges ?? (initialCharges > 0
+                    ? new List<FinancialChargeRequest>
+                    {
+                        new() { Name = "Additional Charges", Amount = initialCharges, CalculationType = "Fixed", IsTaxable = false }
+                    }
+                    : null)
+            };
+
+            var calcResult = await _financialEngine.CalculateAsync(finRequest, tenantId, userRole: null, userName: userId);
+            if (!calcResult.Success || calcResult.Data == null)
+            {
+                return ApiResponse<QuotationDetailResponse>.Fail(
+                    "Financial calculation failed: " + calcResult.Message,
+                    errorCode: "FINANCIAL_CALCULATION_FAILED");
+            }
+
+            var data = calcResult.Data;
+            quotation.Subtotal = data.GrossSubtotal;
+            quotation.DiscountAmount = data.TotalLineDiscounts + data.InvoiceDiscountAmount;
+            quotation.TaxAmount = data.TotalTaxes;
+            quotation.ChargesAmount = data.ChargesTotal;
+            quotation.TotalAmount = data.GrandTotal;
+
+            for (int i = 0; i < request.Items.Count; i++)
+            {
+                var itemReq = request.Items[i];
+                var calcItem = data.Items[i];
+
+                quotation.Items.Add(new QuotationItem
+                {
+                    QuotationId = quotation.Id,
+                    ProductId = itemReq.ProductId,
+                    Description = itemReq.Description.Trim(),
+                    Quantity = calcItem.Quantity,
+                    UnitPrice = calcItem.UnitPrice,
+                    DiscountType = itemReq.DiscountType,
+                    DiscountRate = itemReq.DiscountRate,
+                    DiscountAmount = calcItem.DiscountAmount,
+                    TaxType = itemReq.TaxType,
+                    TaxRate = calcItem.TaxRate,
+                    TaxAmount = calcItem.TaxAmount,
+                    TotalAmount = calcItem.LineTotal,
+                    HSNSAC = itemReq.HSNSAC?.Trim()
+                });
+            }
+        }
+        else
+        {
+            // Deterministic calculation fallback
+            decimal subtotal = 0m;
+            decimal totalDiscount = 0m;
+            decimal totalTax = 0m;
+
+            foreach (var itemReq in request.Items)
+            {
+                var gross = Math.Round(itemReq.Quantity * itemReq.UnitPrice, 2, MidpointRounding.AwayFromZero);
+
+                decimal discountAmount = 0m;
+                if (itemReq.DiscountRate.HasValue && itemReq.DiscountRate.Value > 0)
+                {
+                    if (string.Equals(itemReq.DiscountType, "Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var rate = Math.Min(100m, itemReq.DiscountRate.Value);
+                        discountAmount = Math.Round(gross * (rate / 100m), 2, MidpointRounding.AwayFromZero);
+                    }
+                    else
+                    {
+                        discountAmount = Math.Min(gross, itemReq.DiscountRate.Value);
+                    }
+                }
+
+                var taxable = Math.Max(0m, gross - discountAmount);
+                decimal taxAmount = 0m;
+                if (itemReq.TaxRate.HasValue && itemReq.TaxRate.Value > 0)
+                {
+                    taxAmount = Math.Round(taxable * (itemReq.TaxRate.Value / 100m), 2, MidpointRounding.AwayFromZero);
+                }
+
+                var lineTotal = taxable + taxAmount;
+
+                subtotal += gross;
+                totalDiscount += discountAmount;
+                totalTax += taxAmount;
+
+                quotation.Items.Add(new QuotationItem
+                {
+                    ProductId = itemReq.ProductId,
+                    Description = itemReq.Description.Trim(),
+                    Quantity = itemReq.Quantity,
+                    UnitPrice = itemReq.UnitPrice,
+                    DiscountType = itemReq.DiscountType,
+                    DiscountRate = itemReq.DiscountRate,
+                    DiscountAmount = discountAmount,
+                    TaxType = itemReq.TaxType,
+                    TaxRate = itemReq.TaxRate,
+                    TaxAmount = taxAmount,
+                    TotalAmount = lineTotal,
+                    HSNSAC = itemReq.HSNSAC?.Trim()
+                });
+            }
+
+            quotation.Subtotal = subtotal;
+            quotation.DiscountAmount = totalDiscount;
+            quotation.TaxAmount = totalTax;
+            quotation.ChargesAmount = initialCharges;
+            quotation.TotalAmount = subtotal - totalDiscount + totalTax + initialCharges;
+        }
 
         await _quotationRepository.AddAsync(quotation);
         quotation.Customer = customer;
@@ -260,6 +380,15 @@ public class QuotationService : IQuotationService
             }
         }
 
+        // Validate Date Ordering: ValidUntil must be on or after QuotationDate
+        if (request.ValidUntil.Date < request.QuotationDate.Date)
+        {
+            return ApiResponse<QuotationDetailResponse>.Fail(
+                "Validation error",
+                "Valid Until date must be on or after Quotation Date.",
+                errorCode: "INVALID_VALIDITY_DATE");
+        }
+
         // Validate Customer
         Customer? customer;
         if (quotation.CustomerId == request.CustomerId && quotation.Customer != null)
@@ -283,6 +412,33 @@ public class QuotationService : IQuotationService
             return ApiResponse<QuotationDetailResponse>.Fail("Validation error", "At least one line item is required in the quotation.");
         }
 
+        // Validate Products if repository available
+        if (_productRepository != null)
+        {
+            foreach (var itemReq in request.Items)
+            {
+                if (itemReq.ProductId.HasValue && itemReq.ProductId.Value > 0)
+                {
+                    var product = await _productRepository.GetByIdAsync(itemReq.ProductId.Value, tenantId);
+                    if (product == null || product.TenantId != tenantId)
+                    {
+                        return ApiResponse<QuotationDetailResponse>.Fail(
+                            "Validation error",
+                            $"Product with ID {itemReq.ProductId.Value} was not found for current organization.",
+                            errorCode: "INVALID_PRODUCT");
+                    }
+
+                    if (!product.IsActive)
+                    {
+                        return ApiResponse<QuotationDetailResponse>.Fail(
+                            "Validation error",
+                            $"Product '{product.Name}' is inactive and cannot be added to quotation.",
+                            errorCode: "INACTIVE_PRODUCT");
+                    }
+                }
+            }
+        }
+
         // Update fields
         quotation.CustomerId = request.CustomerId;
         quotation.QuotationDate = request.QuotationDate;
@@ -294,63 +450,138 @@ public class QuotationService : IQuotationService
         // Clear and rebuild line items
         quotation.Items.Clear();
 
-        decimal subtotal = 0m;
-        decimal totalDiscount = 0m;
-        decimal totalTax = 0m;
-
-        foreach (var itemReq in request.Items)
+        decimal initialCharges = request.ChargesAmount.GetValueOrDefault(0m);
+        if (request.Charges != null && request.Charges.Any())
         {
-            var gross = Math.Round(itemReq.Quantity * itemReq.UnitPrice, 2, MidpointRounding.AwayFromZero);
-
-            decimal discountAmount = 0m;
-            if (itemReq.DiscountRate.HasValue && itemReq.DiscountRate.Value > 0)
-            {
-                if (string.Equals(itemReq.DiscountType, "Percentage", StringComparison.OrdinalIgnoreCase))
-                {
-                    var rate = Math.Min(100m, itemReq.DiscountRate.Value);
-                    discountAmount = Math.Round(gross * (rate / 100m), 2, MidpointRounding.AwayFromZero);
-                }
-                else
-                {
-                    discountAmount = Math.Min(gross, itemReq.DiscountRate.Value);
-                }
-            }
-
-            var taxable = Math.Max(0m, gross - discountAmount);
-            decimal taxAmount = 0m;
-            if (itemReq.TaxRate.HasValue && itemReq.TaxRate.Value > 0)
-            {
-                taxAmount = Math.Round(taxable * (itemReq.TaxRate.Value / 100m), 2, MidpointRounding.AwayFromZero);
-            }
-
-            var lineTotal = taxable + taxAmount;
-
-            subtotal += gross;
-            totalDiscount += discountAmount;
-            totalTax += taxAmount;
-
-            quotation.Items.Add(new QuotationItem
-            {
-                QuotationId = quotation.Id,
-                ProductId = itemReq.ProductId,
-                Description = itemReq.Description.Trim(),
-                Quantity = itemReq.Quantity,
-                UnitPrice = itemReq.UnitPrice,
-                DiscountType = itemReq.DiscountType,
-                DiscountRate = itemReq.DiscountRate,
-                DiscountAmount = discountAmount,
-                TaxType = itemReq.TaxType,
-                TaxRate = itemReq.TaxRate,
-                TaxAmount = taxAmount,
-                TotalAmount = lineTotal,
-                HSNSAC = itemReq.HSNSAC?.Trim()
-            });
+            initialCharges = request.Charges.Sum(c => c.Amount);
         }
+        quotation.ChargesAmount = initialCharges;
 
-        quotation.Subtotal = subtotal;
-        quotation.DiscountAmount = totalDiscount;
-        quotation.TaxAmount = totalTax;
-        quotation.TotalAmount = subtotal - totalDiscount + totalTax + quotation.ChargesAmount;
+        // Authoritative Financial Engine Calculation
+        if (_financialEngine != null)
+        {
+            var finRequest = new FinancialCalculationRequest
+            {
+                TransactionDate = quotation.QuotationDate,
+                Items = request.Items.Select(i => new FinancialLineItemRequest
+                {
+                    Name = i.Description,
+                    ProductCode = i.ProductId?.ToString(),
+                    UnitPrice = i.UnitPrice,
+                    Quantity = i.Quantity,
+                    LineDiscountType = i.DiscountType,
+                    LineDiscountValue = i.DiscountRate,
+                    TaxCode = i.TaxType,
+                    TaxRatePercent = i.TaxRate
+                }).ToList(),
+                InvoiceDiscount = request.InvoiceDiscount,
+                Charges = request.Charges ?? (initialCharges > 0
+                    ? new List<FinancialChargeRequest>
+                    {
+                        new() { Name = "Additional Charges", Amount = initialCharges, CalculationType = "Fixed", IsTaxable = false }
+                    }
+                    : null)
+            };
+
+            var calcResult = await _financialEngine.CalculateAsync(finRequest, tenantId, userRole: null, userName: userId);
+            if (!calcResult.Success || calcResult.Data == null)
+            {
+                return ApiResponse<QuotationDetailResponse>.Fail(
+                    "Financial calculation failed: " + calcResult.Message,
+                    errorCode: "FINANCIAL_CALCULATION_FAILED");
+            }
+
+            var data = calcResult.Data;
+            quotation.Subtotal = data.GrossSubtotal;
+            quotation.DiscountAmount = data.TotalLineDiscounts + data.InvoiceDiscountAmount;
+            quotation.TaxAmount = data.TotalTaxes;
+            quotation.ChargesAmount = data.ChargesTotal;
+            quotation.TotalAmount = data.GrandTotal;
+
+            for (int i = 0; i < request.Items.Count; i++)
+            {
+                var itemReq = request.Items[i];
+                var calcItem = data.Items[i];
+
+                quotation.Items.Add(new QuotationItem
+                {
+                    QuotationId = quotation.Id,
+                    ProductId = itemReq.ProductId,
+                    Description = itemReq.Description.Trim(),
+                    Quantity = calcItem.Quantity,
+                    UnitPrice = calcItem.UnitPrice,
+                    DiscountType = itemReq.DiscountType,
+                    DiscountRate = itemReq.DiscountRate,
+                    DiscountAmount = calcItem.DiscountAmount,
+                    TaxType = itemReq.TaxType,
+                    TaxRate = calcItem.TaxRate,
+                    TaxAmount = calcItem.TaxAmount,
+                    TotalAmount = calcItem.LineTotal,
+                    HSNSAC = itemReq.HSNSAC?.Trim()
+                });
+            }
+        }
+        else
+        {
+            // Deterministic calculation fallback
+            decimal subtotal = 0m;
+            decimal totalDiscount = 0m;
+            decimal totalTax = 0m;
+
+            foreach (var itemReq in request.Items)
+            {
+                var gross = Math.Round(itemReq.Quantity * itemReq.UnitPrice, 2, MidpointRounding.AwayFromZero);
+
+                decimal discountAmount = 0m;
+                if (itemReq.DiscountRate.HasValue && itemReq.DiscountRate.Value > 0)
+                {
+                    if (string.Equals(itemReq.DiscountType, "Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var rate = Math.Min(100m, itemReq.DiscountRate.Value);
+                        discountAmount = Math.Round(gross * (rate / 100m), 2, MidpointRounding.AwayFromZero);
+                    }
+                    else
+                    {
+                        discountAmount = Math.Min(gross, itemReq.DiscountRate.Value);
+                    }
+                }
+
+                var taxable = Math.Max(0m, gross - discountAmount);
+                decimal taxAmount = 0m;
+                if (itemReq.TaxRate.HasValue && itemReq.TaxRate.Value > 0)
+                {
+                    taxAmount = Math.Round(taxable * (itemReq.TaxRate.Value / 100m), 2, MidpointRounding.AwayFromZero);
+                }
+
+                var lineTotal = taxable + taxAmount;
+
+                subtotal += gross;
+                totalDiscount += discountAmount;
+                totalTax += taxAmount;
+
+                quotation.Items.Add(new QuotationItem
+                {
+                    QuotationId = quotation.Id,
+                    ProductId = itemReq.ProductId,
+                    Description = itemReq.Description.Trim(),
+                    Quantity = itemReq.Quantity,
+                    UnitPrice = itemReq.UnitPrice,
+                    DiscountType = itemReq.DiscountType,
+                    DiscountRate = itemReq.DiscountRate,
+                    DiscountAmount = discountAmount,
+                    TaxType = itemReq.TaxType,
+                    TaxRate = itemReq.TaxRate,
+                    TaxAmount = taxAmount,
+                    TotalAmount = lineTotal,
+                    HSNSAC = itemReq.HSNSAC?.Trim()
+                });
+            }
+
+            quotation.Subtotal = subtotal;
+            quotation.DiscountAmount = totalDiscount;
+            quotation.TaxAmount = totalTax;
+            quotation.TotalAmount = subtotal - totalDiscount + totalTax + quotation.ChargesAmount;
+        }
 
         await _quotationRepository.UpdateAsync(quotation);
         quotation.Customer = customer;
@@ -416,18 +647,57 @@ public class QuotationService : IQuotationService
         };
     }
 
+    private static string? FormatCustomerAddress(CustomerAddress? addr)
+    {
+        if (addr == null) return null;
+        var parts = new[] { addr.AddressLine1, addr.AddressLine2, addr.City, addr.State, addr.PostalCode, addr.Country }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim());
+        var formatted = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
+    }
+
+    private static string? FormatCustomerAddressFallback(Customer? customer)
+    {
+        if (customer == null) return null;
+        var parts = new[] { customer.Address, customer.City, customer.State, customer.PostalCode, customer.Country }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim());
+        var formatted = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
+    }
+
     private static QuotationDetailResponse MapToDetailResponse(Quotation q)
     {
+        var cust = q.Customer;
+        string? billingAddress = null;
+        string? shippingAddress = null;
+        string? customerGstin = cust?.TaxId;
+
+        if (cust != null)
+        {
+            var bAddr = cust.Addresses?.FirstOrDefault(a => a.AddressType.Equals("Billing", StringComparison.OrdinalIgnoreCase) && a.IsDefault)
+                ?? cust.Addresses?.FirstOrDefault(a => a.AddressType.Equals("Billing", StringComparison.OrdinalIgnoreCase));
+            billingAddress = FormatCustomerAddress(bAddr) ?? FormatCustomerAddressFallback(cust);
+
+            var sAddr = cust.Addresses?.FirstOrDefault(a => a.AddressType.Equals("Shipping", StringComparison.OrdinalIgnoreCase) && a.IsDefault)
+                ?? cust.Addresses?.FirstOrDefault(a => a.AddressType.Equals("Shipping", StringComparison.OrdinalIgnoreCase));
+            shippingAddress = FormatCustomerAddress(sAddr) ?? billingAddress;
+        }
+
         var resp = new QuotationDetailResponse
         {
             Id = q.Id,
             TenantId = q.TenantId,
             QuoteNumber = q.QuoteNumber,
             CustomerId = q.CustomerId,
-            CustomerName = q.Customer?.Name ?? string.Empty,
-            CustomerEmail = q.Customer?.Email,
-            CustomerPhone = q.Customer?.Phone,
-            CustomerAddress = q.Customer?.Address,
+            CustomerName = cust?.Name ?? string.Empty,
+            CustomerEmail = cust?.Email,
+            CustomerPhone = cust?.Phone,
+            CustomerAddress = FormatCustomerAddressFallback(cust) ?? billingAddress,
+            BillingAddress = billingAddress,
+            ShippingAddress = shippingAddress,
+            CustomerGstin = customerGstin,
             QuotationDate = q.QuotationDate,
             ValidUntil = q.ValidUntil,
             Reference = q.Reference,

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Add, DownloadOutlined, ReceiptLongOutlined, SendOutlined, PieChartOutline, WarningAmberOutlined, CheckCircleOutline, Search, FilterList, MoreVert } from '@mui/icons-material';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
-import { getInvoices, formatCurrency, formatDate } from '../../data/billingStore';
+import { quotationApi } from 'billing-api-client/quotationApi.js';
+import { getInvoices, saveInvoice, formatCurrency, formatDate } from '../../data/billingStore';
 import '../../styles/Invoices.css';
 
 const statuses = ['All Invoices', 'Draft', 'Issued', 'Partially Paid', 'Paid', 'Overdue', 'Cancelled', 'Void'];
@@ -16,7 +17,37 @@ const initialFilters = { search: '', start: '', end: '', customer: '', status: '
 export const Invoices = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [invoices] = useState(getInvoices);
+  const [invoices, setInvoices] = useState(getInvoices);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await quotationApi.list({ status: 'Converted', pageSize: 100 });
+        const items = Array.isArray(res) ? res : res?.items;
+        if (active && Array.isArray(items) && items.length > 0) {
+          items.forEach(q => {
+            const invId = q.quoteNumber ? q.quoteNumber.replace(/^QT-?/i, 'INV-') : `INV-${q.id}`;
+            saveInvoice({
+              id: invId,
+              customer: q.customerName || 'Customer',
+              email: q.customerEmail || '',
+              issueDate: (q.updatedAtUtc || q.quotationDate || new Date().toISOString()).slice(0, 10),
+              dueDate: (q.validUntil || new Date(Date.now() + 30 * 86400000).toISOString()).slice(0, 10),
+              total: Number(q.totalAmount || 0),
+              status: 'draft',
+              notes: `Converted from quotation ${q.quoteNumber}`,
+              updatedAt: new Date().toISOString()
+            });
+          });
+          if (active) setInvoices(getInvoices());
+        }
+      } catch {
+        // Fallback to local storage if API is unreachable
+      }
+    })();
+    return () => { active = false; };
+  }, []);
   const [tab, setTab] = useState(() => statuses.includes(searchParams.get('status')) ? searchParams.get('status') : 'All Invoices');
   const [filters, setFilters] = useState(initialFilters);
   const [selected, setSelected] = useState([]);

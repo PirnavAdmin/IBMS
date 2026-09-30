@@ -48,8 +48,14 @@ export const getProductInitialValues = (values) => {
     currency: values.currency || 'INR',
     taxCategory: values.taxCategory ?? '',
     hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
-    discountPercentage: values.discountPercentage ?? values.discountPercent ?? values.DiscountPercent ?? '',
-    discountAllowed: values.discountAllowed !== false,
+    discountPercentage: values.discountPercentage !== undefined && values.discountPercentage !== null && values.discountPercentage !== ''
+      ? values.discountPercentage
+      : (values.discountPercent !== undefined && values.discountPercent !== null && values.discountPercent !== ''
+        ? values.discountPercent
+        : (values.DiscountPercent !== undefined && values.DiscountPercent !== null && values.DiscountPercent !== ''
+          ? values.DiscountPercent
+          : '')),
+    discountAllowed: values.discountAllowed !== undefined && values.discountAllowed !== null ? Boolean(values.discountAllowed) : false,
     status: values.status || 'Active',
   };
 };
@@ -78,6 +84,7 @@ export function ProductForm({
     reset,
     setValue,
     setError,
+    trigger,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -125,7 +132,7 @@ export function ProductForm({
   const customDiscount = watch('discountPercentage');
   const discountPercent = Number(customDiscount);
   const discountError = errors.discountPercentage?.message || '';
-  const discountPreview = customDiscount !== '' && customDiscount != null && discountPercent >= 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
+  const discountPreview = discountAllowed && customDiscount !== '' && customDiscount != null && Number.isFinite(discountPercent) && discountPercent > 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice > 0
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: selectedCurrency }).format(unitPrice * (1 - discountPercent / 100)) : null;
 
   const currentCategoryId = initialValues?.categoryId;
@@ -247,7 +254,7 @@ export function ProductForm({
                 id="productType"
                 className={`product-select ${errors.type ? 'has-error' : ''}`}
                 aria-invalid={Boolean(errors.type)}
-                {...register('type')}
+                {...register('type', { onChange: () => trigger('hsnSac') })}
               >
                 {PRODUCT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -383,23 +390,19 @@ export function ProductForm({
               <label htmlFor="productCurrency" className="product-field-label">
                 Billing Currency
               </label>
-              <select
-                id="productCurrency"
-                className={`product-select ${errors.currency ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.currency)}
-                {...register('currency')}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c} ({getCurrencySymbol(c)})
-                  </option>
-                ))}
-              </select>
-              {errors.currency && (
-                <span className="product-field-error" role="alert">
-                  {errors.currency.message}
-                </span>
-              )}
+              <div className="product-input-group">
+                <span className="product-input-prefix" aria-hidden="true">₹</span>
+                <input
+                  id="productCurrency"
+                  type="text"
+                  readOnly
+                  tabIndex={-1}
+                  value="INR (₹) - Indian Rupee"
+                  className="product-input has-prefix"
+                  style={{ backgroundColor: '#f8f6f3', cursor: 'not-allowed', color: '#5c534a', paddingLeft: '38px' }}
+                />
+                <input type="hidden" value="INR" {...register('currency')} />
+              </div>
             </div>
 
             {/* Tax Category */}
@@ -489,7 +492,7 @@ export function ProductForm({
                       checked={Boolean(field.value)}
                       onChange={(e) => {
                         field.onChange(e.target.checked);
-                        if (!e.target.checked) setValue('discountPercentage', 0, { shouldValidate: true, shouldDirty: true });
+                        if (!e.target.checked) setValue('discountPercentage', '', { shouldValidate: true, shouldDirty: true });
                       }}
                       color="primary"
                     />
@@ -506,7 +509,7 @@ export function ProductForm({
                 <span id="product-discount-note" className="product-switch-desc">Enter 0 if there is no discount. This percentage is saved with the product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
-                    : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}
+                    : discountPreview && <span className="product-discount-total"><span className="product-discount-label">Price after discount:</span><span className="product-discount-amount"><strong>{discountPreview}</strong> <span>(before tax)</span></span></span>}
                 </div>
               </div>
               </Collapse>

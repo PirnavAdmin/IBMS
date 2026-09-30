@@ -1,1 +1,1 @@
-export function QuotationStatusBadge({ status, expired = false }) { return <span className={`quote-status ${expired ? 'expired' : status.toLowerCase()}`}>{expired ? 'Expired' : status}</span>; }
+export function QuotationStatusBadge({ status }) { return <span className={`quote-status ${String(status || '').toLowerCase()}`}>{status || 'Unknown'}</span>; }

@@ -62,6 +62,38 @@ public class AuditLogRepository : IAuditLogRepository
         return (items, totalCount);
     }
 
+    public async Task<(List<AuditLog> Items, int TotalCount)> GetFilteredPagedAsync(int tenantId, Billing.Contracts.AuditLogFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.TenantId == tenantId);
+
+        if (!string.IsNullOrEmpty(filter.EntityName))
+            query = query.Where(a => a.EntityName == filter.EntityName);
+            
+        if (!string.IsNullOrEmpty(filter.UserName))
+            query = query.Where(a => a.UserName == filter.UserName);
+            
+        if (!string.IsNullOrEmpty(filter.Action))
+            query = query.Where(a => a.Action == filter.Action);
+            
+        if (filter.StartDate.HasValue)
+            query = query.Where(a => a.Timestamp >= filter.StartDate.Value);
+            
+        if (filter.EndDate.HasValue)
+            query = query.Where(a => a.Timestamp <= filter.EndDate.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(a => a.Timestamp)
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .ToListAsync(cancellationToken);
+
+        items.ForEach(SanitizeChanges);
+        return (items, totalCount);
+    }
     private static void SanitizeChanges(AuditLog log)
     {
         if (!string.IsNullOrEmpty(log.Changes))

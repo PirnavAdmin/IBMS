@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Billing.Contracts.Financial;
 
 namespace Billing.Contracts.Quotation;
 
@@ -51,6 +52,13 @@ public class CreateQuotationRequest
     [StringLength(4000, ErrorMessage = "Terms and conditions cannot exceed 4000 characters.")]
     public string? TermsAndConditions { get; set; }
 
+    [Range(0, 1000000000, ErrorMessage = "ChargesAmount must be non-negative.")]
+    public decimal? ChargesAmount { get; set; }
+
+    public List<FinancialChargeRequest>? Charges { get; set; }
+
+    public FinancialInvoiceDiscountRequest? InvoiceDiscount { get; set; }
+
     [Required(ErrorMessage = "At least one item is required.")]
     [MinLength(1, ErrorMessage = "At least one item is required in the quotation.")]
     public List<CreateQuotationItemRequest> Items { get; set; } = new();
@@ -76,6 +84,13 @@ public class UpdateQuotationRequest
 
     [StringLength(4000, ErrorMessage = "Terms and conditions cannot exceed 4000 characters.")]
     public string? TermsAndConditions { get; set; }
+
+    [Range(0, 1000000000, ErrorMessage = "ChargesAmount must be non-negative.")]
+    public decimal? ChargesAmount { get; set; }
+
+    public List<FinancialChargeRequest>? Charges { get; set; }
+
+    public FinancialInvoiceDiscountRequest? InvoiceDiscount { get; set; }
 
     [Required(ErrorMessage = "At least one item is required.")]
     [MinLength(1, ErrorMessage = "At least one item is required in the quotation.")]
@@ -143,6 +158,9 @@ public class QuotationDetailResponse : QuotationResponse
     public string? CustomerEmail { get; set; }
     public string? CustomerPhone { get; set; }
     public string? CustomerAddress { get; set; }
+    public string? BillingAddress { get; set; }
+    public string? ShippingAddress { get; set; }
+    public string? CustomerGstin { get; set; }
     public string? Notes { get; set; }
     public string? TermsAndConditions { get; set; }
     public List<QuotationItemDto> Items { get; set; } = new();
@@ -153,6 +171,7 @@ public class QuotationListFilterRequest
 {
     public string? Search { get; set; }
     public string? Status { get; set; }
+    public string? Validity { get; set; } // "All", "Valid", "Expired"
     public int? CustomerId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
