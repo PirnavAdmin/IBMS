@@ -94,7 +94,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value);
+        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, GetUserId());
 
         if (!result.Success)
         {

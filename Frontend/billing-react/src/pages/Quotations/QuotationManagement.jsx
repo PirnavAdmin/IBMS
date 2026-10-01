@@ -42,26 +42,18 @@ export function QuotationManagement() {
   const open=(mode,q)=>run(async()=>{
     const detail=await quotationApi.get(q.id);setCurrent(detail);setScreen(mode);
     if(mode==='details'){
-<<<<<<< Updated upstream
       const results=await Promise.allSettled([quotationApi.communication(q.id),quotationApi.audit(q.id)]);
       const [communication,audit]=results;
-      setCurrent({...detail,
-=======
-      const [communication]=await Promise.allSettled([quotationApi.communication(q.id)]);
       replace({...detail,
->>>>>>> Stashed changes
         communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,
+        auditLogs:audit?.status==='fulfilled'&&Array.isArray(audit.value)?audit.value:detail.auditLogs||[],
       });
       if(communication.status==='rejected')setError(`Communication history could not be loaded. ${message(communication.reason)}`);
     }
   });
   const save=q=>run(async()=>{replace(await quotationApi.save(q));setScreen('details');setNotice('Quotation draft saved.');});
   const action=(type,q)=>run(async()=>{
-<<<<<<< Updated upstream
-    const detail=await quotationApi.get(q.id);replace(detail);
-=======
     const detail=await quotationApi.get(q.id);replace({...detail,communications:current?.id===detail.id?current.communications:detail.communications});
->>>>>>> Stashed changes
     const allowed={send:['Draft'],approve:['Sent'],cancel:['Draft','Sent','Approved'],convert:['Approved']};
     if(!allowed[type]?.includes(detail.status))throw new Error(`This quotation is ${detail.status}. The requested action is no longer available.`);
     setDialog(type);
@@ -79,7 +71,7 @@ export function QuotationManagement() {
         ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} onSave={save} onCancel={()=>setScreen(current?'details':'list')}/>
         :screen==='details'&&current
           ?<QuotationDetails quotation={enrich(current)} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
-          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} onCreate={()=>{setCurrent(null);setScreen('create');}} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
+          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>{setCurrent(null);setScreen('create');}} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
       <QuotationDialog key={dialog||'closed'} type={dialog} quotation={current&&enrich(current)} error={error} onClose={()=>setDialog(null)} onConfirm={transition}/>
     </fieldset>
     <Snackbar open={!!notice} autoHideDuration={5000} onClose={()=>setNotice('')}><Alert severity="success">{notice}</Alert></Snackbar>

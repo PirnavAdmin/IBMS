@@ -141,8 +141,6 @@
 .quote-audit-empty p { color: var(--text-secondary); font-size: .83rem; }
 .quote-audit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 @media (max-width: 700px) { .quote-audit-panel { padding: 16px; } .quote-audit-toolbar { align-items: stretch; flex-direction: column; } .quote-audit-search { width: 100%; box-sizing: border-box; } .quote-audit-sort { justify-content: space-between; } .quote-audit-timezone { padding-left: 58px; } }
-<<<<<<< Updated upstream
-=======
 
 .quotation-details-page .quote-details-grid { grid-template-columns: minmax(0, 1fr); }
 .quotation-details-page .quote-details-combined { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 72px; width: 100%; max-width: 920px; }
@@ -326,4 +324,3 @@
 .quote-charge-name { display: grid; gap: 6px; min-width: 0; }
 .quote-charge-row { max-width: 50%; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 35px; }
 @media (max-width: 700px) { .quote-charge-row { max-width: 100%; grid-template-columns: minmax(0, 1fr) 35px; } .quote-charge-name { grid-column: 1 / -1; } }
->>>>>>> Stashed changes
