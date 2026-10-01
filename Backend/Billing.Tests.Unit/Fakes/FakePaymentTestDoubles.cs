@@ -189,13 +189,32 @@ public class FakeInvoiceRepository : IInvoiceRepository
             ChargesAmount = src.ChargesAmount,
             TotalAmount = src.TotalAmount,
             PaidAmount = src.PaidAmount,
+            CreditedAmount = src.CreditedAmount,
             BalanceAmount = src.BalanceAmount,
             Notes = src.Notes,
             TermsAndConditions = src.TermsAndConditions,
             QuotationId = src.QuotationId,
             CreatedAtUtc = src.CreatedAtUtc,
             UpdatedAtUtc = src.UpdatedAtUtc,
-            RowVersion = src.RowVersion
+            RowVersion = src.RowVersion,
+            Items = src.Items.Select(i => new InvoiceItem
+            {
+                Id = i.Id,
+                InvoiceId = i.InvoiceId,
+                ProductId = i.ProductId,
+                Description = i.Description,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                DiscountType = i.DiscountType,
+                DiscountRate = i.DiscountRate,
+                DiscountAmount = i.DiscountAmount,
+                TaxType = i.TaxType,
+                TaxRate = i.TaxRate,
+                TaxAmount = i.TaxAmount,
+                TotalAmount = i.TotalAmount,
+                HSNSAC = i.HSNSAC
+            }).ToList(),
+            PaymentAllocations = src.PaymentAllocations.ToList()
         };
     }
 }

@@ -64,6 +64,12 @@ public class BillingDbContext : DbContext
 
     public DbSet<InvoicePaymentAllocation> InvoicePaymentAllocations { get; set; }
 
+    public DbSet<CreditNote> CreditNotes { get; set; }
+
+    public DbSet<CreditNoteItem> CreditNoteItems { get; set; }
+
+    public DbSet<CreditNoteRefund> CreditNoteRefunds { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _currentUserService?.TenantId;
@@ -590,6 +596,7 @@ public class BillingDbContext : DbContext
             entity.Property(inv => inv.ChargesAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.TotalAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.PaidAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.CreditedAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.BalanceAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.RowVersion).IsRowVersion();
 
@@ -753,6 +760,98 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(a => new { a.TenantId, a.InvoiceId });
             entity.HasIndex(a => new { a.TenantId, a.PaymentId });
+        });
+
+        modelBuilder.Entity<CreditNote>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.CreditNoteNumber).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.Type).HasMaxLength(32).HasDefaultValue("Full").IsRequired();
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Draft").IsRequired();
+            entity.Property(c => c.Reason).HasMaxLength(250).IsRequired();
+            entity.Property(c => c.Notes).HasMaxLength(1000);
+            entity.Property(c => c.Subtotal).HasPrecision(18, 2);
+            entity.Property(c => c.TaxAmount).HasPrecision(18, 2);
+            entity.Property(c => c.TotalAmount).HasPrecision(18, 2);
+            entity.Property(c => c.RefundedAmount).HasPrecision(18, 2);
+            entity.Property(c => c.RemainingRefundableAmount).HasPrecision(18, 2);
+            entity.Property(c => c.CreatedBy).HasMaxLength(200).IsRequired();
+            entity.Property(c => c.ApprovedBy).HasMaxLength(200);
+            entity.Property(c => c.RejectionReason).HasMaxLength(500);
+            entity.Property(c => c.RejectedBy).HasMaxLength(200);
+            entity.Property(c => c.IssuedBy).HasMaxLength(200);
+            entity.Property(c => c.CancelledBy).HasMaxLength(200);
+            entity.Property(c => c.CancellationReason).HasMaxLength(500);
+            entity.Property(c => c.RowVersion).IsRowVersion();
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(c => c.Customer)
+                  .WithMany()
+                  .HasForeignKey(c => c.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(c => c.Invoice)
+                  .WithMany(inv => inv.CreditNotes)
+                  .HasForeignKey(c => c.InvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(c => c.Items)
+                  .WithOne(i => i.CreditNote)
+                  .HasForeignKey(i => i.CreditNoteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(c => c.Refunds)
+                  .WithOne(r => r.CreditNote)
+                  .HasForeignKey(r => r.CreditNoteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => new { c.TenantId, c.CreditNoteNumber }).IsUnique();
+            entity.HasIndex(c => new { c.TenantId, c.InvoiceId });
+            entity.HasIndex(c => new { c.TenantId, c.CustomerId });
+            entity.HasIndex(c => new { c.TenantId, c.Status });
+            entity.HasIndex(c => new { c.TenantId, c.CreditDate });
+        });
+
+        modelBuilder.Entity<CreditNoteItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Description).HasMaxLength(500).IsRequired();
+            entity.Property(i => i.Quantity).HasPrecision(18, 4);
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TaxType).HasMaxLength(32);
+            entity.Property(i => i.TaxRate).HasPrecision(18, 2);
+            entity.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TotalAmount).HasPrecision(18, 2);
+            entity.Property(i => i.HSNSAC).HasMaxLength(64);
+
+            entity.HasOne(i => i.Product)
+                  .WithMany()
+                  .HasForeignKey(i => i.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(i => i.InvoiceItem)
+                  .WithMany()
+                  .HasForeignKey(i => i.InvoiceItemId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CreditNoteRefund>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.RefundNumber).HasMaxLength(64).IsRequired();
+            entity.Property(r => r.RefundAmount).HasPrecision(18, 2);
+            entity.Property(r => r.PaymentMethod).HasMaxLength(50).IsRequired();
+            entity.Property(r => r.ReferenceNumber).HasMaxLength(100);
+            entity.Property(r => r.Notes).HasMaxLength(500);
+            entity.Property(r => r.ProcessedBy).HasMaxLength(200).IsRequired();
+
+            entity.HasIndex(r => new { r.TenantId, r.RefundNumber }).IsUnique();
+            entity.HasIndex(r => new { r.TenantId, r.CreditNoteId });
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
