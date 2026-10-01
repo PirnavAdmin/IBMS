@@ -44,7 +44,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
         }
     }
 
-    public Task<Invoice?> GetByIdAsync(int id, int tenantId)
+    public Task<Invoice?> GetByIdAsync(int id, int tenantId, CancellationToken cancellationToken = default)
     {
         lock (_lock)
         {
@@ -114,7 +114,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
         }
     }
 
-    public Task<Invoice> UpdateAsync(Invoice invoice)
+    public Task<Invoice> UpdateAsync(Invoice invoice, CancellationToken cancellationToken = default)
     {
         if (CustomExceptionOnUpdate != null)
         {
@@ -133,6 +133,40 @@ public class FakeInvoiceRepository : IInvoiceRepository
                 _invoices[index] = CloneInvoice(invoice);
             }
             return Task.FromResult(invoice);
+        }
+    }
+
+    public Task<PagedResult<Invoice>> GetPagedAsync(int tenantId, InvoiceFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var list = _invoices.Where(i => i.TenantId == tenantId).Select(CloneInvoice).ToList();
+            var page = filter.Page <= 0 ? 1 : filter.Page;
+            var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+            var paged = new PagedResult<Invoice>
+            {
+                Items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList(),
+                TotalCount = list.Count,
+                PageNumber = page,
+                PageSize = pageSize
+            };
+            return Task.FromResult(paged);
+        }
+    }
+
+    public Task<InvoiceSummaryDto> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var list = _invoices.Where(i => i.TenantId == tenantId).ToList();
+            var summary = new InvoiceSummaryDto
+            {
+                TotalInvoiced = list.Sum(i => i.TotalAmount),
+                TotalPaid = list.Sum(i => i.PaidAmount),
+                TotalOutstanding = list.Sum(i => i.BalanceAmount),
+                OverdueCount = list.Count(i => i.DueDate < DateTime.UtcNow && i.BalanceAmount > 0)
+            };
+            return Task.FromResult(summary);
         }
     }
 
@@ -509,6 +543,18 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
         lock (_lock)
         {
             var tenantLogs = _logs.Where(l => l.TenantId == tenantId).ToList();
+            var items = tenantLogs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            return Task.FromResult((items, tenantLogs.Count));
+        }
+    }
+
+    public Task<(List<AuditLog> Items, int TotalCount)> GetFilteredPagedAsync(int tenantId, Billing.Contracts.AuditLogFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var tenantLogs = _logs.Where(l => l.TenantId == tenantId).ToList();
+            var page = filter.Page <= 0 ? 1 : filter.Page;
+            var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
             var items = tenantLogs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult((items, tenantLogs.Count));
         }
