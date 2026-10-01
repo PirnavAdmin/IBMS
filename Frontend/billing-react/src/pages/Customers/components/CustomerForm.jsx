@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
+import { CustomerSelectField } from './CustomerSelectField';
 import { shippingFromBilling } from 'billing-contracts';
 import { customerApi } from 'billing-api-client';
 import {
@@ -186,6 +187,7 @@ export const CustomerForm = ({
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -608,14 +610,17 @@ export const CustomerForm = ({
                       }`}
                       aria-hidden="true"
                     />
-                    <select
+                    <CustomerSelectField
+                      control={control}
+                      name="status"
                       id="customer-status"
-                      aria-invalid={Boolean(errors.status)}
-                      {...register('status')}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
+                      ariaLabel="Account status"
+                      invalid={Boolean(errors.status)}
+                      options={[
+                        { value: 'Active', label: 'Active' },
+                        { value: 'Inactive', label: 'Inactive' },
+                      ]}
+                    />
                   </div>}
 
                   {errors.status && (
@@ -659,30 +664,28 @@ export const CustomerForm = ({
                     Mobile / Phone Number <span className="cust-required">*</span>
                   </label>
                   <div className="cust-phone-group">
-                    <select
+                    <CustomerSelectField
+                      control={control}
+                      name="phoneCountryCode"
                       id="customer-phone-code"
                       className="cust-phone-code-select"
-                      aria-label="Country Dialing Code"
-                      {...register('phoneCountryCode', {
-                        onChange: (e) => {
-                          const newCode = e.target.value;
-                          const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
-                          const maxLen = newCfg.max || 10;
-                          const currentVal = getValues('phone') || '';
-                          if (currentVal.length > maxLen) {
-                            setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
-                          } else {
-                            trigger('phone');
-                          }
-                        },
-                      })}
-                    >
-                      {Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => (
-                        <option key={code} value={code}>
-                          {code} ({cfg.code})
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel="Country Dialing Code"
+                      invalid={Boolean(errors.phoneCountryCode)}
+                      onValueChange={(newCode) => {
+                        const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
+                        const maxLen = newCfg.max || 10;
+                        const currentVal = getValues('phone') || '';
+                        if (currentVal.length > maxLen) {
+                          setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
+                        } else {
+                          trigger('phone');
+                        }
+                      }}
+                      options={Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => ({
+                        value: code,
+                        label: `${code} (${cfg.code})`,
+                      }))}
+                    />
                     <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
                       <span className="cust-input-icon" aria-hidden="true">
                         <PhoneOutlined />
@@ -791,15 +794,18 @@ export const CustomerForm = ({
                   <label htmlFor="customer-tax-type">
                     Tax Registration Status <span className="cust-required">*</span>
                   </label>
-                  <select
+                  <CustomerSelectField
+                    control={control}
+                    name="taxRegistrationType"
                     id="customer-tax-type"
-                    aria-invalid={Boolean(errors.taxRegistrationType)}
-                    {...register('taxRegistrationType')}
-                  >
-                    <option value="gst">GST Registered</option>
-                    <option value="pan">PAN Available</option>
-                    <option value="non-gst">Non-GST / Unregistered</option>
-                  </select>
+                    ariaLabel="Tax Registration Status"
+                    invalid={Boolean(errors.taxRegistrationType)}
+                    options={[
+                      { value: 'gst', label: 'GST Registered' },
+                      { value: 'pan', label: 'PAN Available' },
+                      { value: 'non-gst', label: 'Non-GST / Unregistered' },
+                    ]}
+                  />
                   {errors.taxRegistrationType && (
                     <span className="cust-field-error" role="alert">
                       {errors.taxRegistrationType.message}
@@ -855,45 +861,40 @@ export const CustomerForm = ({
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-currency">
-                    Billing Currency
-                    <span className="cust-field-badge">Base Currency</span>
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true" style={{ fontWeight: 600, color: '#754d34' }}>
-                      ₹
-                    </span>
-                    <input
-                      id="customer-currency"
-                      type="text"
-                      readOnly={true}
-                      tabIndex={-1}
-                      value="INR (₹) - Indian Rupee"
-                      className="cust-input-readonly"
-                      style={{ paddingLeft: '38px' }}
-                      title="Billing currency is fixed to Indian Rupee (INR)"
-                    />
-                    <input type="hidden" value="INR" {...register('currency')} />
-                  </div>
-                  <span className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
-                    Fixed to base currency (INR) for Indian GST & tax compliance
-                  </span>
+                  <label htmlFor="customer-currency">Billing Currency</label>
+                  <CustomerSelectField
+                    control={control}
+                    name="currency"
+                    id="customer-currency"
+                    ariaLabel="Billing currency"
+                    invalid={Boolean(errors.currency)}
+                    options={[
+                      { value: 'INR', label: 'INR (₹)' },
+                      { value: 'USD', label: 'USD ($)' },
+                      { value: 'EUR', label: 'EUR (€)' },
+                      { value: 'GBP', label: 'GBP (£)' },
+                    ]}
+                  />
+                  {errors.currency && <span className="cust-field-error" role="alert">{errors.currency.message}</span>}
                 </div>
 
                 <div className="cust-field">
                   <label htmlFor="customer-payment-terms">Payment Terms</label>
-                  <select
+                  <CustomerSelectField
+                    control={control}
+                    name="paymentTerms"
                     id="customer-payment-terms"
-                    aria-invalid={Boolean(errors.paymentTerms)}
-                    {...register('paymentTerms')}
-                  >
-                    <option value="">Select Payment Terms</option>
-                    <option value="Due on Receipt">Due on Receipt</option>
-                    <option value="Net 15">Net 15</option>
-                    <option value="Net 30">Net 30</option>
-                    <option value="Net 45">Net 45</option>
-                    <option value="Net 60">Net 60</option>
-                  </select>
+                    ariaLabel="Payment terms"
+                    invalid={Boolean(errors.paymentTerms)}
+                    options={[
+                      { value: '', label: 'Select Payment Terms' },
+                      { value: 'Due on Receipt', label: 'Due on Receipt' },
+                      { value: 'Net 15', label: 'Net 15' },
+                      { value: 'Net 30', label: 'Net 30' },
+                      { value: 'Net 45', label: 'Net 45' },
+                      { value: 'Net 60', label: 'Net 60' },
+                    ]}
+                  />
                   {errors.paymentTerms && (
                     <span className="cust-field-error" role="alert">
                       {errors.paymentTerms.message}
@@ -912,6 +913,7 @@ export const CustomerForm = ({
                     prefix="billingAddress"
                     title="Billing Address Details"
                     register={register}
+                    control={control}
                     setValue={setValue}
                     trigger={trigger}
                     getValues={getValues}
@@ -937,6 +939,7 @@ export const CustomerForm = ({
                     prefix="shippingAddress"
                     title="Shipping Address Details"
                     register={register}
+                    control={control}
                     setValue={setValue}
                     trigger={trigger}
                     getValues={getValues}
@@ -1045,7 +1048,7 @@ export const CustomerForm = ({
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Currency</span>
-                      <span className="cust-review-value">INR (₹) - Indian Rupee</span>
+                        <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>

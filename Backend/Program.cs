@@ -126,6 +126,7 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
         connectionString,
         ServerVersion.AutoDetect(connectionString)
     )
+    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
 );
 
 // ============================================================
@@ -152,6 +153,7 @@ builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngi
 builder.Services.AddScoped<LandingPageService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // ============================================================
 // Repositories
@@ -171,6 +173,8 @@ builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================
@@ -474,3 +478,4 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 // Run
 // ============================================================
 app.Run();
+

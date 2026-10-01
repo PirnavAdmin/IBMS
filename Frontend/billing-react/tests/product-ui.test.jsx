@@ -51,7 +51,9 @@ test('PQA product form: create excludes inactive category; edit retains its disa
   assert.match(create, /E-Commerce/);
   const edit = render(<ProductForm mode="edit" initialValues={{ ...product, categoryId: 2, unit: 'Hour', taxCategory: null }} onSubmit={() => {}} />, cache);
   assert.match(edit, /<option value="2" disabled="">Inactive category \(Inactive\)<\/option>/);
-  assert.match(edit, /<option value="Hour">Hour<\/option>/);
+  assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).unit, 'Others');
+  assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).customUnit, 'Hour');
+  assert.match(edit, /name="customUnit"/);
   assert.match(edit, /<option value="">Not set<\/option>/);
 });
 
@@ -146,4 +148,32 @@ test('PQA Price sorting: trailing arrow and right-aligned cells in both directio
     assert.match(html, /<td[^>]*MuiTableCell-alignRight[^>]*product-price/);
     assert.match(html, /class="product-identity"><span class="product-row-icon product"[^>]*>.*?<\/span><a[^>]*class="product-name"/s);
   }
+});
+
+
+test('PQA custom units: Piece/Set hidden, Others required, custom edit populated in both modes', () => {
+  const cache = client(); cache.setQueryData(['categories', 'list'], categories);
+  for (const mode of ['create', 'edit']) {
+    for (const unit of ['Piece', 'Set', 'Others', 'Box']) {
+      const html = render(<ProductForm mode={mode} initialValues={{ ...product, unit }} onSubmit={() => {}} />, cache);
+      assert.equal(html.includes('id="productCustomUnit"'), ['Others', 'Box'].includes(unit));
+      if (unit === 'Box') {
+        assert.equal(getProductInitialValues({ ...product, unit }).unit, 'Others');
+        assert.equal(getProductInitialValues({ ...product, unit }).customUnit, 'Box');
+        assert.match(html, /id="productCustomUnit"[^>]*required=""/);
+      }
+    }
+  }
+});
+
+test('PQA setup failure renders one combined alert and one retry; recovery clears it', () => {
+  const cache = client();
+  cache.getQueryCache().build(cache, { queryKey: ['categories', 'list'] }).setState({ status: 'error', fetchStatus: 'idle', error: new Error('Unable to load categories') });
+  const form = <ProductForm initialValues={product} onSubmit={() => {}} />;
+  const html = render(form, cache);
+  assert.equal((html.match(/role="alert"/g) || []).length, 1);
+  assert.equal((html.match(/>Retry</g) || []).length, 1);
+  assert.match(html, /Unable to load product setup data. Check your connection and try again./);
+  cache.setQueryData(['categories', 'list'], categories);
+  assert.doesNotMatch(render(form, cache), /Unable to load product setup data/);
 });

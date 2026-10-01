@@ -171,6 +171,8 @@ public class NumberGenerationService : INumberGenerationService
         if (norm.Contains("quote") || norm.Contains("quotation")) return "QT-";
         if (norm.Contains("recurring")) return "REC-";
         if (norm.Contains("challan")) return "DC-";
+        if (norm.Contains("payment")) return "PAY-";
+        if (norm.Contains("receipt")) return "RCPT-";
         return "INV-";
     }
 

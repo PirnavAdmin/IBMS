@@ -16,6 +16,26 @@ public class CustomerServiceTests
         _service = new CustomerService(_fakeRepo);
     }
 
+    [Fact]
+    public async Task CustomerDetails_UsesStoredInvoicesAndExcludesDraftAndOtherTenantBalances()
+    {
+        var customer = new Customer { Id = 901, TenantId = 1, Name = "Invoice customer", Currency = "INR" };
+        customer.Invoices.Add(new Invoice { Id = 1, TenantId = 1, Status = "Issued", TotalAmount = 100, PaidAmount = 30, BalanceAmount = 70 });
+        customer.Invoices.Add(new Invoice { Id = 2, TenantId = 1, Status = "Draft", TotalAmount = 500, BalanceAmount = 500 });
+        customer.Invoices.Add(new Invoice { Id = 3, TenantId = 2, Status = "Issued", TotalAmount = 900, BalanceAmount = 900 });
+        _fakeRepo.Customers.Add(customer);
+
+        var result = await _service.GetCustomerDetailsAsync(customer.Id, 1);
+
+        Assert.True(result.Success);
+        Assert.Equal(70m, result.Data!.Customer.OutstandingBalance);
+        Assert.Equal(100m, result.Data.FinancialSummary.TotalInvoiced);
+        Assert.Equal(30m, result.Data.FinancialSummary.TotalPaid);
+        Assert.Equal(70m, result.Data.FinancialSummary.OutstandingBalance);
+        Assert.Equal(2, result.Data.Invoices.Count);
+        Assert.Equal(1, result.Data.FinancialSummary.OpenInvoicesCount);
+    }
+
     #region IBMSBE-001: POST Create Customer Tests
 
     [Fact]

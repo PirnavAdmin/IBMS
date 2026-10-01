@@ -5,6 +5,6 @@ export const useCustomers = (params) => useQuery({ queryKey: ['customers', 'list
 export const useCustomerSummary = () => useQuery({ queryKey: ['customers', 'summary'], queryFn: ({ signal }) => getCustomerSummary(signal), staleTime: 60000, retry: false });
 export function useCustomerStatus() {
   const client = useQueryClient();
-  return useMutation({ mutationFn: (customer) => deactivateCustomer(customer.id),
+  return useMutation({ mutationFn: (customer) => deactivateCustomer(customer.id, customer.reason),
     onSuccess: (_, customer) => Promise.all([['customers'], ['customer', String(customer.id)], ['customer-details', String(customer.id)], ['customer-audit', String(customer.id)]].map(queryKey => client.invalidateQueries({ queryKey }))) });
 }

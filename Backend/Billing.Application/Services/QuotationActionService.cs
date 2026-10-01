@@ -271,6 +271,8 @@ public class QuotationActionService : IQuotationActionService
                 TaxAmount = quotation.TaxAmount,
                 ChargesAmount = quotation.ChargesAmount,
                 TotalAmount = quotation.TotalAmount,
+                PaidAmount = 0m,
+                BalanceAmount = quotation.TotalAmount,
                 QuotationId = quotation.Id,
                 Notes = quotation.Notes,
                 TermsAndConditions = quotation.TermsAndConditions,

@@ -19,6 +19,10 @@ export const EditCustomer = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const customerIsInactive = String(
+    customer?.status ?? customer?.Status ??
+    (customer?.isActive === false || customer?.IsActive === false ? 'Inactive' : 'Active')
+  ).toLowerCase() === 'inactive';
 
   useEffect(() => {
     if (!id) {
@@ -113,36 +117,45 @@ export const EditCustomer = () => {
   }
 
   return (
-    <main className="cust-page">
-      {/* Breadcrumbs */}
-      <nav className="cust-breadcrumbs" aria-label="Breadcrumb">
-        <button
-          type="button"
-          className="cust-breadcrumb-link"
-          onClick={() => navigate('/customers')}
-        >
-          <ArrowBack /> Customers
-        </button>
-        <span className="cust-breadcrumb-sep">/</span>
-        <button
-          type="button"
-          className="cust-breadcrumb-link"
-          onClick={() => navigate(`/customers/${id}`)}
-        >
-          {customer.name}
-        </button>
-        <span className="cust-breadcrumb-sep">/</span>
-        <span className="cust-breadcrumb-current">Edit</span>
-      </nav>
+    <main className="cust-page cust-edit-page">
+      <div className="cust-edit-intro">
+        <nav className="cust-breadcrumbs" aria-label="Breadcrumb">
+          <button
+            type="button"
+            className="cust-breadcrumb-link"
+            onClick={() => navigate('/customers')}
+          >
+            <ArrowBack /> Customers
+          </button>
+          <span className="cust-breadcrumb-sep">/</span>
+          <button
+            type="button"
+            className="cust-breadcrumb-link"
+            onClick={() => navigate(`/customers/${id}`)}
+          >
+            {customer.name}
+          </button>
+          <span className="cust-breadcrumb-sep">/</span>
+          <span className="cust-breadcrumb-current">Edit</span>
+        </nav>
 
-      {/* Header */}
-      <header className="cust-header">
-        <div>
-          <span className="cust-eyebrow">Customer Management</span>
-          <h1>Edit Customer: {customer.name}</h1>
-          <p>Update customer details, billing records, or tax identification.</p>
-        </div>
-      </header>
+        <header className="cust-header">
+          <div className="cust-edit-title-group">
+            <div className="cust-edit-avatar" aria-hidden="true">
+              {String(customer.name || 'Customer').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+            </div>
+            <div className="cust-edit-title-copy">
+              <span className="cust-eyebrow">Customer Management · Edit Profile</span>
+              <h1>{customer.name}</h1>
+              <p>Update contact, billing, tax, and address information.</p>
+            </div>
+          </div>
+          <div className={`cust-edit-status ${customerIsInactive ? 'inactive' : 'active'}`}>
+            <span aria-hidden="true" />
+            {customerIsInactive ? 'Inactive' : 'Active'}
+          </div>
+        </header>
+      </div>
 
       {/* Reusable Form populated with existing customer details */}
       <CustomerForm
