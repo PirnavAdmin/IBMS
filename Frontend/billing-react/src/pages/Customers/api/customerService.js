@@ -240,7 +240,7 @@ export async function updateCustomer(id, payload) {
   const url = path(id);
   return request(() => apiClient.put(url, payload));
 }
-export async function deactivateCustomer(id) {
+export async function deactivateCustomer(id, reason) {
   const url = path(id);
-  return request(() => apiClient.patch(`${url}/deactivate`));
+  return request(() => apiClient.patch(`${url}/deactivate`, undefined, { params: { reason } }));
 }

@@ -266,12 +266,15 @@ public class QuotationActionService : IQuotationActionService
                 CustomerId = quotation.CustomerId,
                 InvoiceDate = DateTime.UtcNow,
                 DueDate = quotation.ValidUntil > DateTime.UtcNow ? quotation.ValidUntil : DateTime.UtcNow.AddDays(30),
+                Reference = quotation.QuoteNumber,
+                QuotationId = quotation.Id,
                 Subtotal = quotation.Subtotal,
                 DiscountAmount = quotation.DiscountAmount,
                 TaxAmount = quotation.TaxAmount,
                 ChargesAmount = quotation.ChargesAmount,
                 TotalAmount = quotation.TotalAmount,
-                QuotationId = quotation.Id,
+                PaidAmount = 0m,
+                BalanceAmount = quotation.TotalAmount,
                 Notes = quotation.Notes,
                 TermsAndConditions = quotation.TermsAndConditions,
                 Status = "Draft",
@@ -307,7 +310,7 @@ public class QuotationActionService : IQuotationActionService
                 EntityId = quotationId.ToString(),
                 Action = "Converted",
                 UserName = userId,
-                Changes = "Converted to Invoice",
+                Changes = $"Converted to Invoice {savedInvoice.Id}",
                 Timestamp = DateTime.UtcNow
             };
             await _auditLogRepository.AddAsync(auditLog);

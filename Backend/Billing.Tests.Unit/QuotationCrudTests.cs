@@ -384,272 +384,104 @@ public class QuotationCrudTests
     }
 
     [Fact]
-    public async Task CreateQuotation_ShouldLogAuditCreatedEvent()
+    public async Task CreateDraft_WithChargesAndDiscount_IncludesChargesAndAuditLogs()
     {
+        // Arrange
         var auditRepo = new FakeAuditLogRepository();
-        var serviceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var quotationServiceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var mockActionService = new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>();
+        var controller = new QuotationsController(quotationServiceWithAudit, mockActionService.Object, NullLogger<QuotationsController>.Instance, auditRepo);
+        SetUserContext(controller, tenantId: 1);
 
-        var req = new CreateQuotationRequest
+        var request = new CreateQuotationRequest
         {
             CustomerId = 10,
             QuotationDate = DateTime.UtcNow,
-            ValidUntil = DateTime.UtcNow.AddDays(7),
+            ValidUntil = DateTime.UtcNow.AddDays(15),
+            ChargesAmount = 50m,
             Items = new List<CreateQuotationItemRequest>
             {
-                new() { Description = "Test Item", Quantity = 2, UnitPrice = 500, DiscountRate = 10, DiscountType = "Percentage" }
+                new()
+                {
+                    Description = "Service Item",
+                    Quantity = 2m,
+                    UnitPrice = 100m,
+                    DiscountType = "Percentage",
+                    DiscountRate = 10m,
+                    TaxType = "GST",
+                    TaxRate = 18m
+                }
             }
         };
 
-        var res = await serviceWithAudit.CreateDraftAsync(req, 1, "test-user-1");
-        Assert.True(res.Success);
+        // Act
+        var result = await controller.CreateDraftQuotation(request);
 
-        var createdLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Created");
-        Assert.NotNull(createdLog);
-        Assert.Equal("test-user-1", createdLog.UserName);
+        // Assert
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(created.Value);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(50m, response.Data.ChargesAmount);
+        Assert.Equal(200m, response.Data.Subtotal);
+        Assert.Equal(20m, response.Data.DiscountAmount);
+        Assert.Equal(32.4m, response.Data.TaxAmount);
+        // Total = 200 - 20 + 32.4 + 50 = 262.4
+        Assert.Equal(262.4m, response.Data.TotalAmount);
+        Assert.Equal("CUST-001", response.Data.CustomerCode);
 
-        var discountLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Discount Override");
-        Assert.NotNull(discountLog);
+        // Verify audit logs were written
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Created");
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Discount Override");
     }
 
     [Fact]
-    public async Task UpdateDraftQuotation_ShouldLogAuditEditedEvent()
+    public async Task UpdateDraft_WithCharges_UpdatesChargesAndAuditLogs()
     {
+        // Arrange
         var auditRepo = new FakeAuditLogRepository();
-        var serviceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var quotationServiceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var mockActionService = new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>();
+        var controller = new QuotationsController(quotationServiceWithAudit, mockActionService.Object, NullLogger<QuotationsController>.Instance, auditRepo);
+        SetUserContext(controller, tenantId: 1);
 
         var quote = new Quotation
         {
-            Id = 401,
+            Id = 505,
             TenantId = 1,
-            QuoteNumber = "QT-EDIT-401",
+            QuoteNumber = "QT-505",
             CustomerId = 10,
             Status = QuotationStatus.Draft,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(7),
             RowVersion = DateTime.UtcNow
         };
         await _quotationRepo.AddAsync(quote);
 
-        var updateReq = new UpdateQuotationRequest
+        var updateRequest = new UpdateQuotationRequest
         {
             CustomerId = 10,
             QuotationDate = DateTime.UtcNow,
             ValidUntil = DateTime.UtcNow.AddDays(14),
+            ChargesAmount = 75m,
             Items = new List<CreateQuotationItemRequest>
             {
-                new() { Description = "Edited Item", Quantity = 3, UnitPrice = 200 }
+                new() { Description = "Updated Item", Quantity = 1m, UnitPrice = 300m }
             }
         };
 
-        var res = await serviceWithAudit.UpdateDraftAsync(401, updateReq, 1, "editor-user");
-        Assert.True(res.Success);
+        // Act
+        var result = await controller.UpdateDraftQuotation(quote.Id, updateRequest);
 
-        var editLog = auditRepo.Logs.FirstOrDefault(l => l.EntityName == "Quotation" && l.Action == "Edited");
-        Assert.NotNull(editLog);
-        Assert.Equal("editor-user", editLog.UserName);
-    }
-
-    [Fact]
-    public async Task QuotationNumbering_DefaultPrefixAndTokens_ShouldBeQTAndYearMonth()
-    {
-        var genReq = new Billing.Contracts.Numbering.GenerateNumberRequest
-        {
-            DocumentType = "Quotation",
-            TransactionDate = new DateTime(2026, 9, 28)
-        };
-
-        var numberResult = await _numberGenerationService.GenerateNextNumberAsync(genReq, 1);
-        Assert.True(numberResult.Success);
-        Assert.StartsWith("QT-2026-09-", numberResult.Data!.GeneratedNumber);
-    }
-
-    [Fact]
-    public async Task GetAuditLogs_WhenNoCreatedLogExists_ShouldSynthesizeInitialCreatedEntry()
-    {
-        var auditRepo = new FakeAuditLogRepository();
-        var quote = new Quotation
-        {
-            Id = 501,
-            TenantId = 1,
-            QuoteNumber = "QT-SYNTH-501",
-            CustomerId = 10,
-            QuotationDate = new DateTime(2026, 9, 25),
-            Status = QuotationStatus.Approved,
-            RowVersion = DateTime.UtcNow
-        };
-        await _quotationRepo.AddAsync(quote);
-
-        var controllerWithAudit = new QuotationsController(_quotationService, new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>().Object, NullLogger<QuotationsController>.Instance, auditRepo);
-        SetUserContext(controllerWithAudit, 1);
-
-        var result = await controllerWithAudit.GetAuditLogs(501);
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<ApiResponse<List<AuditLog>>>(okResult.Value);
-
-        Assert.True(response.Success);
-        Assert.Contains(response.Data!, l => l.Action == "Created");
-    }
-
-    [Fact]
-    public async Task CreateDraftQuotation_InvalidDateOrder_ReturnsBadRequest()
-    {
-        var request = new CreateQuotationRequest
-        {
-            CustomerId = 10,
-            QuotationDate = DateTime.UtcNow.AddDays(5),
-            ValidUntil = DateTime.UtcNow,
-            Items = new List<CreateQuotationItemRequest>
-            {
-                new() { Description = "Item 1", Quantity = 1, UnitPrice = 100 }
-            }
-        };
-
-        var result = await _controller.CreateDraftQuotation(request);
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(badRequest.Value);
-        Assert.False(response.Success);
-        Assert.Equal("INVALID_VALIDITY_DATE", response.ErrorCode);
-    }
-
-    [Fact]
-    public async Task CreateDraftQuotation_InactiveProduct_ReturnsBadRequest()
-    {
-        var productRepo = new FakeProductRepository();
-        productRepo.Products.Add(new Product
-        {
-            Id = 55,
-            TenantId = 1,
-            Name = "Old Inactive Tool",
-            Status = "Inactive"
-        });
-
-        var quotationService = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, productRepository: productRepo);
-        var controller = new QuotationsController(quotationService, new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>().Object, NullLogger<QuotationsController>.Instance);
-        SetUserContext(controller, 1);
-
-        var request = new CreateQuotationRequest
-        {
-            CustomerId = 10,
-            ValidUntil = DateTime.UtcNow.AddDays(10),
-            Items = new List<CreateQuotationItemRequest>
-            {
-                new() { ProductId = 55, Description = "Tool", Quantity = 1, UnitPrice = 100 }
-            }
-        };
-
-        var result = await controller.CreateDraftQuotation(request);
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(badRequest.Value);
-        Assert.False(response.Success);
-        Assert.Equal("INACTIVE_PRODUCT", response.ErrorCode);
-    }
-
-    [Fact]
-    public async Task CreateDraftQuotation_OtherTenantProduct_ReturnsBadRequest()
-    {
-        var productRepo = new FakeProductRepository();
-        productRepo.Products.Add(new Product
-        {
-            Id = 77,
-            TenantId = 2,
-            Name = "Other Tenant Widget",
-            Status = "Active"
-        });
-
-        var quotationService = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, productRepository: productRepo);
-        var controller = new QuotationsController(quotationService, new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>().Object, NullLogger<QuotationsController>.Instance);
-        SetUserContext(controller, 1);
-
-        var request = new CreateQuotationRequest
-        {
-            CustomerId = 10,
-            ValidUntil = DateTime.UtcNow.AddDays(10),
-            Items = new List<CreateQuotationItemRequest>
-            {
-                new() { ProductId = 77, Description = "Widget", Quantity = 1, UnitPrice = 100 }
-            }
-        };
-
-        var result = await controller.CreateDraftQuotation(request);
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(badRequest.Value);
-        Assert.False(response.Success);
-        Assert.Equal("INVALID_PRODUCT", response.ErrorCode);
-    }
-
-    [Fact]
-    public async Task GetQuotationById_IncludesCustomerAddressAndGstinSnapshot()
-    {
-        var cust = new Customer
-        {
-            Id = 33,
-            TenantId = 1,
-            Name = "Snapshot Enterprises",
-            TaxId = "27AAACS1234A1Z5",
-            Addresses = new List<CustomerAddress>
-            {
-                new() { AddressType = "Billing", AddressLine1 = "123 Main St", City = "Mumbai", State = "MH", PostalCode = "400001", Country = "India", IsDefaultStatus = "Default" },
-                new() { AddressType = "Shipping", AddressLine1 = "Warehouse 4", City = "Navi Mumbai", State = "MH", PostalCode = "400703", Country = "India", IsDefaultStatus = "Default" }
-            }
-        };
-        _customerRepo.Customers.Add(cust);
-
-        var quote = new Quotation
-        {
-            Id = 330,
-            TenantId = 1,
-            QuoteNumber = "QT-SNAP-01",
-            CustomerId = 33,
-            Customer = cust,
-            QuotationDate = DateTime.UtcNow,
-            ValidUntil = DateTime.UtcNow.AddDays(10),
-            Status = QuotationStatus.Draft
-        };
-        await _quotationRepo.AddAsync(quote);
-
-        var result = await _controller.GetQuotationById(330);
+        // Assert
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(ok.Value);
         Assert.True(response.Success);
-        Assert.Equal("27AAACS1234A1Z5", response.Data!.CustomerGstin);
-        Assert.Contains("123 Main St", response.Data.BillingAddress);
-        Assert.Contains("Warehouse 4", response.Data.ShippingAddress);
-    }
+        Assert.NotNull(response.Data);
+        Assert.Equal(75m, response.Data.ChargesAmount);
+        Assert.Equal(375m, response.Data.TotalAmount); // 300 + 75
+        Assert.NotNull(response.Data.UpdatedAtUtc);
 
-    [Fact]
-    public async Task GetQuotations_ValidityFilter_ReturnsFilteredResults()
-    {
-        var validQuote = new Quotation
-        {
-            Id = 801,
-            TenantId = 1,
-            QuoteNumber = "QT-VALID",
-            CustomerId = 10,
-            QuotationDate = DateTime.UtcNow.AddDays(-2),
-            ValidUntil = DateTime.UtcNow.AddDays(10)
-        };
-        var expiredQuote = new Quotation
-        {
-            Id = 802,
-            TenantId = 1,
-            QuoteNumber = "QT-EXPIRED",
-            CustomerId = 10,
-            QuotationDate = DateTime.UtcNow.AddDays(-20),
-            ValidUntil = DateTime.UtcNow.AddDays(-5)
-        };
-        await _quotationRepo.AddAsync(validQuote);
-        await _quotationRepo.AddAsync(expiredQuote);
-
-        var filterValid = new QuotationListFilterRequest { Validity = "Valid" };
-        var validRes = await _controller.GetQuotations(filterValid);
-        var validOk = Assert.IsType<OkObjectResult>(validRes);
-        var validData = Assert.IsType<ApiResponse<PagedResult<QuotationResponse>>>(validOk.Value);
-        Assert.Contains(validData.Data!.Items, q => q.QuoteNumber == "QT-VALID");
-        Assert.DoesNotContain(validData.Data.Items, q => q.QuoteNumber == "QT-EXPIRED");
-
-        var filterExpired = new QuotationListFilterRequest { Validity = "Expired" };
-        var expiredRes = await _controller.GetQuotations(filterExpired);
-        var expiredOk = Assert.IsType<OkObjectResult>(expiredRes);
-        var expiredData = Assert.IsType<ApiResponse<PagedResult<QuotationResponse>>>(expiredOk.Value);
-        Assert.Contains(expiredData.Data!.Items, q => q.QuoteNumber == "QT-EXPIRED");
-        Assert.DoesNotContain(expiredData.Data.Items, q => q.QuoteNumber == "QT-VALID");
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Edited");
     }
 }

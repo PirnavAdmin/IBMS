@@ -32,4 +32,9 @@ public interface IAuditService
         int tenantId,
         int customerId,
         CancellationToken cancellationToken = default);
+
+    Task<Billing.Contracts.PagedResult<AuditLog>> GetTenantAuditHistoryAsync(
+        int tenantId,
+        Billing.Contracts.AuditLogFilterRequest filter,
+        CancellationToken cancellationToken = default);
 }

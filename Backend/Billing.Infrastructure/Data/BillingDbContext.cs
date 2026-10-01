@@ -1,13 +1,17 @@
 using Billing.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Billing.Application.Interfaces;
+using System.Text.Json;
 
 namespace Billing.Infrastructure.Data;
 
 public class BillingDbContext : DbContext
 {
-    public BillingDbContext(DbContextOptions<BillingDbContext> options)
+    private readonly ICurrentUserService? _currentUserService;
+    public BillingDbContext(DbContextOptions<BillingDbContext> options, ICurrentUserService? currentUserService = null)
         : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     public DbSet<Tenant> Tenants { get; set; }
@@ -56,6 +60,80 @@ public class BillingDbContext : DbContext
 
     public DbSet<GeneratedDocument> GeneratedDocuments { get; set; }
 
+    public DbSet<Payment> Payments { get; set; }
+
+    public DbSet<InvoicePaymentAllocation> InvoicePaymentAllocations { get; set; }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = _currentUserService?.TenantId;
+        var userName = _currentUserService?.UserName ?? "System";
+
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+            .ToList();
+
+        var auditLogs = new List<AuditLog>();
+
+        foreach (var entry in entries)
+        {
+            if (entry.Entity is AuditLog) continue;
+
+            var entityName = entry.Entity.GetType().Name;
+            var entityId = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "Unknown";
+
+            var oldValues = new Dictionary<string, object?>();
+            var newValues = new Dictionary<string, object?>();
+
+            foreach (var property in entry.Properties)
+            {
+                if (property.IsTemporary) continue;
+
+                string propertyName = property.Metadata.Name;
+
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        newValues[propertyName] = property.CurrentValue;
+                        break;
+
+                    case EntityState.Deleted:
+                        oldValues[propertyName] = property.OriginalValue;
+                        break;
+
+                    case EntityState.Modified:
+                        if (property.IsModified)
+                        {
+                            oldValues[propertyName] = property.OriginalValue;
+                            newValues[propertyName] = property.CurrentValue;
+                        }
+                        break;
+                }
+            }
+
+            if (oldValues.Count == 0 && newValues.Count == 0) continue;
+
+            auditLogs.Add(new AuditLog
+            {
+                TenantId = tenantId ?? 1,
+                EntityName = entityName,
+                EntityId = entityId,
+                Action = entry.State.ToString().ToUpper(),
+                UserName = userName,
+                Timestamp = DateTime.UtcNow,
+                OldValues = oldValues.Count > 0 ? JsonSerializer.Serialize(oldValues) : null,
+                NewValues = newValues.Count > 0 ? JsonSerializer.Serialize(newValues) : null,
+                Changes = "Automated data mutation log"
+            });
+        }
+
+        if (auditLogs.Any())
+        {
+            AuditLogs.AddRange(auditLogs);
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -521,7 +599,7 @@ public class BillingDbContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(inv => inv.Customer)
-                  .WithMany()
+                  .WithMany(c => c.Invoices)
                   .HasForeignKey(inv => inv.CustomerId)
                   .OnDelete(DeleteBehavior.Restrict);
 
@@ -608,6 +686,73 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(d => new { d.TenantId, d.InvoiceId });
             entity.HasIndex(d => new { d.TenantId, d.DocumentType });
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.PaymentNumber).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Amount).HasPrecision(18, 2);
+            entity.Property(p => p.AllocatedAmount).HasPrecision(18, 2);
+            entity.Property(p => p.Currency).HasMaxLength(10).HasDefaultValue("INR").IsRequired();
+            entity.Property(p => p.Method).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(p => p.CustomMethodName).HasMaxLength(64);
+            entity.Property(p => p.Reference).HasMaxLength(128);
+            entity.Property(p => p.BankName).HasMaxLength(128);
+            entity.Property(p => p.AccountLabel).HasMaxLength(128);
+            entity.Property(p => p.UpiPayerMetadata).HasMaxLength(128);
+            entity.Property(p => p.ChequeNumber).HasMaxLength(64);
+            entity.Property(p => p.ClearingStatus).HasMaxLength(32);
+            entity.Property(p => p.ProviderName).HasMaxLength(64);
+            entity.Property(p => p.ProviderTransactionId).HasMaxLength(128);
+            entity.Property(p => p.CallbackStatus).HasMaxLength(64);
+            entity.Property(p => p.MethodDetailsJson).HasMaxLength(2000);
+            entity.Property(p => p.Status).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(p => p.Notes).HasMaxLength(1000);
+            entity.Property(p => p.IdempotencyKey).HasMaxLength(128);
+            entity.Property(p => p.RequestPayloadHash).HasMaxLength(128);
+            entity.Property(p => p.CreatedBy).HasMaxLength(200).IsRequired();
+            entity.Property(p => p.ReversedBy).HasMaxLength(200);
+            entity.Property(p => p.ReversalReason).HasMaxLength(500);
+            entity.Ignore(p => p.IsReversible);
+            entity.Property(p => p.RowVersion).IsRowVersion();
+
+            entity.HasOne(p => p.Tenant)
+                  .WithMany()
+                  .HasForeignKey(p => p.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Customer)
+                  .WithMany()
+                  .HasForeignKey(p => p.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(p => p.Allocations)
+                  .WithOne(a => a.Payment)
+                  .HasForeignKey(a => a.PaymentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(p => new { p.TenantId, p.PaymentNumber }).IsUnique();
+            entity.HasIndex(p => new { p.TenantId, p.IdempotencyKey });
+            entity.HasIndex(p => new { p.TenantId, p.CustomerId });
+            entity.HasIndex(p => new { p.TenantId, p.Status });
+            entity.HasIndex(p => new { p.TenantId, p.PaymentDate });
+        });
+
+        modelBuilder.Entity<InvoicePaymentAllocation>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.AllocatedAmount).HasPrecision(18, 2);
+            entity.Property(a => a.ReversedBy).HasMaxLength(200);
+            entity.Property(a => a.ReversalReason).HasMaxLength(500);
+
+            entity.HasOne(a => a.Invoice)
+                  .WithMany(inv => inv.PaymentAllocations)
+                  .HasForeignKey(a => a.InvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(a => new { a.TenantId, a.InvoiceId });
+            entity.HasIndex(a => new { a.TenantId, a.PaymentId });
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(

@@ -51,7 +51,9 @@ test('PQA product form: create excludes inactive category; edit retains its disa
   assert.match(create, /E-Commerce/);
   const edit = render(<ProductForm mode="edit" initialValues={{ ...product, categoryId: 2, unit: 'Hour', taxCategory: null }} onSubmit={() => {}} />, cache);
   assert.match(edit, /<option value="2" disabled="">Inactive category \(Inactive\)<\/option>/);
-  assert.match(edit, /<option value="Hour">Hour<\/option>/);
+  assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).unit, 'Others');
+  assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).customUnit, 'Hour');
+  assert.match(edit, /name="customUnit"/);
   assert.match(edit, /<option value="">Not set<\/option>/);
 });
 
@@ -96,4 +98,82 @@ test('PQA details: current scope renders HSN, currency, discount, description fa
   const cache = client(); cache.setQueryData(['products', 'detail', '7'], product); cache.setQueryData(['categories', 'list'], categories);
   const html = render(<Routes><Route path="/products/:id" element={<ProductDetails />} /></Routes>, cache, '/products/7');
   for (const value of ['PRD-7', 'USD 1,234.50', '001234', 'Active category', 'No description provided.', 'Discount Allowed']) assert.ok(html.includes(value), value);
+});
+
+
+test('PQA discount preview: only positive valid discounts on a positive price', () => {
+  const cache = client(); cache.setQueryData(['categories', 'list'], categories);
+  for (const [price, discountPercentage, discountAllowed, visible] of [
+    [1000, 0, true, false], [1000, '', true, false], [0, 10, true, false],
+    [1000, 10, false, false], [1000, -1, true, false], [1000, 101, true, false],
+    [1000, 'invalid', true, false], [1000, 10, true, true], [1000, 100, true, true],
+  ]) {
+    const html = render(<ProductForm mode="create" initialValues={{ ...product, currency: 'INR', price, discountPercentage, discountAllowed }} onSubmit={() => {}} />, cache);
+    assert.equal(html.includes('Price after discount:'), visible, JSON.stringify({ price, discountPercentage, discountAllowed }));
+    if (visible && discountPercentage === 10) assert.match(html, /class="product-discount-amount"><strong>\u20b9900\.00<\/strong> <span>\(before tax\)<\/span>/);
+  }
+});
+
+test('PQA categories: active first, stable order within groups, cache unchanged', () => {
+  const cache = client();
+  const input = [categories[1], categories[0], { ...categories[0], id: 3, name: 'Another active' }];
+  cache.setQueryData(['categories', 'list'], input);
+  const html = render(<CategoryList />, cache, '/products/categories');
+  assert.ok(html.indexOf('<strong>Active category') < html.indexOf('<strong>Another active'));
+  assert.ok(html.indexOf('<strong>Another active') < html.indexOf('<strong>Inactive category'));
+  assert.equal(cache.getQueryData(['categories', 'list'])[0].id, 2);
+});
+
+
+test('PQA pagination: five-row pages retain correct next/previous ranges', () => {
+  for (const [pageNumber, first, last] of [[1, 1, 5], [2, 6, 10], [3, 11, 12]]) {
+    const html = render(<ProductPagination data={{ pageNumber, pageSize: 5, totalCount: 12, totalPages: 3 }} onPage={() => {}} onPageSize={() => {}} />);
+    assert.match(html, new RegExp(`Showing ${first}.*${last} of 12 products`));
+    assert.match(html, /value="5"/);
+    assert.match(html, /Next/);
+    assert.match(html, /Previous/);
+  }
+});
+
+
+test('PQA Price sorting: trailing arrow and right-aligned cells in both directions', () => {
+  for (const sortOrder of ['asc', 'desc']) {
+    const html = render(table({ params: { sortBy: 'price', sortOrder } }));
+    const header = html.match(/<th\b[^>]*>(?:(?!<\/th>).)*>Price<(?:(?!<\/th>).)*<\/th>/s)?.[0];
+    assert.ok(header);
+    assert.match(header, /MuiTableCell-alignRight/);
+    assert.match(header, /flex-direction:row;/);
+    assert.doesNotMatch(header, /flex-direction:row-reverse/);
+    assert.match(header.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ''), /Price<svg/);
+    assert.match(html, /<td[^>]*MuiTableCell-alignRight[^>]*product-price/);
+    assert.match(html, /class="product-identity"><span class="product-row-icon product"[^>]*>.*?<\/span><a[^>]*class="product-name"/s);
+  }
+});
+
+
+test('PQA custom units: Piece/Set hidden, Others required, custom edit populated in both modes', () => {
+  const cache = client(); cache.setQueryData(['categories', 'list'], categories);
+  for (const mode of ['create', 'edit']) {
+    for (const unit of ['Piece', 'Set', 'Others', 'Box']) {
+      const html = render(<ProductForm mode={mode} initialValues={{ ...product, unit }} onSubmit={() => {}} />, cache);
+      assert.equal(html.includes('id="productCustomUnit"'), ['Others', 'Box'].includes(unit));
+      if (unit === 'Box') {
+        assert.equal(getProductInitialValues({ ...product, unit }).unit, 'Others');
+        assert.equal(getProductInitialValues({ ...product, unit }).customUnit, 'Box');
+        assert.match(html, /id="productCustomUnit"[^>]*required=""/);
+      }
+    }
+  }
+});
+
+test('PQA setup failure renders one combined alert and one retry; recovery clears it', () => {
+  const cache = client();
+  cache.getQueryCache().build(cache, { queryKey: ['categories', 'list'] }).setState({ status: 'error', fetchStatus: 'idle', error: new Error('Unable to load categories') });
+  const form = <ProductForm initialValues={product} onSubmit={() => {}} />;
+  const html = render(form, cache);
+  assert.equal((html.match(/role="alert"/g) || []).length, 1);
+  assert.equal((html.match(/>Retry</g) || []).length, 1);
+  assert.match(html, /Unable to load product setup data. Check your connection and try again./);
+  cache.setQueryData(['categories', 'list'], categories);
+  assert.doesNotMatch(render(form, cache), /Unable to load product setup data/);
 });

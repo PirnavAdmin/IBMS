@@ -1,8 +1,9 @@
+import { ArrowBack, PrintOutlined, VisibilityOutlined } from '@mui/icons-material';
 import { QuotationAudit } from '../components/QuotationAudit';
-import { ArrowBack, PrintOutlined } from '@mui/icons-material';
 import { useState } from 'react';
 import { currency, quotationTotals } from '../utils/quotationCalculations';
 import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
+
 function formatCommunicationDate(value) {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return 'Date unavailable';
@@ -13,9 +14,12 @@ function formatCommunicationDate(value) {
 }
 export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
   const [tab, setTab] = useState('Details');
+  const [preview, setPreview] = useState(false);
   const totals = quotation;
   const customer = quotation.customer || {};
   const customerName = customer.name || quotation.customerName || '';
+  const [signatureMode, setSignatureMode] = useState('blank');
+  const [virtualSigner, setVirtualSigner] = useState(customerName);
   const customerCode = customer.code || customer.customerCode || '';
   const billingAddress = quotation.billingAddress || customer.billingAddress || quotation.customerAddress || '';
   const shippingAddress = quotation.shippingAddress || customer.shippingAddress || '';
@@ -28,6 +32,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
   const actions = <div className="quote-header-actions">
+    <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}><VisibilityOutlined /> {preview ? 'Back to details' : 'View'}</button>
     <button className="quote-btn secondary" onClick={() => window.print()}><PrintOutlined /> Print</button>
     {quotation.status === 'Draft' && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
     {quotation.status === 'Sent' && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
@@ -35,7 +40,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
     {['Draft', 'Sent', 'Approved'].includes(quotation.status) && <button className="quote-btn danger" onClick={() => onAction('cancel', quotation)}>Cancel</button>}
   </div>;
 
-  return <main className="quotation-page quotation-details-page">
+  return <main className={`quotation-page quotation-details-page${preview ? ' is-preview' : ''}`}>
     <button className="quote-back" onClick={onBack}><ArrowBack /> Back to quotations</button>
     <header className="quotation-header">
       <div><span className="quote-eyebrow">QUOTATION</span><h1>{quotation.quoteNumber} <QuotationStatusBadge status={quotation.status} /></h1><p>{quotation.customer.name} · {currency(totals.totalAmount)}</p></div>
@@ -56,7 +61,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
     <article className="quotation-print-sheet" aria-label="Quotation document">
       <header className="quotation-print-header">
         <div className="quotation-print-brand"><span className="quotation-print-logo">IBMS</span><div><strong>IBMS</strong><span>Integrated Billing Management System</span></div></div>
-        <div className="quotation-print-title"><p>QUOTATION</p><h1>{quotation.quoteNumber}</h1><QuotationStatusBadge status={quotation.status} /></div>
+        <div className="quotation-print-title"><p>QUOTATION</p><h1>{quotation.quoteNumber}</h1></div>
         <dl className="quotation-print-meta"><div><dt>Quotation date</dt><dd>{formatDate(quotation.quotationDate)}</dd></div><div><dt>Valid until</dt><dd>{formatDate(quotation.validUntil)}</dd></div>{quotation.reference && <div><dt>Reference</dt><dd>{quotation.reference}</dd></div>}</dl>
       </header>
       <section className="quotation-print-customer">
@@ -76,11 +81,15 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
         {totals.totalAmount != null && <div className="quotation-print-grand-total"><span>Grand total</span><strong>{currency(totals.totalAmount)}</strong></div>}
       </div></section>
       {(quotation.notes || quotation.termsAndConditions) && <section className="quotation-print-notes"><h2>Notes & terms</h2>{quotation.notes && <div><strong>Notes</strong><p>{quotation.notes}</p></div>}{quotation.termsAndConditions && <div><strong>Terms & conditions</strong><p>{quotation.termsAndConditions}</p></div>}</section>}
-      <section className="quotation-print-signatures"><h2>Acknowledgement & signature</h2><div className="quotation-print-signature-grid">
-        {['Prepared by / Authorized representative', 'Customer signature', 'Authorized company signature'].map(label => <div className="quotation-print-signature" key={label}><strong>{label}</strong><div className="quotation-print-sign-line"/><div className="quotation-print-sign-fields"><span>Name</span><span>Date</span></div></div>)}
-        <div className="quotation-print-stamp"><strong>Company stamp</strong></div>
+      <section className="quotation-print-signatures"><h2>Acknowledgement & signature</h2><div className="quotation-print-signature-options">
+        <label>Signature option<select value={signatureMode} onChange={event => setSignatureMode(event.target.value)}><option value="blank">Blank signature lines</option><option value="virtual">Virtual signature preview</option></select></label>
+        {signatureMode === 'virtual' && <label>Signatory name<input value={virtualSigner} onChange={event => setVirtualSigner(event.target.value)} /></label>}
+      </div><div className="quotation-print-signature-grid">
+        {['Prepared by / Authorized representative', 'Customer signature', 'Company Signature'].map(label => <div className="quotation-print-signature" key={label}><strong>{label}</strong>{label === 'Prepared by / Authorized representative' ? <div className="quotation-print-prepared-signature">ACME ADMIN</div> : label === 'Company Signature' ? <div className="quotation-print-company-signature">ACME ADMIN</div> : signatureMode === 'virtual' && label === 'Customer signature' ? <div className="quotation-print-virtual-signature"><span>{virtualSigner || 'Signatory name'}</span><small>Virtual signature preview · not verified</small></div> : <div className="quotation-print-sign-line"/>}{label !== 'Prepared by / Authorized representative' && label !== 'Company Signature' && <div className="quotation-print-sign-fields">{signatureMode === 'virtual' && label === 'Customer signature' ? <span>Date</span> : <><span>Name</span><span>Date</span></>}</div>}</div>)}
+        <div className="quotation-print-stamp"><div className="quotation-print-stamp-seal" role="img" aria-label="Company stamp for ACME ADMIN, Hyderabad"><strong>ACME ADMIN</strong><span>HYDERABAD</span></div></div>
       </div></section>
       <footer className="quotation-print-footer"><span>Thank you for your business.</span><strong>IBMS | Integrated Billing Management System</strong></footer>
     </article>
   </main>;
 }
+

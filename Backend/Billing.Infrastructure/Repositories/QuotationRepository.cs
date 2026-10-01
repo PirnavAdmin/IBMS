@@ -21,7 +21,6 @@ public class QuotationRepository : IQuotationRepository
         return await _context.Quotations
             .AsNoTracking()
             .Include(q => q.Customer)
-                .ThenInclude(c => c.Addresses)
             .Include(q => q.Items)
                 .ThenInclude(i => i.Product)
             .Include(q => q.Communications)
@@ -32,8 +31,9 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .Include(q => q.Customer)
-                .ThenInclude(c => c.Addresses)
             .Include(q => q.Items)
+                .ThenInclude(i => i.Product)
+            .Include(q => q.Communications)
             .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
     }
 
@@ -43,7 +43,6 @@ public class QuotationRepository : IQuotationRepository
         return await _context.Quotations
             .AsNoTracking()
             .Include(q => q.Customer)
-                .ThenInclude(c => c.Addresses)
             .Include(q => q.Items)
             .FirstOrDefaultAsync(q => q.TenantId == tenantId && q.QuoteNumber.ToUpper() == normalized);
     }
@@ -77,6 +76,7 @@ public class QuotationRepository : IQuotationRepository
             query = query.Where(q =>
                 q.QuoteNumber.ToLower().Contains(search) ||
                 (q.Customer != null && q.Customer.Name.ToLower().Contains(search)) ||
+                (q.Customer != null && q.Customer.CustomerCode.ToLower().Contains(search)) ||
                 (q.Reference != null && q.Reference.ToLower().Contains(search)));
         }
 
@@ -86,20 +86,6 @@ public class QuotationRepository : IQuotationRepository
             if (Enum.TryParse<QuotationStatus>(filter.Status.Trim(), true, out var statusEnum))
             {
                 query = query.Where(q => q.Status == statusEnum);
-            }
-        }
-
-        // Validity Filter (Valid, Expired, All)
-        if (!string.IsNullOrWhiteSpace(filter.Validity) && !string.Equals(filter.Validity, "All", StringComparison.OrdinalIgnoreCase))
-        {
-            var now = DateTime.UtcNow;
-            if (string.Equals(filter.Validity, "Valid", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(q => q.ValidUntil >= now);
-            }
-            else if (string.Equals(filter.Validity, "Expired", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(q => q.ValidUntil < now);
             }
         }
 

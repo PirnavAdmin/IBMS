@@ -16,9 +16,10 @@ import {
   CURRENCIES,
   TAX_CATEGORIES,
   STANDARD_UNITS,
+  resolveProductUnit,
 } from '../validation/productValidation';
 import '../styles/product-form.css';
-import { useCategories, categoryError } from '../services/categoryService';
+import { useCategories } from '../services/categoryService';
 import { productService } from '../services/productService';
 
 const getCurrencySymbol = (currency) => {
@@ -43,7 +44,8 @@ export const getProductInitialValues = (values) => {
     description: values.description || '',
     type: values.type || 'Product',
     categoryId: values.categoryId == null ? '' : String(values.categoryId),
-    unit: values.unit || 'Piece',
+    unit: values.unit && !STANDARD_UNITS.includes(values.unit) ? 'Others' : values.unit || 'Piece',
+    customUnit: values.unit && !STANDARD_UNITS.includes(values.unit) ? values.unit : '',
     price: values.price !== undefined && values.price !== null ? values.price : '',
     currency: values.currency || 'INR',
     taxCategory: values.taxCategory ?? '',
@@ -84,6 +86,7 @@ export function ProductForm({
     reset,
     setValue,
     setError,
+    trigger,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -124,6 +127,14 @@ export function ProductForm({
     };
   }, [mode, initialValues?.productCode, setValue, codeRevision]);
 
+  const selectedUnit = watch('unit');
+  const setupError = Boolean(codeError) || categoriesQuery.isError;
+  const setupLoading = loadingNextCode || categoriesQuery.isFetching;
+  const retrySetup = () => {
+    setCodeRevision(value => value + 1);
+    categoriesQuery.refetch();
+  };
+
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
   const unitPrice = Number(watch('price'));
@@ -131,8 +142,7 @@ export function ProductForm({
   const customDiscount = watch('discountPercentage');
   const discountPercent = Number(customDiscount);
   const discountError = errors.discountPercentage?.message || '';
-  const hasDiscountInput = customDiscount !== '' && customDiscount != null && String(customDiscount).trim() !== '' && !isNaN(discountPercent);
-  const discountPreview = hasDiscountInput && discountPercent >= 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
+  const discountPreview = discountAllowed && customDiscount !== '' && customDiscount != null && Number.isFinite(discountPercent) && discountPercent > 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice > 0
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: selectedCurrency }).format(unitPrice * (1 - discountPercent / 100)) : null;
 
   const currentCategoryId = initialValues?.categoryId;
@@ -148,15 +158,16 @@ export function ProductForm({
       setError('categoryId', { message: 'Select an active category.' });
       return;
     }
+    const { customUnit, ...fields } = data;
     const payload = {
-      ...data,
+      ...fields,
       ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
       productCode: mode === 'edit' ? initialValues?.productCode : data.productCode,
       name: data.name?.trim(),
       description: data.description?.trim() || '',
       categoryId: Number(data.categoryId),
       category: selected.name,
-      unit: data.unit?.trim(),
+      unit: resolveProductUnit(data),
       price: Number(data.price) || 0,
       currency: data.currency || 'INR',
       taxCategory: data.taxCategory ?? '',
@@ -170,9 +181,8 @@ export function ProductForm({
 
   return (
     <div className="product-form-container">
-      {categoriesQuery.isPending && <Alert severity="info">Loading categories...</Alert>}
-      {codeError && <Alert severity="error" action={<Button disabled={loadingNextCode} onClick={() => setCodeRevision(value => value + 1)}>Retry</Button>}>{codeError}</Alert>}
-      {categoriesQuery.isError && <Alert severity="error" action={<Button onClick={() => categoriesQuery.refetch()}>Retry</Button>}>{categoryError(categoriesQuery.error)}</Alert>}
+      {categoriesQuery.isPending && !setupError && <Alert severity="info">Loading categories...</Alert>}
+      {setupError && <Alert severity="error" action={<Button disabled={setupLoading} onClick={retrySetup}>Retry</Button>}>Unable to load product setup data. Check your connection and try again.</Alert>}
       {!categoriesQuery.isPending && !categoriesQuery.isError && !categoryOptions.length && <Alert severity="info">No active categories are available. Activate or add a category before saving a product.</Alert>}
       {submitError && (
         <div className="product-alert product-alert-error" role="alert">
@@ -254,7 +264,7 @@ export function ProductForm({
                 id="productType"
                 className={`product-select ${errors.type ? 'has-error' : ''}`}
                 aria-invalid={Boolean(errors.type)}
-                {...register('type')}
+                {...register('type', { onChange: () => trigger('hsnSac') })}
               >
                 {PRODUCT_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -345,7 +355,6 @@ export function ProductForm({
                 aria-invalid={Boolean(errors.unit)}
                 {...register('unit')}
               >
-                {initialValues?.unit && !STANDARD_UNITS.includes(initialValues.unit) && <option value={initialValues.unit}>{initialValues.unit}</option>}
                 {STANDARD_UNITS.map((u) => (
                   <option key={u} value={u}>
                     {u}
@@ -357,6 +366,18 @@ export function ProductForm({
                   {errors.unit.message}
                 </span>
               )}
+              {selectedUnit === 'Others' && <>
+                <label htmlFor="productCustomUnit" className="product-field-label">
+                  Custom Unit of Measurement <span className="product-field-required">*</span>
+                </label>
+                <input id="productCustomUnit" type="text" required aria-required="true"
+                  placeholder="e.g. Box, Pack, Hour, Day, Kg, Meter"
+                  className={`product-input ${errors.customUnit ? 'has-error' : ''}`}
+                  aria-invalid={Boolean(errors.customUnit)}
+                  aria-describedby={errors.customUnit ? 'productCustomUnit-err' : undefined}
+                  {...register('customUnit')} />
+                {errors.customUnit && <span id="productCustomUnit-err" className="product-field-error" role="alert">{errors.customUnit.message}</span>}
+              </>}
             </div>
 
             {/* Price */}
@@ -509,7 +530,7 @@ export function ProductForm({
                 <span id="product-discount-note" className="product-switch-desc">Enter 0 if there is no discount. This percentage is saved with the product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
-                    : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}
+                    : discountPreview && <span className="product-discount-total"><span className="product-discount-label">Price after discount:</span><span className="product-discount-amount"><strong>{discountPreview}</strong> <span>(before tax)</span></span></span>}
                 </div>
               </div>
               </Collapse>

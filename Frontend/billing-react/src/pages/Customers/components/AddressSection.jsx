@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { lookupIndiaPincode } from '../../../services/postalService';
 import { CheckCircleOutline, SyncOutlined } from '@mui/icons-material';
+import { CustomerSelectField } from './CustomerSelectField';
 
 export const AddressSection = ({
   prefix,
   title,
   register,
+  control,
   setValue,
   trigger,
   getValues,
@@ -377,36 +379,60 @@ export const AddressSection = ({
           <label htmlFor={getFieldId('country')}>
             Country <span className="cust-required">*</span>
           </label>
-          <select
-            id={getFieldId('country')}
-            disabled={disabled}
-            aria-invalid={Boolean(countryError)}
-            aria-describedby={countryError ? `${getFieldId('country')}-err` : undefined}
-            {...(register
-              ? register(`${prefix}.country`, {
-                  onChange: () => {
-                    setLookupState('idle');
-                    setLookupMessage('');
-                    setAvailableLocations([]);
-                  },
-                })
-              : {
-                  value: values.country || 'India',
-                  onChange: (e) => {
-                    setLookupState('idle');
-                    setLookupMessage('');
-                    setAvailableLocations([]);
-                    if (onChange) onChange('country', e.target.value);
-                  },
-                })}
-          >
-            <option value="India">India</option>
-            <option value="United States">United States</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Singapore">Singapore</option>
-            <option value="United Arab Emirates">United Arab Emirates</option>
-            <option value="Australia">Australia</option>
-          </select>
+          {control ? (
+            <CustomerSelectField
+              control={control}
+              name={`${prefix}.country`}
+              id={getFieldId('country')}
+              disabled={disabled}
+              ariaLabel="Country"
+              invalid={Boolean(countryError)}
+              onValueChange={() => {
+                setLookupState('idle');
+                setLookupMessage('');
+                setAvailableLocations([]);
+              }}
+              options={[
+                { value: 'India', label: 'India' },
+                { value: 'United States', label: 'United States' },
+                { value: 'United Kingdom', label: 'United Kingdom' },
+                { value: 'Singapore', label: 'Singapore' },
+                { value: 'United Arab Emirates', label: 'United Arab Emirates' },
+                { value: 'Australia', label: 'Australia' },
+              ]}
+            />
+          ) : (
+            <select
+              id={getFieldId('country')}
+              disabled={disabled}
+              aria-invalid={Boolean(countryError)}
+              aria-describedby={countryError ? `${getFieldId('country')}-err` : undefined}
+              {...(register
+                ? register(`${prefix}.country`, {
+                    onChange: () => {
+                      setLookupState('idle');
+                      setLookupMessage('');
+                      setAvailableLocations([]);
+                    },
+                  })
+                : {
+                    value: values.country || 'India',
+                    onChange: (e) => {
+                      setLookupState('idle');
+                      setLookupMessage('');
+                      setAvailableLocations([]);
+                      if (onChange) onChange('country', e.target.value);
+                    },
+                  })}
+            >
+              <option value="India">India</option>
+              <option value="United States">United States</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Singapore">Singapore</option>
+              <option value="United Arab Emirates">United Arab Emirates</option>
+              <option value="Australia">Australia</option>
+            </select>
+          )}
           {countryError && (
             <span id={`${getFieldId('country')}-err`} className="cust-field-error" role="alert">
               {countryError}

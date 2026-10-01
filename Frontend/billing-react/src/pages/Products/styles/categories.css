@@ -2,6 +2,10 @@
 .category-table .category-description { white-space: normal; overflow-wrap: anywhere; max-width: 480px; color: #756763; }
 .category-table td:first-child { white-space: normal; overflow-wrap: anywhere; max-width: 240px; }
 .category-form { max-width: 100%; }
-.category-form .product-section-title { margin-bottom: 24px; }
-.category-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 20px 24px; border-top: 1px solid #eee6e1; }
+.category-form .product-section-title { margin-bottom: 12px; }
+.category-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-top: 1px solid #eee6e1; }
 @media (max-width: 600px) { .category-form-actions { padding: 16px; } }
+
+.category-table .MuiTableCell-root:last-child { text-align: left; padding-inline: 16px; width: 180px; }
+.category-table .product-row-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 8px; }
+.category-table .product-row-actions .MuiButton-root { min-width: 0; padding: 4px 8px; white-space: nowrap; }

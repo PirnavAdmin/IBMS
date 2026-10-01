@@ -1,0 +1,9 @@
+{
+  "name": "ibms-frontend",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix billing-react run dev",
+    "build": "npm --prefix billing-react run build",
+    "preview": "npm --prefix billing-react run preview"
+  }
+}

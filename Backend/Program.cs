@@ -28,6 +28,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.AllowTrailingCommas = true;
         options.JsonSerializerOptions.ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     })
     .ConfigureApiBehaviorOptions(options =>
     {
@@ -126,11 +127,14 @@ builder.Services.AddDbContext<BillingDbContext>(options =>
         connectionString,
         ServerVersion.AutoDetect(connectionString)
     )
+    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
 );
 
 // ============================================================
 // Application Services
 // ============================================================
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, Billing.API.Services.CurrentUserService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
@@ -150,6 +154,8 @@ builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngi
 builder.Services.AddScoped<LandingPageService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
@@ -171,6 +177,7 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IInvoiceTemplateRepository, InvoiceTemplateRepository>();
 builder.Services.AddScoped<IInvoiceSnapshotRepository, InvoiceSnapshotRepository>();
 builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
@@ -477,3 +484,4 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 // Run
 // ============================================================
 app.Run();
+

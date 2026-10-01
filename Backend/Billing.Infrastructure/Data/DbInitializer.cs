@@ -311,12 +311,92 @@ public static class DbInitializer
                         ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
                         Status = "Active",
                         CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Payment",
+                        Prefix = "PAY-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
                     }
                 };
 
                 await context.NumberingSettings.AddRangeAsync(defaultNumbering);
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded default numbering settings for tenant 1");
+            }
+            else if (!await context.NumberingSettings.AnyAsync(s => s.TenantId == 1 && s.DocumentType == "Payment"))
+            {
+                await context.NumberingSettings.AddAsync(new NumberingSetting
+                {
+                    TenantId = 1,
+                    DocumentType = "Payment",
+                    Prefix = "PAY-",
+                    Tokens = "{YEAR}-",
+                    SequenceLength = 4,
+                    NextNumber = 1,
+                    ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                    Status = "Active",
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default Payment numbering setting for tenant 1");
+            }
+
+            // 4. Ensure at least one demo Customer and Issued Invoice exist for tenant 1 so Payment testing works out of the box
+            var demoCustomer = await context.Customers.FirstOrDefaultAsync(c => c.TenantId == 1);
+            if (demoCustomer == null)
+            {
+                demoCustomer = new Customer
+                {
+                    TenantId = 1,
+                    CustomerCode = "CUST-0001",
+                    Name = "Acme Global Pvt Ltd",
+                    CompanyName = "Acme Global Pvt Ltd",
+                    Email = "accounts@acmeglobal.com",
+                    Phone = "9876543210",
+                    CustomerType = "Business",
+                    Currency = "INR",
+                    State = "Telangana",
+                    Country = "India",
+                    Status = "Active",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    RowVersion = DateTime.UtcNow
+                };
+                await context.Customers.AddAsync(demoCustomer);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default demo Customer (Id: {Id}) for tenant 1", demoCustomer.Id);
+            }
+
+            if (!await context.Invoices.AnyAsync(i => i.TenantId == 1))
+            {
+                var demoInvoice = new Invoice
+                {
+                    TenantId = 1,
+                    CustomerId = demoCustomer.Id,
+                    InvoiceNumber = "INV-2026-0001",
+                    InvoiceDate = DateTime.UtcNow.Date,
+                    DueDate = DateTime.UtcNow.Date.AddDays(30),
+                    Status = "Issued",
+                    Subtotal = 1000.00m,
+                    DiscountAmount = 0.00m,
+                    TaxAmount = 180.00m,
+                    ChargesAmount = 0.00m,
+                    TotalAmount = 1180.00m,
+                    PaidAmount = 0.00m,
+                    BalanceAmount = 1180.00m,
+                    Notes = "Demo issued invoice for testing Payment Management",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    RowVersion = DateTime.UtcNow
+                };
+                await context.Invoices.AddAsync(demoInvoice);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default Issued Invoice (Id: {Id}, Number: {Number}) for tenant 1", demoInvoice.Id, demoInvoice.InvoiceNumber);
             }
 
             if (!await context.InvoiceTemplates.AnyAsync(t => t.TenantId == 1))

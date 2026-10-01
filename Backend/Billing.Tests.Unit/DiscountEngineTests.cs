@@ -86,6 +86,14 @@ public class DiscountEngineTests
             var filtered = Logs.Where(l => l.TenantId == tenantId).ToList();
             return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
         }
+
+        public Task<(List<AuditLog> Items, int TotalCount)> GetFilteredPagedAsync(int tenantId, Billing.Contracts.AuditLogFilterRequest filter, CancellationToken cancellationToken = default)
+        {
+            var filtered = Logs.Where(l => l.TenantId == tenantId).ToList();
+            var page = filter.Page <= 0 ? 1 : filter.Page;
+            var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+            return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
+        }
     }
 
     #region IBMSBE-006: Discount Models and DTOs
