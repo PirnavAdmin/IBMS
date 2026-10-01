@@ -150,6 +150,9 @@ builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngi
 builder.Services.AddScoped<LandingPageService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
+builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
+builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
+builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
 
 // ============================================================
 // Repositories
@@ -168,6 +171,9 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IInvoiceTemplateRepository, InvoiceTemplateRepository>();
+builder.Services.AddScoped<IInvoiceSnapshotRepository, InvoiceSnapshotRepository>();
+builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================

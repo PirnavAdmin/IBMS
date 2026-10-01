@@ -19,4 +19,14 @@ public class InvoiceRepository : IInvoiceRepository
         await _dbContext.SaveChangesAsync();
         return invoice;
     }
+
+    public async Task<Invoice?> GetByIdAsync(int id, int tenantId)
+    {
+        return await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+            Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include(
+                Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include(
+                    _dbContext.Invoices, i => i.Customer),
+                i => i.Items),
+            i => i.Id == id && i.TenantId == tenantId);
+    }
 }

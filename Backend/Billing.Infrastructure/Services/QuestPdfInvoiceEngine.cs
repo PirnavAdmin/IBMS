@@ -1,0 +1,444 @@
+using Billing.Application.Interfaces;
+using Billing.Contracts.InvoiceTemplate;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+
+namespace Billing.Infrastructure.Services;
+
+/// <summary>
+/// High-performance, deterministic C# server-side PDF generation engine using QuestPDF.
+/// Implements Standard, Professional, and Compact visual presentations with multi-page pagination,
+/// repeating table headers, line-item wrapping, and financial totals precision.
+/// </summary>
+public class QuestPdfInvoiceEngine : IInvoicePdfEngine
+{
+    static QuestPdfInvoiceEngine()
+    {
+        // QuestPDF Community License registration
+        QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.UseSystemFonts = true;
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
+    }
+
+    public byte[] GenerateInvoicePdf(InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(template);
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                ApplyPageSetup(page, template);
+                ComposeHeader(page.Header(), snapshot, template);
+                ComposeContent(page.Content(), snapshot, template);
+                ComposeFooter(page.Footer(), snapshot, template);
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
+    public byte[] GeneratePreviewPdf(TemplatePreviewRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var sampleSnapshot = request.CustomSampleData ?? CreateDefaultSampleSnapshot(request);
+        var mockTemplate = new TemplateVersionDto
+        {
+            VersionNumber = 1,
+            Branding = request.Branding,
+            CompanyDetails = request.CompanyDetails,
+            Layout = request.Layout,
+            PaymentInstructions = request.PaymentInstructions,
+            Terms = request.Terms
+        };
+
+        return GenerateInvoicePdf(sampleSnapshot, mockTemplate);
+    }
+
+    #region Layout & Page Configuration
+
+    private static void ApplyPageSetup(PageDescriptor page, TemplateVersionDto template)
+    {
+        page.Size(PageSizes.A4);
+        var layout = template.Layout;
+
+        var top = layout.MarginTopMm > 0 ? layout.MarginTopMm : 12;
+        var bottom = layout.MarginBottomMm > 0 ? layout.MarginBottomMm : 12;
+        var left = layout.MarginLeftMm > 0 ? layout.MarginLeftMm : 14;
+        var right = layout.MarginRightMm > 0 ? layout.MarginRightMm : 14;
+
+        page.MarginTop(top, Unit.Millimetre);
+        page.MarginBottom(bottom, Unit.Millimetre);
+        page.MarginLeft(left, Unit.Millimetre);
+        page.MarginRight(right, Unit.Millimetre);
+        page.PageColor(Colors.White);
+
+        page.DefaultTextStyle(x => x.FontFamily(template.Branding.FontFamily ?? "Segoe UI").FontSize(9.5f).FontColor(Colors.Grey.Darken3));
+    }
+
+    #endregion
+
+    #region Header Composition
+
+    private static void ComposeHeader(IContainer header, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
+        var company = template.CompanyDetails;
+
+        header.Column(col =>
+        {
+            col.Item().Row(row =>
+            {
+                // Left: Company Info & Branding
+                row.RelativeItem().Column(c =>
+                {
+                    var companyName = string.IsNullOrWhiteSpace(company.CompanyName) ? "IBMS Solutions Pvt Ltd" : company.CompanyName;
+                    c.Item().Text(companyName).FontSize(16).Bold().FontColor(primaryColor);
+
+                    if (!string.IsNullOrWhiteSpace(company.LegalName) && company.LegalName != companyName)
+                    {
+                        c.Item().Text(company.LegalName).FontSize(8.5f).FontColor(Colors.Grey.Darken1);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(company.TaxId))
+                    {
+                        c.Item().Text($"GSTIN / Tax ID: {company.TaxId}").FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                    }
+
+                    var addressLine = $"{company.AddressLine1} {company.AddressLine2}, {company.City} {company.State} {company.PostalCode}".Trim().Trim(',').Trim();
+                    if (!string.IsNullOrWhiteSpace(addressLine))
+                    {
+                        c.Item().Text(addressLine).FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(company.Email) || !string.IsNullOrWhiteSpace(company.Phone))
+                    {
+                        c.Item().Text($"Email: {company.Email} | Phone: {company.Phone}").FontSize(8f).FontColor(Colors.Grey.Darken1);
+                    }
+                });
+
+                // Right: Invoice Title & Status Badge
+                row.ConstantItem(180).AlignRight().Column(c =>
+                {
+                    c.Item().Text("TAX INVOICE").FontSize(18).ExtraBold().FontColor(primaryColor);
+                    c.Item().Text($"# {snapshot.InvoiceNumber}").FontSize(11).Bold().FontColor(Colors.Grey.Darken3);
+                    c.Item().PaddingTop(2).Text($"Status: {snapshot.Status}").FontSize(9).Bold().FontColor(snapshot.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? Colors.Green.Darken2 : Colors.Blue.Darken2);
+                });
+            });
+
+            col.Item().PaddingTop(8).PaddingBottom(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+        });
+    }
+
+    #endregion
+
+    #region Content & Items Composition
+
+    private static void ComposeContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
+        var secondaryColor = template.Branding.SecondaryColor ?? "#0284c7";
+        var isCompact = template.Layout.MarginTopMm < 10; // or based on template style
+
+        content.Column(col =>
+        {
+            // 1. Invoice Meta & Customer Details Row
+            col.Item().PaddingBottom(10).Row(row =>
+            {
+                // Customer Bill To
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().Text("BILLED TO:").FontSize(8.5f).Bold().FontColor(secondaryColor);
+                    c.Item().Text(snapshot.Customer.CustomerName).FontSize(11).Bold().FontColor(Colors.Grey.Darken4);
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.CustomerCode))
+                    {
+                        c.Item().Text($"Customer Code: {snapshot.Customer.CustomerCode}").FontSize(8.5f);
+                    }
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.TaxId))
+                    {
+                        c.Item().Text($"Tax / GSTIN: {snapshot.Customer.TaxId}").FontSize(8.5f);
+                    }
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.BillingAddress))
+                    {
+                        c.Item().Text(snapshot.Customer.BillingAddress).FontSize(8.5f);
+                    }
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.Email))
+                    {
+                        c.Item().Text($"Email: {snapshot.Customer.Email}").FontSize(8.5f);
+                    }
+                });
+
+                // Invoice Meta (Dates & Terms)
+                row.ConstantItem(180).AlignRight().Column(c =>
+                {
+                    c.Item().Row(r =>
+                    {
+                        r.RelativeItem().Text("Invoice Date:").FontSize(8.5f).Bold();
+                        r.ConstantItem(85).AlignRight().Text(snapshot.IssueDate.ToString("dd MMM yyyy")).FontSize(8.5f);
+                    });
+                    c.Item().Row(r =>
+                    {
+                        r.RelativeItem().Text("Due Date:").FontSize(8.5f).Bold();
+                        r.ConstantItem(85).AlignRight().Text(snapshot.DueDate.ToString("dd MMM yyyy")).FontSize(8.5f);
+                    });
+                    c.Item().Row(r =>
+                    {
+                        r.RelativeItem().Text("Currency:").FontSize(8.5f).Bold();
+                        r.ConstantItem(85).AlignRight().Text(snapshot.Currency).FontSize(8.5f);
+                    });
+                });
+            });
+
+            // 2. Line Items Table (with Repeating Header for Multi-Page support)
+            col.Item().PaddingBottom(10).Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(24);  // #
+                    columns.RelativeColumn(3);   // Description
+                    columns.ConstantColumn(55);  // HSN/SAC
+                    columns.ConstantColumn(45);  // Qty
+                    columns.ConstantColumn(65);  // Unit Price
+                    columns.ConstantColumn(50);  // Disc
+                    columns.ConstantColumn(45);  // Tax %
+                    columns.ConstantColumn(70);  // Total
+                });
+
+                // Repeating Table Header
+                table.Header(header =>
+                {
+                    header.Cell().Element(CellStyleHeader).Text("#");
+                    header.Cell().Element(CellStyleHeader).Text("Item & Description");
+                    header.Cell().Element(CellStyleHeader).Text("HSN/SAC");
+                    header.Cell().Element(CellStyleHeader).AlignRight().Text("Qty");
+                    header.Cell().Element(CellStyleHeader).AlignRight().Text("Rate");
+                    header.Cell().Element(CellStyleHeader).AlignRight().Text("Disc");
+                    header.Cell().Element(CellStyleHeader).AlignRight().Text("Tax%");
+                    header.Cell().Element(CellStyleHeader).AlignRight().Text("Amount");
+
+                    static IContainer CellStyleHeader(IContainer c) =>
+                        c.Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Grey.Darken1).PaddingVertical(4).PaddingHorizontal(3);
+                });
+
+                // Line Items Rows
+                var index = 1;
+                foreach (var item in snapshot.Items)
+                {
+                    var isEven = index % 2 == 0;
+                    var bg = isEven ? Colors.Grey.Lighten5 : Colors.White;
+
+                    table.Cell().Element(c => CellStyleRow(c, bg)).Text(index.ToString());
+                    table.Cell().Element(c => CellStyleRow(c, bg)).Column(colItem =>
+                    {
+                        colItem.Item().Text(item.ItemName).Bold().FontColor(Colors.Grey.Darken4);
+                        if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            colItem.Item().Text(item.Description).FontSize(8f).FontColor(Colors.Grey.Darken1);
+                        }
+                    });
+                    table.Cell().Element(c => CellStyleRow(c, bg)).Text(item.HsnSacCode ?? "-");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.Quantity:N0} {item.Unit}");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol));
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(item.DiscountAmount > 0 ? FormatMoney(item.DiscountAmount, snapshot.CurrencySymbol) : "-");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.TaxRatePercent:N0}%");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).Bold();
+
+                    index++;
+                }
+
+                static IContainer CellStyleRow(IContainer c, string bg) =>
+                    c.Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).PaddingVertical(4).PaddingHorizontal(3);
+            });
+
+            // 3. Totals Breakdown & Payment Instructions Section
+            col.Item().Row(row =>
+            {
+                // Left: Bank & Payment Instructions
+                row.RelativeItem(3).Column(c =>
+                {
+                    var pay = template.PaymentInstructions;
+                    if (template.Layout.ShowPaymentInstructions && (!string.IsNullOrWhiteSpace(pay.BankName) || !string.IsNullOrWhiteSpace(pay.AccountNumber) || !string.IsNullOrWhiteSpace(pay.UpiId)))
+                    {
+                        c.Item().PaddingBottom(4).Text("PAYMENT INSTRUCTIONS").FontSize(8.5f).Bold().FontColor(secondaryColor);
+                        c.Item().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten5).Padding(6).Column(b =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(pay.BankName)) b.Item().Text($"Bank: {pay.BankName}").FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(pay.AccountHolderName)) b.Item().Text($"Account Name: {pay.AccountHolderName}").FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(pay.AccountNumber)) b.Item().Text($"Account #: {pay.AccountNumber}").FontSize(8f).Bold();
+                            if (!string.IsNullOrWhiteSpace(pay.IfscCode)) b.Item().Text($"IFSC Code: {pay.IfscCode}").FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(pay.UpiId)) b.Item().Text($"UPI ID: {pay.UpiId}").FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(pay.PaymentNotes)) b.Item().PaddingTop(2).Text(pay.PaymentNotes).FontSize(7.5f).Italic();
+                        });
+                    }
+
+                    if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(template.Terms.TermsAndConditions))
+                    {
+                        c.Item().PaddingTop(6).Text("TERMS & CONDITIONS").FontSize(8f).Bold().FontColor(Colors.Grey.Darken2);
+                        c.Item().Text(template.Terms.TermsAndConditions).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                    }
+                });
+
+                // Right: Financial Totals Summary
+                row.RelativeItem(2).PaddingLeft(15).Column(c =>
+                {
+                    SummaryRow(c, "Subtotal", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
+
+                    if (snapshot.TotalDiscount > 0)
+                    {
+                        SummaryRow(c, "Discount", $"-{FormatMoney(snapshot.TotalDiscount, snapshot.CurrencySymbol)}", Colors.Red.Darken1);
+                    }
+
+                    // Taxes
+                    foreach (var tax in snapshot.TaxBreakdowns)
+                    {
+                        SummaryRow(c, $"{tax.TaxName} ({tax.RatePercent:N0}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
+                    }
+
+                    // Additional Charges
+                    foreach (var charge in snapshot.AdditionalCharges)
+                    {
+                        SummaryRow(c, charge.ChargeName, FormatMoney(charge.Amount, snapshot.CurrencySymbol));
+                    }
+
+                    c.Item().PaddingVertical(2).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+
+                    // Grand Total
+                    c.Item().Row(r =>
+                    {
+                        r.RelativeItem().Text("Total Amount:").FontSize(11).Bold().FontColor(primaryColor);
+                        r.ConstantItem(85).AlignRight().Text(FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol)).FontSize(12).ExtraBold().FontColor(primaryColor);
+                    });
+
+                    if (snapshot.AmountPaid > 0)
+                    {
+                        SummaryRow(c, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), Colors.Green.Darken2);
+                        c.Item().Row(r =>
+                        {
+                            r.RelativeItem().Text("Balance Due:").FontSize(9.5f).Bold().FontColor(Colors.Red.Darken2);
+                            r.ConstantItem(85).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(9.5f).Bold().FontColor(Colors.Red.Darken2);
+                        });
+                    }
+                });
+            });
+        });
+    }
+
+    private static void SummaryRow(ColumnDescriptor col, string label, string value, string? fontColor = null)
+    {
+        col.Item().PaddingVertical(1).Row(r =>
+        {
+            r.RelativeItem().Text(label).FontSize(8.5f).FontColor(Colors.Grey.Darken2);
+            r.ConstantItem(85).AlignRight().Text(value).FontSize(8.5f).FontColor(fontColor ?? Colors.Grey.Darken3);
+        });
+    }
+
+    #endregion
+
+    #region Footer Composition
+
+    private static void ComposeFooter(IContainer footer, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        footer.Column(col =>
+        {
+            col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+            col.Item().PaddingTop(3).Row(row =>
+            {
+                row.RelativeItem().Text(string.IsNullOrWhiteSpace(template.Terms.FooterNote)
+                    ? "Thank you for your business! This is a computer-generated invoice."
+                    : template.Terms.FooterNote).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+
+                row.ConstantItem(100).AlignRight().Text(x =>
+                {
+                    x.Span("Page ");
+                    x.CurrentPageNumber();
+                    x.Span(" of ");
+                    x.TotalPages();
+                });
+            });
+        });
+    }
+
+    #endregion
+
+    #region Helpers & Default Sample Data
+
+    private static string FormatMoney(decimal amount, string symbol) => $"{symbol} {amount:N2}";
+
+    private static InvoiceSnapshotDto CreateDefaultSampleSnapshot(TemplatePreviewRequest request)
+    {
+        var symbol = request.Layout.CurrencySymbol ?? "₹";
+        var currency = request.Layout.CurrencyCode ?? "INR";
+
+        return new InvoiceSnapshotDto
+        {
+            InvoiceId = 999,
+            InvoiceNumber = "INV-SAMPLE-001",
+            IssueDate = DateTime.Today,
+            DueDate = DateTime.Today.AddDays(15),
+            Status = "Issued",
+            Currency = currency,
+            CurrencySymbol = symbol,
+            Customer = new CustomerSnapshotDto
+            {
+                CustomerId = 1,
+                CustomerName = "Enterprise Global Corp",
+                CustomerCode = "CUST-GLOBAL-01",
+                TaxId = "36AAACH7409R1ZZ",
+                Email = "billing@enterpriseglobal.com",
+                BillingAddress = "Plot 42, Hitech City, Hyderabad, Telangana 500081"
+            },
+            Items =
+            [
+                new InvoiceItemSnapshotDto
+                {
+                    ItemId = 101,
+                    ItemName = "Enterprise Cloud Subscription",
+                    Description = "Annual platform tier with 99.9% uptime SLA",
+                    HsnSacCode = "998313",
+                    Quantity = 1,
+                    Unit = "Year",
+                    UnitPrice = 120000m,
+                    DiscountAmount = 10000m,
+                    TaxRatePercent = 18m,
+                    TaxAmount = 19800m,
+                    LineTotal = 129800m
+                },
+                new InvoiceItemSnapshotDto
+                {
+                    ItemId = 102,
+                    ItemName = "Custom Integration & Consulting",
+                    Description = "On-site implementation and workflow training",
+                    HsnSacCode = "998314",
+                    Quantity = 25,
+                    Unit = "Hours",
+                    UnitPrice = 2400m,
+                    DiscountAmount = 0m,
+                    TaxRatePercent = 18m,
+                    TaxAmount = 10800m,
+                    LineTotal = 70800m
+                }
+            ],
+            Subtotal = 180000m,
+            TotalDiscount = 10000m,
+            TotalTax = 30600m,
+            TotalAdditionalCharges = 1500m,
+            GrandTotal = 202100m,
+            AmountPaid = 50000m,
+            BalanceDue = 152100m,
+            TaxBreakdowns =
+            [
+                new TaxBreakdownSnapshotDto { TaxName = "CGST", RatePercent = 9m, TaxableAmount = 170000m, TaxAmount = 15300m },
+                new TaxBreakdownSnapshotDto { TaxName = "SGST", RatePercent = 9m, TaxableAmount = 170000m, TaxAmount = 15300m }
+            ],
+            AdditionalCharges =
+            [
+                new ChargeSnapshotDto { ChargeName = "Platform Maintenance Fee", Amount = 1500m }
+            ]
+        };
+    }
+
+    #endregion
+}

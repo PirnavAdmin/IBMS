@@ -48,6 +48,14 @@ public class BillingDbContext : DbContext
 
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
 
+    public DbSet<InvoiceTemplate> InvoiceTemplates { get; set; }
+
+    public DbSet<TemplateVersion> TemplateVersions { get; set; }
+
+    public DbSet<InvoiceSnapshot> InvoiceSnapshots { get; set; }
+
+    public DbSet<GeneratedDocument> GeneratedDocuments { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -542,6 +550,64 @@ public class BillingDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(i => i.ProductId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<InvoiceTemplate>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+            entity.Property(t => t.Description).HasMaxLength(500);
+            entity.Property(t => t.CreatedBy).HasMaxLength(200);
+            entity.Property(t => t.UpdatedBy).HasMaxLength(200);
+            entity.Property(t => t.RowVersion).IsRowVersion();
+
+            entity.HasIndex(t => new { t.TenantId, t.Name }).IsUnique();
+            entity.HasIndex(t => new { t.TenantId, t.Status });
+            entity.HasIndex(t => new { t.TenantId, t.Style });
+
+            entity.HasMany(t => t.Versions)
+                  .WithOne(v => v.Template)
+                  .HasForeignKey(v => v.TemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TemplateVersion>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.VersionDescription).HasMaxLength(500);
+            entity.Property(v => v.CreatedBy).HasMaxLength(200);
+
+            entity.HasIndex(v => new { v.TenantId, v.TemplateId, v.VersionNumber }).IsUnique();
+            entity.HasIndex(v => new { v.TenantId, v.Status });
+        });
+
+        modelBuilder.Entity<InvoiceSnapshot>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.InvoiceNumber).HasMaxLength(64).IsRequired();
+            entity.Property(s => s.CreatedBy).HasMaxLength(200);
+
+            entity.HasIndex(s => new { s.TenantId, s.InvoiceId }).IsUnique();
+            entity.HasIndex(s => new { s.TenantId, s.InvoiceNumber });
+
+            entity.HasOne(s => s.TemplateVersion)
+                  .WithMany()
+                  .HasForeignKey(s => s.TemplateVersionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GeneratedDocument>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.DocumentType).HasMaxLength(50).IsRequired();
+            entity.Property(d => d.StoragePath).HasMaxLength(500).IsRequired();
+            entity.Property(d => d.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(d => d.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(d => d.ChecksumSha256).HasMaxLength(64);
+            entity.Property(d => d.Status).HasMaxLength(50).IsRequired();
+
+            entity.HasIndex(d => new { d.TenantId, d.InvoiceId });
+            entity.HasIndex(d => new { d.TenantId, d.DocumentType });
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
