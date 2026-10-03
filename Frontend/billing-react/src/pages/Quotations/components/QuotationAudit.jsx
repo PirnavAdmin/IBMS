@@ -1,47 +1,31 @@
-import { parseQuotationTimestamp, formatQuotationTimestamp } from '../utils/quotationDates';
 import { useState } from 'react';
 import { History, Search, PersonOutline } from '@mui/icons-material';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];
-const STATUS_EVENTS = new Set(['Sent', 'Approved', 'Cancelled', 'Converted', 'Status Changes']);
 const eventKey = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
-
-function eventLabel(action) {
+function eventLabel(action, description = '') {
+  const detail = String(description || '');
+  const statusMatch = detail.match(/status changed to\s+(draft|sent|approved|cancelled|canceled|converted)/i);
+  if (statusMatch) {
+    const status = statusMatch[1].toLowerCase();
+    return status === 'draft' ? 'Created' : status === 'canceled' ? 'Cancelled' : status[0].toUpperCase() + status.slice(1);
+  }
+  if (/converted to invoice/i.test(detail)) return 'Converted';
+  if (/discount\s+(applied|override)/i.test(detail)) return 'Discount Override';
   const key = eventKey(action);
-  if (['create', 'created', 'creation', 'draft', 'new'].includes(key) || key.startsWith('creat')) return 'Created';
-  if (['edit', 'edited', 'update', 'updated', 'modify', 'modified'].includes(key) || key.startsWith('edit') || key.startsWith('updat')) return 'Edited';
-  if (['sent', 'send', 'sending'].includes(key)) return 'Sent';
-  if (['approved', 'approve', 'approval'].includes(key)) return 'Approved';
-  if (['cancelled', 'canceled', 'cancel'].includes(key)) return 'Cancelled';
-  if (['converted', 'convert', 'conversion'].includes(key)) return 'Converted';
-  if (['discountoverride', 'manualoverride', 'discount', 'override'].includes(key) || key.includes('discount')) return 'Discount Override';
-  if (['statuschange', 'statuschanged', 'statuschanges'].includes(key) || key.includes('status')) return 'Status Changes';
+  if (['statuschange', 'statuschanged', 'statuschanges'].includes(key)) return 'Status Changes';
   return events.find(event => eventKey(event) === key) || action || 'Activity';
 }
-
-function isStatusChangeEvent(row) {
-  if (STATUS_EVENTS.has(row.label)) return true;
-  const desc = String(row.description || '').toLowerCase();
-  const act = String(row.action || '').toLowerCase();
-  return desc.includes('status changed') || desc.includes('converted to invoice') || act.includes('status');
-}
-
-function matchesFilter(row, filterType) {
-  if (filterType === 'All') return true;
-  if (filterType === 'Status Changes') return isStatusChangeEvent(row);
-  return row.label === filterType;
-}
-
-function getCount(rows, filterType) {
-  if (filterType === 'All') return rows.length;
-  return rows.filter(row => matchesFilter(row, filterType)).length;
-}
-
 function timestamp(value) {
-  return parseQuotationTimestamp(value)?.getTime() ?? 0;
+  const parsed = value ? Date.parse(value) : NaN;
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 function dateLabel(value) {
-  return formatQuotationTimestamp(value, { second: '2-digit' });
+  if (!timestamp(value)) return 'Date unavailable';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+  });
 }
 function userLabel(user) {
   if (user == null || user === '') return 'Unknown user';
@@ -53,28 +37,33 @@ export function QuotationAudit({ entries = [] }) {
   const [search, setSearch] = useState('');
   const [order, setOrder] = useState('newest');
   const rows = entries.map(entry => {
-    const label = eventLabel(entry.action);
+    const action = entry.action || entry.label || '';
+    const desc = entry.description || entry.changes || '';
+    const label = eventLabel(action, desc);
     const description = label === 'Converted'
-      ? String(entry.description || '').replace(/^Converted to Invoice\s+#?\d+\s*$/i, 'Converted to Invoice')
-      : entry.description;
-    return { ...entry, label, description };
+      ? String(desc || '').replace(/^Converted to Invoice\s+#?\d+\s*$/i, 'Converted to Invoice')
+      : desc;
+    const date = entry.date || entry.timestamp;
+    const user = entry.user || entry.userName;
+    return { ...entry, label, description, date, user, action };
   });
   const query = search.trim().toLowerCase();
-  const visible = rows.filter(entry => matchesFilter(entry, filter)
+  const visible = rows.filter(entry => (filter === 'All' || entry.label === filter)
     && `${entry.label} ${userLabel(entry.user)} ${entry.description || ''}`.toLowerCase().includes(query))
     .sort((a, b) => order === 'newest' ? timestamp(b.date) - timestamp(a.date) : timestamp(a.date) - timestamp(b.date));
 
   return <section className="quote-card quote-audit-panel" aria-labelledby="quote-audit-title">
     <div className="quote-audit-heading">
       <div className="quote-audit-title"><span className="quote-audit-symbol"><History /></span><div>
-        <h2 id="quote-audit-title">Audit trail</h2>
+        <h2 id="quote-audit-title">Audit trail <span className="quote-audit-count">{entries.length}</span></h2>
         <p>A record of activity and changes to this quotation.</p>
       </div></div>
+      <span className="quote-audit-timezone">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
     </div>
     <div className="quote-audit-filters" aria-label="Filter audit events">
       {['All', ...events].map(event => <button key={event} type="button" aria-pressed={filter === event}
         className={filter === event ? 'active' : ''} onClick={() => setFilter(event)}>
-        {event}<span>{getCount(rows, event)}</span>
+        {event}<span>{event === 'All' ? rows.length : rows.filter(row => row.label === event).length}</span>
       </button>)}
     </div>
     <div className="quote-audit-toolbar">
@@ -89,7 +78,7 @@ export function QuotationAudit({ entries = [] }) {
       <thead><tr><th scope="col">Event</th><th scope="col">Date & time</th><th scope="col">Performed by</th><th scope="col">Description</th></tr></thead>
       <tbody>{visible.map((entry, index) => <tr key={entry.id || `${entry.date}-${entry.action}-${index}`}>
         <td><span className={`quote-audit-badge ${eventKey(entry.label)}`}><span aria-hidden="true" />{entry.label}</span></td>
-        <td>{timestamp(entry.date) ? <time dateTime={parseQuotationTimestamp(entry.date).toISOString()}>{dateLabel(entry.date)}</time> : 'Date unavailable'}</td>
+        <td>{timestamp(entry.date) ? <time dateTime={new Date(entry.date).toISOString()}>{dateLabel(entry.date)}</time> : 'Date unavailable'}</td>
         <td><span className="quote-audit-user"><PersonOutline aria-hidden="true" />{userLabel(entry.user)}</span></td>
         <td className="quote-audit-description">{entry.description || 'No additional details recorded.'}</td>
       </tr>)}</tbody>

@@ -21,6 +21,7 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(i => i.Customer)
             .Include(i => i.Items)
             .Include(i => i.PaymentAllocations)
+            .Include(i => i.CreditNotes)
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, cancellationToken);
     }
 
@@ -30,6 +31,7 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(i => i.Customer)
             .Include(i => i.Items)
             .Include(i => i.PaymentAllocations)
+            .Include(i => i.CreditNotes)
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId);
     }
 
@@ -98,7 +100,6 @@ public class InvoiceRepository : IInvoiceRepository
         await _dbContext.SaveChangesAsync();
         return invoice;
     }
-
     public async Task<Invoice> UpdateAsync(Invoice invoice, CancellationToken cancellationToken = default)
     {
         invoice.UpdatedAtUtc = DateTime.UtcNow;

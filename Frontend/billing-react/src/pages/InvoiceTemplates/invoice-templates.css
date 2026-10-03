@@ -20,6 +20,8 @@
 .template-table th { padding:12px; background:#f5eee7; color:#4b3525; white-space:nowrap; }
 .template-table td { padding:10px 12px; border-top:1px solid #eee7e0; }
 .template-table td:last-child { min-width:230px; white-space:nowrap; }
+.template-table th.template-actions-heading,.template-table td.template-actions-cell { width:76px; min-width:76px; text-align:center; white-space:nowrap; }
+.template-table td.template-actions-cell { padding:5px 8px; }
 .template-empty { min-height:135px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:8px; padding:24px; text-align:center; color:#756b63; }
 .template-empty strong { color:#38291f; font-size:15px; }.template-list-footnote { color:#786f67; font-size:12px; margin:12px 0 0; }
 .template-preview-controls { display:flex; justify-content:flex-end; margin-bottom:14px; }

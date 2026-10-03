@@ -398,6 +398,110 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded default Issued Invoice (Id: {Id}, Number: {Number}) for tenant 1", demoInvoice.Id, demoInvoice.InvoiceNumber);
             }
+
+            if (!await context.InvoiceTemplates.AnyAsync(t => t.TenantId == 1))
+            {
+                var standardTemplate = new InvoiceTemplate
+                {
+                    TenantId = 1,
+                    Name = "Standard Corporate",
+                    Description = "Clean, professional standard invoice layout with balanced branding and clear financial breakdown.",
+                    Style = Domain.Enums.TemplateStyle.Standard,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    IsDefault = true,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var standardVersion = new TemplateVersion
+                {
+                    TenantId = 1,
+                    VersionNumber = 1,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    VersionDescription = "Default corporate layout version 1",
+                    BrandingJson = "{\"PrimaryColor\":\"#0f2942\",\"SecondaryColor\":\"#0284c7\",\"AccentColor\":\"#f1f5f9\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":40,\"LogoHeightMm\":20}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"IBMS Billing Enterprise\",\"Email\":\"billing@ibms.com\",\"Phone\":\"+91 98765 43210\",\"Website\":\"https://ibms.example.com\",\"AddressLine1\":\"Plot 42, Hitech City Main Road\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500081\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
+                    PaymentInstructionsJson = "{\"BankName\":\"State Bank of India\",\"AccountHolderName\":\"IBMS Tech Private Limited\",\"AccountNumber\":\"38192837461\",\"IfscCode\":\"SBIN0004123\",\"UpiId\":\"ibmsbilling@sbi\",\"PaymentNotes\":\"Please quote invoice number on payment transfer.\"} ",
+                    TermsJson = "{\"TermsAndConditions\":\"1. Payment is due within 30 days of issue.\\n2. Late payments incur a 1.5% monthly charge.\\n3. Goods once sold will not be accepted back without prior written authorization.\",\"FooterNote\":\"Thank you for partnering with IBMS Technologies!\"}",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                standardTemplate.Versions.Add(standardVersion);
+
+                var proTemplate = new InvoiceTemplate
+                {
+                    TenantId = 1,
+                    Name = "Modern Executive",
+                    Description = "Sleek, high-contrast professional layout designed for enterprise consulting and services.",
+                    Style = Domain.Enums.TemplateStyle.Professional,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    IsDefault = false,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var proVersion = new TemplateVersion
+                {
+                    TenantId = 1,
+                    VersionNumber = 1,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    VersionDescription = "Initial executive styling",
+                    BrandingJson = "{\"PrimaryColor\":\"#1e1b4b\",\"SecondaryColor\":\"#4338ca\",\"AccentColor\":\"#e0e7ff\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":45,\"LogoHeightMm\":22}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"IBMS Global Services\",\"Email\":\"invoicing@ibms.com\",\"Phone\":\"+91 98765 43210\",\"Website\":\"https://ibms.example.com\",\"AddressLine1\":\"Tower 3, Financial District\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500032\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":10,\"MarginBottomMm\":10,\"MarginLeftMm\":12,\"MarginRightMm\":12}",
+                    PaymentInstructionsJson = "{\"BankName\":\"HDFC Bank\",\"AccountHolderName\":\"IBMS Global Services Ltd\",\"AccountNumber\":\"50200012345678\",\"IfscCode\":\"HDFC0001234\",\"UpiId\":\"ibmsglobal@hdfcbank\",\"PaymentNotes\":\"Remit via RTGS / NEFT quoting invoice ID.\"} ",
+                    TermsJson = "{\"TermsAndConditions\":\"Payment strictly net 15 calendar days from billing date. Subject to Hyderabad jurisdiction.\",\"FooterNote\":\"We appreciate your business!\"}",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                proTemplate.Versions.Add(proVersion);
+
+                var compactTemplate = new InvoiceTemplate
+                {
+                    TenantId = 1,
+                    Name = "Compact Retail & Wholesale",
+                    Description = "High line-item density layout tailored for fast wholesale, retail, and multi-item invoices.",
+                    Style = Domain.Enums.TemplateStyle.Compact,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    IsDefault = false,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var compactVersion = new TemplateVersion
+                {
+                    TenantId = 1,
+                    VersionNumber = 1,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    VersionDescription = "Compact density version 1",
+                    BrandingJson = "{\"PrimaryColor\":\"#047857\",\"SecondaryColor\":\"#059669\",\"AccentColor\":\"#ecfdf5\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":35,\"LogoHeightMm\":18}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"IBMS Distribution Hub\",\"Email\":\"hub@ibms.com\",\"Phone\":\"+91 98765 43210\",\"AddressLine1\":\"Warehouse 12, Industrial Area\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500077\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":false,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":8,\"MarginBottomMm\":8,\"MarginLeftMm\":10,\"MarginRightMm\":10}",
+                    PaymentInstructionsJson = "{\"BankName\":\"ICICI Bank\",\"AccountHolderName\":\"IBMS Distribution\",\"AccountNumber\":\"000405001234\",\"IfscCode\":\"ICIC0000004\",\"UpiId\":\"ibmsdist@icici\"}",
+                    TermsJson = "{\"TermsAndConditions\":\"Immediate payment upon receipt.\",\"FooterNote\":\"Computer generated invoice. Signature not required.\"} ",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                compactTemplate.Versions.Add(compactVersion);
+
+                await context.InvoiceTemplates.AddRangeAsync(standardTemplate, proTemplate, compactTemplate);
+                await context.SaveChangesAsync();
+
+                // Link active version IDs
+                standardTemplate.ActiveVersionId = standardVersion.Id;
+                proTemplate.ActiveVersionId = proVersion.Id;
+                compactTemplate.ActiveVersionId = compactVersion.Id;
+                await context.SaveChangesAsync();
+
+                logger?.LogInformation("Seeded default invoice templates (Standard, Professional, Compact) for tenant 1");
+            }
         }
         catch (Exception ex)
         {

@@ -47,6 +47,20 @@ export const API_ENDPOINTS = {
     ELIGIBLE_INVOICES: '/api/v1/payments/eligible-invoices',
     INVOICE_BALANCE: (invoiceId) => `/api/v1/payments/invoices/${encodeURIComponent(invoiceId)}/balance`,
   },
+  TEMPLATES: {
+    BASE: '/api/v1/invoice-templates',
+    BY_ID: (id) => `/api/v1/invoice-templates/${id}`,
+    VERSIONS: (id) => `/api/v1/invoice-templates/${id}/versions`,
+    PREVIEW: '/api/v1/invoice-templates/preview',
+    PREVIEW_BY_ID: (id) => `/api/v1/invoice-templates/${id}/preview`,
+    DUPLICATE: (id) => `/api/v1/invoice-templates/${id}/duplicate`,
+    ACTIVATE: (id) => `/api/v1/invoice-templates/${id}/activate`,
+    DEACTIVATE: (id) => `/api/v1/invoice-templates/${id}/deactivate`,
+    LOGO_UPLOAD: '/api/v1/invoice-templates/logo-upload',
+    AUDIT: '/api/v1/invoice-templates/audit',
+    GENERATE_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/generate-pdf`,
+    DOWNLOAD_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/pdf`,
+  },
 };
 
 export default API_ENDPOINTS;
