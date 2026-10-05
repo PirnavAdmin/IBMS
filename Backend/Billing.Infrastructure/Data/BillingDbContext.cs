@@ -49,6 +49,7 @@ public class BillingDbContext : DbContext
     public DbSet<QuotationCommunication> QuotationCommunications { get; set; }
 
     public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<InvoiceCommunication> InvoiceCommunications { get; set; }
 
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
 
@@ -878,3 +879,4 @@ public class BillingDbContext : DbContext
         }
     }
 }
+

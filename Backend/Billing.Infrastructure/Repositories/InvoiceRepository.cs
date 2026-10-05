@@ -15,14 +15,21 @@ public class InvoiceRepository : IInvoiceRepository
         _dbContext = dbContext;
     }
 
-    public async Task<Invoice?> GetByIdAsync(int id, int tenantId, CancellationToken cancellationToken = default)
+        public async Task<Invoice?> GetByIdAsync(int id, int tenantId, CancellationToken cancellationToken = default)
     {
-        return await _dbContext.Invoices
+        var invoice = await _dbContext.Invoices
             .Include(i => i.Customer)
             .Include(i => i.Items)
             .Include(i => i.PaymentAllocations)
             .Include(i => i.CreditNotes)
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, cancellationToken);
+            
+        if (invoice != null && invoice.Items != null)
+        {
+            invoice.Items = invoice.Items.OrderBy(item => item.SortOrder).ToList();
+        }
+        
+        return invoice;
     }
 
     public async Task<Invoice?> GetByIdForUpdateAsync(int id, int tenantId)
@@ -31,6 +38,7 @@ public class InvoiceRepository : IInvoiceRepository
             .Include(i => i.Customer)
             .Include(i => i.Items)
             .Include(i => i.PaymentAllocations)
+            .Include(i => i.CreditNotes)
             .Include(i => i.CreditNotes)
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId);
     }
@@ -144,7 +152,7 @@ public class InvoiceRepository : IInvoiceRepository
             query = query.Where(i => i.InvoiceDate <= filter.EndDate.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.Currency))
-            query = query.Where(i => i.Customer != null && i.Customer.Currency == filter.Currency);
+            query = query.Where(i => i.Currency == filter.Currency);
 
         if (!string.IsNullOrWhiteSpace(filter.PaymentState))
         {
@@ -158,7 +166,7 @@ public class InvoiceRepository : IInvoiceRepository
             else if (pState == "outstanding")
                 query = query.Where(i => i.BalanceAmount > 0 && (i.Status == "Issued" || i.Status == "Partially Paid" || i.Status == "Overdue"));
             else if (pState == "overdue")
-                query = query.Where(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow));
+                query = query.Where(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow.Date));
         }
 
         if (filter.MinOutstandingAmount.HasValue)
@@ -199,15 +207,15 @@ public class InvoiceRepository : IInvoiceRepository
             .Where(i => i.TenantId == tenantId && i.Status != "Voided" && i.Status != "Cancelled");
 
         var summaries = await baseQuery
-            .GroupBy(i => i.Customer != null && !string.IsNullOrEmpty(i.Customer.Currency) ? i.Customer.Currency : "INR")
+            .GroupBy(i => !string.IsNullOrEmpty(i.Currency) ? i.Currency : "INR")
             .Select(g => new InvoiceSummaryDto
             {
                 Currency = g.Key,
-                TotalInvoiced = g.Sum(i => i.TotalAmount),
+                TotalInvoiced = g.Sum(i => i.Status != "Draft" ? i.TotalAmount : 0),
                 TotalPaid = g.Sum(i => i.PaidAmount),
-                TotalOutstanding = g.Sum(i => i.BalanceAmount),
-                OverdueAmount = g.Sum(i => (i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow)) ? i.BalanceAmount : 0),
-                OverdueCount = g.Count(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow)),
+                TotalOutstanding = g.Sum(i => i.Status != "Draft" ? i.BalanceAmount : 0),
+                OverdueAmount = g.Sum(i => (i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow.Date)) ? i.BalanceAmount : 0),
+                OverdueCount = g.Count(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow.Date)),
                 DraftCount = g.Count(i => i.Status == "Draft"),
                 DraftAmount = g.Sum(i => i.Status == "Draft" ? i.TotalAmount : 0)
             })
@@ -216,5 +224,11 @@ public class InvoiceRepository : IInvoiceRepository
         return summaries;
     }
 }
+
+
+
+
+
+
 
 

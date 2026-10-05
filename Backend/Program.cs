@@ -137,7 +137,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, Billing.API.Services.CurrentUserService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -178,6 +178,7 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+builder.Services.AddScoped<IInvoiceCommunicationRepository, InvoiceCommunicationRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IInvoiceTemplateRepository, InvoiceTemplateRepository>();
 builder.Services.AddScoped<IInvoiceSnapshotRepository, InvoiceSnapshotRepository>();
@@ -486,4 +487,6 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 // Run
 // ============================================================
 app.Run();
+
+
 

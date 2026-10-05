@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "TenantAdmin,SuperAdmin")]
 [ApiController]
 [Route("api/v1/invoices")]
 [Consumes("application/json")]
@@ -86,34 +86,37 @@ public class InvoicesController : ControllerBase
 
     [HttpPost("{id:int}/issue")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     public async Task<IActionResult> IssueInvoice(int id)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.IssueInvoiceAsync(id, tenantId.Value);
+        var result = await _invoiceService.IssueInvoiceAsync(id, tenantId.Value, User.Identity?.Name);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     public async Task<IActionResult> CancelInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.CancelInvoiceAsync(id, tenantId.Value, request.Reason);
+        var result = await _invoiceService.CancelInvoiceAsync(id, tenantId.Value, request.Reason, User.Identity?.Name);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("{id:int}/void")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     public async Task<IActionResult> VoidInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.VoidInvoiceAsync(id, tenantId.Value, request.Reason);
+        var result = await _invoiceService.VoidInvoiceAsync(id, tenantId.Value, request.Reason, User.Identity?.Name);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -131,4 +134,7 @@ public class InvoicesController : ControllerBase
         return null;
     }
 }
+
+
+
 
