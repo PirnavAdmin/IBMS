@@ -39,7 +39,6 @@ import {
   EditOutlined,
   VisibilityOutlined,
   PrintOutlined,
-  ReceiptLongOutlined,
   PersonOffOutlined,
   Search,
   AccountBalanceWalletOutlined,
@@ -618,29 +617,6 @@ export function CustomerListPage() {
                             >
                               <EditOutlined />
                             </IconButton>
-                          </Tooltip>
-                          <Tooltip
-                            title={
-                              customer.status === "inactive"
-                                ? "Inactive customers cannot receive new invoices"
-                                : "Create invoice"
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                className="action-invoice"
-                                size="small"
-                                disabled={customer.status !== "active"}
-                                aria-label={`Create invoice for ${customer.name}`}
-                                onClick={() =>
-                                  navigate(
-                                    `/invoices/new?customerId=${customer.id}`
-                                  )
-                                }
-                              >
-                                <ReceiptLongOutlined />
-                              </IconButton>
-                            </span>
                           </Tooltip>
                           {customer.status === "active" && (
                             <Tooltip title="Deactivate customer">

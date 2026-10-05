@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumbs, Button, MenuItem, TextField } from '@mui/material';
 import { ArrowBack, ArrowForward, Check, DescriptionOutlined, ReceiptLongOutlined, SavingsOutlined } from '@mui/icons-material';
@@ -13,11 +13,12 @@ const reasons = ['Goods returned', 'Service cancellation', 'Incorrect quantity',
 
 export function CreditNoteForm() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const client = useQueryClient();
   const [step, setStep] = useState(0);
   const [error, setError] = useState('');
-  const [invoiceId, setInvoiceId] = useState('');
+  const [invoiceId, setInvoiceId] = useState(() => location.state?.invoiceId ? String(location.state.invoiceId) : '');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
   const [type, setType] = useState('Partial');

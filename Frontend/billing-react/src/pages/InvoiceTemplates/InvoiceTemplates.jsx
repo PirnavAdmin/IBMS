@@ -341,30 +341,3 @@ export function TemplateAuditHistory() {
     </section>
   </TemplatePage>;
 }
-
-export function InvoicePdfView() {
-  const { invoiceId } = useParams();
-  const [pdf, setPdf] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const generate = async () => {
-    setBusy(true); setError(''); setMessage('');
-    try { const result = await templateApi.generateInvoicePdf(invoiceId, { invoiceId: Number(invoiceId), overrideTemplateId: null, forceRegenerate: false }); setMessage(`PDF generated for invoice ${result?.invoiceNumber || invoiceId}.`); await download(true); }
-    catch (requestError) { setError(asError(requestError)); }
-    finally { setBusy(false); }
-  };
-  const download = async (inline = false) => {
-    setBusy(true); setError('');
-    try { const blob = await templateApi.downloadInvoicePdf(invoiceId, inline); setPdf(blob); if (!inline) { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = `invoice-${invoiceId}.pdf`; anchor.click(); URL.revokeObjectURL(url); } }
-    catch (requestError) { setError(asError(requestError)); }
-    finally { setBusy(false); }
-  };
-  return <TemplatePage title="Invoice document" description={`Invoice ${invoiceId}`} actions={<Button component={Link} to="/invoices" startIcon={<ArrowBack />}>Back to invoices</Button>}>
-    <section className="template-document-state"><div className="template-section-title"><div><h2>Invoice PDF</h2></div><Chip label={pdf ? 'Ready' : 'Not generated'} size="small" /></div>
-      {error && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}
-      <div className="template-document-actions"><Button variant="contained" disabled={busy} onClick={generate}>{busy ? 'Working…' : 'Generate PDF'}</Button><Button disabled={busy} onClick={() => download(true)}>Open PDF</Button><Button disabled={busy} onClick={() => download(false)}>Download PDF</Button><Button disabled={!pdf} onClick={() => document.querySelector('iframe[title="Server generated invoice PDF preview"]')?.contentWindow?.print()}>Print invoice</Button></div>
-      {pdf && <div className="template-live-preview"><PdfPreview blob={pdf} /></div>}
-    </section>
-  </TemplatePage>;
-}

@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PaymentShell, PaymentState, PaymentValues, usePaymentUser } from './PaymentShared';
 import { paymentService, PAYMENT_METHODS, methodLabel, methodFields, money, paymentError, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData } from './paymentService';
@@ -12,12 +12,15 @@ export function PaymentConfirmation({open,onClose,onConfirm,busy,values,error}) 
   return <Dialog className="payment-dialog" open={open} onClose={busy?undefined:onClose} fullWidth maxWidth="sm"><DialogTitle>Confirm Payment</DialogTitle><DialogContent><PaymentValues values={values} />{error && <Alert severity="error">{error}</Alert>}</DialogContent><DialogActions><Button onClick={onClose} disabled={busy}>Cancel</Button><Button variant="contained" disabled={busy} onClick={onConfirm}>{busy?'Recording...':'Confirm Payment'}</Button></DialogActions></Dialog>;
 }
 export function RecordPayment() {
+  const location=useLocation();
+  const preselected=useRef(false);
   const [form,setForm]=useState(initial);const [search,setSearch]=useState('');const [selected,setSelected]=useState(null);
   const [retryRequest,setRetryRequest]=useState(null);const [errors,setErrors]=useState({});const [confirmation,setConfirmation]=useState(null);const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
   const lock=useRef(createSubmissionGuard());const attempt=useRef(createAttemptManager());const client=useQueryClient();const navigate=useNavigate();const user=usePaymentUser();
   const invoices=useQuery({queryKey:['payment-invoices'],queryFn:({signal})=>paymentService.getEligibleInvoices({signal}),retry:false});
   const balance=useQuery({queryKey:['payment-balance',selected?.invoiceId],queryFn:({signal})=>paymentService.getInvoiceBalance(selected.invoiceId,{signal}),enabled:Boolean(selected),retry:false,staleTime:0});
   const current=balance.error?null:balance.data;
+  useEffect(()=>{if(preselected.current || !location.state?.invoiceId || !invoices.data)return;const target=invoices.data.find(row=>String(row.invoiceId)===String(location.state.invoiceId));if(target){setSelected(target);setForm(previous=>({...previous,invoice:String(target.invoiceId)}));}else{setMessage('The selected invoice is not currently eligible for a payment. Refresh the invoice balance before proceeding.');}preselected.current=true;},[invoices.data,location.state]);
   const change=key=>event=>{const value=event.target.value;setForm(previous=>({...previous,[key]:value,...(key==='method'?Object.fromEntries(Object.keys(labels).map(k=>[k,''])):{})}));setErrors(previous=>({...previous,[key]:''}));setConfirmation(null);};
   const review=async event=>{
     event.preventDefault();if(!lock.current.acquire())return;setBusy(true);setMessage('');

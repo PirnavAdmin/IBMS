@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { DashboardFilters } from '../../components/dashboard/DashboardFilters';
@@ -47,7 +46,7 @@ export const Dashboard = () => {
     <DashboardHeader searchQuery={searchQuery} onSearch={setSearchQuery} onSignOut={signOut} />
     <main className="bd-main bd-requirements-dashboard">
       <div className="bd-title-row"><div><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div><DashboardFilters values={filters} onChange={setFilters} onRefresh={loadDashboardData} isRefreshing={isLoading} /></div>
-      {isLoading ? <DashboardSkeleton /> : error ? <DashboardErrorState onRetry={loadDashboardData} /> : isEmpty ? <div className="bd-empty"><h2>No dashboard activity yet</h2><p>Create your first invoice to start seeing billing insights here.</p><Button variant="contained" onClick={() => navigate('/invoices/new')}>Create invoice</Button></div> : <>
+      {isLoading ? <DashboardSkeleton /> : error ? <DashboardErrorState onRetry={loadDashboardData} /> : isEmpty ? <div className="bd-empty"><h2>No dashboard activity yet</h2><p>Billing insights will appear here when activity is available.</p></div> : <>
       <section className="bd-kpi-grid" aria-label="Billing summary">{['totalInvoiced', 'totalPaid', 'outstanding', 'overdue', 'drafts'].map((key) => filteredData.summary[key]).filter(Boolean).map((stat) => <StatCard key={stat.id} data={stat} />)}</section>
       <QuickActions onAction={(action) => action.route && navigate(action.route)} />
       <section className="bd-chart-grid"><RevenueChart data={filteredData.revenue} /><OutstandingAging data={filteredData.outstandingAging} /></section>

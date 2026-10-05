@@ -1,419 +1,388 @@
-import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
-import '../../../styles/Dashboard.css';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { SettingsPageHeader } from '../../Settings/SettingsPageHeader';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Breadcrumbs,
   Button,
-  CircularProgress,
-  } from '@mui/material';
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { numberingService } from "../services/numberingService";
 import {
-  RestartAlt,
-  SaveOutlined,
-  DeleteOutline,
-  HelpOutline,
-} from '@mui/icons-material';
-import {
-  RESET_POLICIES,
-  DEFAULT_NUMBERING_CONFIG,
   numberingValidationSchema,
-} from '../validation/numberingValidation';
-import { numberingService } from '../services/numberingService';
-import { DocumentTypeSelector } from '../components/DocumentTypeSelector';
-import { FormatBuilder } from '../components/FormatBuilder';
-import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
-import '../styles/numbering-settings.css';
-
+  RESET_POLICIES,
+  DOCUMENT_TYPES,
+  SUPPORTED_TOKENS,
+} from "../validation/numberingValidation";
+import {
+  useDebounced,
+  useInvoiceUser,
+  InvoiceState,
+  InvoiceValues,
+} from "../../Invoices/components/InvoiceShared";
+import {
+  invoiceError,
+  createSubmissionGuard,
+} from "../../Invoices/services/invoiceService";
+import "../styles/numbering-settings.css";
 export function NumberingSettings() {
-  const requestLock = useRef(false);
-  const loadRevision = useRef(0);
-  const savedSettings = useRef(null);
-  const [loaded, setLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [apiError, setApiError] = useState('');
-  const [toast, setToast] = useState('');
-  const [toastSeverity, setToastSeverity] = useState('info');
-
-  const {
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(numberingValidationSchema),
-    defaultValues: DEFAULT_NUMBERING_CONFIG,
-    mode: 'onTouched',
+  const [documentType, setDocumentType] = useState("Invoice");
+  const [form, setForm] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const original = useRef(null);
+  const guard = useRef(createSubmissionGuard());
+  const user = useInvoiceUser();
+  const client = useQueryClient();
+  const settings = useQuery({
+    queryKey: ["numbering", documentType],
+    queryFn: () => numberingService.getSettings(documentType),
+    enabled: Boolean(user.data),
+    retry: false,
+    staleTime: 0,
   });
-
-  const currentDocType = watch('documentType') || 'Invoice';
-  const currentPrefix = watch('prefix') || '';
-  const currentSuffix = watch('suffix') || '';
-  const currentTokens = watch('tokens') || '';
-  const currentSeqLength = watch('sequenceLength') || 4;
-  const currentNextNum = watch('nextNumber') ?? '';
-  const currentResetPolicy = watch('resetPolicy') || 'Never (Continuous sequence)';
-
-  // Load configuration for document type
-  const loadSettingsForType = useCallback(async (docType) => {
-    const revision = ++loadRevision.current;
-    setIsLoading(true);
-    setLoaded(false);
-    setApiError('');
-    setToast('');
-    try {
-      const data = await numberingService.getSettings(docType);
-      if (revision !== loadRevision.current) return;
-      const settings = { ...data,
-        prefix: data.prefix.replace(/\{/g, '(').replace(/\}/g, ')'),
-        suffix: data.suffix.replace(/\{/g, '(').replace(/\}/g, ')'),
-        tokens: data.tokens.replace(/\{/g, '(').replace(/\}/g, ')'),
-      };
-      savedSettings.current = settings;
-      reset(settings);
-      setLoaded(true);
-    } catch (err) {
-      if (revision === loadRevision.current) setApiError(err.userMessage || err.message || 'Unable to load numbering settings. Please retry.');
-    } finally {
-      if (revision === loadRevision.current) setIsLoading(false);
-    }
-  }, [reset]);
-
   useEffect(() => {
-    loadSettingsForType('Invoice');
-    return () => { loadRevision.current += 1; };
-  }, [loadSettingsForType]);
-
-  // Handle switching document type
-  const handleSelectDocType = (docType) => {
-    if (requestLock.current) return;
-    setValue('documentType', docType);
-    loadSettingsForType(docType);
-  };
-
-  // Restore the last successful GET/PUT, including its sequence counter.
-  const handleResetChanges = () => {
-    if (!savedSettings.current || requestLock.current) return;
-    reset(savedSettings.current);
-    setApiError('');
-    setToastSeverity('info');
-    setToast(`Restored saved settings for ${currentDocType}.`);
-  };
-
-  // Append token
-  const handleAddToken = (token) => {
-    const existing = currentTokens || '';
-    const nextVal = existing ? `${existing}${token}-` : `${token}-`;
-    setValue('tokens', nextVal, { shouldValidate: true, shouldDirty: true });
-  };
-
-  // Clear middle tokens
-  const handleClearTokens = () => {
-    setValue('tokens', '', { shouldValidate: true, shouldDirty: true });
-    setToastSeverity('info');
-    setToast('Cleared format tokens.');
-  };
-
-  // Save handler
-  const onSave = async (isDraft = false) => {
-    if (requestLock.current || isSubmitting || isLoading || !loaded) return;
-    requestLock.current = true;
-    setIsSubmitting(true);
-    setToast('');
-    setApiError('');
-
-    try {
-      // Convert normal brackets to backend token format if present
-      const toBackendTokens = (val) => (val || '').replace(/\(/g, '{').replace(/\)/g, '}');
-
-      const payload = {
-        documentType: currentDocType,
-        prefix: toBackendTokens((currentPrefix || '').trim()),
-        suffix: toBackendTokens((currentSuffix || '').trim()),
-        tokens: toBackendTokens((currentTokens || '').trim()),
-        sequenceLength: parseInt(currentSeqLength, 10),
-        nextNumber: parseInt(currentNextNum, 10),
-        resetPolicy: currentResetPolicy,
-        status: isDraft ? 'Draft' : 'Active',
-      };
-
-      const result = await numberingService.updateSettings(payload);
-      if (result) {
-        const settings = {
-          documentType: result.documentType || currentDocType,
-          prefix: (result.prefix ?? currentPrefix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          suffix: (result.suffix ?? currentSuffix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          tokens: (result.tokens ?? currentTokens).replace(/\{/g, '(').replace(/\}/g, ')'),
-          sequenceLength: Number(result.sequenceLength ?? currentSeqLength),
-          nextNumber: Number(result.nextNumber ?? currentNextNum),
-          resetPolicy: result.resetPolicy || currentResetPolicy,
-        };
-        savedSettings.current = settings;
-        reset(settings);
-      }
-      setToastSeverity('success');
-      setToast(
-        isDraft
-          ? `Numbering format for ${currentDocType} saved as draft.`
-          : `Numbering settings for ${currentDocType} saved successfully.`
-      );
-    } catch (err) {
-      setApiError(err.userMessage || err.message || 'Failed to save numbering settings.');
-    } finally {
-      requestLock.current = false;
-      setIsSubmitting(false);
+    if (settings.data && !form) {
+      setForm(settings.data);
+      original.current = settings.data;
     }
+  }, [settings.data, form]);
+  const values = useDebounced(form, 300);
+  const valid = values && numberingValidationSchema.isValidSync(values);
+  const tokenError =
+    values &&
+    ["prefix", "suffix", "tokens"].some(
+      (key) => !numberingValidationSchema.fields[key].isValidSync(values[key]),
+    );
+  const preview = useQuery({
+    queryKey: ["numbering", "preview", values],
+    queryFn: () => numberingService.preview(values),
+    enabled: Boolean(valid && form?.documentType === documentType),
+    retry: false,
+    staleTime: 0,
+  });
+  const change = (key, value) => {
+    setMessage("");
+    setError("");
+    setErrors((previous) => ({ ...previous, [key]: "" }));
+    setForm((previous) => ({ ...previous, [key]: value }));
   };
-
-  const formValues = {
-    documentType: currentDocType,
-    prefix: currentPrefix,
-    suffix: currentSuffix,
-    tokens: currentTokens,
-    sequenceLength: currentSeqLength,
-    nextNumber: currentNextNum,
-    resetPolicy: currentResetPolicy,
-  };
-
+  async function validate() {
+    try {
+      await numberingValidationSchema.validate(form, { abortEarly: false });
+      setErrors({});
+      return true;
+    } catch (e) {
+      setErrors(
+        Object.fromEntries(
+          (e.inner || []).map((item) => [item.path, item.message]),
+        ),
+      );
+      return false;
+    }
+  }
+  async function review(event) {
+    event.preventDefault();
+    if (!form || busy || !user.permissions.manage || !(await validate()))
+      return;
+    setConfirm(true);
+  }
+  async function save() {
+    if (!user.permissions.manage || !guard.current.acquire()) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const fresh = await numberingService.getSettings(documentType);
+      if (
+        fresh.rowVersion !== original.current?.rowVersion ||
+        fresh.nextNumber !== original.current?.nextNumber
+      )
+        throw Object.assign(new Error("Changed"), { status: 409 });
+      const saved = await numberingService.updateSettings(form);
+      setForm(saved);
+      original.current = saved;
+      await client.invalidateQueries({ queryKey: ["numbering"] });
+      setConfirm(false);
+      setMessage("Numbering settings saved by the billing server.");
+    } catch (e) {
+      setError(invoiceError(e));
+    } finally {
+      guard.current.release();
+      setBusy(false);
+    }
+  }
+  async function reload() {
+    if (busy) return;
+    const result = await settings.refetch();
+    if (result.data && !result.error) {
+      setForm(result.data);
+      original.current = result.data;
+      setError("");
+      setConfirm(false);
+    }
+  }
+  const field = (key, label, type = "text", extra = {}) => (
+    <TextField
+      label={label}
+      type={type}
+      value={form?.[key] ?? ""}
+      onChange={(event) => change(key, event.target.value)}
+      error={Boolean(errors[key])}
+      helperText={errors[key]}
+      {...extra}
+    />
+  );
   return (
-    <div className="numbering-page-root">
-      <SettingsPageHeader
-        title="Invoice Numbering"
-        description="Define document formats, set sequence rules, and preview your next invoice number."
+    <main className="numbering-page-root">
+      <Breadcrumbs>
+        <Link to="/settings">Settings</Link>
+        <span>Invoice Numbering</span>
+      </Breadcrumbs>
+      <header className="numbering-heading">
+        <div>
+          <span className="invoice-eyebrow">Administration</span>
+          <h1>Invoice Numbering</h1>
+          <p>
+            Configure future document numbers and preview the format without
+            consuming the sequence.
+          </p>
+        </div>
+        <Button disabled={busy || settings.isFetching} onClick={reload}>
+          Refresh
+        </Button>
+      </header>
+      <InvoiceState
+        loading={user.isPending || settings.isPending}
+        error={user.error || settings.error}
+        retry={() => {
+          user.refetch();
+          settings.refetch();
+        }}
       />
-
-      {/* Error Alert */}
-      {apiError && (!loaded ? (
-        <DashboardErrorState title="Unable to load numbering settings" message={apiError} onRetry={() => loadSettingsForType(currentDocType)} />
-      ) : <Alert severity="error" sx={{ mb: 3 }}>{apiError}</Alert>)}
-
-      {isLoading && <Alert severity="info" role="status">Loading numbering settings...</Alert>}
-      {/* Main 2-Column Layout */}
-      <div className="numbering-content-grid">
-        {/* Left Column: Configuration Steps 1, 2, 3 */}
-        <fieldset className="numbering-steps-column" disabled={isLoading || isSubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-          {/* STEP 1: Select Document Type */}
-          <section className="numbering-card-panel">
-            <div className="panel-step-header">
-              <div className="panel-step-badge">1</div>
-              <div className="panel-step-titles">
-                <h2>Select Document Type</h2>
-                <p>Choose the document type to configure numbering for.</p>
-              </div>
-              <a
-                href="#help"
-                className="panel-help-link"
-                onClick={(e) => {
-                  e.preventDefault();
-    setToastSeverity('info');
-                  setToast('Select any document type to configure its independent sequence format.');
+      {!user.isPending && !user.permissions.manage && (
+        <Alert severity="info">
+          Numbering settings are read-only for your role.
+        </Alert>
+      )}
+      {form && (
+        <form onSubmit={review} noValidate>
+          <fieldset
+            className="numbering-fieldset"
+            disabled={busy || !user.permissions.manage}
+          >
+            <div className="numbering-rebuild-grid">
+              <section className="numbering-card-panel">
+                <h2>Build Your Format</h2>
+                <div className="numbering-fields">
+                  <TextField
+                    select
+                    label="Document Type"
+                    value={documentType}
+                    onChange={(event) => {
+                      setDocumentType(event.target.value);
+                      setForm(null);
+                      original.current = null;
+                      setErrors({});
+                      setError("");
+                      setMessage("");
+                    }}
+                  >
+                    {DOCUMENT_TYPES.map((type) => (
+                      <MenuItem key={type} value={type}>
+                        {type === "CreditNote" ? "Credit Note" : type}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {field("prefix", "Prefix")}
+                  {field("suffix", "Suffix")}
+                  {field("tokens", "Format / Tokens", "text", {
+                    className: "numbering-wide",
+                  })}
+                  {field("sequenceLength", "Sequence Length", "number", {
+                    inputProps: { min: 3, max: 10, step: 1 },
+                  })}
+                  {field("nextNumber", "Next Number", "number", {
+                    inputProps: { min: 1, max: 999999999999, step: 1 },
+                    helperText:
+                      errors.nextNumber ||
+                      "Changing the sequence requires confirmation.",
+                  })}
+                  <TextField
+                    select
+                    label="Reset Policy"
+                    value={form.resetPolicy}
+                    onChange={(event) =>
+                      change("resetPolicy", event.target.value)
+                    }
+                  >
+                    {RESET_POLICIES.map((policy) => (
+                      <MenuItem key={policy} value={policy}>
+                        {policy}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    label="Status"
+                    value={form.status}
+                    onChange={(event) => change("status", event.target.value)}
+                  >
+                    <MenuItem value="Active">Active</MenuItem>
+                    <MenuItem value="Inactive">Inactive</MenuItem>
+                  </TextField>
+                </div>
+                <h3>Supported tokens</h3>
+                <div className="numbering-token-list">
+                  {SUPPORTED_TOKENS.map((token) => (
+                    <Button
+                      key={token}
+                      size="small"
+                      variant="outlined"
+                      onClick={() => change("tokens", `${form.tokens}${token}`)}
+                    >
+                      {token}
+                    </Button>
+                  ))}
+                </div>
+                <Button onClick={() => change("tokens", "")}>
+                  Clear All tokens
+                </Button>
+                <p className="invoice-footnote">
+                  The backend appends the sequence after these tokens and before
+                  the suffix.
+                </p>
+              </section>
+              <aside className="numbering-card-panel">
+                <h2>Live Preview</h2>
+                {tokenError && (
+                  <Alert severity="error">
+                    The format contains an unsupported token or exceeds the
+                    allowed length. Use the listed brace tokens; invalid input
+                    is preserved.
+                  </Alert>
+                )}
+                <InvoiceState
+                  loading={preview.isFetching}
+                  error={preview.error}
+                  retry={() => preview.refetch()}
+                />
+                <p>Next Document Number (advisory)</p>
+                <strong className="numbering-preview-value">
+                  {values === form && valid && !preview.error
+                    ? preview.data?.fullPreview || "Loading preview..."
+                    : "Enter a valid configuration"}
+                </strong>
+                {preview.data && values === form && valid && (
+                  <InvoiceValues
+                    values={Object.entries(preview.data.parts).map(
+                      ([key, value]) => [key, value],
+                    )}
+                  />
+                )}
+                <p className="invoice-footnote">
+                  Preview never reserves or increments a number. The final
+                  number is assigned by the document workflow. Reset policy can
+                  affect that result.
+                </p>
+                <Alert severity="warning">
+                  The server does not enforce inactive numbering or concurrent
+                  configuration updates. A dedicated reset action is
+                  unavailable.
+                </Alert>
+              </aside>
+            </div>
+            <div className="numbering-save-bar">
+              <Button
+                disabled={busy}
+                onClick={() => {
+                  setForm(original.current);
+                  setErrors({});
+                  setError("");
+                  setMessage("");
                 }}
               >
-                <HelpOutline style={{ fontSize: '1rem' }} />
-                Need help?
-              </a>
-            </div>
-
-            <DocumentTypeSelector
-              selectedType={currentDocType}
-              onSelectType={handleSelectDocType}
-            />
-          </section>
-
-          {/* STEP 2: Configure Format & Sequence */}
-          <section className="numbering-card-panel">
-            <div className="panel-step-header">
-              <div className="panel-step-badge">2</div>
-              <div className="panel-step-titles">
-                <h2>Configure Format &amp; Sequence</h2>
-                <p>Set the prefix, suffix, date tokens, sequence and reset rules.</p>
-              </div>
-            </div>
-
-            <div className="numbering-fields-grid">
-              {/* Prefix */}
-              <div className="form-field-group">
-                <label htmlFor="prefix-input">
-                  Prefix <span className="req-star">*</span>
-                </label>
-                <input
-                  id="prefix-input"
-                  type="text"
-                  placeholder="e.g. INV-001"
-                  value={currentPrefix}
-                  onChange={(e) => setValue('prefix', e.target.value, { shouldValidate: true })}
-                />
-                <span className="field-helper-text">Static code placed before sequence</span>
-                {errors.prefix && <span className="field-error-text">{errors.prefix.message}</span>}
-              </div>
-
-              {/* Suffix */}
-              <div className="form-field-group">
-                <label htmlFor="suffix-input">Suffix</label>
-                <input
-                  id="suffix-input"
-                  type="text"
-                  placeholder="e.g. 2026"
-                  value={currentSuffix}
-                  onChange={(e) => setValue('suffix', e.target.value, { shouldValidate: true })}
-                />
-                <span className="field-helper-text">Optional code appended to sequence</span>
-                {errors.suffix && <span className="field-error-text">{errors.suffix.message}</span>}
-              </div>
-
-              {/* Sequence Length */}
-              <div className="form-field-group">
-                <label htmlFor="seq-len-select">
-                  Sequence Length (Digits) <span className="req-star">*</span>
-                </label>
-                <select
-                  id="seq-len-select"
-                  value={Number(currentSeqLength)}
-                  onChange={(e) => setValue('sequenceLength', Number(e.target.value), { shouldValidate: true })}
-                >
-                  <option value={3}>3 Digits (001)</option>
-                  <option value={4}>4 Digits (0001)</option>
-                  <option value={5}>5 Digits (00001)</option>
-                  <option value={6}>6 Digits (000001)</option>
-                  <option value={7}>7 Digits (0000001)</option>
-                  <option value={8}>8 Digits (00000001)</option>
-                  <option value={9}>9 Digits (000000001)</option>
-                  <option value={10}>10 Digits (0000000001)</option>
-                </select>
-                <span className="field-helper-text">Total digits for the sequence number</span>
-                {errors.sequenceLength && <span className="field-error-text">{errors.sequenceLength.message}</span>}
-              </div>
-
-              {/* Next Sequence Number */}
-              <div className="form-field-group">
-                <label htmlFor="next-num-input">
-                  Next Sequence Number <span className="req-star">*</span>
-                </label>
-                <input
-                  id="next-num-input"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={currentNextNum}
-                  onChange={(e) => setValue('nextNumber', e.target.value === '' ? '' : Number(e.target.value), { shouldValidate: true })}
-                />
-                <span className="field-helper-text">Next counter to be assigned</span>
-                {errors.nextNumber && <span className="field-error-text">{errors.nextNumber.message}</span>}
-              </div>
-
-              {/* Reset Policy (Full Width) */}
-              <div className="form-field-group is-full-width">
-                <label htmlFor="reset-policy-select">
-                  Reset Policy <span className="req-star">*</span>
-                </label>
-                <select
-                  id="reset-policy-select"
-                  value={currentResetPolicy}
-                  onChange={(e) => setValue('resetPolicy', e.target.value, { shouldValidate: true })}
-                >
-                  {RESET_POLICIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-                <span className="field-helper-text">
-                  {currentResetPolicy.includes('(')
-                    ? currentResetPolicy.split('(')[1].replace(')', '')
-                    : 'Sequence numbers continue sequentially without resetting.'}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          {/* STEP 3: Build Your Format */}
-          <section className="numbering-card-panel">
-            <div className="panel-step-header">
-              <div className="panel-step-badge">3</div>
-              <div className="panel-step-titles">
-                <h2>Build Your Format</h2>
-                <p>Drag and drop tokens to build your numbering format.</p>
-              </div>
-              <button
-                type="button"
-                className="panel-clear-btn"
-                onClick={handleClearTokens}
-                title="Clear all tokens"
+                Cancel changes
+              </Button>
+              <Button
+                variant="contained"
+                type="submit"
+                disabled={busy || !form}
               >
-                <DeleteOutline style={{ fontSize: '1.05rem' }} />
-                Clear All
-              </button>
-            </div>
-
-            {errors.tokens && <span className="field-error-text">{errors.tokens.message}</span>}
-            <FormatBuilder
-              prefix={currentPrefix}
-              suffix={currentSuffix}
-              tokens={currentTokens}
-              onAddToken={handleAddToken}
-              onClearTokens={handleClearTokens}
-            />
-          </section>
-        </fieldset>
-
-        {/* Right Column: Live Preview Panel */}
-        <NextNumberPreviewCard formValues={formValues} />
-      </div>
-
-      {/* Bottom Sticky Action Bar */}
-      <footer className="numbering-bottom-bar">
-        <div className="bottom-bar-left">
-          <button
-            type="button"
-            className="bar-btn bar-btn-outline"
-            onClick={handleResetChanges}
-            disabled={isSubmitting || isLoading || !loaded}
-          >
-            <RestartAlt style={{ fontSize: '1.1rem' }} />
-            Reset Changes
-          </button>
-        </div>
-
-        <div className="bottom-bar-right">
-          <button
-            type="button"
-            className="bar-btn bar-btn-outline"
-            onClick={handleSubmit(() => onSave(true))}
-            disabled={isSubmitting || isLoading || !loaded}
-          >
-            <SaveOutlined style={{ fontSize: '1.1rem' }} />
-            Save as Draft
-          </button>
-
-          <button
-            type="button"
-            className="bar-btn bar-btn-primary"
-            onClick={handleSubmit(() => onSave(false))}
-            disabled={isSubmitting || isLoading || !loaded}
-          >
-            {isSubmitting ? (
-              <>
-                <CircularProgress size={16} color="inherit" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <SaveOutlined style={{ fontSize: '1.1rem' }} />
                 Save Changes
-              </>
-            )}
-          </button>
-        </div>
-      </footer>
-
-      {/* Snackbar Toast */}
-      <FeedbackSnackbar message={toast} onClose={() => setToast('')} severity={toastSeverity} />
-    </div>
+              </Button>
+            </div>
+          </fieldset>
+        </form>
+      )}
+      {message && <Alert severity="success">{message}</Alert>}
+      {error && !confirm && (
+        <Alert
+          severity="error"
+          action={<Button onClick={reload}>Reload latest</Button>}
+        >
+          {error}
+        </Alert>
+      )}
+      <Dialog
+        open={confirm}
+        onClose={busy ? undefined : () => setConfirm(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Confirm numbering changes</DialogTitle>
+        <DialogContent>
+          <p>
+            These settings affect future documents. Existing document numbers
+            remain unchanged.
+          </p>
+          {form && (
+            <InvoiceValues
+              values={[
+                ["Document Type", form.documentType],
+                ["Next Number", form.nextNumber],
+                ["Reset Policy", form.resetPolicy],
+                ["Status", form.status],
+              ]}
+            />
+          )}
+          {Number(form?.nextNumber) !== original.current?.nextNumber && (
+            <Alert severity="warning">
+              You are changing the stored sequence. Reusing a previous number
+              may cause collisions.
+            </Alert>
+          )}
+          {error && (
+            <Alert
+              severity="error"
+              action={
+                <Button disabled={busy} onClick={reload}>
+                  Reload latest
+                </Button>
+              }
+            >
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={busy} onClick={() => setConfirm(false)}>
+            Back
+          </Button>
+          <Button variant="contained" disabled={busy} onClick={save}>
+            {busy ? "Saving..." : "Confirm Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </main>
   );
 }
-
 export default NumberingSettings;

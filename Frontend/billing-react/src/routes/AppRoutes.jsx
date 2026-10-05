@@ -8,7 +8,6 @@ import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';
 import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
 
 import { Dashboard } from '../pages/Dashboard/Dashboard';
-import { CreateInvoice } from '../pages/CreateInvoice/CreateInvoice';
 import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
@@ -18,8 +17,10 @@ import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
 import { Payments } from '../pages/Payments/Payments';
 import { RecordPayment } from '../pages/Payments/RecordPayment';
 import { PaymentDetails } from '../pages/Payments/PaymentDetails';
-import { Invoices } from '../pages/Invoices/Invoices';
-import { InvoiceDetailsPage } from '../pages/Invoices/pages/InvoiceDetailsPage';
+import { InvoiceList } from '../pages/Invoices/InvoiceList';
+import { InvoiceForm } from '../pages/Invoices/InvoiceForm';
+import { InvoiceDetails } from '../pages/Invoices/InvoiceDetails';
+import { InvoicePreview } from '../pages/Invoices/InvoicePreview';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { CategoryList } from '../pages/Products/pages/CategoryList';
 import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
@@ -29,7 +30,7 @@ import { CreateProduct } from '../pages/Products/pages/CreateProduct';
 import { EditProduct } from '../pages/Products/pages/EditProduct';
 import { NumberingSettings } from '../pages/NumberingSettings';
 import { QuotationManagement } from '../pages/Quotations';
-import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory, InvoicePdfView } from '../pages/InvoiceTemplates/InvoiceTemplates';
+import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory } from '../pages/InvoiceTemplates/InvoiceTemplates';
 import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
@@ -63,13 +64,11 @@ export const AppRoutes = () => (
     <Route element={<AppLayout />}>
       <Route path="/dashboard" element={<Dashboard />} />
 
-      {/* Invoices */}
-      <Route path="/invoices" element={<Invoices />} />
-      <Route path="/invoices/new" element={<CreateInvoice />} />
-      <Route path="/invoices/create" element={<CreateInvoice />} />
-      <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
-      <Route path="/invoices/:id/edit" element={<CreateInvoice mode="edit" />} />
-      <Route path="/invoices/:invoiceId/pdf" element={<InvoicePdfView />} />
+      <Route path="/invoices" element={<InvoiceList />} />
+      <Route path="/invoices/new" element={<InvoiceForm />} />
+      <Route path="/invoices/:id" element={<InvoiceDetails />} />
+      <Route path="/invoices/:id/edit" element={<InvoiceForm />} />
+      <Route path="/invoices/:id/preview" element={<InvoicePreview />} />
 
       {/* Quotation Management — backend API integration */}
       <Route path="/quotations" element={<QuotationManagement />} />

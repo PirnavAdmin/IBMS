@@ -49,9 +49,9 @@
 .app-layout-main > .bd-header { flex-shrink: 0; }
 .app-layout-content { flex: 1; min-height: 0; overflow: auto; }
 .app-layout-content-with-header { overflow: hidden; display: flex; flex-direction: column; }
-.app-layout-content-with-header > :is(.bd-shell, .invoice-module, .tax-module) { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.app-layout-content-with-header > :is(.bd-shell, .invoice-module, .tax-module) > .bd-header { flex-shrink: 0; }
-.app-layout-content-with-header > :is(.bd-shell, .invoice-module, .tax-module) > main { flex: 1; min-height: 0; overflow: auto; }
+.app-layout-content-with-header > :is(.bd-shell, .tax-module) { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.app-layout-content-with-header > :is(.bd-shell, .tax-module) > .bd-header { flex-shrink: 0; }
+.app-layout-content-with-header > :is(.bd-shell, .tax-module) > main { flex: 1; min-height: 0; overflow: auto; }
 /* Page content fills the shell; fixed snackbar notifications keep their natural width. */
 .app-layout-main > :not(.MuiSnackbar-root) { width: 100%; }
 .app-layout-menu { display: none; }

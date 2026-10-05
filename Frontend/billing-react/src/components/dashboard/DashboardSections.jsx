@@ -1,4 +1,4 @@
-import { Add, Assessment, CurrencyRupee, Description, MailOutline, ReceiptLong, Warning } from '@mui/icons-material';
+import { Assessment, CurrencyRupee, Description, MailOutline, ReceiptLong, Warning } from '@mui/icons-material';
 import { formatInr } from './StatCard';
 
 export const StatusBadge = ({ value }) => <span className={`bd-badge bd-badge-${value.toLowerCase().replaceAll(' ', '-')}`}>{value}</span>;
@@ -26,9 +26,7 @@ const activityIcons = { payment: CurrencyRupee, invoice: Description, sent: Mail
 export const RecentActivity = ({ data }) => <article className="bd-card bd-span-4"><CardTitle title="Recent Activity" /><div className="bd-activity-list">{data.length ? data.map((activity) => { const Icon = activityIcons[activity.type] || ReceiptLong; return <div className={`bd-activity bd-activity-${activity.type}`} key={activity.id}><i><Icon /></i><span><strong>{activity.text}</strong><small>{activity.timestamp}</small></span></div>; }) : <p className="bd-no-results">No matching activity.</p>}</div></article>;
 
 const quickActions = [
-  { label: 'Create Invoice', icon: Add, route: '/invoices/new', tone: 'brown' },
   { label: 'Record Payment', icon: CurrencyRupee, tone: 'green', unavailable: 'Payment entry is not available yet.' },
-  { label: 'View Overdue', icon: Warning, route: '/invoices?status=Overdue', tone: 'red' },
   { label: 'Reports', icon: Assessment, route: '/reports', tone: 'neutral' },
 ];
 export const QuickActions = ({ onAction }) => <article className="bd-card bd-dashboard-actions"><CardTitle title="Quick Actions" /><div className="bd-quick-grid">{quickActions.map((action) => { const Icon = action.icon; return <div key={action.label} title={action.unavailable}><button className={`bd-quick bd-quick-${action.tone}`} disabled={Boolean(action.unavailable)} onClick={() => onAction(action)}><Icon /><span>{action.label}</span></button>{action.unavailable && <small>{action.unavailable}</small>}</div>; })}</div></article>;
