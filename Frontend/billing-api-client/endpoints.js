@@ -28,6 +28,24 @@ export const API_ENDPOINTS = {
   },
   SETTINGS: {
     NUMBERING: '/api/v1/settings/numbering',
+    NUMBERING_GENERATE: '/api/v1/settings/numbering/generate',
+  },
+  INVOICES: {
+    BASE: '/api/v1/invoices',
+    BY_ID: (id) => `/api/v1/invoices/${encodeURIComponent(id)}`,
+    ISSUE: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/issue`,
+    CANCEL: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/cancel`,
+    VOID: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/void`,
+    PDF: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/pdf`,
+  },
+  FINANCIAL: {
+    CALCULATE: '/api/v1/financial/calculate',
+  },
+  PAYMENTS: {
+    BASE: '/api/v1/payments',
+    BY_ID: (id) => `/api/v1/payments/${encodeURIComponent(id)}`,
+    ELIGIBLE_INVOICES: '/api/v1/payments/eligible-invoices',
+    INVOICE_BALANCE: (invoiceId) => `/api/v1/payments/invoices/${encodeURIComponent(invoiceId)}/balance`,
   },
   TEMPLATES: {
     BASE: '/api/v1/invoice-templates',

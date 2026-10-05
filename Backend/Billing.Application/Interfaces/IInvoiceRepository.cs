@@ -13,5 +13,5 @@ public interface IInvoiceRepository
     Task<Invoice> AddAsync(Invoice invoice);
     Task<Invoice> UpdateAsync(Invoice invoice, CancellationToken cancellationToken = default);
     Task<PagedResult<Invoice>> GetPagedAsync(int tenantId, InvoiceFilterRequest filter, CancellationToken cancellationToken = default);
-    Task<InvoiceSummaryDto> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default);
+    Task<List<InvoiceSummaryDto>> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default);
 }

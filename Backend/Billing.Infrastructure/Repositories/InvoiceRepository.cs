@@ -143,11 +143,47 @@ public class InvoiceRepository : IInvoiceRepository
         if (filter.EndDate.HasValue)
             query = query.Where(i => i.InvoiceDate <= filter.EndDate.Value);
 
+        if (!string.IsNullOrWhiteSpace(filter.Currency))
+            query = query.Where(i => i.Customer != null && i.Customer.Currency == filter.Currency);
+
+        if (!string.IsNullOrWhiteSpace(filter.PaymentState))
+        {
+            var pState = filter.PaymentState.Trim().ToLower();
+            if (pState == "paid")
+                query = query.Where(i => i.Status == "Paid");
+            else if (pState == "partially paid")
+                query = query.Where(i => i.Status == "Partially Paid");
+            else if (pState == "unpaid")
+                query = query.Where(i => i.Status == "Issued" && i.PaidAmount == 0);
+            else if (pState == "outstanding")
+                query = query.Where(i => i.BalanceAmount > 0 && (i.Status == "Issued" || i.Status == "Partially Paid" || i.Status == "Overdue"));
+            else if (pState == "overdue")
+                query = query.Where(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow));
+        }
+
+        if (filter.MinOutstandingAmount.HasValue)
+            query = query.Where(i => i.BalanceAmount >= filter.MinOutstandingAmount.Value);
+        if (filter.MaxOutstandingAmount.HasValue)
+            query = query.Where(i => i.BalanceAmount <= filter.MaxOutstandingAmount.Value);
+        if (filter.MinTotalAmount.HasValue)
+            query = query.Where(i => i.TotalAmount >= filter.MinTotalAmount.Value);
+        if (filter.MaxTotalAmount.HasValue)
+            query = query.Where(i => i.TotalAmount <= filter.MaxTotalAmount.Value);
+
         var totalCount = await query.CountAsync(cancellationToken);
 
+        bool isDesc = string.IsNullOrWhiteSpace(filter.SortOrder) || filter.SortOrder.ToLower() == "desc";
+        var sortBy = filter.SortBy?.Trim().ToLower();
+
+        query = sortBy switch
+        {
+            "invoicenumber" => isDesc ? query.OrderByDescending(i => i.InvoiceNumber) : query.OrderBy(i => i.InvoiceNumber),
+            "totalamount" => isDesc ? query.OrderByDescending(i => i.TotalAmount) : query.OrderBy(i => i.TotalAmount),
+            "balanceamount" => isDesc ? query.OrderByDescending(i => i.BalanceAmount) : query.OrderBy(i => i.BalanceAmount),
+            _ => isDesc ? query.OrderByDescending(i => i.InvoiceDate).ThenByDescending(i => i.Id) : query.OrderBy(i => i.InvoiceDate).ThenBy(i => i.Id),
+        };
+
         var items = await query
-            .OrderByDescending(i => i.InvoiceDate)
-            .ThenByDescending(i => i.Id)
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
@@ -155,23 +191,30 @@ public class InvoiceRepository : IInvoiceRepository
         return new PagedResult<Invoice>(items, totalCount, filter.Page, filter.PageSize);
     }
 
-    public async Task<InvoiceSummaryDto> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
+    public async Task<List<InvoiceSummaryDto>> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
     {
         var baseQuery = _dbContext.Invoices
+            .Include(i => i.Customer)
             .AsNoTracking()
             .Where(i => i.TenantId == tenantId && i.Status != "Voided" && i.Status != "Cancelled");
 
-        var summary = await baseQuery
-            .GroupBy(i => 1)
+        var summaries = await baseQuery
+            .GroupBy(i => i.Customer != null && !string.IsNullOrEmpty(i.Customer.Currency) ? i.Customer.Currency : "INR")
             .Select(g => new InvoiceSummaryDto
             {
+                Currency = g.Key,
                 TotalInvoiced = g.Sum(i => i.TotalAmount),
                 TotalPaid = g.Sum(i => i.PaidAmount),
                 TotalOutstanding = g.Sum(i => i.BalanceAmount),
-                OverdueCount = g.Count(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow))
+                OverdueAmount = g.Sum(i => (i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow)) ? i.BalanceAmount : 0),
+                OverdueCount = g.Count(i => i.Status == "Overdue" || (i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow)),
+                DraftCount = g.Count(i => i.Status == "Draft"),
+                DraftAmount = g.Sum(i => i.Status == "Draft" ? i.TotalAmount : 0)
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        return summary ?? new InvoiceSummaryDto();
+        return summaries;
     }
 }
+
+

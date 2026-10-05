@@ -28,6 +28,8 @@ public class Invoice
 
     public decimal ChargesAmount { get; set; }
 
+    public decimal RoundingAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public decimal PaidAmount { get; set; }
@@ -202,3 +204,4 @@ public class Invoice
         RowVersion = DateTime.UtcNow;
     }
 }
+

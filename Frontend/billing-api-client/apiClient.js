@@ -67,12 +67,19 @@ export const getUserFriendlyError = (error) => {
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error?.response?.status === 401 && error.config?.headers?.Authorization && !error.config?.url?.toLowerCase().includes('/auth/')) {
+    if (
+      error?.response?.status === 401 &&
+      error.config?.headers?.Authorization &&
+      !error.config?.url?.toLowerCase().includes('/auth/') &&
+      !error.config?.skipAuthRedirect
+    ) {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('billing_auth_token');
         localStorage.removeItem('billing_auth_user');
       }
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') window.location.replace('/login?reason=session-expired');
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.replace('/login?reason=session-expired');
+      }
     }
     const message = getUserFriendlyError(error);
     const normalizedError = new Error(message);

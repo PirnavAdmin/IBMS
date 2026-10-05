@@ -19,6 +19,7 @@ import { Payments } from '../pages/Payments/Payments';
 import { RecordPayment } from '../pages/Payments/RecordPayment';
 import { PaymentDetails } from '../pages/Payments/PaymentDetails';
 import { Invoices } from '../pages/Invoices/Invoices';
+import { InvoiceDetailsPage } from '../pages/Invoices/pages/InvoiceDetailsPage';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { CategoryList } from '../pages/Products/pages/CategoryList';
 import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
@@ -66,6 +67,8 @@ export const AppRoutes = () => (
       <Route path="/invoices" element={<Invoices />} />
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
+      <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
+      <Route path="/invoices/:id/edit" element={<CreateInvoice mode="edit" />} />
       <Route path="/invoices/:invoiceId/pdf" element={<InvoicePdfView />} />
 
       {/* Quotation Management — backend API integration */}

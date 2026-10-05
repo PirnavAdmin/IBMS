@@ -1,0 +1,670 @@
+/* High-End Executive Invoice Document Styling */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,500;1,600&display=swap');
+
+.executive-invoice-wrapper {
+  background: #f4efe9;
+  min-height: 100%;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.executive-invoice-toolbar {
+  width: 100%;
+  max-width: 880px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: 1px solid #ebdccb;
+  box-shadow: 0 2px 10px rgba(80, 48, 28, 0.04);
+}
+
+.executive-invoice-sheet {
+  width: 100%;
+  max-width: 880px;
+  background: #ffffff;
+  color: #1c1815;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  border-radius: 12px;
+  padding: 48px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 30px rgba(50, 32, 20, 0.07);
+  border: 1px solid #e7dfd5;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle top luxury accent bar */
+.executive-invoice-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #70472f 0%, #b36e44 35%, #d4a373 70%, #70472f 100%);
+}
+
+/* Watermark Stamp for Status */
+.inv-watermark-stamp {
+  position: absolute;
+  top: 180px;
+  right: 50px;
+  border: 3px dashed rgba(0, 129, 77, 0.35);
+  color: rgba(0, 129, 77, 0.85);
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+  background: rgba(220, 246, 230, 0.4);
+}
+
+.inv-watermark-stamp.overdue {
+  border-color: rgba(201, 59, 43, 0.35);
+  color: rgba(201, 59, 43, 0.85);
+  background: rgba(254, 238, 236, 0.4);
+}
+
+.inv-watermark-stamp.draft {
+  border-color: rgba(140, 125, 113, 0.35);
+  color: rgba(140, 125, 113, 0.85);
+  background: rgba(245, 242, 238, 0.4);
+}
+
+/* Top Header */
+.inv-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #ebdccb;
+  margin-bottom: 24px;
+  gap: 20px;
+}
+
+.inv-brand-lockup {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.inv-brand-crest {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #301f16 0%, #150d09 100%);
+  border: 1.5px solid #d4a373;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f7ead9;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 12px rgba(48, 31, 22, 0.2);
+}
+
+.inv-company-name {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #211915;
+  letter-spacing: -0.02em;
+}
+
+.inv-company-subtitle {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #70472f;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.inv-company-coords {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #63574e;
+  line-height: 1.5;
+}
+
+.inv-tax-badge-block {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.inv-doc-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #2b1c14;
+  color: #ffffff;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.inv-doc-copy-tag {
+  font-size: 0.72rem;
+  color: #8c7d71;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+/* 4-Column Metadata Ribbon */
+.inv-meta-ribbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background: #fbf9f6;
+  border: 1px solid #eee5dc;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+}
+
+.inv-meta-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-meta-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8c7d71;
+  margin-bottom: 4px;
+}
+
+.inv-meta-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #211915;
+}
+
+.inv-meta-val.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95rem;
+  color: #70472f;
+  font-weight: 700;
+}
+
+/* Client & Remittance Cards */
+.inv-parties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.inv-party-card {
+  background: #faf8f5;
+  border: 1px solid #ebdccb;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-party-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #70472f;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-party-name {
+  margin: 0 0 6px;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: #1c1815;
+}
+
+.inv-party-address {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #594d44;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.inv-party-detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #63574e;
+  margin-top: 3px;
+}
+
+.inv-gstin-chip {
+  display: inline-block;
+  margin-top: 8px;
+  background: #ede3d7;
+  color: #492e1f;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #dfd1c2;
+  align-self: flex-start;
+}
+
+/* Line Items Table */
+.inv-table-container {
+  margin-bottom: 28px;
+  border: 1px solid #eee5dc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inv-doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.inv-doc-table th {
+  background: #f7f2eb;
+  padding: 12px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #543420;
+  border-bottom: 2px solid #e7ddd3;
+  text-align: left;
+}
+
+.inv-doc-table td {
+  padding: 14px;
+  border-bottom: 1px solid #f1eae2;
+  color: #2b231e;
+  vertical-align: middle;
+}
+
+.inv-doc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.inv-doc-table tbody tr:hover {
+  background: #fdfbf8;
+}
+
+.inv-item-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f2ebe2;
+  color: #70472f;
+  font-weight: 700;
+  font-size: 0.78rem;
+  display: grid;
+  place-items: center;
+}
+
+.inv-item-title {
+  font-weight: 600;
+  color: #1e1713;
+  margin-bottom: 2px;
+}
+
+.inv-item-spec {
+  font-size: 0.78rem;
+  color: #7a6e64;
+  line-height: 1.35;
+}
+
+.inv-hsn-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: #5c4f45;
+  background: #f0e9e1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.inv-tax-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #70472f;
+  background: #faede0;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #eedac6;
+}
+
+/* Two-column Bottom: Statutory Tax / Bank & Totals */
+.inv-bottom-section {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+/* Amount in words quote */
+.inv-words-card {
+  background: #fbf9f6;
+  border-left: 3px solid #70472f;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 16px;
+}
+
+.inv-words-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8c7d71;
+  margin-bottom: 3px;
+}
+
+.inv-words-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #302117;
+  line-height: 1.4;
+}
+
+/* Statutory GST Breakdown Table */
+.inv-gst-schedule {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin-bottom: 16px;
+  background: #ffffff;
+  border: 1px solid #ebdccb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.inv-gst-schedule th {
+  background: #f6efe6;
+  padding: 7px 10px;
+  font-weight: 700;
+  color: #5a3824;
+  text-align: right;
+  border-bottom: 1px solid #ebdccb;
+}
+
+.inv-gst-schedule th:first-child,
+.inv-gst-schedule td:first-child {
+  text-align: left;
+}
+
+.inv-gst-schedule td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f2e9df;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: right;
+  color: #493b32;
+}
+
+.inv-gst-schedule tr:last-child td {
+  border-bottom: none;
+  background: #faf6f0;
+  font-weight: 700;
+  color: #211915;
+}
+
+/* QR Code & Banking card */
+.inv-qr-bank-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  background: #faf7f2;
+  border: 1px solid #eee4d9;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.inv-qr-box {
+  flex: 0 0 84px;
+  height: 84px;
+  background: #ffffff;
+  border: 1px solid #e2d7cb;
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.inv-bank-info {
+  font-size: 0.78rem;
+  color: #5a4e44;
+  line-height: 1.45;
+}
+
+.inv-bank-info strong {
+  color: #211915;
+}
+
+/* Executive Totals Card */
+.inv-totals-card {
+  background: #ffffff;
+  border: 1px solid #eee5dc;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.inv-totals-table {
+  width: 100%;
+  font-size: 0.88rem;
+  border-collapse: collapse;
+}
+
+.inv-totals-table td {
+  padding: 7px 0;
+  color: #63574e;
+}
+
+.inv-totals-table td:last-child {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #211915;
+}
+
+.inv-total-highlight-row {
+  border-top: 2px solid #ebdccb;
+  border-bottom: 2px solid #ebdccb;
+  background: #2a1c14;
+}
+
+.inv-total-highlight-row td {
+  padding: 14px 12px !important;
+  color: #ffffff !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+}
+
+.inv-total-highlight-row td:last-child {
+  color: #f7d8bb !important;
+  font-size: 1.28rem !important;
+  font-weight: 800 !important;
+}
+
+/* Authentication & Seal Block */
+.inv-seal-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid #ebdccb;
+  padding-top: 24px;
+  margin-top: 12px;
+}
+
+.inv-digital-verification {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 440px;
+}
+
+.inv-crest-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid #70472f;
+  background: #faf6f1;
+  display: grid;
+  place-items: center;
+  color: #70472f;
+  flex: 0 0 42px;
+}
+
+.inv-verification-text {
+  font-size: 0.74rem;
+  color: #7a6e64;
+  line-height: 1.35;
+}
+
+.inv-signatory-block {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.inv-signature-graphic {
+  font-family: 'Playfair Display', cursive, serif;
+  font-style: italic;
+  font-size: 1.35rem;
+  color: #1e1713;
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
+  transform: rotate(-3deg);
+}
+
+.inv-signatory-line {
+  width: 170px;
+  height: 1px;
+  background: #3b281c;
+  margin-bottom: 6px;
+}
+
+.inv-signatory-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #543420;
+}
+
+.inv-signatory-company {
+  font-size: 0.7rem;
+  color: #8c7d71;
+}
+
+/* Footer Compliance Disclaimer */
+.inv-doc-legal-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px dashed #e7dfd5;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #9c8e82;
+  line-height: 1.4;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .executive-invoice-sheet {
+    padding: 24px 18px;
+  }
+  .inv-doc-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .inv-tax-badge-block {
+    text-align: left;
+    align-items: flex-start;
+  }
+  .inv-meta-ribbon {
+    grid-template-columns: 1fr 1fr;
+  }
+  .inv-parties-grid {
+    grid-template-columns: 1fr;
+  }
+  .inv-bottom-section {
+    grid-template-columns: 1fr;
+  }
+  .inv-seal-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+
+/* Print Optimization */
+@media print {
+  body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .no-print,
+  .executive-invoice-toolbar,
+  .MuiDialogActions-root,
+  .MuiDialogTitle-root,
+  .invoice-preview-header {
+    display: none !important;
+  }
+  .executive-invoice-wrapper {
+    background: transparent !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+  .executive-invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .inv-watermark-stamp {
+    opacity: 0.5;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

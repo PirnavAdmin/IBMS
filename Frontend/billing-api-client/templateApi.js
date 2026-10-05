@@ -110,7 +110,7 @@ export const templateApi = {
     const formData = new FormData();
     formData.append('file', file);
     const res = await apiClient.post(API_ENDPOINTS.TEMPLATES.LOGO_UPLOAD, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      // Let Axios/browser set the multipart boundary for FormData.
     });
     return unwrap(res);
   },
