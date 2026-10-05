@@ -239,20 +239,59 @@ export const invoiceApi = {
   saveLocalInvoices,
 
   getInvoices: async (params = {}) => {
+    const page = Number(params.page || params.pageNumber || 1);
+    const pageSize = Number(params.pageSize || 10);
+    const queryParams = {
+      page,
+      pageSize,
+    };
+    if (params.search || params.searchTerm) {
+      queryParams.searchTerm = (params.search || params.searchTerm).trim();
+    }
+    if (params.customerId) {
+      queryParams.customerId = Number(params.customerId);
+    }
+    if (params.status && params.status !== 'All Invoices') {
+      queryParams.status = params.status;
+    }
+    if (params.startDate || params.start) {
+      queryParams.startDate = params.startDate || params.start;
+    }
+    if (params.endDate || params.end) {
+      queryParams.endDate = params.endDate || params.end;
+    }
+
     try {
       const response = await apiClient.get(API_ENDPOINTS.INVOICES.BASE, {
-        params,
+        params: queryParams,
         skipAuthRedirect: true,
       });
       const data = ensureSuccess(response);
       const items = Array.isArray(data) ? data : data?.items || [];
+      const totalCount = Number(data?.totalCount ?? items.length);
+      const totalPages = Number(data?.totalPages ?? Math.max(1, Math.ceil(totalCount / pageSize)));
+
       return {
         items,
-        totalCount: data?.totalCount ?? items.length,
+        totalCount,
+        page,
+        pageSize,
+        totalPages,
+        hasPreviousPage: data?.hasPreviousPage ?? page > 1,
+        hasNextPage: data?.hasNextPage ?? page < totalPages,
         isBackendConnected: true,
       };
-    } catch {
-      // Gracefully fall back to local preview data for any error (401, 404, 500, network error)
+    } catch (err) {
+      // If user is authenticated and backend returns an HTTP error (401, 403, 500, network error),
+      // we must propagate the error so the UI shows the distinct ERROR state with [Retry]
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('billing_auth_token')) {
+        // If error response status exists, throw
+        if (err.response?.status && err.response?.status !== 404) {
+          throw err;
+        }
+      }
+
+      // Gracefully fall back to local preview data for unauthenticated or local development mode
       let local = getLocalInvoices();
 
       // Check if converted quotations exist
@@ -305,8 +344,8 @@ export const invoiceApi = {
 
       // Filter in-memory
       let filtered = [...local];
-      if (params.search) {
-        const s = params.search.toLowerCase();
+      if (queryParams.searchTerm) {
+        const s = queryParams.searchTerm.toLowerCase();
         filtered = filtered.filter(
           (inv) =>
             String(inv.id || inv.invoiceNumber || '').toLowerCase().includes(s) ||
@@ -314,27 +353,27 @@ export const invoiceApi = {
             String(inv.email || inv.customerEmail || '').toLowerCase().includes(s)
         );
       }
-      if (params.status && params.status !== 'All Invoices') {
+      if (queryParams.status) {
         filtered = filtered.filter(
-          (inv) => String(inv.status || '').toLowerCase() === params.status.toLowerCase()
+          (inv) => String(inv.status || '').toLowerCase() === queryParams.status.toLowerCase()
         );
       }
-      if (params.customerId) {
-        filtered = filtered.filter((inv) => String(inv.customerId) === String(params.customerId));
+      if (queryParams.customerId) {
+        filtered = filtered.filter((inv) => String(inv.customerId) === String(queryParams.customerId));
       }
 
-      const pageSize = Number(params.pageSize) || 10;
-      const pageNumber = Number(params.pageNumber) || 1;
       const totalCount = filtered.length;
       const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-      const pagedItems = filtered.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+      const pagedItems = filtered.slice((page - 1) * pageSize, page * pageSize);
 
       return {
         items: pagedItems,
         totalCount,
-        pageNumber,
+        page,
         pageSize,
         totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages,
         isBackendConnected: false,
       };
     }
@@ -408,7 +447,10 @@ export const invoiceApi = {
         ...ensureSuccess(response),
         isBackendConnected: true,
       };
-    } catch {
+    } catch (err) {
+      if (err.response?.status === 409 || err.message?.includes('Concurrency')) {
+        throw err;
+      }
       const local = getLocalInvoices();
       const index = local.findIndex((i) => String(i.id) === String(id) || String(i.invoiceNumber) === String(id));
       if (index >= 0) {
@@ -417,6 +459,17 @@ export const invoiceApi = {
         return { ...local[index], isBackendConnected: false };
       }
       throw Object.assign(new Error(`Invoice with ID ${id} not found.`), { status: 404 });
+    }
+  },
+
+  getSummary: async () => {
+    try {
+      const response = await apiClient.get(`${API_ENDPOINTS.INVOICES.BASE}/summary`, {
+        skipAuthRedirect: true,
+      });
+      return ensureSuccess(response);
+    } catch {
+      return null;
     }
   },
 
@@ -473,10 +526,63 @@ export const invoiceApi = {
     }
   },
 
+  voidInvoice: async (id, reason = '') => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.INVOICES.VOID(id), { reason }, {
+        skipAuthRedirect: true,
+      });
+      return {
+        ...ensureSuccess(response),
+        isBackendConnected: true,
+      };
+    } catch {
+      const local = getLocalInvoices();
+      const index = local.findIndex((i) => String(i.id) === String(id) || String(i.invoiceNumber) === String(id));
+      if (index >= 0) {
+        local[index] = {
+          ...local[index],
+          status: 'Void',
+          paymentStatus: 'Void',
+          cancellationReason: reason,
+          updatedAtUtc: new Date().toISOString(),
+        };
+        saveLocalInvoices(local);
+        return { ...local[index], isBackendConnected: false };
+      }
+      throw Object.assign(new Error(`Invoice with ID ${id} not found.`), { status: 404 });
+    }
+  },
+
   getInvoicePayments: async (invoiceId) => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PAYMENTS.BASE, {
-        params: { invoiceId },
+        params: { invoiceId: Number(invoiceId) },
+        skipAuthRedirect: true,
+      });
+      const data = ensureSuccess(response);
+      return Array.isArray(data) ? data : data?.items || [];
+    } catch {
+      return [];
+    }
+  },
+
+  getInvoiceCreditNotes: async (invoiceId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CREDIT_NOTES.BASE, {
+        params: { invoiceId: Number(invoiceId) },
+        skipAuthRedirect: true,
+      });
+      const data = ensureSuccess(response);
+      return Array.isArray(data) ? data : data?.items || [];
+    } catch {
+      return [];
+    }
+  },
+
+  getInvoiceAuditLogs: async (invoiceId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.AUDIT.BASE, {
+        params: { entityName: 'Invoice', entityId: String(invoiceId) },
         skipAuthRedirect: true,
       });
       const data = ensureSuccess(response);

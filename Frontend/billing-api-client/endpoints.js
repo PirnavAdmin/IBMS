@@ -61,6 +61,13 @@ export const API_ENDPOINTS = {
     GENERATE_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/generate-pdf`,
     DOWNLOAD_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/pdf`,
   },
+  CREDIT_NOTES: {
+    BASE: '/api/v1/credit-notes',
+    BY_ID: (id) => `/api/v1/credit-notes/${encodeURIComponent(id)}`,
+  },
+  AUDIT: {
+    BASE: '/api/Audit',
+  },
 };
 
 export default API_ENDPOINTS;

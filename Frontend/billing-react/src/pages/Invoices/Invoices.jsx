@@ -23,6 +23,9 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
+  Alert,
+  Button,
 } from '@mui/material';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { invoiceApi, customerApi } from 'billing-api-client';
@@ -138,9 +141,14 @@ export const Invoices = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // State initialized synchronously with local invoices to prevent blank screen flash
-  const [invoices, setInvoices] = useState(() => (invoiceApi.getLocalInvoices ? invoiceApi.getLocalInvoices() : []));
+  // State initialized with invoices
+  const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [backendSummary, setBackendSummary] = useState(null);
 
   // Filters & Pagination
   const [tab, setTab] = useState(() => {
@@ -159,22 +167,44 @@ export const Invoices = () => {
   const [previewInvoice, setPreviewInvoice] = useState(null);
   const [paymentInvoice, setPaymentInvoice] = useState(null);
 
-  // Fetch Invoices in background
+  // Fetch Invoices with authoritative server pagination and filters
   const fetchInvoices = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      const response = await invoiceApi.getInvoices({ pageSize: 1000 });
-      const items = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.items)
-        ? response.items
-        : [];
-      if (items.length > 0) {
+      const [res, summaryRes] = await Promise.allSettled([
+        invoiceApi.getInvoices({
+          page,
+          pageSize,
+          search: filters.search,
+          customerId: filters.customerId,
+          status: tab === 'All Invoices' ? undefined : tab,
+          startDate: filters.start,
+          endDate: filters.end,
+        }),
+        invoiceApi.getSummary(),
+      ]);
+
+      if (res.status === 'fulfilled') {
+        const data = res.value;
+        const items = Array.isArray(data) ? data : data?.items || [];
         setInvoices(items);
+        setTotalCount(data?.totalCount ?? items.length);
+        setTotalPages(data?.totalPages ?? Math.max(1, Math.ceil((data?.totalCount ?? items.length) / pageSize)));
+      } else {
+        throw res.reason;
+      }
+
+      if (summaryRes.status === 'fulfilled' && summaryRes.value) {
+        setBackendSummary(summaryRes.value);
       }
     } catch (err) {
-      console.warn('Backend invoices sync skipped:', err);
+      console.warn('Backend invoices sync error:', err);
+      setError(err?.message || 'Unable to load invoices from server.');
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [page, pageSize, filters.search, filters.customerId, filters.start, filters.end, tab]);
 
   // Fetch Customers for filter dropdown
   useEffect(() => {
@@ -219,14 +249,21 @@ export const Invoices = () => {
     return false;
   };
 
-  const count = (status) => invoices.filter((invoice) => matchesStatus(invoice, status)).length;
+  const count = (status) => {
+    if (status === 'All Invoices' && totalCount > 0) return totalCount;
+    return invoices.filter((invoice) => matchesStatus(invoice, status)).length;
+  };
 
-  const total = (status) =>
-    formatCurrency(
+  const total = (status) => {
+    if (status === 'All Invoices' && backendSummary?.totalInvoiced != null) {
+      return formatCurrency(backendSummary.totalInvoiced);
+    }
+    return formatCurrency(
       invoices
         .filter((invoice) => matchesStatus(invoice, status))
         .reduce((sum, invoice) => sum + Number(invoice.totalAmount ?? invoice.total ?? 0), 0)
     );
+  };
 
   const updateFilter = (key, value) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -234,48 +271,32 @@ export const Invoices = () => {
   };
 
   const rows = useMemo(() => {
-    return invoices
-      .filter((invoice) => {
-        if (!invoice) return false;
-        const query = (filters.search || '').toLowerCase();
-        const invId = String(invoice.invoiceNumber || invoice.id || '').toLowerCase();
-        const cust = resolveCustomerName(invoice).toLowerCase();
-        const amount = String(invoice.totalAmount ?? invoice.total ?? '');
+    let list = invoices;
+    if (filters.currency) {
+      list = list.filter((inv) => (inv.currency || 'INR').toUpperCase() === filters.currency.toUpperCase());
+    }
+    if (filters.onlyOutstanding) {
+      list = list.filter((inv) => Number(inv.balanceAmount ?? (Number(inv.totalAmount ?? inv.total ?? 0) - Number(inv.paidAmount ?? 0))) > 0);
+    }
 
-        const matchesQuery = !query || invId.includes(query) || cust.includes(query) || amount.includes(query);
-        const matchesTab = matchesStatus(invoice, tab);
-        const matchesStatusFilter = !filters.status || matchesStatus(invoice, filters.status);
-        const custId = typeof invoice.customerId !== 'object' ? String(invoice.customerId || '') : '';
-        const matchesCustomer =
-          !filters.customerId ||
-          custId === String(filters.customerId) ||
-          cust === String(filters.customerId).toLowerCase();
+    return list.slice().sort((a, b) => {
+      const keyA =
+        sort.key === 'total'
+          ? Number(a.totalAmount ?? a.total ?? 0)
+          : String(a[sort.key] || a.invoiceDate || a.issueDate || '');
+      const keyB =
+        sort.key === 'total'
+          ? Number(b.totalAmount ?? b.total ?? 0)
+          : String(b[sort.key] || b.invoiceDate || b.issueDate || '');
 
-        const invDate = String(invoice.invoiceDate || invoice.issueDate || '').slice(0, 10);
-        const matchesStart = !filters.start || invDate >= filters.start;
-        const matchesEnd = !filters.end || invDate <= filters.end;
+      if (sort.key === 'total') {
+        return sort.direction * (keyA - keyB);
+      }
+      return sort.direction * String(keyA).localeCompare(String(keyB));
+    });
+  }, [invoices, filters.currency, filters.onlyOutstanding, sort]);
 
-        return matchesQuery && matchesTab && matchesStatusFilter && matchesCustomer && matchesStart && matchesEnd;
-      })
-      .sort((a, b) => {
-        const keyA =
-          sort.key === 'total'
-            ? Number(a.totalAmount ?? a.total ?? 0)
-            : String(a[sort.key] || a.invoiceDate || a.issueDate || '');
-        const keyB =
-          sort.key === 'total'
-            ? Number(b.totalAmount ?? b.total ?? 0)
-            : String(b[sort.key] || b.invoiceDate || b.issueDate || '');
-
-        if (sort.key === 'total') {
-          return sort.direction * (keyA - keyB);
-        }
-        return sort.direction * String(keyA).localeCompare(String(keyB));
-      });
-  }, [invoices, filters, tab, sort]);
-
-  const pages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const visible = rows.slice((page - 1) * pageSize, page * pageSize);
+  const visible = rows;
 
   const toggle = (id) =>
     setSelected((current) =>
@@ -541,6 +562,28 @@ export const Invoices = () => {
                 ))}
               </select>
             </label>
+            <label>
+              Currency
+              <select
+                value={filters.currency || ''}
+                onChange={(event) => updateFilter('currency', event.target.value)}
+              >
+                <option value="">All Currencies</option>
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </label>
+            <label>
+              Outstanding
+              <select
+                value={filters.onlyOutstanding ? 'outstanding' : ''}
+                onChange={(event) => updateFilter('onlyOutstanding', event.target.value === 'outstanding')}
+              >
+                <option value="">All</option>
+                <option value="outstanding">Outstanding</option>
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => {
@@ -609,7 +652,31 @@ export const Invoices = () => {
                 </tr>
               </thead>
               <tbody>
-                {visible.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={13} style={{ textAlign: 'center', padding: '48px 16px' }}>
+                      <CircularProgress size={32} sx={{ color: '#70472f' }} />
+                      <div style={{ marginTop: '10px', color: '#685e57', fontWeight: 500 }}>
+                        Loading invoices from server...
+                      </div>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={13} style={{ padding: '24px' }}>
+                      <Alert
+                        severity="error"
+                        action={
+                          <Button color="inherit" size="small" onClick={fetchInvoices}>
+                            Retry
+                          </Button>
+                        }
+                      >
+                        Unable to load invoices. {error}
+                      </Alert>
+                    </td>
+                  </tr>
+                ) : visible.length > 0 ? (
                   visible.map((inv) => {
                     const invoiceNum = inv.invoiceNumber || inv.id || 'INV-000';
                     const custName = resolveCustomerName(inv);
@@ -710,7 +777,7 @@ export const Invoices = () => {
                 ) : (
                   <tr>
                     <td colSpan={13} className="inv-empty">
-                      No invoices match your selected filters.
+                      No invoices found.
                     </td>
                   </tr>
                 )}
@@ -721,35 +788,36 @@ export const Invoices = () => {
           {/* Pagination */}
           <div className="inv-pagination">
             <span>
-              Showing {rows.length ? (page - 1) * pageSize + 1 : 0} to{' '}
-              {Math.min(page * pageSize, rows.length)} of {rows.length} invoices
+              Showing {totalCount ? (page - 1) * pageSize + 1 : 0} to{' '}
+              {Math.min(page * pageSize, totalCount)} of {totalCount} invoices
             </span>
             <div>
               <button
-                disabled={page === 1}
+                disabled={page <= 1 || loading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 aria-label="Previous page"
               >
                 ‹
               </button>
-              {Array.from({ length: Math.min(pages, 5) }, (_, index) => {
-                const startPage = Math.max(1, Math.min(page - 2, pages - 4));
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
+                const startPage = Math.max(1, Math.min(page - 2, totalPages - 4));
                 return startPage + index;
               })
-                .filter((p) => p >= 1 && p <= pages)
+                .filter((p) => p >= 1 && p <= totalPages)
                 .map((number) => (
                   <button
                     key={number}
                     className={page === number ? 'inv-primary' : ''}
                     aria-current={page === number ? 'page' : undefined}
                     onClick={() => setPage(number)}
+                    disabled={loading}
                   >
                     {number}
                   </button>
                 ))}
               <button
-                disabled={page === pages || pages === 0}
-                onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                disabled={page >= totalPages || totalPages === 0 || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 aria-label="Next page"
               >
                 ›
@@ -762,7 +830,7 @@ export const Invoices = () => {
                   setPage(1);
                 }}
               >
-                {[10, 25, 50].map((size) => (
+                {[10, 20, 50].map((size) => (
                   <option key={size} value={size}>
                     {size} per page
                   </option>
