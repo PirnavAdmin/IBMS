@@ -4,16 +4,19 @@ using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Billing.Infrastructure.Migrations
+namespace Billing.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(BillingDbContext))]
-    partial class BillingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261005041740_AddInvoiceCurrency")]
+    partial class AddInvoiceCurrency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -974,54 +977,6 @@ namespace Billing.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Invoices");
-                });
-
-            modelBuilder.Entity("Billing.Domain.Entities.InvoiceCommunication", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CommunicationType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("InvoiceId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Recipient")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("SentAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("SentBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.ToTable("InvoiceCommunications");
                 });
 
             modelBuilder.Entity("Billing.Domain.Entities.InvoiceItem", b =>
@@ -2448,17 +2403,6 @@ namespace Billing.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("Billing.Domain.Entities.InvoiceCommunication", b =>
-                {
-                    b.HasOne("Billing.Domain.Entities.Invoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("Billing.Domain.Entities.InvoiceItem", b =>

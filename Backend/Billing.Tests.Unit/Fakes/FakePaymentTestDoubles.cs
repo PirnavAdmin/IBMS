@@ -154,7 +154,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
         }
     }
 
-    public Task<InvoiceSummaryDto> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
+    public Task<List<InvoiceSummaryDto>> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
     {
         lock (_lock)
         {
@@ -166,7 +166,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
                 TotalOutstanding = list.Sum(i => i.BalanceAmount),
                 OverdueCount = list.Count(i => i.DueDate < DateTime.UtcNow && i.BalanceAmount > 0)
             };
-            return Task.FromResult(summary);
+            return Task.FromResult(new List<InvoiceSummaryDto> { summary });
         }
     }
 
@@ -649,3 +649,4 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
     {
     }
 }
+

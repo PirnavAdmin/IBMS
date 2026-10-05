@@ -5,6 +5,11 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import {
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -39,6 +44,13 @@ export const CreateInvoice = ({ mode = 'create' }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [calculatingTotals, setCalculatingTotals] = useState(false);
 
+  // Unsaved changes & Concurrency conflict states
+  const [unsavedLeaveOpen, setUnsavedLeaveOpen] = useState(false);
+  const [concurrencyConflictOpen, setConcurrencyConflictOpen] = useState(false);
+  const [initialRowVersion, setInitialRowVersion] = useState(null);
+  const isSubmittedSuccessfully = useRef(false);
+  const isSubmittingRef = useRef(false);
+
   // Master Data
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -55,14 +67,14 @@ export const CreateInvoice = ({ mode = 'create' }) => {
     setValue,
     reset,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(invoiceValidationSchema),
     defaultValues: DEFAULT_INVOICE_VALUES,
     mode: 'onTouched',
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control,
     name: 'items',
   });
@@ -141,6 +153,7 @@ export const CreateInvoice = ({ mode = 'create' }) => {
       invoiceApi
         .getInvoiceById(editInvoiceId)
         .then((inv) => {
+          setInitialRowVersion(inv.rowVersion);
           reset({
             ...DEFAULT_INVOICE_VALUES,
             ...inv,
@@ -167,6 +180,26 @@ export const CreateInvoice = ({ mode = 'create' }) => {
         });
     }
   }, [isEdit, editInvoiceId, reset]);
+
+  // Prompt user on browser leave if form is modified
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty && !isSubmittedSuccessfully.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleAttemptLeave = () => {
+    if (isDirty && !isSubmittedSuccessfully.current) {
+      setUnsavedLeaveOpen(true);
+    } else {
+      navigate('/invoices');
+    }
+  };
 
   // 4. Handle Customer Selection & Auto-fill
   const handleCustomerChange = (e) => {
@@ -304,9 +337,14 @@ export const CreateInvoice = ({ mode = 'create' }) => {
   const shippingCharge = Number(watchedShippingFee || 0);
   const grandTotal = calculatedTotals?.grandTotal ?? Math.max(0, subtotal - discountAmount + taxAmount + shippingCharge);
 
+  const taxableBase = calculatedTotals?.taxableSubtotal ?? calculatedTotals?.TaxableSubtotal ?? Math.max(0, subtotal - discountAmount);
+
   // Form Submission
   const processSubmit = async (formData, targetStatus) => {
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+
     try {
       const payload = {
         ...formData,
@@ -318,6 +356,7 @@ export const CreateInvoice = ({ mode = 'create' }) => {
         totalAmount: grandTotal,
         balanceAmount: grandTotal,
         paidAmount: 0,
+        rowVersion: initialRowVersion || formData.rowVersion,
         items: formData.items.map((item) => ({
           ...item,
           productId: item.productId ? Number(item.productId) : null,
@@ -330,21 +369,29 @@ export const CreateInvoice = ({ mode = 'create' }) => {
 
       if (isEdit) {
         await invoiceApi.updateInvoice(editInvoiceId, payload);
+        isSubmittedSuccessfully.current = true;
         showToast(`Invoice ${formData.invoiceNumber} updated successfully!`);
       } else {
-        await invoiceApi.createInvoice(payload);
+        const created = await invoiceApi.createInvoice(payload);
+        isSubmittedSuccessfully.current = true;
         showToast(
           targetStatus === 'Issued'
-            ? `Invoice ${formData.invoiceNumber} created and issued successfully!`
-            : `Invoice ${formData.invoiceNumber} saved as draft!`
+            ? `Invoice ${created?.invoiceNumber || formData.invoiceNumber} created and issued successfully!`
+            : `Invoice ${created?.invoiceNumber || formData.invoiceNumber} saved as draft!`
         );
       }
 
       setTimeout(() => {
         navigate('/invoices');
-      }, 1200);
+      }, 1000);
     } catch (err) {
-      showToast(err.message || 'Failed to save invoice. Please review your entries.');
+      if (err.response?.status === 409 || err.message?.includes('Concurrency')) {
+        setConcurrencyConflictOpen(true);
+      } else {
+        showToast(err.message || 'Failed to save invoice. Please review your entries.');
+      }
+    } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -381,7 +428,7 @@ export const CreateInvoice = ({ mode = 'create' }) => {
       {/* Top Navbar */}
       <header className="ci-navbar glass-card">
         <div className="ci-nav-left">
-          <button className="ci-back-btn" onClick={() => navigate('/invoices')}>
+          <button className="ci-back-btn" onClick={handleAttemptLeave}>
             <ArrowBack sx={{ fontSize: 18 }} />
             <span>Invoices</span>
           </button>
@@ -394,7 +441,7 @@ export const CreateInvoice = ({ mode = 'create' }) => {
         </div>
 
         <div className="ci-nav-right">
-          <button className="ci-btn-discard" type="button" onClick={() => navigate('/invoices')}>
+          <button className="ci-btn-discard" type="button" onClick={handleAttemptLeave}>
             Discard
           </button>
           <button
@@ -609,11 +656,12 @@ export const CreateInvoice = ({ mode = 'create' }) => {
               <table className="ci-items-table" style={{ width: '100%', minWidth: '780px' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '30%' }}>Product / Description</th>
+                    <th style={{ width: '6%', textAlign: 'center' }}>Order</th>
+                    <th style={{ width: '28%' }}>Product / Description</th>
                     <th style={{ width: '12%' }}>HSN/SAC</th>
-                    <th style={{ width: '10%' }}>Qty</th>
-                    <th style={{ width: '14%' }}>Unit Price (₹)</th>
-                    <th style={{ width: '14%' }}>Discount</th>
+                    <th style={{ width: '8%' }}>Qty</th>
+                    <th style={{ width: '13%' }}>Unit Price (₹)</th>
+                    <th style={{ width: '13%' }}>Discount</th>
                     <th style={{ width: '10%' }}>Tax Rate</th>
                     <th style={{ width: '10%', textAlign: 'right' }}>Total</th>
                     <th style={{ width: '4%' }}></th>
@@ -634,6 +682,43 @@ export const CreateInvoice = ({ mode = 'create' }) => {
 
                     return (
                       <tr key={field.id}>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                            <button
+                              type="button"
+                              title="Move Up"
+                              disabled={idx === 0}
+                              onClick={() => move(idx, idx - 1)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: idx === 0 ? 'default' : 'pointer',
+                                opacity: idx === 0 ? 0.3 : 0.8,
+                                padding: '2px',
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              ▲
+                            </button>
+                            <span style={{ fontSize: '0.8rem', color: '#8c7d71', cursor: 'grab' }} title="Reorder Handle">☰</span>
+                            <button
+                              type="button"
+                              title="Move Down"
+                              disabled={idx === fields.length - 1}
+                              onClick={() => move(idx, idx + 1)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: idx === fields.length - 1 ? 'default' : 'pointer',
+                                opacity: idx === fields.length - 1 ? 0.3 : 0.8,
+                                padding: '2px',
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              ▼
+                            </button>
+                          </div>
+                        </td>
                         <td>
                           {products.length > 0 && (
                             <select
@@ -816,6 +901,11 @@ export const CreateInvoice = ({ mode = 'create' }) => {
                   </div>
                 )}
 
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#5A2508' }}>
+                  <span>Taxable Base</span>
+                  <strong>₹{taxableBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                   <span>Taxes (GST)</span>
                   <strong>₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
@@ -866,6 +956,67 @@ export const CreateInvoice = ({ mode = 'create' }) => {
           grandTotal,
         }}
       />
+
+      {/* Unsaved Changes Confirmation Modal */}
+      <Dialog
+        open={unsavedLeaveOpen}
+        onClose={() => setUnsavedLeaveOpen(false)}
+        PaperProps={{ style: { borderRadius: '12px', padding: '8px' } }}
+      >
+        <DialogTitle sx={{ color: '#5A2508', fontWeight: 600 }}>Discard Unsaved Changes?</DialogTitle>
+        <DialogContent sx={{ color: '#543420' }}>
+          You have unsaved changes on this invoice. If you navigate away now, your edits will not be saved.
+        </DialogContent>
+        <DialogActions sx={{ pb: 2, pr: 2 }}>
+          <Button
+            onClick={() => setUnsavedLeaveOpen(false)}
+            sx={{ color: '#70472f', textTransform: 'none', fontWeight: 600 }}
+          >
+            Stay & Continue Editing
+          </Button>
+          <Button
+            onClick={() => {
+              setUnsavedLeaveOpen(false);
+              navigate('/invoices');
+            }}
+            variant="contained"
+            sx={{ backgroundColor: '#b33927', '&:hover': { backgroundColor: '#8a2b1e' }, textTransform: 'none', fontWeight: 600 }}
+          >
+            Discard & Leave
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Concurrency Conflict Modal */}
+      <Dialog
+        open={concurrencyConflictOpen}
+        onClose={() => setConcurrencyConflictOpen(false)}
+        PaperProps={{ style: { borderRadius: '12px', padding: '8px' } }}
+      >
+        <DialogTitle sx={{ color: '#b33927', fontWeight: 600 }}>Invoice Modified by Another User</DialogTitle>
+        <DialogContent sx={{ color: '#543420' }}>
+          This invoice has been modified by another session or user since you opened it.
+          To prevent accidentally overwriting changes, please reload the latest version.
+        </DialogContent>
+        <DialogActions sx={{ pb: 2, pr: 2 }}>
+          <Button
+            onClick={() => setConcurrencyConflictOpen(false)}
+            sx={{ color: '#70472f', textTransform: 'none' }}
+          >
+            Close
+          </Button>
+          <Button
+            onClick={() => {
+              setConcurrencyConflictOpen(false);
+              window.location.reload();
+            }}
+            variant="contained"
+            sx={{ backgroundColor: '#70472f', '&:hover': { backgroundColor: '#543420' }, textTransform: 'none', fontWeight: 600 }}
+          >
+            Reload Latest Invoice
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

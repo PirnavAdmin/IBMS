@@ -9,6 +9,8 @@ public class Invoice
 
     public string InvoiceNumber { get; set; } = string.Empty;
 
+    public string Currency { get; set; } = "INR";
+
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
@@ -58,9 +60,7 @@ public class Invoice
 
     public string GetCurrency()
     {
-        return !string.IsNullOrWhiteSpace(Customer?.Currency)
-            ? Customer!.Currency.Trim().ToUpperInvariant()
-            : "INR";
+        return !string.IsNullOrWhiteSpace(Currency) ? Currency.Trim().ToUpperInvariant() : "INR";
     }
 
     public decimal GetEffectiveBalance()
@@ -204,4 +204,5 @@ public class Invoice
         RowVersion = DateTime.UtcNow;
     }
 }
+
 

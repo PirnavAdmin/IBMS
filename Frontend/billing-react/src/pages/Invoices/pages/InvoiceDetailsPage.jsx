@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Breadcrumbs,
@@ -28,8 +28,10 @@ import {
   Email,
   CreditCard,
   WarningAmber,
+  FileDownload,
+  NotInterested,
 } from '@mui/icons-material';
-import { invoiceApi } from 'billing-api-client';
+import { invoiceApi, templateApi } from 'billing-api-client';
 import { InvoicePreviewModal } from '../components/InvoicePreviewModal';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { InvoiceDocument } from '../components/InvoiceDocument';
@@ -74,11 +76,65 @@ export const InvoiceDetailsPage = () => {
   const [issueConfirmOpen, setIssueConfirmOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const isIssuingRef = useRef(false);
 
-  // Payments & Audit state
+  // Payments, Credit Notes & Audit state
   const [payments, setPayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [paymentsError, setPaymentsError] = useState('');
+
+  const [creditNotes, setCreditNotes] = useState([]);
+  const [loadingCreditNotes, setLoadingCreditNotes] = useState(false);
+  const [creditNotesError, setCreditNotesError] = useState('');
+
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+  const [auditError, setAuditError] = useState('');
+
+  const fetchPayments = async (invoiceId) => {
+    setLoadingPayments(true);
+    setPaymentsError('');
+    try {
+      const payRes = await invoiceApi.getInvoicePayments(invoiceId);
+      const items = Array.isArray(payRes?.items) ? payRes.items : (Array.isArray(payRes) ? payRes : []);
+      setPayments(items);
+    } catch (e) {
+      setPaymentsError(e.message || 'Failed to load payments.');
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const fetchCreditNotes = async (invoiceId) => {
+    setLoadingCreditNotes(true);
+    setCreditNotesError('');
+    try {
+      const cnRes = await invoiceApi.getInvoiceCreditNotes(invoiceId);
+      const items = Array.isArray(cnRes?.items) ? cnRes.items : (Array.isArray(cnRes) ? cnRes : []);
+      setCreditNotes(items);
+    } catch (e) {
+      setCreditNotesError(e.message || 'Failed to load credit notes.');
+    } finally {
+      setLoadingCreditNotes(false);
+    }
+  };
+
+  const fetchAuditLogs = async (invoiceId) => {
+    setLoadingAudit(true);
+    setAuditError('');
+    try {
+      const auditRes = await invoiceApi.getInvoiceAuditLogs(invoiceId);
+      const items = Array.isArray(auditRes?.items) ? auditRes.items : (Array.isArray(auditRes) ? auditRes : []);
+      setAuditLogs(items);
+    } catch (e) {
+      setAuditError(e.message || 'Failed to load audit history.');
+    } finally {
+      setLoadingAudit(false);
+    }
+  };
 
   const fetchInvoice = async () => {
     setLoading(true);
@@ -86,17 +142,12 @@ export const InvoiceDetailsPage = () => {
     try {
       const data = await invoiceApi.getInvoiceById(id);
       setInvoice(data);
-
-      // Also fetch payments
-      setLoadingPayments(true);
-      try {
-        const payRes = await invoiceApi.getInvoicePayments(data.id || id);
-        setPayments(Array.isArray(payRes?.items) ? payRes.items : (Array.isArray(payRes) ? payRes : []));
-      } catch (e) {
-        console.warn('Unable to load payments for invoice:', e);
-      } finally {
-        setLoadingPayments(false);
-      }
+      const invoiceId = data.id || id;
+      await Promise.allSettled([
+        fetchPayments(invoiceId),
+        fetchCreditNotes(invoiceId),
+        fetchAuditLogs(invoiceId),
+      ]);
     } catch (err) {
       setError(err.message || `Unable to load invoice #${id}.`);
     } finally {
@@ -109,15 +160,18 @@ export const InvoiceDetailsPage = () => {
   }, [id]);
 
   const handleIssueInvoice = async () => {
+    if (isIssuingRef.current || actionLoading) return;
+    isIssuingRef.current = true;
     setActionLoading(true);
     try {
       await invoiceApi.issueInvoice(invoice.id);
       setIssueConfirmOpen(false);
       setActionNotice(`Invoice ${invoice.invoiceNumber || invoice.id} issued successfully.`);
-      fetchInvoice();
+      await fetchInvoice();
     } catch (err) {
       setError(err.message || 'Failed to issue invoice.');
     } finally {
+      isIssuingRef.current = false;
       setActionLoading(false);
     }
   };
@@ -131,9 +185,46 @@ export const InvoiceDetailsPage = () => {
       await invoiceApi.cancelInvoice(invoice.id, cancelReason.trim());
       setCancelOpen(false);
       setActionNotice(`Invoice ${invoice.invoiceNumber || invoice.id} has been cancelled.`);
-      fetchInvoice();
+      await fetchInvoice();
     } catch (err) {
       setError(err.message || 'Failed to cancel invoice.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleVoidInvoice = async () => {
+    if (!voidReason.trim()) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await invoiceApi.voidInvoice(invoice.id, voidReason.trim());
+      setVoidOpen(false);
+      setActionNotice(`Invoice ${invoice.invoiceNumber || invoice.id} has been voided.`);
+      await fetchInvoice();
+    } catch (err) {
+      setError(err.message || 'Failed to void invoice.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setActionLoading(true);
+    try {
+      const blob = await templateApi.downloadInvoicePdf(invoice.id);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${invoice.invoiceNumber || `invoice-${invoice.id}`}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setActionNotice('Invoice PDF downloaded successfully.');
+    } catch {
+      setPreviewOpen(true);
     } finally {
       setActionLoading(false);
     }
@@ -223,6 +314,16 @@ export const InvoiceDetailsPage = () => {
             Preview / Print
           </Button>
 
+          <Button
+            variant="outlined"
+            startIcon={<FileDownload />}
+            onClick={handleDownloadPdf}
+            disabled={actionLoading}
+            sx={{ textTransform: 'none' }}
+          >
+            Download PDF
+          </Button>
+
           {isDraft && (
             <>
               <Button
@@ -238,6 +339,7 @@ export const InvoiceDetailsPage = () => {
                 variant="contained"
                 startIcon={<Send />}
                 onClick={() => setIssueConfirmOpen(true)}
+                disabled={actionLoading}
                 sx={{
                   backgroundColor: '#70472f',
                   '&:hover': { backgroundColor: '#583623' },
@@ -263,6 +365,18 @@ export const InvoiceDetailsPage = () => {
               }}
             >
               Record Payment
+            </Button>
+          )}
+
+          {!isDraft && !isCancelled && (
+            <Button
+              variant="outlined"
+              color="warning"
+              startIcon={<NotInterested />}
+              onClick={() => setVoidOpen(true)}
+              sx={{ textTransform: 'none' }}
+            >
+              Void Invoice
             </Button>
           )}
 
@@ -295,9 +409,9 @@ export const InvoiceDetailsPage = () => {
           <Tab label="1. Overview" />
           <Tab label={`2. Items (${items.length})`} />
           <Tab label={`3. Payments (${payments.length})`} />
-          <Tab label="4. Credit Notes" />
+          <Tab label={`4. Credit Notes (${creditNotes.length})`} />
           <Tab label="5. Communication" />
-          <Tab label="6. Audit Timeline" />
+          <Tab label={`6. Audit Timeline (${auditLogs.length})`} />
         </Tabs>
       </Box>
 
@@ -516,11 +630,12 @@ export const InvoiceDetailsPage = () => {
       {/* TAB 2: PAYMENTS */}
       {activeTab === 2 && (
         <section className="inv-panel" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h3 style={{ margin: 0, color: '#543420' }}>Payment Ledger</h3>
               <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#8c7d71' }}>
-                Transactions recorded against this invoice
+                Total Paid: <strong style={{ color: '#2e7d32' }}>{formatCurrency(paidAmount, currency)}</strong> &nbsp;|&nbsp; 
+                Outstanding Balance: <strong style={{ color: balanceAmount > 0 ? '#b33927' : '#2e7d32' }}>{formatCurrency(balanceAmount, currency)}</strong>
               </p>
             </div>
             {!isCancelled && !isDraft && balanceAmount > 0 && (
@@ -543,6 +658,17 @@ export const InvoiceDetailsPage = () => {
             <div style={{ textAlign: 'center', padding: '30px' }}>
               <CircularProgress size={28} sx={{ color: '#70472f' }} />
             </div>
+          ) : paymentsError ? (
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" size="small" onClick={() => fetchPayments(invoice.id || id)}>
+                  Retry
+                </Button>
+              }
+            >
+              {paymentsError}
+            </Alert>
           ) : payments.length > 0 ? (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -551,6 +677,7 @@ export const InvoiceDetailsPage = () => {
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Date</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Method</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px' }}>Reference</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Recorded By</th>
                   <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
                   <th style={{ textAlign: 'center', padding: '10px 12px' }}>Status</th>
                 </tr>
@@ -562,6 +689,7 @@ export const InvoiceDetailsPage = () => {
                     <td style={{ padding: '10px 12px' }}>{(p.paymentDate || '').slice(0, 10)}</td>
                     <td style={{ padding: '10px 12px' }}>{p.method}</td>
                     <td style={{ padding: '10px 12px', color: '#685e57' }}>{p.reference || '—'}</td>
+                    <td style={{ padding: '10px 12px', color: '#685e57' }}>{p.createdBy || 'Staff User'}</td>
                     <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, color: '#2e7d32' }}>
                       {formatCurrency(p.amount, currency)}
                     </td>
@@ -591,90 +719,125 @@ export const InvoiceDetailsPage = () => {
 
       {/* TAB 3: CREDIT NOTES */}
       {activeTab === 3 && (
-        <section className="inv-panel" style={{ padding: '32px', textAlign: 'center', color: '#685e57' }}>
-          <CreditCard sx={{ fontSize: 44, color: '#b9a896', mb: 1 }} />
-          <h3 style={{ margin: '0 0 6px', color: '#543420' }}>Credit Notes</h3>
-          <p style={{ margin: 0, maxWidth: '500px', marginInline: 'auto', fontSize: '0.9rem' }}>
-            Credit Note allocation and adjustments are currently awaiting backend repository enablement. No credit notes have been posted to this invoice.
-          </p>
-          <Chip label="Backend Module Pending" size="small" sx={{ mt: 2 }} />
+        <section className="inv-panel" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#543420' }}>Credit Notes</h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#8c7d71' }}>
+                Adjustments and credit notes issued against invoice #{invoice.invoiceNumber || invoice.id}
+              </p>
+            </div>
+          </div>
+
+          {loadingCreditNotes ? (
+            <div style={{ textAlign: 'center', padding: '30px' }}>
+              <CircularProgress size={28} sx={{ color: '#70472f' }} />
+            </div>
+          ) : creditNotesError ? (
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" size="small" onClick={() => fetchCreditNotes(invoice.id || id)}>
+                  Retry
+                </Button>
+              }
+            >
+              {creditNotesError}
+            </Alert>
+          ) : creditNotes.length > 0 ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f5eee6', borderBottom: '2px solid #ebdccb' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Credit Note #</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px' }}>Reason</th>
+                  <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creditNotes.map((cn) => (
+                  <tr key={cn.id} style={{ borderBottom: '1px solid #eee8e0' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>{cn.creditNoteNumber || `CN-${cn.id}`}</td>
+                    <td style={{ padding: '10px 12px' }}>{(cn.creditDate || cn.issueDate || cn.createdAtUtc || '').slice(0, 10)}</td>
+                    <td style={{ padding: '10px 12px', color: '#685e57' }}>{cn.reason || '—'}</td>
+                    <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 600, color: '#b33927' }}>
+                      {formatCurrency(cn.totalAmount || cn.amount, currency)}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '10px 12px' }}>
+                      <Chip label={cn.status || 'Issued'} size="small" color="default" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8c7d71' }}>
+              <CreditCard sx={{ fontSize: 40, color: '#d0c3b4', mb: 1 }} />
+              <p style={{ margin: 0, fontWeight: 500 }}>No credit notes have been allocated to this invoice.</p>
+            </div>
+          )}
         </section>
       )}
 
       {/* TAB 4: COMMUNICATION */}
       {activeTab === 4 && (
         <section className="inv-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div>
-              <h3 style={{ margin: 0, color: '#543420' }}>Email Delivery History</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#8c7d71' }}>
-                Dispatched emails and communication logs for this invoice
-              </p>
-            </div>
-            <Button
-              variant="outlined"
-              startIcon={<Email />}
-              onClick={() => setActionNotice(`Invoice notification queued for ${customerEmail || 'recipient'}.`)}
-              sx={{ textTransform: 'none' }}
-            >
-              Send Invoice Email
-            </Button>
-          </div>
-
-          <div style={{ padding: '16px', backgroundColor: '#fcfbf9', borderRadius: '8px', border: '1px solid #ebdccb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <strong>Status Notification</strong>
-              <span style={{ fontSize: '0.8rem', color: '#8c7d71' }}>{(invoice.invoiceDate || '').slice(0, 10)}</span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#685e57' }}>
-              Recipient: {customerEmail || 'billing@example.com'} • Subject: Invoice #{invoice.invoiceNumber || invoice.id}
-            </p>
-            <div style={{ marginTop: '8px' }}>
-              <Chip label="Sent" size="small" color="primary" />
-            </div>
-          </div>
+          <h3 style={{ margin: '0 0 16px', color: '#543420' }}>Communication & Email Dispatch</h3>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <strong>BACKEND BLOCKED: Existing invoice communication capability unavailable.</strong>
+          </Alert>
+          <p style={{ color: '#685e57', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            The existing backend platform currently lacks an email delivery and dispatch subsystem for invoices.
+            In adherence to strict system requirements, no simulated send confirmations or fake delivery statuses are generated.
+          </p>
         </section>
       )}
 
       {/* TAB 5: AUDIT TIMELINE */}
       {activeTab === 5 && (
         <section className="inv-panel" style={{ padding: '24px' }}>
-          <h3 style={{ margin: '0 0 16px', color: '#543420' }}>Audit &amp; Activity Timeline</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '2px solid #ebdccb', paddingLeft: '20px', marginLeft: '10px' }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '-26px', top: '2px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#70472f' }} />
-              <strong>Invoice Created</strong>
-              <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#8c7d71' }}>
-                {(invoice.createdAtUtc || invoice.invoiceDate || '').slice(0, 19).replace('T', ' ')} by Staff User
-              </p>
-              <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#554a43' }}>
-                Invoice #{invoice.invoiceNumber || invoice.id} registered with initial total of {formatCurrency(grandTotal, currency)}.
-              </p>
+          <h3 style={{ margin: '0 0 16px', color: '#543420' }}>Audit &amp; Activity Log</h3>
+
+          {loadingAudit ? (
+            <div style={{ textAlign: 'center', padding: '30px' }}>
+              <CircularProgress size={28} sx={{ color: '#70472f' }} />
             </div>
-
-            {status !== 'Draft' && (
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-26px', top: '2px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2e7d32' }} />
-                <strong>Invoice Issued</strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#8c7d71' }}>
-                  {(invoice.updatedAtUtc || invoice.invoiceDate || '').slice(0, 19).replace('T', ' ')}
-                </p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#554a43' }}>
-                  Status updated to <strong>{status}</strong>.
-                </p>
-              </div>
-            )}
-
-            {payments.map((p) => (
-              <div key={p.id} style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-26px', top: '2px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#1976d2' }} />
-                <strong>Payment Received ({formatCurrency(p.amount, currency)})</strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#8c7d71' }}>
-                  {(p.paymentDate || '').slice(0, 10)} via {p.method}
-                </p>
-              </div>
-            ))}
-          </div>
+          ) : auditError ? (
+            <Alert
+              severity="error"
+              action={
+                <Button color="inherit" size="small" onClick={() => fetchAuditLogs(invoice.id || id)}>
+                  Retry
+                </Button>
+              }
+            >
+              {auditError}
+            </Alert>
+          ) : auditLogs.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '2px solid #ebdccb', paddingLeft: '20px', marginLeft: '10px' }}>
+              {auditLogs.map((log, i) => (
+                <div key={log.id || i} style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-26px', top: '2px', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#70472f' }} />
+                  <strong>{log.action || log.eventType || 'Entity Modified'}</strong>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#8c7d71' }}>
+                    {(log.timestamp || log.createdAtUtc || '').slice(0, 19).replace('T', ' ')} by {log.userName || log.userEmail || 'System'}
+                  </p>
+                  {log.details && (
+                    <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#554a43' }}>
+                      {log.details}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8c7d71' }}>
+              <History sx={{ fontSize: 40, color: '#d0c3b4', mb: 1 }} />
+              <p style={{ margin: 0, fontWeight: 500 }}>No backend audit records logged for this invoice.</p>
+              <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>Audit entries are recorded directly by the backend database service.</p>
+            </div>
+          )}
         </section>
       )}
 
@@ -750,6 +913,40 @@ export const InvoiceDetailsPage = () => {
             disabled={actionLoading || !cancelReason.trim()}
           >
             {actionLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Cancellation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Void Confirmation Dialog */}
+      <Dialog open={voidOpen} onClose={() => setVoidOpen(false)}>
+        <DialogTitle sx={{ color: '#b33927' }}>Void Invoice</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: '0 0 12px' }}>
+            Are you sure you want to void Invoice <strong>{invoice.invoiceNumber || invoice.id}</strong>?
+          </p>
+          <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: '#8c7d71' }}>
+            Voiding an invoice marks it permanently void in accounts receivable and resets the remaining balance.
+          </p>
+          <TextField
+            label="Void Reason"
+            required
+            fullWidth
+            value={voidReason}
+            onChange={(e) => setVoidReason(e.target.value)}
+            placeholder="e.g. Issued in error / Client contract terminated"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setVoidOpen(false)} disabled={actionLoading}>
+            Back
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleVoidInvoice}
+            disabled={actionLoading || !voidReason.trim()}
+          >
+            {actionLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Void'}
           </Button>
         </DialogActions>
       </Dialog>
