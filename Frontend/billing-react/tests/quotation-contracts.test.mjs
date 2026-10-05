@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { transform } from 'esbuild';
 import { validateQuotation } from '../src/pages/Quotations/utils/quotationValidation.js';
 import { quotationQuery, initialQuotationQuery } from '../src/pages/Quotations/utils/quotationQuery.js';
+import { currency, lineTotals, quotationTotals } from '../src/pages/Quotations/utils/quotationCalculations.js';
 import { quotationPayload, normalizeQuotation } from '../../billing-api-client/quotationApi.js';
 
 const form=()=>({customerId:'1',quotationDate:'2026-09-28',validUntil:'2026-09-29',items:[{productId:'2',description:'Service',quantity:1,unitPrice:100,discountType:'percentage',discountRate:5,taxRate:0}]});
@@ -12,7 +13,7 @@ async function load(relative,imports={}){
  const source=await readFile(new URL(relative,import.meta.url),'utf8');
  const {code}=await transform(source,{loader:relative.endsWith('jsx')?'jsx':'js',format:'cjs'});
  const module={exports:{}};
- const react={createElement:(type,props,...children)=>({type,props:{...props,children}}),useState:initial=>[initial,()=>{}]};
+ const react={createElement:(type,props,...children)=>({type,props:{...props,children}}),useState:initial=>[initial,()=>{}],useEffect:()=>{},useRef:initial=>({current:initial})};
  vm.runInNewContext(code,{module,exports:module.exports,React:react,require:id=>imports[id]|| (id==='react'?react:new Proxy({},{get:(_,key)=>key}))});
  return module.exports;
 }
@@ -20,7 +21,7 @@ function text(node){if(node==null||typeof node==='boolean')return '';if(typeof n
 test('date range, product, quantity and non-negative amounts are validated',()=>{
  assert.deepEqual(validateQuotation(form()),{});
  for(const change of [{customerId:''},{quotationDate:''},{validUntil:'2026-09-27'},{items:[]}])assert.ok(Object.keys(validateQuotation({...form(),...change})).length);
- for(const change of [{productId:''},{quantity:0},{unitPrice:-1},{discountRate:-1},{taxRate:-1},{taxUnsupported:true}])assert.ok(Object.keys(validateQuotation({...form(),items:[{...form().items[0],...change}]})).length);
+ for(const change of [{productId:''},{quantity:0},{unitPrice:-1},{discountRate:-1},{taxRate:-1},{taxRate:101}])assert.ok(Object.keys(validateQuotation({...form(),items:[{...form().items[0],...change}]})).length);
 });
 test('server query omits unsupported validity; save carries rowVersion but no generated number',()=>{
  const query=quotationQuery({...initialQuotationQuery,search:'a',customerId:7,fromDate:'2026-09-01',validity:'Expired'});
@@ -44,11 +45,36 @@ test('discount fixed/percentage requests use the Phase 5 contract and rejection 
  assert.equal(requests[0].invoiceAmount,100);assert.equal(requests[0].role,undefined);assert.equal(requests[0].isManualOverride,false);
 });
 test('lifecycle actions and read-only converted quotation reference',async()=>{
- const {QuotationDetails}=await load('../src/pages/Quotations/pages/QuotationDetails.jsx',{'../utils/quotationCalculations':{currency:String}});
+ const {QuotationDetails}=await load('../src/pages/Quotations/pages/QuotationDetails.jsx',{'../utils/quotationCalculations':{currency,lineTotals,quotationTotals}});
  for(const [status,yes,no] of [['Draft','Send','Convert to Invoice'],['Sent','Approve','Edit'],['Approved','Convert to Invoice','Edit'],['Converted','Invoice reference','Cancel'],['Cancelled','Quotation details','Send']]){
   const html=text(QuotationDetails({quotation:{id:1,status,customer:{name:'Customer'},items:[],convertedInvoiceId:status==='Converted'?17:null}}));
-  assert.ok(html.includes(yes),html);assert.ok(!html.includes(no),html);assert.ok(html.includes('Preview'));
+  assert.ok(html.includes(yes),`${status}: expected ${yes}`);assert.ok(!html.includes(no),`${status}: unexpected ${no}`);assert.ok(html.includes('View'));
  }
+});
+test('quotation print matches invoice sample styling and uses quotation customer, item and total data',async()=>{
+ const {QuotationDetails}=await load('../src/pages/Quotations/pages/QuotationDetails.jsx',{'../utils/quotationCalculations':{currency,lineTotals,quotationTotals}});
+ const html=text(QuotationDetails({quotation:{
+  quoteNumber:'QT-TEST-001',status:'Approved',quotationDate:'2026-09-28',validUntil:'2026-10-28',
+  customer:{name:'Northwind Traders',code:'CUST-007',email:'billing@northwind.test',mobile:'9876501234',taxId:'29ABCDE1234F1Z5',billingAddress:'7 Main Road, Bengaluru',shippingAddress:'9 Warehouse Road'},
+  items:[{id:'item-1',productName:'Widget',description:'Blue widget',hsnSac:'8471',quantity:2,unitPrice:1000,discountType:'percentage',discountRate:10,discountAmount:200,taxType:'GST',taxRate:18,taxAmount:324,totalAmount:2124}],
+  subtotal:2000,discountAmount:200,taxableAmount:1800,taxAmount:324,chargesAmount:0,totalAmount:2124,
+  notes:'Thank you for your business.',termsAndConditions:'Payment due within 30 days.\nGoods once sold are subject to store policy.',
+ }},()=>{},()=>{},()=>{}));
+ assert.match(html,/Northwind Traders/);
+ assert.match(html,/7 Main Road, Bengaluru/);
+ assert.match(html,/Widget/);
+ assert.match(html,/18%/);
+ assert.match(html,/CGST \(9%\)/);
+ assert.match(html,/SGST \(9%\)/);
+ assert.match(html,/Rupees Two Thousand One Hundred Twenty Four Only/);
+ assert.match(html,/ACME ADMIN STORE/);
+ assert.match(html,/Payment due within 30 days\./);
+ assert.match(html,/Goods once sold are subject to store policy\./);
+ assert.match(html,/Notes/);
+ assert.match(html,/Thank you for your business\./);
+ assert.match(html,/Authorized Signatory/);
+ assert.doesNotMatch(html,/Latest sent invoice|No sent invoices found/);
+ assert.doesNotMatch(html,/ACMEINV2026\/000245/);
 });
 test('new form has zero tax and preview contains no editing controls',async()=>{
  const {newQuotation}=await load('../src/pages/Quotations/components/QuotationForm.jsx');assert.equal(newQuotation().items[0].taxRate,0);assert.equal(newQuotation().items[0].taxType,'');
