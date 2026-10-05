@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search } from '@mui/icons-material';
 
-export function SearchablePicker({ value, onChange, items, getLabel, getSearchText, placeholder, disabled = false, className = '' }) {
+export function SearchablePicker({ value, onChange, items = [], getLabel, getSearchText, placeholder, disabled = false, className = '' }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const selected = items.find(item => item.id === value);
+  const selected = items.find(item => String(item.id) === String(value));
   useEffect(() => { if (selected) setQuery(getLabel(selected)); else if (!value) setQuery(''); }, [selected, value, getLabel]);
   const matches = useMemo(() => { const search = query.toLowerCase().trim(); return items.filter(item => !search || getSearchText(item).toLowerCase().includes(search)); }, [items, query, getSearchText]);
   const showMenu = open && !disabled && !(selected && query === getLabel(selected)) && matches.length > 0;

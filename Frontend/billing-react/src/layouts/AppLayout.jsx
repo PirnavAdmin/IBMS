@@ -26,14 +26,21 @@ const routeModules = {
 
 export const AppLayout = () => {
   const navigate = useNavigate();
-  const { pathname, search: locationSearch } = useLocation();
+  const { pathname, search: locationSearch, state: locationState } = useLocation();
   const searchScope = pathname + locationSearch;
   const [headerSearch, setHeaderSearch] = useState({ scope: '', value: '' });
   const searchQuery = headerSearch.scope === searchScope ? headerSearch.value : '';
   const onSearch = (value) => setHeaderSearch({ scope: searchScope, value });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const activeItem = Object.entries(routeModules).find(([route]) => pathname === route || pathname.startsWith(`${route}/`))?.[1] || 'dashboard';
-  const openRoute = (route) => { setSidebarOpen(false); navigate(route); };
+  const openRoute = (route) => {
+    setSidebarOpen(false);
+    if (route === '/quotations' && pathname === route) {
+      navigate(route, { state: { ...locationState, quotationManagementReset: Date.now() } });
+      return;
+    }
+    navigate(route);
+  };
   const hasPageHeader = pathname === '/dashboard' || pathname === '/taxes' || pathname.startsWith('/taxes/') || pathname === '/settings/taxes' || pathname.startsWith('/settings/taxes/');
   const signOut = () => {
     localStorage.removeItem('billing_auth_token');
