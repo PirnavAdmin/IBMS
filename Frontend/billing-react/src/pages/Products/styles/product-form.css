@@ -330,11 +330,13 @@
 }
 
 /* Keep the discount control aligned and give its thumb a smooth, short travel. */
-.product-discount-switch.MuiSwitch-root { width: 48px; height: 28px; padding: 0; flex-shrink: 0; overflow: visible; }
-.product-discount-switch .MuiSwitch-switchBase { padding: 3px; color: #fff; transition: transform 200ms ease, color 200ms ease; }
-.product-discount-switch .MuiSwitch-thumb { width: 22px; height: 22px; box-shadow: 0 1px 4px #2f252330; }
-.product-discount-switch .MuiSwitch-track { border-radius: 14px; background-color: #b5aaa3; opacity: 1; transition: background-color 200ms ease; }
+.product-discount-switch.MuiSwitch-root { width: 44px; height: 44px; padding: 10px 0; flex-shrink: 0; overflow: visible; }
+.product-discount-switch .MuiSwitch-switchBase { padding: 12px 2px; color: #fff; transition: transform 200ms ease, color 200ms ease; }
+.product-discount-switch .MuiSwitch-thumb { width: 20px; height: 20px; box-shadow: 0 1px 4px #2f252330; }
+.product-discount-switch .MuiSwitch-track { border-radius: 12px; background-color: #b5aaa3; opacity: 1; transition: background-color 200ms ease; }
 .product-discount-switch .MuiSwitch-switchBase.Mui-checked { transform: translateX(20px); color: #fff; }
+.product-discount-switch .MuiSwitch-input { left: 0; width: 44px; }
+.product-discount-switch .MuiSwitch-switchBase.Mui-checked .MuiSwitch-input { left: -20px; }
 .product-discount-switch .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track { background-color: #4a2c2a; opacity: 1; }
 .product-discount-switch .MuiSwitch-switchBase.Mui-focusVisible .MuiSwitch-thumb { outline: 2px solid #8d6e63; outline-offset: 3px; }
 .product-discount-switch .MuiSwitch-switchBase.Mui-disabled + .MuiSwitch-track { opacity: .45; }

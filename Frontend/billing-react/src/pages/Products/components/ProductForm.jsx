@@ -21,6 +21,7 @@ import {
 import '../styles/product-form.css';
 import { useCategories } from '../services/categoryService';
 import { productService } from '../services/productService';
+import { ProductSelectField } from './ProductSelect';
 
 const getCurrencySymbol = (currency) => {
   switch (currency) {
@@ -260,18 +261,8 @@ export function ProductForm({
               <label htmlFor="productType" className="product-field-label">
                 Product Type <span className="product-field-required">*</span>
               </label>
-              <select
-                id="productType"
-                className={`product-select ${errors.type ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.type)}
-                {...register('type', { onChange: () => trigger('hsnSac') })}
-              >
-                {PRODUCT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="type" id="productType" ariaLabel="Product Type"
+                error={Boolean(errors.type)} options={[{ value: '', label: 'Select Type' }, ...PRODUCT_TYPES.map(value => ({ value, label: value }))]} onValueChange={() => trigger('hsnSac')} />
               {errors.type && (
                 <span className="product-field-error" role="alert">
                   {errors.type.message}
@@ -284,21 +275,8 @@ export function ProductForm({
               <label htmlFor="productCategory" className="product-field-label">
                 Category <span className="product-field-required">*</span>
               </label>
-              <select
-                disabled={categoriesQuery.isPending || categoriesQuery.isError}
-                id="productCategory"
-                className={`product-select ${errors.categoryId ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.categoryId)}
-                aria-describedby={errors.categoryId ? 'productCategory-err' : undefined}
-                {...register('categoryId')}
-              >
-                <option value="">Select Category</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat.id} value={String(cat.id)} disabled={cat.status !== 'Active'}>
-                    {cat.name}{cat.status !== 'Active' ? ' (Inactive)' : ''}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="categoryId" id="productCategory" ariaLabel="Category"
+                error={Boolean(errors.categoryId)} options={[{ value: '', label: 'Select Category' }, ...categoryOptions.map(cat => ({ value: String(cat.id), label: `${cat.name}${cat.status !== 'Active' ? ' (Inactive)' : ''}`, disabled: cat.status !== 'Active' }))]} disabled={categoriesQuery.isPending || categoriesQuery.isError} aria-describedby={errors.categoryId ? 'productCategory-err' : undefined} />
               {errors.categoryId && (
                 <span id="productCategory-err" className="product-field-error" role="alert">
                   {errors.categoryId.message}
@@ -349,18 +327,8 @@ export function ProductForm({
               <label htmlFor="productUnit" className="product-field-label">
                 Unit of Measurement <span className="product-field-required">*</span>
               </label>
-              <select
-                id="productUnit"
-                className={`product-select ${errors.unit ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.unit)}
-                {...register('unit')}
-              >
-                {STANDARD_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="unit" id="productUnit" ariaLabel="Unit of Measurement"
+                error={Boolean(errors.unit)} options={STANDARD_UNITS.map(value => ({ value, label: value }))} />
               {errors.unit && (
                 <span className="product-field-error" role="alert">
                   {errors.unit.message}
@@ -431,19 +399,8 @@ export function ProductForm({
               <label htmlFor="productTaxCategory" className="product-field-label">
                 Tax Category
               </label>
-              <select
-                id="productTaxCategory"
-                className={`product-select ${errors.taxCategory ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.taxCategory)}
-                {...register('taxCategory')}
-              >
-                <option value="">Not set</option>
-                {TAX_CATEGORIES.map((tax) => (
-                  <option key={tax} value={tax}>
-                    {tax}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="taxCategory" id="productTaxCategory" ariaLabel="Tax Category"
+                error={Boolean(errors.taxCategory)} options={[{ value: '', label: 'Not set' }, ...TAX_CATEGORIES.map(value => ({ value, label: value }))]} />
               {errors.taxCategory && (
                 <span className="product-field-error" role="alert">
                   {errors.taxCategory.message}
@@ -541,15 +498,8 @@ export function ProductForm({
               <label htmlFor="productStatus" className="product-field-label">
                 Status
               </label>
-              <select
-                id="productStatus"
-                className={`product-select ${errors.status ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.status)}
-                {...register('status')}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+              <ProductSelectField control={control} name="status" id="productStatus" ariaLabel="Status"
+                error={Boolean(errors.status)} options={['Active', 'Inactive'].map(value => ({ value, label: value }))} />
               {errors.status && (
                 <span className="product-field-error" role="alert">
                   {errors.status.message}

@@ -45,6 +45,7 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
         <InvoiceBillingLogo size={20} />
         <strong>INVOICE<span>.</span>BILLING</strong>
       </button>
+      <div className="bd-sidebar-scroll">
       <nav className="bd-sidebar-nav">
         {dashboardNavigation.map((section) => <div className="bd-nav-section" key={section.label}>
           <small>{section.label}</small>
@@ -59,6 +60,7 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
       <div className="bd-sidebar-footer">
         <button onClick={() => onSelect('support')}><SupportAgentOutlined />Help & Support</button>
         <p>Workspace</p><strong>Acme Business India</strong>
+      </div>
       </div>
     </aside>
   </>

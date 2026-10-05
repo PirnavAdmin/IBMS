@@ -44,6 +44,6 @@ export const AppLayout = () => {
   return <div className="app-layout">
     <button className="app-layout-menu" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu /></button>
     <DashboardSidebar activeItem={activeItem} open={sidebarOpen} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => setSidebarOpen(false)} />
-    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={searchQuery} onSearch={onSearch} onSignOut={signOut} />}<Outlet context={{ searchQuery, onSearch }} /></div>
+    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={searchQuery} onSearch={onSearch} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery, onSearch }} /></div></div>
   </div>;
 };

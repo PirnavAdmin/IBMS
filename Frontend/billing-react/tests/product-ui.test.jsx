@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { StaticRouter } from 'react-router-dom/server';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ProductActionItems } from '../src/pages/Products/components/ProductActionsMenu';
 import { ProductTable } from '../src/pages/Products/components/ProductTable';
 import { ProductPagination } from '../src/pages/Products/components/ProductPagination';
 import { ProductForm, getProductInitialValues } from '../src/pages/Products/components/ProductForm';
@@ -22,7 +23,8 @@ test('PQA table: nine columns, actual currency, long names, inactive badge and n
   const html = render(table());
   for (const label of ['Product Code', 'Product Name', 'Type', 'Category', 'Unit', 'Price', 'Tax Category', 'Status', 'Actions']) assert.ok(html.includes(label));
   assert.match(html, /\$1,234\.50/); assert.doesNotMatch(html, /₹1,234/);
-  assert.match(html, /href="\/products\/7"/); assert.match(html, /href="\/products\/7\/edit"/);
+  assert.match(html, /href="\/products\/7"/); assert.doesNotMatch(html, /href="\/products\/7\/edit"/);
+  assert.match(html, /aria-haspopup="menu"/); assert.match(html, /aria-expanded="false"/);
   assert.match(html, /Inactive/); assert.ok(html.includes(product.name));
   const statusHeader = html.match(/<th\b[^>]*>(?:(?!<\/th>).)*Status(?:(?!<\/th>).)*<\/th>/s)?.[0];
   assert.ok(statusHeader); assert.doesNotMatch(statusHeader, /role="button"/);
@@ -47,14 +49,17 @@ test('PQA pagination: first, middle, last and empty bounds', () => {
 test('PQA product form: create excludes inactive category; edit retains its disabled association and legacy unit', () => {
   const cache = client(); cache.setQueryData(['categories', 'list'], categories);
   const create = render(<ProductForm mode="create" onSubmit={() => {}} />, cache);
-  assert.match(create, /Active category/); assert.doesNotMatch(create, /Inactive category/);
-  assert.match(create, /E-Commerce/);
+  assert.match(create, /Select Category/); assert.match(create, /Select Type/);
+  assert.doesNotMatch(create, /E-Commerce/);
+  const unavailableCategory = render(<ProductForm mode="create" initialValues={{ ...product, categoryId: 2 }} onSubmit={() => {}} />, cache);
+  assert.doesNotMatch(unavailableCategory, /Inactive category/);
   const edit = render(<ProductForm mode="edit" initialValues={{ ...product, categoryId: 2, unit: 'Hour', taxCategory: null }} onSubmit={() => {}} />, cache);
-  assert.match(edit, /<option value="2" disabled="">Inactive category \(Inactive\)<\/option>/);
+  assert.match(edit, /Inactive category \(Inactive\)/);
+  assert.match(edit, /<input\b(?=[^>]*name="categoryId")(?=[^>]*value="2")[^>]*>/);
   assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).unit, 'Others');
   assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).customUnit, 'Hour');
   assert.match(edit, /name="customUnit"/);
-  assert.match(edit, /<option value="">Not set<\/option>/);
+  assert.match(edit, /Not set/);
 });
 
 test('PQA edit initialization never adds tax to an untaxed product and preserves optional values', () => {
@@ -176,4 +181,22 @@ test('PQA setup failure renders one combined alert and one retry; recovery clear
   assert.match(html, /Unable to load product setup data. Check your connection and try again./);
   cache.setQueryData(['categories', 'list'], categories);
   assert.doesNotMatch(render(form, cache), /Unable to load product setup data/);
+});
+
+ test('PQA overflow actions preserve view/edit routes and labels', () => {
+  const html = render(<ProductActionItems product={product} onSelect={() => {}} />);
+  assert.match(html, /href="\/products\/7"/);
+  assert.match(html, /href="\/products\/7\/edit"/);
+  assert.match(html, /View/); assert.match(html, /Edit/);
+});
+
+test('PQA create type starts empty and saved Product/Service edit types stay selected', () => {
+  assert.equal(getProductInitialValues(null).type, '');
+  const cache = client(); cache.setQueryData(['categories', 'list'], categories);
+  for (const type of ['Product', 'Service']) {
+    assert.equal(getProductInitialValues({ ...product, type }).type, type);
+    const html = render(<ProductForm mode="edit" initialValues={{ ...product, type }} onSubmit={() => {}} />, cache);
+    assert.match(html, new RegExp(`<input\\b(?=[^>]*name="type")(?=[^>]*value="${type}")[^>]*>`));
+    assert.doesNotMatch(html, /Select Type/);
+  }
 });

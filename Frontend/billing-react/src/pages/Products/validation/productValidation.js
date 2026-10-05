@@ -3,7 +3,7 @@ import * as yup from 'yup';
 const CODE_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 
-export const PRODUCT_TYPES = ['Product', 'Service','E-Commerce',];
+export const PRODUCT_TYPES = ['Product', 'Service'];
 export const CURRENCIES = ['INR', 'USD', 'EUR'];
 export const TAX_CATEGORIES = ['GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'GST 0%', 'Exempt'];
 export const STANDARD_UNITS = ['Piece', 'Set', 'Others'];
@@ -28,8 +28,9 @@ export const productValidationSchema = yup.object({
 
   type: yup
     .string()
-    .oneOf(PRODUCT_TYPES, 'Select a valid product type')
-    .default('Product'),
+    .transform(value => value === '' ? undefined : value)
+    .required('Please select a product type.')
+    .oneOf(PRODUCT_TYPES, 'Select a valid product type'),
 
   categoryId: yup
     .string()
@@ -117,7 +118,7 @@ export const productValidationSchema = yup.object({
 export const DEFAULT_PRODUCT_VALUES = {
   productCode: '',
   name: '',
-  type: 'Product',
+  type: '',
   categoryId: '',
   description: '',
   unit: 'Piece',

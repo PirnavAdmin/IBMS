@@ -62,7 +62,7 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
-  transition: box-shadow 150ms ease, transform 150ms ease, outline-color 150ms ease;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, outline-color 180ms ease;
 }
 .product-list-page .product-summary-card:hover { transform: translateY(-1px); box-shadow: 0 6px 14px #462a0e12; }
 .product-list-page .product-summary-card.selected { outline: 2px solid #8d6e63; outline-offset: 2px; box-shadow: 0 4px 14px #462a0e14; }
