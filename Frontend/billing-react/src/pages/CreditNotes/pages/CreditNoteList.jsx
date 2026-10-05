@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Add, ArrowDownward, ArrowUpward, DateRangeOutlined, DownloadOutlined, FilterAltOutlined,
+  Add, ArrowDownward, ArrowUpward, DownloadOutlined, FilterAltOutlined,
   LocalPrintshopOutlined, MoreHoriz, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
   Autorenew,
 } from '@mui/icons-material';
@@ -54,17 +54,6 @@ export function CreditNoteList() {
     setPage(0);
   };
 
-  const applyDatePreset = (preset) => {
-    const end = new Date();
-    const start = new Date(end);
-    if (preset === 'month') start.setDate(1);
-    else start.setDate(start.getDate() - preset + 1);
-    const toInputDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    setFromDate(toInputDate(start));
-    setToDate(toInputDate(end));
-    setPage(0);
-  };
-
   const exportCsv = () => {
     const headers = ['Credit Note', 'Customer', 'Invoice', 'Type', 'Amount', 'Refunded', 'Remaining refundable', 'Status', 'Date'];
     const rows = items.map((note) => [note.number, note.customer, note.invoiceNumber, note.type, note.total, note.refunded, note.remainingRefundable, note.status, note.date]);
@@ -106,19 +95,8 @@ export function CreditNoteList() {
           <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
           <TextField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value=""><FilterAltOutlined fontSize="small" /> All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
           <TextField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></TextField>
-          <div className="cn-date-range" role="group" aria-label="Filter by created date range">
-            <div className="cn-date-range-heading"><DateRangeOutlined /><span>Created date</span></div>
-            <div className="cn-date-range-fields">
-              <TextField className="cn-date-filter" size="small" type="date" label="From" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
-              <span className="cn-date-range-separator">to</span>
-              <TextField className="cn-date-filter" size="small" type="date" label="To" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
-            </div>
-            <div className="cn-date-presets" aria-label="Quick date ranges">
-              <button type="button" onClick={() => applyDatePreset(7)}>7 days</button>
-              <button type="button" onClick={() => applyDatePreset(30)}>30 days</button>
-              <button type="button" onClick={() => applyDatePreset('month')}>This month</button>
-            </div>
-          </div>
+          <TextField className="cn-date-filter" size="small" type="date" label="From date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
+          <TextField className="cn-date-filter" size="small" type="date" label="To date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
           <Tooltip title="Refresh from billing API"><span><IconButton onClick={() => { query.refetch(); draftQuery.refetch(); pendingQuery.refetch(); }} disabled={query.isFetching}><Autorenew /></IconButton></span></Tooltip>
         </div>

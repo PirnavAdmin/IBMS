@@ -63,24 +63,13 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-search-icon { width: 19px; height: 19px; margin-right: 9px; color: #8b684b; }
 .cn-status-filter { width: 205px; }
 .cn-status-filter .MuiSelect-select { display: flex; align-items: center; gap: 7px; }
-.cn-date-filter { min-width: 174px; }
+.cn-date-filter { width: 174px; min-width: 160px; flex: 0 0 174px; }
 .cn-date-filter .MuiOutlinedInput-root { min-height: 42px; background: #fffaf3; }
 .cn-date-filter .MuiInputLabel-root { color: #806852; }
 .cn-date-filter .MuiOutlinedInput-notchedOutline { border-color: #ddc8b0; }
 .cn-date-filter .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #b58a64; }
 .cn-date-filter .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #8b572f; }
 .cn-date-filter input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .72; filter: sepia(.45) saturate(.8); }
-.cn-date-range { display: grid; min-width: 330px; flex: 1 1 350px; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px 12px; padding: 9px 11px 8px; border: 1px solid #e4d2bd; border-radius: 12px; background: linear-gradient(135deg, #fffaf3, #f8efe4); box-shadow: inset 0 1px 0 #fff; }
-.cn-date-range-heading { display: flex; align-items: center; gap: 6px; color: #755238; font-size: .7rem; font-weight: 800; white-space: nowrap; }
-.cn-date-range-heading svg { width: 17px; height: 17px; color: #966b48; }
-.cn-date-range-fields { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.cn-date-range-fields .cn-date-filter { width: 0; min-width: 0; flex: 1 1 0; }
-.cn-date-range-fields .MuiOutlinedInput-root { min-height: 36px; }
-.cn-date-range-fields input { padding: 7px 8px; font-size: .74rem; }
-.cn-date-range-separator { color: #9a8570; font-size: .68rem; font-weight: 700; }
-.cn-date-presets { display: flex; grid-column: 2; align-items: center; gap: 5px; }
-.cn-date-presets button { padding: 3px 8px; border: 1px solid #eadbca; border-radius: 999px; background: #fffdf9; color: #79583c; font: inherit; font-size: .63rem; font-weight: 700; cursor: pointer; transition: .15s ease; }
-.cn-date-presets button:hover { border-color: #b58a64; background: #f0e1ce; color: #5a3219; }
 .cn-clear-filter { color: #805332 !important; }
 .cn-table-wrap { width: 100%; }
 .cn-table-wrap .MuiTable-root,.cn-detail-table-wrap .MuiTable-root,.cn-lines-table .MuiTable-root { min-width: 850px; }
@@ -331,8 +320,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   .cn-heading-actions { width: 100%; }
   .cn-heading-actions .MuiButton-root { flex: 1; }
   .cn-filter-bar { align-items: stretch; flex-direction: column; padding-inline: 13px; }
-  .cn-search,.cn-status-filter { width: 100%; max-width: none; }
-  .cn-date-range { width: 100%; min-width: 0; flex: none; box-sizing: border-box; }
+  .cn-search,.cn-status-filter,.cn-date-filter { width: 100%; max-width: none; flex: 0 0 auto; }
   .cn-summary-grid { gap: 10px; }
   .cn-summary-card { min-height: 116px; padding: 13px; }
   .cn-list-heading { padding-inline: 14px; }
@@ -376,8 +364,6 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   .cn-demo-banner { align-items: flex-start; }
   .cn-demo-tag { align-self: center; }
   .cn-document-title { flex-direction: column; }
-  .cn-date-range { grid-template-columns: 1fr; }
-  .cn-date-presets { grid-column: 1; }
 }
 @media print {
   @page { size: A4; margin: 8mm; }
