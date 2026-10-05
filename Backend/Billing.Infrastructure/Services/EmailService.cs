@@ -1,10 +1,12 @@
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+using Billing.Application.Interfaces;
+using System.IO;
 
 namespace Billing.Infrastructure.Services;
 
-public class EmailService
+public class EmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
 
@@ -13,7 +15,7 @@ public class EmailService
         _configuration = configuration;
     }
 
-    public async Task SendEmailAsync(string toEmail, string subject, string body)
+    public async Task SendEmailAsync(string toEmail, string subject, string body, byte[]? attachmentBytes = null, string? attachmentName = null)
     {
         var email = new MimeMessage();
 
@@ -23,15 +25,17 @@ public class EmailService
             ?? throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
 
         email.From.Add(MailboxAddress.Parse(fromEmail));
-
         email.To.Add(MailboxAddress.Parse(toEmail));
-
         email.Subject = subject;
 
-        email.Body = new TextPart("plain")
+        var builder = new BodyBuilder { TextBody = body };
+
+        if (attachmentBytes != null && !string.IsNullOrWhiteSpace(attachmentName))
         {
-            Text = body
-        };
+            builder.Attachments.Add(attachmentName, attachmentBytes, ContentType.Parse("application/pdf"));
+        }
+
+        email.Body = builder.ToMessageBody();
 
         using var smtp = new SmtpClient();
 
@@ -41,13 +45,8 @@ public class EmailService
             MailKit.Security.SecureSocketOptions.StartTls
         );
 
-        await smtp.AuthenticateAsync(
-            fromEmail,
-            appPassword
-        );
-
+        await smtp.AuthenticateAsync(fromEmail, appPassword);
         await smtp.SendAsync(email);
-
         await smtp.DisconnectAsync(true);
     }
 }

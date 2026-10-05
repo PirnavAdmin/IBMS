@@ -15,7 +15,8 @@ namespace Billing.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
-            new Billing.Infrastructure.Migrations.BillingDbContextModelSnapshot().ApplySnapshot(modelBuilder);
+            
         }
     }
 }
+

@@ -19,6 +19,7 @@ import { Payments } from '../pages/Payments/Payments';
 import { RecordPayment } from '../pages/Payments/RecordPayment';
 import { PaymentDetails } from '../pages/Payments/PaymentDetails';
 import { Invoices } from '../pages/Invoices/Invoices';
+import { InvoiceDetailsPage } from '../pages/Invoices/pages/InvoiceDetailsPage';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { CategoryList } from '../pages/Products/pages/CategoryList';
 import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
@@ -29,6 +30,9 @@ import { EditProduct } from '../pages/Products/pages/EditProduct';
 import { NumberingSettings } from '../pages/NumberingSettings';
 import { QuotationManagement } from '../pages/Quotations';
 import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory, InvoicePdfView } from '../pages/InvoiceTemplates/InvoiceTemplates';
+import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
+import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
+import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
 
 // ==============================
 // CUSTOMER MODULE
@@ -63,6 +67,8 @@ export const AppRoutes = () => (
       <Route path="/invoices" element={<Invoices />} />
       <Route path="/invoices/new" element={<CreateInvoice />} />
       <Route path="/invoices/create" element={<CreateInvoice />} />
+      <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
+      <Route path="/invoices/:id/edit" element={<CreateInvoice mode="edit" />} />
       <Route path="/invoices/:invoiceId/pdf" element={<InvoicePdfView />} />
 
       {/* Quotation Management — backend API integration */}
@@ -113,7 +119,13 @@ export const AppRoutes = () => (
       <Route path="/products/new" element={<CreateProduct />} />
       <Route path="/products/:id" element={<ProductDetails />} />
       <Route path="/products/:id/edit" element={<EditProduct />} />
-      <Route path="/credit-notes" element={<ModulePlaceholder />} />
+      <Route path="/credit-notes" element={<CreditNoteList />} />
+      <Route path="/credit-notes/new" element={<CreditNoteForm />} />
+      <Route path="/credit-notes/:id/edit" element={<CreditNoteForm />} />
+      <Route path="/credit-notes/:id/approve" element={<CreditNoteDetails />} />
+      <Route path="/credit-notes/:id/refund" element={<CreditNoteDetails />} />
+      <Route path="/credit-notes/:id/preview" element={<CreditNoteDetails />} />
+      <Route path="/credit-notes/:id" element={<CreditNoteDetails />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />
       <Route path="/expenses" element={<ModulePlaceholder />} />
       <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />

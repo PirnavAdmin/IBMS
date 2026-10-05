@@ -42,6 +42,25 @@ export const numberingApi = {
       );
     }
   },
+
+  generateNumber: async ({ documentType = 'Invoice', transactionDate = new Date().toISOString() } = {}) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.SETTINGS.NUMBERING_GENERATE, {
+        documentType,
+        transactionDate,
+      });
+      return ensureSuccess(response);
+    } catch (err) {
+      throw Object.assign(
+        new Error(err.response?.data?.message || err.userMessage || err.message || 'Failed to generate sequential document number.'),
+        {
+          code: err.code,
+          status: err.response?.status ?? err.status,
+          response: err.response,
+        }
+      );
+    }
+  },
 };
 
 export default numberingApi;

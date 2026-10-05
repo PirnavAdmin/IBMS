@@ -9,6 +9,8 @@ public class Invoice
 
     public string InvoiceNumber { get; set; } = string.Empty;
 
+    public string Currency { get; set; } = "INR";
+
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
@@ -28,9 +30,13 @@ public class Invoice
 
     public decimal ChargesAmount { get; set; }
 
+    public decimal RoundingAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public decimal PaidAmount { get; set; }
+
+    public decimal CreditedAmount { get; set; }
 
     public decimal BalanceAmount { get; set; }
 
@@ -50,19 +56,27 @@ public class Invoice
 
     public ICollection<InvoicePaymentAllocation> PaymentAllocations { get; set; } = new List<InvoicePaymentAllocation>();
 
+    public ICollection<CreditNote> CreditNotes { get; set; } = new List<CreditNote>();
+
     public string GetCurrency()
     {
-        return !string.IsNullOrWhiteSpace(Customer?.Currency)
-            ? Customer!.Currency.Trim().ToUpperInvariant()
-            : "INR";
+        return !string.IsNullOrWhiteSpace(Currency) ? Currency.Trim().ToUpperInvariant() : "INR";
     }
 
     public decimal GetEffectiveBalance()
     {
         var effectivePaid = Math.Max(0m, Math.Round(PaidAmount, 2, MidpointRounding.AwayFromZero));
+        var effectiveCredited = Math.Max(0m, Math.Round(CreditedAmount, 2, MidpointRounding.AwayFromZero));
         var total = Math.Max(0m, Math.Round(TotalAmount, 2, MidpointRounding.AwayFromZero));
-        var calculatedBalance = Math.Max(0m, Math.Round(total - effectivePaid, 2, MidpointRounding.AwayFromZero));
+        var calculatedBalance = Math.Max(0m, Math.Round(total - effectivePaid - effectiveCredited, 2, MidpointRounding.AwayFromZero));
         return calculatedBalance;
+    }
+
+    public decimal GetRemainingCreditableAmount()
+    {
+        var total = Math.Max(0m, Math.Round(TotalAmount, 2, MidpointRounding.AwayFromZero));
+        var effectiveCredited = Math.Max(0m, Math.Round(CreditedAmount, 2, MidpointRounding.AwayFromZero));
+        return Math.Max(0m, Math.Round(total - effectiveCredited, 2, MidpointRounding.AwayFromZero));
     }
 
     public bool IsEligibleForPayment(out string? reason)
@@ -105,19 +119,58 @@ public class Invoice
         return true;
     }
 
+    public bool IsEligibleForCredit(out string? reason)
+    {
+        var normStatus = (Status ?? string.Empty).Trim();
+
+        if (string.Equals(normStatus, "Draft", StringComparison.OrdinalIgnoreCase))
+        {
+            reason = $"Invoice '{InvoiceNumber}' is in Draft status and cannot have credit notes applied.";
+            return false;
+        }
+
+        if (string.Equals(normStatus, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normStatus, "Canceled", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase))
+        {
+            reason = $"Invoice '{InvoiceNumber}' is {normStatus} and cannot have credit notes applied.";
+            return false;
+        }
+
+        if (TotalAmount <= 0m)
+        {
+            reason = $"Invoice '{InvoiceNumber}' has a non-positive total amount ({TotalAmount:F2}) and is not eligible for credit note.";
+            return false;
+        }
+
+        if (GetRemainingCreditableAmount() <= 0m)
+        {
+            reason = $"Invoice '{InvoiceNumber}' has already been fully credited.";
+            return false;
+        }
+
+        reason = null;
+        return true;
+    }
+
     /// <summary>
-    /// Authoritative invoice balance and status calculation shared across Invoice Management (Module 9) and Payment Management (Module 11).
-    /// Formula: BalanceAmount = Invoice TotalAmount - Effective Allocated PaidAmount.
+    /// Authoritative invoice balance and status calculation shared across Invoice Management (Module 9), Payment Management (Module 11), and Credit Note & Refund (Module 12).
+    /// Formula: BalanceAmount = Invoice TotalAmount - Effective Allocated PaidAmount - Effective CreditedAmount.
     /// </summary>
-    public void RecalculateBalanceAndStatus(decimal? effectivePaidTotal = null)
+    public void RecalculateBalanceAndStatus(decimal? effectivePaidTotal = null, decimal? effectiveCreditedTotal = null)
     {
         var total = Math.Max(0m, Math.Round(TotalAmount, 2, MidpointRounding.AwayFromZero));
         var paid = effectivePaidTotal.HasValue
             ? Math.Max(0m, Math.Round(effectivePaidTotal.Value, 2, MidpointRounding.AwayFromZero))
             : Math.Max(0m, Math.Round(PaidAmount, 2, MidpointRounding.AwayFromZero));
 
+        var credited = effectiveCreditedTotal.HasValue
+            ? Math.Max(0m, Math.Round(effectiveCreditedTotal.Value, 2, MidpointRounding.AwayFromZero))
+            : Math.Max(0m, Math.Round(CreditedAmount, 2, MidpointRounding.AwayFromZero));
+
         PaidAmount = paid;
-        BalanceAmount = Math.Max(0m, Math.Round(total - paid, 2, MidpointRounding.AwayFromZero));
+        CreditedAmount = credited;
+        BalanceAmount = Math.Max(0m, Math.Round(total - paid - credited, 2, MidpointRounding.AwayFromZero));
 
         var normStatus = (Status ?? string.Empty).Trim();
         if (string.Equals(normStatus, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
@@ -131,7 +184,7 @@ public class Invoice
         {
             Status = "Paid";
         }
-        else if (PaidAmount > 0m && BalanceAmount > 0m)
+        else if ((PaidAmount > 0m || CreditedAmount > 0m) && BalanceAmount > 0m)
         {
             Status = "Partially Paid";
         }
@@ -151,3 +204,5 @@ public class Invoice
         RowVersion = DateTime.UtcNow;
     }
 }
+
+
