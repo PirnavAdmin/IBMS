@@ -10,4 +10,6 @@ public interface IInvoiceService
     Task<ApiResponse<Invoice>> IssueInvoiceAsync(int id, int tenantId);
     Task<ApiResponse<Invoice>> CancelInvoiceAsync(int id, int tenantId, string reason);
     Task<ApiResponse<Invoice>> VoidInvoiceAsync(int id, int tenantId, string reason);
+    Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId);
 }
+
