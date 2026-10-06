@@ -649,6 +649,7 @@
 
 .invoice-list-table {
   min-width: 1720px;
+  width: 100%;
 }
 
 .invoice-table th {
@@ -658,7 +659,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 13px 14px;
+  padding: 13px 16px;
   text-align: left;
   white-space: nowrap;
   border-bottom: 1.5px solid var(--border);
@@ -677,12 +678,13 @@
 }
 
 .invoice-table td {
-  padding: 12px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid #f0e6dc;
   vertical-align: middle;
   color: var(--text-primary);
   font-size: 13.5px;
   line-height: 1.4;
+  text-align: left;
 }
 
 .invoice-table tbody tr {
@@ -703,6 +705,108 @@
   font-weight: 600;
 }
 
+/* Left-aligned invoice list table amounts and columns */
+.invoice-list-table th,
+.invoice-list-table td {
+  text-align: left !important;
+}
+
+.invoice-amount-cell,
+.invoice-amount-highlight {
+  text-align: left !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.invoice-amount-highlight {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.invoice-list-table .invoice-status {
+  justify-content: flex-start;
+}
+
+/* Individual column widths for neat, balanced spacing */
+.invoice-list-table th:nth-child(1),
+.invoice-list-table td:nth-child(1) {
+  min-width: 175px; /* Invoice Number */
+}
+
+.invoice-list-table th:nth-child(2),
+.invoice-list-table td:nth-child(2) {
+  min-width: 170px;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Customer */
+}
+
+.invoice-list-table th:nth-child(3),
+.invoice-list-table td:nth-child(3) {
+  min-width: 120px; /* Invoice Date */
+}
+
+.invoice-list-table th:nth-child(4),
+.invoice-list-table td:nth-child(4) {
+  min-width: 120px; /* Due Date */
+}
+
+.invoice-list-table th:nth-child(5),
+.invoice-list-table td:nth-child(5) {
+  min-width: 85px; /* Currency */
+}
+
+.invoice-list-table th:nth-child(6),
+.invoice-list-table td:nth-child(6) {
+  min-width: 115px; /* Subtotal */
+}
+
+.invoice-list-table th:nth-child(7),
+.invoice-list-table td:nth-child(7) {
+  min-width: 105px; /* Discount */
+}
+
+.invoice-list-table th:nth-child(8),
+.invoice-list-table td:nth-child(8) {
+  min-width: 105px; /* Tax */
+}
+
+.invoice-list-table th:nth-child(9),
+.invoice-list-table td:nth-child(9) {
+  min-width: 105px; /* Charges */
+}
+
+.invoice-list-table th:nth-child(10),
+.invoice-list-table td:nth-child(10) {
+  min-width: 100px; /* Rounding */
+}
+
+.invoice-list-table th:nth-child(11),
+.invoice-list-table td:nth-child(11) {
+  min-width: 125px; /* Grand Total */
+}
+
+.invoice-list-table th:nth-child(12),
+.invoice-list-table td:nth-child(12) {
+  min-width: 110px; /* Paid */
+}
+
+.invoice-list-table th:nth-child(13),
+.invoice-list-table td:nth-child(13) {
+  min-width: 125px; /* Outstanding */
+}
+
+.invoice-list-table th:nth-child(14),
+.invoice-list-table td:nth-child(14) {
+  min-width: 130px; /* Status */
+}
+
+.invoice-list-table th:nth-child(15),
+.invoice-list-table td:nth-child(15) {
+  min-width: 85px; /* Actions */
+}
+
 .invoice-table small {
   display: block;
   margin-top: 4px;
@@ -720,7 +824,8 @@
 }
 
 .invoice-actions-cell {
-  min-width: 72px;
+  min-width: 85px;
+  text-align: left;
 }
 
 .invoice-sort {
@@ -741,12 +846,14 @@
   gap: 4px;
   line-height: inherit;
   vertical-align: middle;
+  text-align: left;
+  justify-content: flex-start;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 .invoice-table th.numeric .invoice-sort {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .invoice-sort:hover {
@@ -1960,112 +2067,132 @@
 }
 
 .invoice-line-items-panel .invoice-table-scroll {
-  overflow-x: hidden;
+  overflow-x: auto;
   max-width: 100%;
   width: 100%;
 }
 
 .invoice-edit-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1220px;
   border-collapse: collapse;
 }
 
 .invoice-edit-table th {
-  padding: 10px 6px;
+  padding: 10px 8px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
+  text-align: left !important;
 }
 
 .invoice-edit-table td {
-  padding: 8px 4px;
+  padding: 8px 6px;
   vertical-align: top;
   border-bottom: 1px solid #f0e6dc;
+  text-align: left !important;
 }
 
 .invoice-edit-table td:first-child,
 .invoice-edit-table th:first-child {
-  width: 32px;
-  min-width: 30px;
-  max-width: 36px;
-  text-align: center;
-  padding-left: 2px;
-  padding-right: 2px;
+  width: 36px;
+  min-width: 32px;
+  max-width: 40px;
+  text-align: left !important;
+  padding-left: 6px;
+  padding-right: 4px;
 }
 
 .invoice-edit-table td:first-child {
   padding-top: 14px;
 }
 
+/* 2. Product / Service & Description */
 .invoice-edit-table th:nth-child(2),
 .invoice-edit-table td:nth-child(2) {
   width: auto;
-  min-width: 160px;
+  min-width: 260px;
+  text-align: left !important;
 }
 
+/* 3. HSN/SAC */
 .invoice-edit-table th:nth-child(3),
 .invoice-edit-table td:nth-child(3) {
-  width: 84px;
-  min-width: 76px;
+  width: 110px;
+  min-width: 105px;
+  text-align: left !important;
 }
 
+/* 4. Quantity */
 .invoice-edit-table th:nth-child(4),
 .invoice-edit-table td:nth-child(4) {
-  width: 74px;
-  min-width: 68px;
+  width: 100px;
+  min-width: 95px;
+  text-align: left !important;
 }
 
+/* 5. Unit Price */
 .invoice-edit-table th:nth-child(5),
 .invoice-edit-table td:nth-child(5) {
-  width: 88px;
-  min-width: 80px;
+  width: 125px;
+  min-width: 115px;
+  text-align: left !important;
 }
 
+/* 6. Discount */
 .invoice-edit-table th:nth-child(6),
 .invoice-edit-table td:nth-child(6) {
-  width: 108px;
-  min-width: 96px;
+  width: 145px;
+  min-width: 135px;
+  text-align: left !important;
 }
 
+/* 7. Tax Rate */
 .invoice-edit-table th:nth-child(7),
 .invoice-edit-table td:nth-child(7) {
-  width: 108px;
-  min-width: 96px;
+  width: 135px;
+  min-width: 125px;
+  text-align: left !important;
 }
 
+/* 8. Tax Amount */
 .invoice-edit-table th:nth-child(8),
 .invoice-edit-table td:nth-child(8) {
-  width: 80px;
-  min-width: 72px;
-  text-align: right;
+  width: 115px;
+  min-width: 105px;
+  text-align: left !important;
   white-space: nowrap;
 }
 
 .invoice-edit-table td:nth-child(8) {
   padding-top: 14px;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
+/* 9. Line Total */
 .invoice-edit-table th:nth-child(9),
 .invoice-edit-table td:nth-child(9) {
-  width: 86px;
-  min-width: 78px;
-  text-align: right;
+  width: 130px;
+  min-width: 120px;
+  text-align: left !important;
   white-space: nowrap;
 }
 
 .invoice-edit-table td:nth-child(9) {
   padding-top: 14px;
-  font-size: 13px;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
 }
 
+/* 10. Actions */
 .invoice-edit-table th:last-child,
 .invoice-edit-table td:last-child {
-  width: 76px;
-  min-width: 72px;
-  text-align: center;
+  width: 85px;
+  min-width: 80px;
+  text-align: left !important;
 }
 
 .invoice-edit-table td:last-child {
@@ -2108,12 +2235,36 @@
   margin-top: 6px;
 }
 
+.invoice-line-discount-select {
+  border: 1px solid var(--border, #e2d9cf);
+  background: var(--surface-secondary, #faf7f4);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary, #8b4513);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.invoice-line-discount-select:hover {
+  background: #ede8e1;
+  border-color: var(--primary, #8b4513);
+}
+
+.invoice-line-discount-select:focus {
+  border-color: var(--primary, #8b4513);
+  box-shadow: 0 0 0 2px rgba(139, 69, 19, 0.15);
+}
+
 @media (max-width: 899px) {
   .invoice-line-items-panel .invoice-table-scroll {
     overflow-x: auto;
   }
   .invoice-edit-table {
-    min-width: 820px;
+    min-width: 1050px;
   }
 }
 

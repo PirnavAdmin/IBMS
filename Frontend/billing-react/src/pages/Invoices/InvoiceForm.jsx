@@ -39,6 +39,8 @@ import {
   invoiceDto,
   calculationDto,
   productToItem,
+  getTodayIso,
+  getOneMonthLaterIso,
 } from "./validation/invoiceValidation";
 import {
   InvoiceShell,
@@ -203,22 +205,45 @@ export function InvoiceForm() {
     staleTime: 0,
   });
   const freshCalculation = debounceForm === form ? calculation.data : null;
-  const rates = (taxes.data?.taxRates || []).filter(
+  const rates = (taxes.data?.taxRates || taxes.data?.TaxRates || []).filter(
     (rate) =>
-      rate.isActive &&
+      rate.isActive !== false &&
+      rate.status !== "Inactive" &&
       !rate.isInclusive &&
       !rate.isCompound &&
-      ["Item", "Both"].includes(rate.applicationLevel),
+      (!rate.applicationLevel ||
+        ["Item", "Both"].includes(rate.applicationLevel)),
   );
   const configuredCharges = (charges.data || []).filter(
-    (charge) =>
-      charge.status === "Active" &&
-      charge.calculationType === "Fixed" &&
-      !charge.taxable,
+    (charge) => charge.status === "Active",
   );
+  const currentSubtotal = useMemo(() => {
+    if (calculation.data?.grossSubtotal != null) {
+      return calculation.data.grossSubtotal;
+    }
+    return (form.items || []).reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      return sum + Math.max(0, qty * price);
+    }, 0);
+  }, [calculation.data?.grossSubtotal, form.items]);
   const change = (key, value) => {
     setForm((previous) => ({ ...previous, [key]: value }));
     setErrors((previous) => ({ ...previous, [key]: "" }));
+  };
+  const handleInvoiceDateChange = (val) => {
+    setForm((previous) => {
+      const next = { ...previous, invoiceDate: val };
+      if (!id && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        next.dueDate = getOneMonthLaterIso(val);
+      }
+      return next;
+    });
+    setErrors((previous) => ({
+      ...previous,
+      invoiceDate: "",
+      ...(val && /^\d{4}-\d{2}-\d{2}$/.test(val) ? { dueDate: "" } : {}),
+    }));
   };
   const changeItem = (index, key, value) => {
     setForm((previous) => ({
@@ -297,18 +322,6 @@ export function InvoiceForm() {
       if (!form.currency && customer.data.currency) {
         change("currency", customer.data.currency.toUpperCase());
       }
-      if (customer.data.paymentTerms && form.invoiceDate) {
-        const match = String(customer.data.paymentTerms).match(/net\s*(\d+)/i);
-        if (match) {
-          const days = parseInt(match[1], 10);
-          const invDate = new Date(form.invoiceDate);
-          if (!Number.isNaN(invDate.getTime())) {
-            invDate.setDate(invDate.getDate() + days);
-            const computedDue = invDate.toISOString().slice(0, 10);
-            setForm((prev) => ({ ...prev, dueDate: computedDue }));
-          }
-        }
-      }
     }
   }, [customer.data, form.customerId, id]);
   async function chooseProduct(index, option) {
@@ -331,11 +344,21 @@ export function InvoiceForm() {
         throw new Error(
           `Product currency ${product.currency} does not match invoice currency ${form.currency || "(select currency first)"}.`,
         );
-      const item = productToItem(product, rates);
+      const fullProduct = { ...(option || {}), ...(product || {}) };
+      const item = productToItem(fullProduct, rates);
       setForm((previous) => ({
         ...previous,
         items: previous.items.map((old, i) => (i === index ? item : old)),
       }));
+      setErrors((previous) => {
+        const next = { ...previous };
+        delete next[`items.${index}.productId`];
+        delete next[`items.${index}.unitPrice`];
+        delete next[`items.${index}.quantity`];
+        delete next[`items.${index}.taxRate`];
+        delete next[`items.${index}.discountRate`];
+        return next;
+      });
     } catch (e) {
       setError(invoiceError(e));
     } finally {
@@ -344,13 +367,13 @@ export function InvoiceForm() {
     }
   }
   async function applyCharge() {
-    if (!freshCalculation || !guard.current.acquire()) return;
+    if (!chargeId || !guard.current.acquire()) return;
     setBusy(true);
     setError("");
     try {
       const result = await invoiceService.calculateCharges(
-        freshCalculation.grossSubtotal,
-        chargeId ? [Number(chargeId)] : [],
+        currentSubtotal,
+        [Number(chargeId)],
       );
       if (!Number.isFinite(result.totalCharges))
         throw new Error("Invalid charges calculation response.");
@@ -404,8 +427,11 @@ export function InvoiceForm() {
           form.discountAmount,
           computed.grossSubtotal,
         );
-        if (!validation.isValid)
-          throw new Error(validation.message || "Discount validation failed.");
+        if (!validation.isValid) {
+          const msg = validation.message || "Discount validation failed.";
+          setErrors((previous) => ({ ...previous, discountAmount: msg }));
+          throw new Error(msg);
+        }
       }
       const saved = await invoiceService.save(
         id,
@@ -459,9 +485,9 @@ export function InvoiceForm() {
       value={form[key]}
       onChange={(event) => change(key, event.target.value)}
       error={Boolean(errors[key])}
-      helperText={errors[key]}
       {...(type === "date" ? { InputLabelProps: { shrink: true } } : {})}
       {...extra}
+      helperText={errors[key] || extra.helperText}
     />
   );
   return (
@@ -616,16 +642,16 @@ export function InvoiceForm() {
                 <span className="invoice-number-hint">Advisory preview; assigned on issue</span>
               </div>
               <DateField
-                label="Invoice date *"
+                label="Invoice date"
                 required
                 value={form.invoiceDate}
-                onChange={(val) => change("invoiceDate", val)}
+                onChange={handleInvoiceDateChange}
                 error={Boolean(errors.invoiceDate)}
                 helperText={errors.invoiceDate}
                 disabled={busy || !editable}
               />
               <DateField
-                label="Due date *"
+                label="Due date"
                 required
                 value={form.dueDate}
                 onChange={(val) => change("dueDate", val)}
@@ -687,16 +713,16 @@ export function InvoiceForm() {
               <table className="invoice-table invoice-edit-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "36px" }}>#</th>
+                    <th>#</th>
                     <th>Product / Service &amp; description</th>
                     <th>HSN/SAC</th>
-                    <th className="numeric">Quantity</th>
-                    <th className="numeric">Unit Price</th>
-                    <th className="numeric">Discount</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Discount</th>
                     <th>Tax Rate</th>
-                    <th className="numeric">Tax amount</th>
-                    <th className="numeric">Line total</th>
-                    <th className="invoice-cell-center">Actions</th>
+                    <th>Tax amount</th>
+                    <th>Line total</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -739,6 +765,8 @@ export function InvoiceForm() {
                         <TextField
                           size="small"
                           label="HSN/SAC"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="e.g. 8471"
                           value={item.hsnsac || ""}
                           onChange={(event) =>
                             changeItem(index, "hsnsac", event.target.value)
@@ -754,6 +782,8 @@ export function InvoiceForm() {
                           required
                           type="number"
                           label="Quantity"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="1"
                           value={item.quantity}
                           onChange={(event) =>
                             changeItem(index, "quantity", event.target.value)
@@ -768,7 +798,9 @@ export function InvoiceForm() {
                           size="small"
                           required
                           type="number"
-                          label="Price"
+                          label="Unit Price"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="0.00"
                           value={item.unitPrice}
                           onChange={(event) =>
                             changeItem(index, "unitPrice", event.target.value)
@@ -783,6 +815,8 @@ export function InvoiceForm() {
                           size="small"
                           type="number"
                           label="Discount"
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
                           value={item.discountRate ?? ""}
                           onChange={(event) =>
                             changeItem(index, "discountRate", event.target.value)
@@ -794,26 +828,17 @@ export function InvoiceForm() {
                           }}
                           InputProps={{
                             endAdornment: (
-                              <InputAdornment position="end" style={{ margin: 0 }}>
+                              <InputAdornment position="end" sx={{ mr: -0.5 }}>
                                 <select
                                   aria-label={`Discount type line ${index + 1}`}
                                   value={item.discountType || "Percentage"}
                                   onChange={(e) =>
                                     changeItem(index, "discountType", e.target.value)
                                   }
-                                  style={{
-                                    border: "none",
-                                    background: "transparent",
-                                    fontSize: "0.75rem",
-                                    fontWeight: 700,
-                                    color: "var(--primary, #0284c7)",
-                                    cursor: "pointer",
-                                    outline: "none",
-                                    padding: 0,
-                                  }}
+                                  className="invoice-line-discount-select"
                                 >
                                   <option value="Percentage">%</option>
-                                  <option value="Fixed">{form.currency || "Fixed"}</option>
+                                  <option value="Fixed">{form.currency || "Val"}</option>
                                 </select>
                               </InputAdornment>
                             ),
@@ -831,7 +856,8 @@ export function InvoiceForm() {
                         <TextField
                           select
                           size="small"
-                          label="Tax"
+                          label="Tax Rate"
+                          InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
                           value={
@@ -880,19 +906,19 @@ export function InvoiceForm() {
                           ))}
                         </TextField>
                       </td>
-                      <td className="numeric">
+                      <td>
                         {money(
                           freshCalculation?.items?.[index]?.taxAmount,
                           form.currency,
                         )}
                       </td>
-                      <td className="numeric" style={{ fontWeight: 700, color: "var(--primary)" }}>
+                      <td style={{ fontWeight: 700, color: "var(--primary)" }}>
                         {money(
                           freshCalculation?.items?.[index]?.lineTotal,
                           form.currency,
                         )}
                       </td>
-                      <td className="invoice-cell-center">
+                      <td>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
                           <Tooltip title="Move line up">
                             <span>
@@ -1010,10 +1036,12 @@ export function InvoiceForm() {
                 <div className="invoice-form-grid invoice-charges-grid">
                   {field(
                     "discountAmount",
-                    "Invoice discount (fixed)",
+                    `Invoice discount (fixed${form.currency ? ` in ${form.currency}` : ""})`,
                     "number",
                     {
                       inputProps: { min: 0, step: 0.01 },
+                      placeholder: "0.00",
+                      InputLabelProps: { shrink: true },
                       disabled:
                         discounts.isPending ||
                         Boolean(discounts.error) ||
@@ -1040,11 +1068,42 @@ export function InvoiceForm() {
                       label="Configured charge"
                       value={chargeId}
                       onChange={(event) => setChargeId(event.target.value)}
+                      disabled={charges.isPending || Boolean(charges.error) || !editable}
+                      SelectProps={{
+                        renderValue: (selectedId) => {
+                          if (!selectedId) return "No additional charge";
+                          const selected = configuredCharges.find(
+                            (c) => String(c.id) === String(selectedId)
+                          );
+                          if (!selected) return "No additional charge";
+                          const rateLabel =
+                            selected.calculationType === "Percentage"
+                              ? `${selected.value}%`
+                              : money(selected.value, form.currency);
+                          return `${selected.name} (${rateLabel})`;
+                        },
+                      }}
                     >
-                      <MenuItem value="">No additional charge</MenuItem>
+                      <MenuItem value="">
+                        <em>No additional charge</em>
+                      </MenuItem>
                       {configuredCharges.map((charge) => (
                         <MenuItem key={charge.id} value={String(charge.id)}>
-                          {charge.name}
+                          <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                            <span style={{ fontWeight: 600 }}>{charge.name}</span>
+                            <span
+                              style={{
+                                fontSize: "11.5px",
+                                color: "var(--secondary)",
+                                opacity: 0.85,
+                              }}
+                            >
+                              {charge.calculationType === "Percentage"
+                                ? `Percentage • ${charge.value}%`
+                                : `Fixed • ${money(charge.value, form.currency)}`}
+                              {charge.taxable ? " • Taxable" : ""}
+                            </span>
+                          </div>
                         </MenuItem>
                       ))}
                     </TextField>
@@ -1052,10 +1111,10 @@ export function InvoiceForm() {
                       variant="outlined"
                       onClick={applyCharge}
                       disabled={
-                        !freshCalculation ||
                         !chargeId ||
                         charges.isPending ||
-                        Boolean(charges.error)
+                        Boolean(charges.error) ||
+                        busy
                       }
                       className="invoice-apply-charge-btn"
                     >
@@ -1063,10 +1122,10 @@ export function InvoiceForm() {
                     </Button>
                   </div>
                   <TextField
-                    label="Persisted charge amount"
+                    label="Additional Charges Total"
                     value={form.chargesAmount}
                     InputProps={{ readOnly: true }}
-                    helperText="Calculated from enabled fixed charges."
+                    helperText={`Total additional charges applied in ${form.currency}.`}
                   />
                 </div>
                 <p className="invoice-footnote">

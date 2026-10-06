@@ -222,17 +222,12 @@ export const identifier = (invoice) =>
 export function InvoiceShell({ title, subtitle, actions, children }) {
   return (
     <main className="invoice-page">
-      <Breadcrumbs aria-label="Breadcrumb">
-        <Link to="/dashboard">Home</Link>
-        {title === "Invoices" ? (
-          <span>Invoices</span>
-        ) : (
-          <>
-            <Link to="/invoices">Invoices</Link>
-            <span>{title}</span>
-          </>
-        )}
-      </Breadcrumbs>
+      {title !== "Invoices" && (
+        <Breadcrumbs aria-label="Breadcrumb">
+          <Link to="/invoices">Invoices</Link>
+          <span>{title}</span>
+        </Breadcrumbs>
+      )}
       <header className="invoice-heading">
         <div>
           <span className="invoice-eyebrow">Billing workspace</span>

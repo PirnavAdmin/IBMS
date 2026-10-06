@@ -10,12 +10,54 @@ export const blankItem = () => ({
   hsnsac: "",
   unit: "",
 });
+export const getTodayIso = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const getOneMonthLaterIso = (baseIso) => {
+  let year, month, day;
+  if (baseIso && /^\d{4}-\d{2}-\d{2}$/.test(baseIso)) {
+    const parts = baseIso.split("-").map(Number);
+    year = parts[0];
+    month = parts[1] - 1;
+    day = parts[2];
+  } else {
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth();
+    day = now.getDate();
+  }
+
+  let targetYear = year;
+  let targetMonth = month + 1;
+  if (targetMonth > 11) {
+    targetYear += Math.floor(targetMonth / 12);
+    targetMonth = targetMonth % 12;
+  }
+
+  const maxDaysInTargetMonth = new Date(
+    targetYear,
+    targetMonth + 1,
+    0,
+  ).getDate();
+  const targetDay = Math.min(day, maxDaysInTargetMonth);
+
+  const yStr = String(targetYear);
+  const mStr = String(targetMonth + 1).padStart(2, "0");
+  const dStr = String(targetDay).padStart(2, "0");
+  return `${yStr}-${mStr}-${dStr}`;
+};
+
 export const blankInvoice = () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayIso();
   return {
     customerId: "",
     invoiceDate: today,
-    dueDate: today,
+    dueDate: getOneMonthLaterIso(today),
     currency: "",
     reference: "",
     notes: "",
@@ -197,23 +239,87 @@ export function calculationDto(form) {
   };
 }
 export function productToItem(product, taxes = []) {
-  const tax = taxes.find(
-    (rate) =>
-      [rate.code, rate.name].some(
-        (value) => value && value === product.taxCategory,
-      ) &&
-      !rate.isInclusive &&
-      !rate.isCompound,
-  );
+  if (!product) return blankItem();
+
+  let tax = null;
+
+  // 1. Match by taxRate / taxType if directly present on product
+  if (product.taxRate != null && product.taxRate !== "") {
+    const targetRateNum = Number(product.taxRate);
+    tax = taxes.find((rate) => {
+      const rateNum = Number(rate.rate);
+      const typeMatch = product.taxType
+        ? String(rate.taxType).toLowerCase() ===
+          String(product.taxType).toLowerCase()
+        : true;
+      return typeMatch && rateNum === targetRateNum;
+    });
+  }
+
+  // 2. Direct match by product.taxCategory matching rate.name or rate.code
+  if (!tax && product.taxCategory) {
+    const catClean = String(product.taxCategory).trim().toLowerCase();
+    tax = taxes.find((rate) => {
+      const name = String(rate.name || "").trim().toLowerCase();
+      const code = String(rate.code || "").trim().toLowerCase();
+      return name === catClean || code === catClean;
+    });
+  }
+
+  // 3. Match by percentage extracted from product.taxCategory (e.g. "GST 18%" -> 18)
+  if (!tax && product.taxCategory) {
+    const match = String(product.taxCategory).match(/(\d+(?:\.\d+)?)/);
+    if (match) {
+      const targetPercent = Number(match[1]);
+      const isGst = /gst/i.test(product.taxCategory);
+      tax =
+        taxes.find(
+          (rate) =>
+            Number(rate.rate) === targetPercent &&
+            (isGst ? /gst/i.test(rate.taxType || rate.name || "") : true),
+        ) ||
+        taxes.find((rate) => Number(rate.rate) === targetPercent);
+    } else if (/exempt|zero|nil/i.test(product.taxCategory)) {
+      tax = taxes.find((rate) => Number(rate.rate) === 0);
+    }
+  }
+
+  // Extract discount from product catalog if configured
+  const rawDiscount =
+    product.discountPercent ??
+    product.discountPercentage ??
+    product.discount ??
+    product.DiscountPercent;
+
+  const hasDiscount =
+    product.discountAllowed !== false &&
+    rawDiscount != null &&
+    rawDiscount !== "" &&
+    !Number.isNaN(Number(rawDiscount)) &&
+    Number(rawDiscount) > 0;
+
+  const discountRate = hasDiscount ? String(Number(rawDiscount)) : "";
+  const discountType = product.discountType || "Percentage";
+
+  const taxType = tax?.taxType || product.taxType || (tax ? "GST" : "");
+  const taxRate =
+    tax != null
+      ? String(tax.rate)
+      : product.taxRate != null && product.taxRate !== ""
+        ? String(product.taxRate)
+        : "";
+
   return {
     ...blankItem(),
     productId: String(product.id),
-    description: product.description || product.name,
-    unitPrice: String(product.price),
+    description: product.description || product.name || "",
+    unitPrice: String(product.price ?? ""),
     unit: product.unit || "",
-    hsnsac: product.hsnSacCode || "",
-    taxType: tax?.taxType || "",
-    taxRate: tax ? String(tax.rate) : "",
+    hsnsac: product.hsnSacCode || product.hsnSac || "",
+    discountType,
+    discountRate,
+    taxType,
+    taxRate,
     currency: product.currency,
     productName: product.name,
     taxCategory: product.taxCategory || "",
