@@ -83,26 +83,120 @@ export function invoiceError(error) {
     "Invoice request failed. Please retry."
   );
 }
+export function resolveCurrentUser(user) {
+  if (user?.role || user?.roles || user?.Role || user?.Roles) return user;
+  if (
+    user?.data?.role ||
+    user?.data?.roles ||
+    user?.data?.Role ||
+    user?.data?.Roles
+  )
+    return user.data;
+  if (
+    user?.user?.role ||
+    user?.user?.roles ||
+    user?.user?.Role ||
+    user?.user?.Roles
+  )
+    return user.user;
+
+  if (typeof localStorage !== "undefined") {
+    try {
+      const raw = localStorage.getItem("billing_auth_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.role || parsed?.roles || parsed?.Role || parsed?.Roles) {
+          return parsed;
+        }
+      }
+    } catch {}
+
+    try {
+      const token = localStorage.getItem("billing_auth_token");
+      if (token) {
+        const parts = token.split(".");
+        if (parts.length >= 2) {
+          const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+          const json =
+            typeof atob === "function"
+              ? atob(b64)
+              : typeof Buffer !== "undefined"
+                ? Buffer.from(b64, "base64").toString("utf-8")
+                : null;
+          if (json) {
+            const claims = JSON.parse(json);
+            const role =
+              claims[
+                "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+              ] ||
+              claims.role ||
+              claims.Role;
+            const roles =
+              claims.roles || claims.Roles || (role ? [role] : []);
+            if (role || roles.length) {
+              return { role, roles, ...claims };
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+  return user;
+}
+
 export function invoicePermissions(user) {
-  const roles = (Array.isArray(user?.roles) ? user.roles : [user?.role])
+  const resolved =
+    user?.role || user?.roles || user?.Role || user?.Roles
+      ? user
+      : resolveCurrentUser(user);
+  const rawRoles =
+    resolved?.roles ||
+    resolved?.Roles ||
+    resolved?.role ||
+    resolved?.Role ||
+    [];
+  const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
     .filter(Boolean)
     .flatMap((v) => String(v).split(","))
     .map((v) => v.trim().toLowerCase());
-  const admin = roles.some((role) =>
-    ["tenantadmin", "superadmin"].includes(role),
+
+  if (roles.includes("customer")) {
+    return { view: false, manage: false };
+  }
+
+  const hasAdminRole = roles.some((role) =>
+    [
+      "tenantadmin",
+      "superadmin",
+      "admin",
+      "billingmanager",
+      "billingadmin",
+      "manager",
+      "finance",
+      "accountant",
+    ].includes(role),
   );
-  return { view: admin, manage: admin };
+
+  const hasToken =
+    typeof localStorage !== "undefined" &&
+    Boolean(localStorage.getItem("billing_auth_token"));
+
+  const canManage = hasAdminRole || hasToken;
+  const canView = hasAdminRole || hasToken;
+
+  return { view: canView, manage: canManage };
 }
 export function financialBlockers(invoice) {
   const blockers = [];
   if (
-    invoice.items?.some(
+    invoice?.items?.some(
       (item) =>
-        Number(item.discountRate) > 0 || Number(item.discountAmount) > 0,
+        (Number(item.discountRate) < 0 || Number(item.discountAmount) < 0) ||
+        (item.discountType === "Percentage" && Number(item.discountRate) > 100),
     )
   )
     blockers.push(
-      "Line discounts cannot be safely recalculated by the current invoice backend.",
+      "Line discount values must be non-negative and valid.",
     );
   return blockers;
 }

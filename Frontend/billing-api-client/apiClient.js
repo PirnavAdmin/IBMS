@@ -21,6 +21,16 @@ apiClient.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      try {
+        const rawUser = localStorage.getItem('billing_auth_user');
+        if (rawUser) {
+          const user = JSON.parse(rawUser);
+          const tid = user?.tenantId ?? user?.tenant_id;
+          if (tid != null && tid !== '') {
+            config.headers['X-Tenant-Id'] = String(tid);
+          }
+        }
+      } catch {}
     }
     config.params = {
       ...config.params,

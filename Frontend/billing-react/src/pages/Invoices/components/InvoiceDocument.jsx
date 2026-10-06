@@ -1,4 +1,5 @@
 import {
+  InvoiceStatus,
   InvoiceTotals,
   InvoiceValues,
   identifier,
@@ -15,7 +16,7 @@ export function InvoiceDocument({ invoice, calculation, customer }) {
           <span className="invoice-eyebrow">Invoice</span>
           <h2>{invoice.id ? identifier(invoice) : "Draft preview"}</h2>
         </div>
-        <strong>{invoice.status || "Unsaved draft"}</strong>
+        <InvoiceStatus status={invoice.status || "Draft"} />
       </header>
       <InvoiceValues
         values={[
@@ -62,8 +63,13 @@ export function InvoiceDocument({ invoice, calculation, customer }) {
               return (
                 <tr key={item.id || index}>
                   <td>
-                    {item.description}
-                    <small>{item.hsnsac}</small>
+                    {(item.productName || item.product?.name) && (
+                      <strong className="invoice-doc-item-title" style={{ display: "block", marginBottom: 2 }}>
+                        {item.productName || item.product?.name}
+                      </strong>
+                    )}
+                    <span className="invoice-doc-item-desc">{item.description}</span>
+                    {item.hsnsac && <small className="invoice-doc-item-hsn">HSN/SAC: {item.hsnsac}</small>}
                   </td>
                   <td className="numeric">{item.quantity}</td>
                   <td className="numeric">{money(item.unitPrice, currency)}</td>

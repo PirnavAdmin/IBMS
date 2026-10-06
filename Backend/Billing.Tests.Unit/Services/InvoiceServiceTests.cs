@@ -124,6 +124,55 @@ public class InvoiceServiceTests
         _invoiceRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Invoice>()), Times.Never);
         _auditMock.Verify(a => a.AddAsync(It.IsAny<AuditLog>()), Times.Never);
     }
+
+    [Fact]
+    public async Task IssueInvoiceAsync_WithLineAndInvoiceDiscounts_DoesNotDoubleCountLineDiscounts()
+    {
+        // Arrange
+        int invoiceId = 3;
+        int tenantId = 1;
+        var draftInvoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            Status = "Draft",
+            DiscountAmount = 30m, // 10 line discount + 20 invoice discount already persisted
+            Items = new List<InvoiceItem>
+            {
+                new InvoiceItem { UnitPrice = 100m, Quantity = 1m, DiscountType = "Percentage", DiscountRate = 10m, DiscountAmount = 10m }
+            }
+        };
+
+        _invoiceRepoMock.Setup(r => r.GetByIdForUpdateAsync(invoiceId, tenantId))
+            .ReturnsAsync(draftInvoice);
+
+        FinancialCalculationRequest? capturedRequest = null;
+        _calcEngineMock.Setup(c => c.CalculateAsync(It.IsAny<FinancialCalculationRequest>(), tenantId, It.IsAny<string?>(), It.IsAny<string?>()))
+            .Callback<FinancialCalculationRequest, int, string?, string?>((req, t, r, u) => capturedRequest = req)
+            .ReturnsAsync(ApiResponse<FinancialCalculationResultDto>.Ok(new FinancialCalculationResultDto
+            {
+                GrossSubtotal = 100m,
+                TotalLineDiscounts = 10m,
+                InvoiceDiscountAmount = 20m,
+                GrandTotal = 70m,
+                Items = new List<CalculatedFinancialLineDto> { new CalculatedFinancialLineDto { LineTotal = 90m, DiscountAmount = 10m } }
+            }));
+
+        _numberGenMock.Setup(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto { GeneratedNumber = "INV-003" }));
+
+        // Act
+        var result = await _sut.IssueInvoiceAsync(invoiceId, tenantId);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.NotNull(capturedRequest);
+        // InvoiceDiscount should be strictly the header discount portion (30 - 10 = 20), NOT 30!
+        Assert.NotNull(capturedRequest!.InvoiceDiscount);
+        Assert.Equal(20m, capturedRequest.InvoiceDiscount!.Value);
+        Assert.Equal(30m, result.Data!.DiscountAmount);
+        Assert.Equal(70m, result.Data.TotalAmount);
+    }
 }
 
 
