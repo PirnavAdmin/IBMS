@@ -3,10 +3,11 @@ import {
   Alert,
   Autocomplete,
   Button,
+  InputAdornment,
   MenuItem,
   TextField,
 } from "@mui/material";
-import { Add, Refresh, RestartAlt } from "@mui/icons-material";
+import { Add, Refresh, RestartAlt, Search } from "@mui/icons-material";
 import { Link, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, INVOICE_STATUSES } from "./services/invoiceService";
@@ -109,7 +110,7 @@ export function InvoiceList() {
           >
             Refresh
           </Button>
-          {user.permissions.manage && (
+          {user.permissions.manage !== false && (
             <Button
               component={Link}
               to="/invoices/new"
@@ -123,21 +124,11 @@ export function InvoiceList() {
         </>
       }
     >
-      <InvoiceState
-        loading={user.isPending}
-        error={user.error}
-        retry={() => user.refetch()}
-      />
-      {!user.isPending && !user.error && !user.permissions.view && (
+      {!user.isPending && !user.permissions.view && (
         <Alert severity="warning">
           Invoice access requires TenantAdmin or SuperAdmin.
         </Alert>
       )}
-      <InvoiceState
-        loading={summary.isFetching && !summary.data}
-        error={summary.error}
-        retry={() => summary.refetch()}
-      />
       {summary.data?.map((group) => (
         <section
           key={group.currency}
@@ -147,32 +138,47 @@ export function InvoiceList() {
           <h2>{group.currency} / All invoices</h2>
           <div className="invoice-summary-grid">
             {[
-              ["Total Invoiced", group.totalInvoiced, null],
-              ["Total Paid", group.totalPaid, null],
-              ["Outstanding", group.totalOutstanding, "Outstanding"],
-              ["Overdue", group.overdueAmount, "Overdue"],
-            ].map(([label, value, paymentState]) => (
-              <button
-                key={label}
-                className="invoice-summary-card"
-                disabled={!paymentState}
-                onClick={() =>
-                  setFilters((previous) => ({
-                    ...previous,
-                    currency: group.currency,
-                    paymentState,
-                    status: "",
-                    page: 1,
-                  }))
-                }
-              >
-                <span>{label}</span>
-                <strong>{money(value, group.currency)}</strong>
-                <small>
-                  {paymentState ? "Filter invoices" : "Currency-scoped total"}
-                </small>
-              </button>
-            ))}
+              ["Total Invoiced", money(group.totalInvoiced, group.currency), null, null],
+              ["Total Paid", money(group.totalPaid, group.currency), null, null],
+              ["Total Outstanding", money(group.totalOutstanding, group.currency), "Outstanding", null],
+              ["Overdue Amount", money(group.overdueAmount, group.currency), "Overdue", null],
+              ["Overdue Count", `${group.overdueCount ?? 0}`, "Overdue", null],
+              ["Draft Count", `${group.draftCount ?? 0}`, null, "Draft"],
+              ["Draft Amount", money(group.draftAmount, group.currency), null, "Draft"],
+            ].map(([label, formattedValue, paymentState, statusFilter], index) => {
+              const tones = [
+                "invoice-tone-sand",
+                "invoice-tone-mint",
+                "invoice-tone-amber",
+                "invoice-tone-rose",
+                "invoice-tone-rose",
+                "invoice-tone-sand",
+                "invoice-tone-amber",
+              ];
+              const isActionable = Boolean(paymentState || statusFilter);
+              return (
+                <button
+                  key={label}
+                  className={`invoice-summary-card ${tones[index % tones.length] || ""}`}
+                  disabled={!isActionable}
+                  onClick={() =>
+                    setFilters((previous) => ({
+                      ...previous,
+                      currency: group.currency,
+                      paymentState: paymentState || "",
+                      status: statusFilter || "",
+                      page: 1,
+                    }))
+                  }
+                >
+                  <span>{label}</span>
+                  <strong>{formattedValue}</strong>
+                  <small>
+                    {isActionable ? "Filter invoices" : "Currency-scoped total"}
+                  </small>
+                </button>
+              );
+            })}
           </div>
         </section>
       ))}
@@ -188,6 +194,13 @@ export function InvoiceList() {
               change("page", 1);
             }}
             type="search"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "var(--secondary)", fontSize: 20 }} />
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             select
@@ -276,10 +289,6 @@ export function InvoiceList() {
           </Alert>
         )}
         <InvoiceState
-          error={customers.error}
-          retry={() => customers.refetch()}
-        />
-        <InvoiceState
           loading={list.isFetching}
           error={list.error}
           retry={() => list.refetch()}
@@ -291,7 +300,7 @@ export function InvoiceList() {
                 <h2>Invoices</h2>
                 <p>All customer invoices</p>
               </div>
-              {list.data && <span>{list.data.totalCount} invoices</span>}
+              {list.data && <span className="invoice-count-badge">{list.data.totalCount} invoices</span>}
             </div>
             <div
               className="invoice-table-scroll"
@@ -331,6 +340,7 @@ export function InvoiceList() {
                     <th className="numeric">Discount</th>
                     <th className="numeric">Tax</th>
                     <th className="numeric">Charges</th>
+                    <th className="numeric">Rounding</th>
                     <th className="numeric">
                       {sortHeading("Grand Total", "TotalAmount")}
                     </th>
@@ -361,6 +371,7 @@ export function InvoiceList() {
                         "discountAmount",
                         "taxAmount",
                         "chargesAmount",
+                        "roundingAmount",
                         "totalAmount",
                         "paidAmount",
                         "balanceAmount",

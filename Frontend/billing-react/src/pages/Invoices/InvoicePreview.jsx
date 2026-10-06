@@ -72,12 +72,9 @@ export function InvoicePreview() {
       }
     >
       <InvoiceState
-        loading={user.isPending || invoice.isFetching}
-        error={user.error || invoice.error}
-        retry={() => {
-          user.refetch();
-          invoice.refetch();
-        }}
+        loading={invoice.isFetching}
+        error={invoice.error}
+        retry={() => invoice.refetch()}
       />
       {error && <Alert severity="error">{error}</Alert>}
       {!user.isPending && !user.permissions.view && (

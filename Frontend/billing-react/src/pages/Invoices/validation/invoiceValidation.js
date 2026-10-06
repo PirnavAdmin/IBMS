@@ -104,11 +104,12 @@ export function validateInvoice(form) {
   });
   return errors;
 }
-export function invoiceDto(form, editing = false) {
+export function invoiceDto(form, editing = false, tenantId = null) {
   const errors = validateInvoice(form);
   if (Object.keys(errors).length)
     throw new Error(Object.values(errors).join(" "));
   return {
+    ...(tenantId != null && Number(tenantId) > 0 ? { tenantId: Number(tenantId) } : {}),
     customerId: Number(form.customerId),
     invoiceDate: `${form.invoiceDate}T00:00:00Z`,
     dueDate: `${form.dueDate}T00:00:00Z`,
