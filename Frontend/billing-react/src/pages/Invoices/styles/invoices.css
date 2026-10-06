@@ -316,35 +316,194 @@
 
 /* Tone Variants */
 .invoice-tone-sand {
+  --kpi-card-bg: #ffffff;
   --kpi-bg: #FFF8EF;
   --kpi-border: #E8D8C7;
   --kpi-accent: #6B2A0B;
+  --kpi-track: rgba(107, 42, 11, 0.1);
   --kpi-label: #8A4E28;
   --kpi-value: #421A05;
 }
 
 .invoice-tone-mint {
+  --kpi-card-bg: #ffffff;
   --kpi-bg: #ECFBF2;
   --kpi-border: #C6EBD6;
   --kpi-accent: #159447;
+  --kpi-track: rgba(21, 148, 71, 0.12);
   --kpi-label: #177A3E;
   --kpi-value: #085D2A;
 }
 
 .invoice-tone-amber {
+  --kpi-card-bg: #ffffff;
   --kpi-bg: #FFF7E9;
   --kpi-border: #FAE0BA;
   --kpi-accent: #C46B12;
+  --kpi-track: rgba(196, 107, 18, 0.14);
   --kpi-label: #A25206;
   --kpi-value: #6A3201;
 }
 
 .invoice-tone-rose {
+  --kpi-card-bg: #ffffff;
   --kpi-bg: #FFF0F1;
   --kpi-border: #FFD4D7;
   --kpi-accent: #E53935;
+  --kpi-track: rgba(229, 57, 53, 0.12);
   --kpi-label: #B9262B;
   --kpi-value: #801317;
+}
+
+/* --------------------------------------------------------------------------
+   3.1 Circular Progress KPI Cards (Style 2 Visual Direction)
+   -------------------------------------------------------------------------- */
+.invoice-summary-card.invoice-kpi-circular-card {
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 168px;
+  box-sizing: border-box;
+  padding: 14px 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--kpi-border, var(--border));
+  border-top: 1px solid var(--kpi-border, var(--border));
+  background: var(--kpi-card-bg, #ffffff);
+  color: var(--text-primary);
+  box-shadow: 0 2px 10px rgba(90, 37, 8, 0.04);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+  overflow: hidden;
+  width: 100%;
+}
+
+.invoice-summary-card.invoice-kpi-circular-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(90, 37, 8, 0.08);
+  border-color: var(--kpi-accent, var(--orange));
+}
+
+.invoice-summary-card.invoice-kpi-circular-card:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.invoice-summary-card.invoice-kpi-circular-card:focus-visible {
+  outline: 2px solid var(--kpi-accent, var(--primary));
+  outline-offset: 2px;
+}
+
+.invoice-summary-card.invoice-kpi-circular-card.is-active {
+  border-color: var(--kpi-accent, var(--primary));
+  box-shadow: 0 0 0 1.5px var(--kpi-accent, var(--primary)), 0 6px 18px rgba(90, 37, 8, 0.08);
+}
+
+.invoice-kpi-circular-card .invoice-kpi-label {
+  display: block;
+  font-size: clamp(10px, 0.68vw, 11px);
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--kpi-label, var(--text-secondary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+  width: 100%;
+  text-align: center;
+}
+
+.invoice-kpi-donut-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px auto 6px;
+  flex-shrink: 0;
+}
+
+.invoice-kpi-donut-svg {
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
+.invoice-kpi-donut-track {
+  fill: none;
+  stroke: var(--kpi-track, rgba(90, 37, 8, 0.08));
+  stroke-width: 3.5;
+}
+
+.invoice-kpi-donut-progress {
+  fill: none;
+  stroke: var(--kpi-accent, var(--primary));
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              stroke-opacity 0.2s ease;
+}
+
+.invoice-kpi-donut-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kpi-accent, var(--primary));
+  pointer-events: none;
+  line-height: 1;
+}
+
+.invoice-kpi-donut-icon .MuiSvgIcon-root {
+  font-size: 20px;
+}
+
+.invoice-kpi-value-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+}
+
+.invoice-kpi-circular-card .invoice-kpi-value {
+  display: block;
+  font-size: clamp(14px, 1.02vw, 18.5px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--kpi-value, var(--primary));
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+  margin: 2px 0 3px;
+}
+
+.invoice-kpi-circular-card .invoice-kpi-subtext {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  width: 100%;
+  text-align: center;
 }
 
 /* --------------------------------------------------------------------------

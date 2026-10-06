@@ -3,10 +3,6 @@ import {
   Alert,
   Autocomplete,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   InputAdornment,
   MenuItem,
@@ -18,14 +14,13 @@ import {
   ArrowBack,
   ArrowDownward,
   ArrowUpward,
-  Close,
   DeleteOutline,
   PersonOutline,
   ReceiptLongOutlined,
   SaveOutlined,
   SendOutlined,
   Tag,
-  VisibilityOutlined,
+  LocalOfferOutlined,
 } from "@mui/icons-material";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,11 +45,11 @@ import {
   InvoiceState,
   InvoiceTotals,
   InvoiceValues,
+  DateField,
   useDebounced,
   useInvoiceUser,
   money,
 } from "./components/InvoiceShared";
-import { InvoiceDocument } from "./components/InvoiceDocument";
 import { numberingService } from "../NumberingSettings/services/numberingService";
 function ProductSelect({ item, onSelect, error, disabled }) {
   const [search, setSearch] = useState("");
@@ -116,7 +111,6 @@ export function InvoiceForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [chargeId, setChargeId] = useState("");
   const guard = useRef(createSubmissionGuard());
   const term = useDebounced(customerSearch);
@@ -298,11 +292,25 @@ export function InvoiceForm() {
     if (
       !id &&
       customer.data &&
-      form.customerId === String(customer.data.id) &&
-      !form.currency
-    )
-      change("currency", customer.data.currency?.toUpperCase() || "");
-  }, [customer.data, form.customerId, form.currency, id]);
+      form.customerId === String(customer.data.id)
+    ) {
+      if (!form.currency && customer.data.currency) {
+        change("currency", customer.data.currency.toUpperCase());
+      }
+      if (customer.data.paymentTerms && form.invoiceDate) {
+        const match = String(customer.data.paymentTerms).match(/net\s*(\d+)/i);
+        if (match) {
+          const days = parseInt(match[1], 10);
+          const invDate = new Date(form.invoiceDate);
+          if (!Number.isNaN(invDate.getTime())) {
+            invDate.setDate(invDate.getDate() + days);
+            const computedDue = invDate.toISOString().slice(0, 10);
+            setForm((prev) => ({ ...prev, dueDate: computedDue }));
+          }
+        }
+      }
+    }
+  }, [customer.data, form.customerId, id]);
   async function chooseProduct(index, option) {
     if (!guard.current.acquire()) return;
     setBusy(true);
@@ -607,8 +615,24 @@ export function InvoiceForm() {
                 </div>
                 <span className="invoice-number-hint">Advisory preview; assigned on issue</span>
               </div>
-              {field("invoiceDate", "Invoice date", "date", { required: true })}
-              {field("dueDate", "Due date", "date", { required: true })}
+              <DateField
+                label="Invoice date *"
+                required
+                value={form.invoiceDate}
+                onChange={(val) => change("invoiceDate", val)}
+                error={Boolean(errors.invoiceDate)}
+                helperText={errors.invoiceDate}
+                disabled={busy || !editable}
+              />
+              <DateField
+                label="Due date *"
+                required
+                value={form.dueDate}
+                onChange={(val) => change("dueDate", val)}
+                error={Boolean(errors.dueDate)}
+                helperText={errors.dueDate}
+                disabled={busy || !editable}
+              />
               {field("currency", "Currency", "text", {
                 required: true,
                 inputProps: { maxLength: 3 },
@@ -908,6 +932,18 @@ export function InvoiceForm() {
                     <h2>Discounts &amp; additional charges</h2>
                     <p>Configure invoice-level discounts and applicable charges.</p>
                   </div>
+                  <Button
+                    size="small"
+                    variant="text"
+                    component={Link}
+                    to="/settings/discounts"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<LocalOfferOutlined />}
+                    sx={{ fontSize: "12.5px", fontWeight: 700 }}
+                  >
+                    Discount Configuration
+                  </Button>
                 </div>
                 <InvoiceState
                   error={discounts.error || charges.error}
@@ -916,6 +952,21 @@ export function InvoiceForm() {
                     charges.refetch();
                   }}
                 />
+                {discounts.data &&
+                  (discounts.data.status !== "Active" ||
+                    discounts.data.allowInvoiceLevel === false) && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      Invoice-level discounts are currently disabled in tenant
+                      settings.{" "}
+                      <Link
+                        to="/settings/discounts"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Enable in Discount Configuration
+                      </Link>
+                    </Alert>
+                  )}
                 <div className="invoice-form-grid invoice-charges-grid">
                   {field(
                     "discountAmount",
@@ -928,7 +979,18 @@ export function InvoiceForm() {
                         Boolean(discounts.error) ||
                         discounts.data?.status !== "Active" ||
                         discounts.data?.allowInvoiceLevel === false,
-                      helperText: "Validated against tenant maximum discount limits.",
+                      helperText: (
+                        <span>
+                          Validated against tenant maximum discount limits.{" "}
+                          <Link
+                            to="/settings/discounts"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Manage limits
+                          </Link>
+                        </span>
+                      ),
                     },
                   )}
                   <div className="invoice-charge-apply-group">
@@ -1027,15 +1089,6 @@ export function InvoiceForm() {
               Cancel
             </Button>
             <Button
-              variant="outlined"
-              startIcon={<VisibilityOutlined />}
-              disabled={!freshCalculation || busy}
-              onClick={() => setPreviewOpen(true)}
-              className="invoice-btn-preview"
-            >
-              Preview
-            </Button>
-            <Button
               type="submit"
               variant="outlined"
               startIcon={<SaveOutlined />}
@@ -1069,62 +1122,6 @@ export function InvoiceForm() {
           </div>
         </fieldset>
       </form>
-      <Dialog
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        fullWidth
-        maxWidth="lg"
-        PaperProps={{
-          className: "invoice-preview-dialog-paper",
-        }}
-      >
-        <DialogTitle className="invoice-preview-dialog-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span>Draft Invoice Preview</span>
-            <span className="invoice-count-badge">Unsaved Draft</span>
-          </div>
-          <IconButton
-            size="small"
-            onClick={() => setPreviewOpen(false)}
-            aria-label="Close preview"
-          >
-            <Close fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers className="invoice-preview-dialog-content">
-          <Alert severity="info" sx={{ mb: 2.5, borderRadius: "10px" }}>
-            This preview renders your live draft data with backend calculations. Official legal invoice number is assigned upon issuance.
-          </Alert>
-          <InvoiceDocument
-            invoice={{ ...form, status: "Draft" }}
-            calculation={freshCalculation}
-            customer={customer.data}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: "1px solid var(--border)", gap: 1.5 }}>
-          <Button variant="outlined" onClick={() => setPreviewOpen(false)}>
-            Back to Edit
-          </Button>
-          <Button
-            type="button"
-            variant="contained"
-            startIcon={<SendOutlined />}
-            disabled={
-              busy ||
-              !editable ||
-              calculation.isFetching ||
-              Boolean(customer.error) ||
-              blockers.length > 0
-            }
-            onClick={(e) => {
-              setPreviewOpen(false);
-              submitForm(e, true);
-            }}
-          >
-            Issue Invoice
-          </Button>
-        </DialogActions>
-      </Dialog>
     </InvoiceShell>
   );
 }

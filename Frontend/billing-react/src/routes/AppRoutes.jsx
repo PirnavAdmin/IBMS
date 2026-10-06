@@ -143,6 +143,10 @@ export const AppRoutes = () => (
       <Route path="/settings" element={<SettingsLanding />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />
       <Route path="/settings/discounts" element={<DiscountConfiguration />} />
+      <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
+      <Route path="/settings/discount" element={<Navigate to="/settings/discounts" replace />} />
+      <Route path="/discounts" element={<Navigate to="/settings/discounts" replace />} />
+      <Route path="/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/settings/charges" element={<ChargesConfiguration />} />
       <Route path="/support" element={<ModulePlaceholder />} />
     </Route>

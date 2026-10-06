@@ -10,18 +10,21 @@ export const blankItem = () => ({
   hsnsac: "",
   unit: "",
 });
-export const blankInvoice = () => ({
-  customerId: "",
-  invoiceDate: "",
-  dueDate: "",
-  currency: "",
-  reference: "",
-  notes: "",
-  termsAndConditions: "",
-  discountAmount: "0",
-  chargesAmount: "0",
-  items: [blankItem()],
-});
+export const blankInvoice = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    customerId: "",
+    invoiceDate: today,
+    dueDate: today,
+    currency: "",
+    reference: "",
+    notes: "",
+    termsAndConditions: "",
+    discountAmount: "0",
+    chargesAmount: "0",
+    items: [blankItem()],
+  };
+};
 export function formFromInvoice(invoice) {
   return {
     customerId: String(invoice.customerId),
@@ -54,8 +57,8 @@ export function validateInvoice(form) {
       !Number.isFinite(Date.parse(form[key])) ||
       new Date(form[key]).toISOString().slice(0, 10) !== form[key]
     )
-      errors[key] = "Enter a valid date.";
-  if (form.dueDate < form.invoiceDate)
+      errors[key] = "Enter a valid date (dd/mm/yyyy).";
+  if (form.dueDate && form.invoiceDate && form.dueDate < form.invoiceDate)
     errors.dueDate = "Due date must be on or after the invoice date.";
   if (!/^[A-Z]{3}$/.test(form.currency))
     errors.currency = "Enter a valid three-letter currency code.";

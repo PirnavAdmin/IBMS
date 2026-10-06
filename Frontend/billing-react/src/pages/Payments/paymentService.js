@@ -64,7 +64,19 @@ export const paymentService = {
 };
 export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers'].map(key => client.invalidateQueries({ queryKey: [key] })));
 export const money = (amount, currency) => amount == null ? '\u2014' : new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount);
-export const displayDate = value => value ? value.slice(0, 10) : '\u2014';
+export const displayDate = (value) => {
+  if (!value) return '\u2014';
+  try {
+    const raw = String(value).slice(0, 10);
+    const parts = raw.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return raw;
+  } catch {
+    return value || '\u2014';
+  }
+};
 export function paymentPermissions(user) {
   const list = value => (Array.isArray(value) ? value : [value]).filter(Boolean).flatMap(v => String(v).split(',')).map(v => v.trim().toLowerCase());
   const roles = list(user?.roles ?? user?.role); const permissions = list(user?.permissions);
