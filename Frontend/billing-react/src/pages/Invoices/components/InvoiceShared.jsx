@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { Alert, Breadcrumbs, Button, LinearProgress } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Breadcrumbs,
+  Button,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
+  TextField,
+} from "@mui/material";
+import { CalendarTodayOutlined } from "@mui/icons-material";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiClient } from "billing-api-client";
@@ -45,7 +54,169 @@ export const money = (amount, currency) =>
           return `${currency} ${amount}`;
         }
       })();
-export const date = (value) => (value ? value.slice(0, 10) : "\u2014");
+export const date = (value) => {
+  if (!value) return "\u2014";
+  try {
+    const raw = String(value).slice(0, 10);
+    const parts = raw.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      const [y, m, d] = parts;
+      return `${d}/${m}/${y}`;
+    }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
+    const dt = new Date(value);
+    if (!Number.isNaN(dt.getTime())) {
+      const d = String(dt.getDate()).padStart(2, "0");
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const y = dt.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+    return raw;
+  } catch {
+    return value || "\u2014";
+  }
+};
+
+export function DateField({
+  label,
+  value,
+  onChange,
+  error,
+  helperText,
+  required = false,
+  disabled = false,
+  placeholder = "dd/mm/yyyy",
+  className = "",
+  fullWidth = true,
+  name,
+}) {
+  const toDisplay = (iso) => {
+    if (!iso) return "";
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+  };
+
+  const toIso = (display) => {
+    if (!display) return "";
+    const cleaned = display.replace(/[-.]/g, "/");
+    const m = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return display;
+    const [, d, mo, y] = m;
+    const day = d.padStart(2, "0");
+    const month = mo.padStart(2, "0");
+    const iso = `${y}-${month}-${day}`;
+    const dt = new Date(iso);
+    if (!Number.isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === iso) {
+      return iso;
+    }
+    return display;
+  };
+
+  const [text, setText] = useState(() => toDisplay(value));
+  const hiddenInputRef = useRef(null);
+
+  useEffect(() => {
+    setText(toDisplay(value));
+  }, [value]);
+
+  const handleTextChange = (e) => {
+    let input = e.target.value;
+    input = input.replace(/[^\d/]/g, "");
+    if (/^\d{2}$/.test(input) && !text.endsWith("/")) {
+      input = `${input}/`;
+    } else if (/^\d{2}\/\d{2}$/.test(input) && !text.endsWith("/")) {
+      input = `${input}/`;
+    }
+    if (input.length > 10) input = input.slice(0, 10);
+    setText(input);
+
+    const iso = toIso(input);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      onChange(iso);
+    } else if (!input) {
+      onChange("");
+    } else {
+      onChange(input);
+    }
+  };
+
+  const handlePickerChange = (e) => {
+    const iso = e.target.value;
+    if (iso) {
+      setText(toDisplay(iso));
+      onChange(iso);
+    }
+  };
+
+  const openPicker = () => {
+    if (disabled) return;
+    try {
+      if (hiddenInputRef.current?.showPicker) {
+        hiddenInputRef.current.showPicker();
+      } else {
+        hiddenInputRef.current?.focus();
+      }
+    } catch {
+      hiddenInputRef.current?.focus();
+    }
+  };
+
+  const isoValue = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
+
+  return (
+    <div style={{ position: "relative" }} className={className}>
+      <TextField
+        fullWidth={fullWidth}
+        label={label}
+        name={name}
+        required={required}
+        disabled={disabled}
+        placeholder={placeholder}
+        value={text}
+        onChange={handleTextChange}
+        error={Boolean(error)}
+        helperText={error || helperText || "Format: dd/mm/yyyy"}
+        inputProps={{ maxLength: 10 }}
+        InputLabelProps={{ shrink: true }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                size="small"
+                edge="end"
+                disabled={disabled}
+                onClick={openPicker}
+                aria-label={`Open calendar for ${label}`}
+                sx={{ color: "var(--secondary)" }}
+              >
+                <CalendarTodayOutlined fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+      <input
+        ref={hiddenInputRef}
+        type="date"
+        value={isoValue}
+        onChange={handlePickerChange}
+        disabled={disabled}
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          opacity: 0,
+          pointerEvents: "none",
+          width: 0,
+          height: 0,
+          bottom: 0,
+          right: 0,
+        }}
+      />
+    </div>
+  );
+}
+
 export const identifier = (invoice) =>
   invoice.invoiceNumber || `Draft #${invoice.id}`;
 export function InvoiceShell({ title, subtitle, actions, children }) {

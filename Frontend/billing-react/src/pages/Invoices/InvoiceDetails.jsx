@@ -3,6 +3,10 @@ import {
   Alert,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Tab,
   Tabs,
@@ -21,10 +25,15 @@ import {
   ReceiptLongOutlined,
   ReceiptOutlined,
   Refresh,
+  SendOutlined,
 } from "@mui/icons-material";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { invoiceService } from "./services/invoiceService";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  invoiceService,
+  invoiceError,
+  invalidateInvoices,
+} from "./services/invoiceService";
 import { creditNoteService } from "../CreditNotes/services/creditNoteService";
 import { InvoiceActions } from "./components/InvoiceActions";
 import {
@@ -42,9 +51,14 @@ export function InvoiceDetails() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const client = useQueryClient();
   const [tab, setTab] = useState("Overview");
   const [page, setPage] = useState(1);
   const [copied, setCopied] = useState(false);
+  const [issueDialogOpen, setIssueDialogOpen] = useState(false);
+  const [issuing, setIssuing] = useState(false);
+  const [issueError, setIssueError] = useState("");
+  const [notice, setNotice] = useState("");
   const user = useInvoiceUser();
 
   const invoice = useQuery({
@@ -95,6 +109,7 @@ export function InvoiceDetails() {
   });
 
   const canEdit = row?.status === "Draft" && user.permissions.manage;
+  const canIssue = row?.status === "Draft" && user.permissions.manage;
   const canRecordPayment =
     ["Issued", "Sent", "Overdue", "Partially Paid"].includes(row?.status) &&
     Number(row?.balanceAmount) > 0 &&
@@ -179,7 +194,12 @@ export function InvoiceDetails() {
         </>
       }
     >
-      {location.state?.invoiceNotice && (
+      {notice && (
+        <Alert severity="success" onClose={() => setNotice("")} sx={{ mb: 2 }}>
+          {notice}
+        </Alert>
+      )}
+      {location.state?.invoiceNotice && !notice && (
         <Alert severity="success">{location.state.invoiceNotice}</Alert>
       )}
 
@@ -489,15 +509,17 @@ export function InvoiceDetails() {
                           Record Payment
                         </Button>
                       )}
-                      {canEdit && (
+                      {canIssue && (
                         <Button
                           variant="contained"
                           fullWidth
-                          startIcon={<EditOutlined />}
-                          component={Link}
-                          to={`/invoices/${row.id}/edit`}
+                          startIcon={<SendOutlined />}
+                          onClick={() => {
+                            setIssueError("");
+                            setIssueDialogOpen(true);
+                          }}
                         >
-                          Edit Draft
+                          Issue Invoice
                         </Button>
                       )}
                       {canDownloadPdf && (
@@ -1217,6 +1239,76 @@ export function InvoiceDetails() {
           )}
         </>
       )}
+
+      {/* Issue Invoice Confirmation Dialog */}
+      <Dialog
+        open={issueDialogOpen}
+        onClose={issuing ? undefined : () => setIssueDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Issue Invoice</DialogTitle>
+        <DialogContent>
+          {row && (
+            <>
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "14px",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Are you sure you want to issue draft{" "}
+                <strong>{identifier(row)}</strong>?
+              </p>
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "13px",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                The backend will assign the official sequential invoice number
+                and finalize the status to <strong>Issued</strong>.
+              </p>
+              {issueError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {issueError}
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={issuing} onClick={() => setIssueDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={issuing}
+            onClick={async () => {
+              setIssuing(true);
+              setIssueError("");
+              try {
+                const issued = await invoiceService.issue(row.id);
+                await invalidateInvoices(client);
+                await invoice.refetch();
+                setIssueDialogOpen(false);
+                setNotice(
+                  `Invoice issued successfully as ${issued.invoiceNumber || identifier(issued)}.`,
+                );
+              } catch (err) {
+                setIssueError(invoiceError(err));
+              } finally {
+                setIssuing(false);
+              }
+            }}
+            startIcon={<SendOutlined />}
+          >
+            {issuing ? "Issuing..." : "Confirm & Issue"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </InvoiceShell>
   );
 }
