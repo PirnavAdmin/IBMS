@@ -525,20 +525,20 @@ export function InvoiceList() {
                     </th>
                     <th>Due Date</th>
                     <th>Currency</th>
-                    <th className="numeric">Subtotal</th>
-                    <th className="numeric">Discount</th>
-                    <th className="numeric">Tax</th>
-                    <th className="numeric">Charges</th>
-                    <th className="numeric">Rounding</th>
-                    <th className="numeric">
+                    <th>Subtotal</th>
+                    <th>Discount</th>
+                    <th>Tax</th>
+                    <th>Charges</th>
+                    <th>Rounding</th>
+                    <th>
                       {sortHeading("Grand Total", "TotalAmount")}
                     </th>
-                    <th className="numeric">Paid</th>
-                    <th className="numeric">
+                    <th>Paid</th>
+                    <th>
                       {sortHeading("Outstanding", "BalanceAmount")}
                     </th>
-                    <th className="invoice-cell-center">Status</th>
-                    <th className="invoice-cell-center invoice-actions-cell">
+                    <th>Status</th>
+                    <th className="invoice-actions-cell">
                       Actions
                     </th>
                   </tr>
@@ -565,14 +565,21 @@ export function InvoiceList() {
                         "paidAmount",
                         "balanceAmount",
                       ].map((key) => (
-                        <td className="numeric" key={key}>
+                        <td
+                          key={key}
+                          className={
+                            key === "totalAmount" || key === "balanceAmount"
+                              ? "invoice-amount-highlight"
+                              : "invoice-amount-cell"
+                          }
+                        >
                           {money(invoice[key], invoice.currency)}
                         </td>
                       ))}
-                      <td className="invoice-cell-center">
+                      <td>
                         <InvoiceStatus status={invoice.status} />
                       </td>
-                      <td className="invoice-cell-center invoice-actions-cell">
+                      <td className="invoice-actions-cell">
                         <InvoiceActions
                           invoice={invoice}
                           permissions={user.permissions}
