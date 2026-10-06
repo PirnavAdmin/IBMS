@@ -1213,3 +1213,7 @@
   }
   .invoice-design-sheet .invoice-footer-strip > span { border-color: rgba(90, 37, 8, .2) !important; }
 }
+/* Keep paired discount and tax controls visually distinct in the item editor. */
+.quote-inline-controls{display:grid;grid-template-columns:minmax(58px,.8fr) minmax(72px,1.2fr);gap:8px;align-items:center}.quote-items-table td.quote-item-discount{min-width:152px}.quote-items-table td:nth-child(6){min-width:132px}.quote-items-table td:nth-child(6)>select,.quote-items-table td:nth-child(6)>input{display:block;margin-bottom:7px}.quote-items-table td:nth-child(6)>small{margin-top:2px}
+
+.quote-inline-controls{grid-template-columns:minmax(0,1fr);gap:7px}.quote-items-table td.quote-item-discount{min-width:132px}
