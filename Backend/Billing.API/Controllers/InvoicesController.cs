@@ -14,11 +14,19 @@ public class InvoicesController : ControllerBase
 {
     private readonly IInvoiceService _invoiceService;
     private readonly IInvoiceRepository _invoiceRepository;
+    private readonly IInvoiceCommunicationRepository _communicationRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
 
-    public InvoicesController(IInvoiceService invoiceService, IInvoiceRepository invoiceRepository)
+    public InvoicesController(
+        IInvoiceService invoiceService,
+        IInvoiceRepository invoiceRepository,
+        IInvoiceCommunicationRepository communicationRepository,
+        IAuditLogRepository auditLogRepository)
     {
         _invoiceService = invoiceService;
         _invoiceRepository = invoiceRepository;
+        _communicationRepository = communicationRepository;
+        _auditLogRepository = auditLogRepository;
     }
 
     [HttpGet]
@@ -30,6 +38,50 @@ public class InvoicesController : ControllerBase
 
         var result = await _invoiceRepository.GetPagedAsync(tenantId.Value, filter);
         return Ok(result);
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportInvoices([FromQuery] InvoiceFilterRequest filter, [FromQuery] string format = "csv")
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var exportFilter = new InvoiceFilterRequest
+        {
+            SearchTerm = filter?.SearchTerm,
+            CustomerId = filter?.CustomerId,
+            Status = filter?.Status,
+            StartDate = filter?.StartDate,
+            EndDate = filter?.EndDate,
+            Currency = filter?.Currency,
+            PaymentState = filter?.PaymentState,
+            MinOutstandingAmount = filter?.MinOutstandingAmount,
+            MaxOutstandingAmount = filter?.MaxOutstandingAmount,
+            MinTotalAmount = filter?.MinTotalAmount,
+            MaxTotalAmount = filter?.MaxTotalAmount,
+            SortBy = filter?.SortBy,
+            SortOrder = filter?.SortOrder,
+            Page = 1,
+            PageSize = 10000
+        };
+
+        var paged = await _invoiceRepository.GetPagedAsync(tenantId.Value, exportFilter);
+
+        if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
+        {
+            return Ok(ApiResponse<List<Invoice>>.Ok(paged.Items, "Export data generated."));
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("InvoiceNumber,Date,DueDate,Customer,Status,Currency,Subtotal,DiscountAmount,TaxAmount,ChargesAmount,TotalAmount,PaidAmount,BalanceAmount");
+        foreach (var inv in paged.Items)
+        {
+            var custName = inv.Customer?.Name?.Replace("\"", "\"\"") ?? "";
+            sb.AppendLine($"\"{inv.InvoiceNumber}\",\"{inv.InvoiceDate:yyyy-MM-dd}\",\"{inv.DueDate:yyyy-MM-dd}\",\"{custName}\",\"{inv.Status}\",\"{inv.Currency}\",{inv.Subtotal},{inv.DiscountAmount},{inv.TaxAmount},{inv.ChargesAmount},{inv.TotalAmount},{inv.PaidAmount},{inv.BalanceAmount}");
+        }
+
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        return File(fileBytes, "text/csv", $"invoices_export_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
     }
 
     [HttpGet("summary")]
@@ -64,7 +116,14 @@ public class InvoicesController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.CreateDraftAsync(request, tenantId.Value);
+        if (request == null)
+            return BadRequest(ApiResponse<Invoice>.Fail("Request cannot be null."));
+
+        if (request.TenantId > 0 && request.TenantId != tenantId.Value)
+            return Forbid();
+
+        request.TenantId = tenantId.Value;
+        var result = await _invoiceService.CreateDraftAsync(request, tenantId.Value, User.Identity?.Name);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -76,7 +135,13 @@ public class InvoicesController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.UpdateDraftAsync(id, request, tenantId.Value);
+        if (request == null)
+            return BadRequest(ApiResponse<Invoice>.Fail("Request cannot be null."));
+
+        if (request.TenantId > 0 && request.TenantId != tenantId.Value)
+            return Forbid();
+
+        var result = await _invoiceService.UpdateDraftAsync(id, request, tenantId.Value, User.Identity?.Name);
         
         if (!result.Success && result.Message != null && result.Message.Contains("Concurrency error"))
             return Conflict(result);
@@ -94,6 +159,42 @@ public class InvoicesController : ControllerBase
 
         var result = await _invoiceService.IssueInvoiceAsync(id, tenantId.Value, User.Identity?.Name);
         return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{id:int}/send")]
+    [HttpPost("{id:int}/resend")]
+    [HttpPost("{id:int}/deliver")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    public async Task<IActionResult> SendInvoice(int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _invoiceService.DeliverInvoiceAsync(id, tenantId.Value, User.Identity?.Name);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("{id:int}/communications")]
+    [ProducesResponseType(typeof(ApiResponse<List<InvoiceCommunication>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCommunications(int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var comms = await _communicationRepository.GetByInvoiceIdAsync(id, tenantId.Value);
+        return Ok(ApiResponse<List<InvoiceCommunication>>.Ok(comms, "Invoice communications retrieved."));
+    }
+
+    [HttpGet("{id:int}/audit")]
+    [ProducesResponseType(typeof(ApiResponse<List<AuditLog>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInvoiceAudit(int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var logs = await _auditLogRepository.GetByEntityAsync(tenantId.Value, "Invoice", id.ToString());
+        return Ok(ApiResponse<List<AuditLog>>.Ok(logs, "Invoice audit logs retrieved."));
     }
 
     [HttpPost("{id:int}/cancel")]

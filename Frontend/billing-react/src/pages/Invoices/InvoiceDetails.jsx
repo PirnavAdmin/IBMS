@@ -546,7 +546,7 @@ export function InvoiceDetails() {
               <div className="invoice-items-tab-container">
                 <div className="invoice-table-heading">
                   <div>
-                    <h2>Persisted Line Items</h2>
+                    <h2>Persisted line items</h2>
                     <p>
                       Rates and amounts below reflect the authoritative saved
                       invoice values.
@@ -1001,10 +1001,10 @@ export function InvoiceDetails() {
                   </div>
 
                   <Alert severity="info" className="invoice-comm-alert">
-                    The billing backend server does not currently provide an
-                    automated SMTP dispatch queue or persistent email
-                    communication log API. Invoices can be manually dispatched
-                    to customer contacts via the generated enterprise PDF.
+                    Automated email dispatch and communication history APIs are
+                    unavailable on the current billing server. Invoices can be
+                    manually dispatched to customer contacts via the generated
+                    enterprise PDF.
                   </Alert>
 
                   <div

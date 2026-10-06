@@ -146,7 +146,7 @@ export function InvoiceTotals({ invoice, calculation, currency }) {
       <div className="invoice-total-header">
         <h2>Financial Summary</h2>
         <span className="invoice-preview-tag">
-          {isCalc ? "Authoritative Preview" : "Persisted"}
+          {isCalc ? "Authoritative Preview" : "Persisted totals"}
         </span>
       </div>
       <dl className="invoice-summary-list">

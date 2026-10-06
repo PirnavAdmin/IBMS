@@ -3,8 +3,8 @@ export const blankItem = () => ({
   description: "",
   quantity: "1",
   unitPrice: "",
-  discountType: null,
-  discountRate: null,
+  discountType: "Percentage",
+  discountRate: "",
   taxType: "",
   taxRate: "",
   hsnsac: "",
@@ -23,6 +23,14 @@ export const blankInvoice = () => ({
   items: [blankItem()],
 });
 export function formFromInvoice(invoice) {
+  const lineDiscountsTotal = (invoice.items || []).reduce(
+    (sum, item) => sum + Number(item.discountAmount || 0),
+    0,
+  );
+  const invoiceDiscount = Math.max(
+    0,
+    Number(invoice.discountAmount || 0) - lineDiscountsTotal,
+  );
   return {
     customerId: String(invoice.customerId),
     invoiceDate: invoice.invoiceDate?.slice(0, 10) || "",
@@ -31,7 +39,7 @@ export function formFromInvoice(invoice) {
     reference: invoice.reference || "",
     notes: invoice.notes || "",
     termsAndConditions: invoice.termsAndConditions || "",
-    discountAmount: String(invoice.discountAmount),
+    discountAmount: String(invoiceDiscount),
     chargesAmount: String(invoice.chargesAmount),
     rowVersion: invoice.rowVersion,
     items: (invoice.items || []).map((item) => ({
@@ -39,8 +47,13 @@ export function formFromInvoice(invoice) {
       productId: item.productId == null ? "" : String(item.productId),
       quantity: String(item.quantity),
       unitPrice: String(item.unitPrice),
+      discountType: item.discountType || "Percentage",
+      discountRate:
+        item.discountRate == null || item.discountRate === ""
+          ? ""
+          : String(item.discountRate),
       taxRate: item.taxRate == null ? "" : String(item.taxRate),
-      unit: "",
+      unit: item.unit || "",
     })),
   };
 }
@@ -101,6 +114,17 @@ export function validateInvoice(form) {
         Number(item.taxRate) > 100)
     )
       errors[`items.${index}.taxRate`] = "Select a valid tax rate.";
+    if (
+      item.discountRate !== "" &&
+      item.discountRate != null &&
+      (!Number.isFinite(Number(item.discountRate)) ||
+        Number(item.discountRate) < 0 ||
+        (item.discountType === "Percentage" && Number(item.discountRate) > 100))
+    )
+      errors[`items.${index}.discountRate`] =
+        item.discountType === "Percentage"
+          ? "Discount % must be between 0 and 100."
+          : "Discount amount must be non-negative.";
   });
   return errors;
 }
@@ -125,9 +149,14 @@ export function invoiceDto(form, editing = false, tenantId = null) {
       description: item.description.trim(),
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
-      discountType: item.discountType || null,
+      discountType:
+        item.discountRate !== "" && item.discountRate != null && Number(item.discountRate) > 0
+          ? item.discountType || "Percentage"
+          : null,
       discountRate:
-        item.discountRate == null ? null : Number(item.discountRate),
+        item.discountRate == null || item.discountRate === ""
+          ? null
+          : Number(item.discountRate),
       taxType: item.taxType || null,
       taxRate: item.taxRate === "" ? null : Number(item.taxRate),
       hsnsac: item.hsnsac || null,

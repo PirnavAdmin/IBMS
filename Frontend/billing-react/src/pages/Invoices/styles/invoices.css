@@ -1866,13 +1866,8 @@
 
 .invoice-edit-table th:nth-child(6),
 .invoice-edit-table td:nth-child(6) {
-  width: 62px;
-  min-width: 54px;
-  text-align: center;
-}
-
-.invoice-edit-table td:nth-child(6) {
-  padding-top: 14px;
+  width: 108px;
+  min-width: 96px;
 }
 
 .invoice-edit-table th:nth-child(7),

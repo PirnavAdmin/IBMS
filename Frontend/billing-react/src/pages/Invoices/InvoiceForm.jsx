@@ -754,12 +754,54 @@ export function InvoiceForm() {
                           helperText={errors[`items.${index}.unitPrice`]}
                         />
                       </td>
-                      <td className="numeric">
-                        <Tooltip title="Line-level discount calculation requires backend calculation engine support.">
-                          <span className="invoice-muted-pill invoice-discount-pill" style={{ cursor: "help" }}>
-                            0.00
-                          </span>
-                        </Tooltip>
+                      <td>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Discount"
+                          value={item.discountRate ?? ""}
+                          onChange={(event) =>
+                            changeItem(index, "discountRate", event.target.value)
+                          }
+                          inputProps={{
+                            min: 0,
+                            max: item.discountType === "Percentage" ? 100 : 999999999,
+                            step: 0.01,
+                          }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end" style={{ margin: 0 }}>
+                                <select
+                                  aria-label={`Discount type line ${index + 1}`}
+                                  value={item.discountType || "Percentage"}
+                                  onChange={(e) =>
+                                    changeItem(index, "discountType", e.target.value)
+                                  }
+                                  style={{
+                                    border: "none",
+                                    background: "transparent",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 700,
+                                    color: "var(--primary, #0284c7)",
+                                    cursor: "pointer",
+                                    outline: "none",
+                                    padding: 0,
+                                  }}
+                                >
+                                  <option value="Percentage">%</option>
+                                  <option value="Fixed">{form.currency || "Fixed"}</option>
+                                </select>
+                              </InputAdornment>
+                            ),
+                          }}
+                          error={Boolean(errors[`items.${index}.discountRate`])}
+                          helperText={
+                            errors[`items.${index}.discountRate`] ||
+                            (freshCalculation?.items?.[index]?.discountAmount > 0
+                              ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
+                              : "")
+                          }
+                        />
                       </td>
                       <td>
                         <TextField
@@ -852,7 +894,7 @@ export function InvoiceForm() {
                               </IconButton>
                             </span>
                           </Tooltip>
-                          <Tooltip title="Remove line">
+                          <Tooltip title="Delete line">
                             <span>
                               <IconButton
                                 size="small"
@@ -895,9 +937,7 @@ export function InvoiceForm() {
             </div>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
             <p className="invoice-footnote">
-              Line discounts, inclusive/compound taxes and detailed charge tax
-              persistence require backend support. This form uses the supported
-              single exclusive item tax.
+              Line discounts and single exclusive item taxes are calculated by the authoritative backend engine.
             </p>
           </section>
           <div className="invoice-form-bottom">
@@ -1081,7 +1121,7 @@ export function InvoiceForm() {
         <DialogTitle className="invoice-preview-dialog-title">
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span>Draft Invoice Preview</span>
-            <span className="invoice-count-badge">Unsaved Draft</span>
+            <span className="invoice-count-badge">Unsaved draft preview</span>
           </div>
           <IconButton
             size="small"

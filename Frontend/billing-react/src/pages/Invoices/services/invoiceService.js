@@ -189,13 +189,14 @@ export function invoicePermissions(user) {
 export function financialBlockers(invoice) {
   const blockers = [];
   if (
-    invoice.items?.some(
+    invoice?.items?.some(
       (item) =>
-        Number(item.discountRate) > 0 || Number(item.discountAmount) > 0,
+        (Number(item.discountRate) < 0 || Number(item.discountAmount) < 0) ||
+        (item.discountType === "Percentage" && Number(item.discountRate) > 100),
     )
   )
     blockers.push(
-      "Line discounts cannot be safely recalculated by the current invoice backend.",
+      "Line discount values must be non-negative and valid.",
     );
   return blockers;
 }

@@ -32,7 +32,7 @@ try {
   });
   const result = spawnSync(
     process.execPath,
-    ["--test", "--test-force-exit", fileURLToPath(output)],
+    ["--test", "--test-force-exit", ...process.argv.slice(2), fileURLToPath(output)],
     { stdio: "inherit" },
   );
   process.exitCode = result.status ?? 1;

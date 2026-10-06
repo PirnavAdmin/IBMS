@@ -49,6 +49,17 @@ public class UpdateNumberingSettingRequest
 
     [StringLength(32)]
     public string Status { get; set; } = "Active";
+
+    public string? RowVersion { get; set; }
+}
+
+public class ResetNumberingSequenceRequest
+{
+    [Required]
+    public string DocumentType { get; set; } = "Invoice";
+
+    [Range(1, 999999999999)]
+    public long ResetTo { get; set; } = 1;
 }
 
 public class NumberPreviewRequest
