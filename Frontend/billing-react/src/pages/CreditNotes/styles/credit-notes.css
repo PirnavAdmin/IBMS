@@ -125,7 +125,8 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-section-icon svg { font-size: 20px; }
 .cn-section-title h2 { color: #4e311d; font-size: 1.08rem; }
 .cn-section-title p { margin-top: 3px; color: #8a7b6f; font-size: .78rem; }
-.cn-invoice-options { display: grid; gap: 10px; }
+.cn-invoice-search { display: block; width: min(100%, 360px); margin-bottom: 14px; }
+.cn-invoice-options { display: grid; gap: 10px; margin-top: 14px; }
 .cn-invoice-option { display: grid; width: 100%; grid-template-columns: 18px minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 13px; padding: 14px; border: 1px solid #e9ddd0; border-radius: 11px; background: #fff; color: #403328; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
 .cn-invoice-option:hover { border-color: #c49b76; background: #fffaf4; }
 .cn-invoice-option.selected { border-color: #976945; background: #fbf4eb; box-shadow: 0 0 0 2px #97694520; }
@@ -368,6 +369,12 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 @media print {
   @page { size: A4; margin: 8mm; }
   @page credit-notes-list { size: A4 landscape; margin: 8mm; }
+  body:has(.cn-preview-page) *,
+  body:has(.cn-list-page) * { visibility: hidden !important; }
+  body:has(.cn-preview-page) .cn-preview-page,
+  body:has(.cn-preview-page) .cn-preview-page *,
+  body:has(.cn-list-page) .cn-list-page,
+  body:has(.cn-list-page) .cn-list-page * { visibility: visible !important; }
   body:has(.cn-list-page) { background: #fff !important; }
   body:has(.cn-list-page) .bd-sidebar,
   body:has(.cn-list-page) .bd-sidebar-backdrop,
@@ -375,7 +382,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   body:has(.cn-list-page) .app-layout-main > .bd-header { display: none !important; }
   body:has(.cn-list-page) .app-layout { display: block !important; }
   body:has(.cn-list-page) .app-layout-main { width: 100% !important; min-height: 0 !important; }
-  .cn-list-page { page: credit-notes-list; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: #fff; box-shadow: none; zoom: .86; }
+  .cn-list-page { position: absolute !important; top: 0; left: 0; page: credit-notes-list; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: #fff; box-shadow: none; zoom: .86; }
   .cn-list-page > :not(.cn-list-panel) { display: none !important; }
   .cn-list-page .cn-list-panel { overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
   .cn-list-page .cn-list-panel > :not(.cn-table-wrap) { display: none !important; }
@@ -386,6 +393,14 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   .cn-list-page .cn-table-wrap tr > :last-child { display: none !important; }
   .cn-list-page .cn-table-wrap .cn-sub-cell { font-size: 7px; }
   .cn-list-page .cn-table-wrap .cn-status { padding: 3px 6px; font-size: 7px; }
+  body:has(.cn-preview-page),
+  body:has(.cn-list-page) { height: auto !important; min-height: 0 !important; overflow: visible !important; background: white !important; }
+  body:has(.cn-preview-page) .app-layout,
+  body:has(.cn-list-page) .app-layout { display: block !important; width: 100% !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body:has(.cn-preview-page) .app-layout-main,
+  body:has(.cn-list-page) .app-layout-main { display: block !important; width: 100% !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body:has(.cn-preview-page) .app-layout-content,
+  body:has(.cn-list-page) .app-layout-content { display: block !important; width: 100% !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important; }
   body:has(.cn-preview-page) { background: white !important; }
   body:has(.cn-preview-page) .bd-sidebar,
   body:has(.cn-preview-page) .app-layout-main > .bd-header,
@@ -398,9 +413,9 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   body:has(.cn-preview-page) .cn-detail-aside > .cn-detail-card:last-child,
   body:has(.cn-preview-page) .MuiSnackbar-root,
   body:has(.cn-preview-page) .MuiDialog-root { display: none !important; }
-  body:has(.cn-preview-page) .app-layout { display: block; }
-  body:has(.cn-preview-page) .app-layout-main { width: 100%; }
-  .cn-preview-page { min-height: 0; padding: 0; border: 0; border-radius: 0; background: #fff; box-shadow: none; zoom: .86; }
+  body:has(.cn-preview-page) .app-layout { display: block !important; }
+  body:has(.cn-preview-page) .app-layout-main { display: block !important; width: 100% !important; }
+  .cn-preview-page { position: absolute !important; top: 0; left: 0; width: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: #fff; box-shadow: none; zoom: .86; }
   .cn-preview-page .cn-document-header,.cn-preview-page .cn-detail-card { box-shadow: none; break-inside: avoid; }
   .cn-preview-page .cn-document-header { margin-bottom: 8px; padding: 12px 15px; }
   .cn-preview-page .cn-detail-grid { grid-template-columns: minmax(0, 1.6fr) minmax(210px, .8fr); gap: 8px; }

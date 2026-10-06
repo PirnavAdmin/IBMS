@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Breadcrumbs, Button, MenuItem, TextField } from '@mui/material';
+import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { ArrowBack, ArrowForward, Check, DescriptionOutlined, ReceiptLongOutlined, SavingsOutlined } from '@mui/icons-material';
 import { creditNoteService } from '../services/creditNoteService';
 import { calculateCredit, creditLineAmounts, eligibleCredit, money } from '../utils/creditNoteCalculations';
