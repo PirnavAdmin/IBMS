@@ -271,14 +271,16 @@ public class InvoiceTemplatesController : ControllerBase
         if (!tenantId.HasValue) return Forbid();
 
         var template = await _templateService.GetTemplateByIdAsync(id, tenantId.Value, ct);
+        var previewVersion = template.Versions.OrderByDescending(version => version.VersionNumber).FirstOrDefault()
+            ?? template.ActiveVersion;
         var previewRequest = new TemplatePreviewRequest
         {
             Style = template.Style,
-            Branding = template.ActiveVersion?.Branding ?? new BrandingConfigDto(),
-            CompanyDetails = template.ActiveVersion?.CompanyDetails ?? new CompanyDetailsConfigDto(),
-            Layout = template.ActiveVersion?.Layout ?? new LayoutConfigDto(),
-            PaymentInstructions = template.ActiveVersion?.PaymentInstructions ?? new PaymentInstructionsConfigDto(),
-            Terms = template.ActiveVersion?.Terms ?? new TermsConfigDto()
+            Branding = previewVersion?.Branding ?? new BrandingConfigDto(),
+            CompanyDetails = previewVersion?.CompanyDetails ?? new CompanyDetailsConfigDto(),
+            Layout = previewVersion?.Layout ?? new LayoutConfigDto(),
+            PaymentInstructions = previewVersion?.PaymentInstructions ?? new PaymentInstructionsConfigDto(),
+            Terms = previewVersion?.Terms ?? new TermsConfigDto()
         };
 
         var pdfBytes = await _templateService.GeneratePreviewPdfAsync(previewRequest, tenantId.Value, ct);

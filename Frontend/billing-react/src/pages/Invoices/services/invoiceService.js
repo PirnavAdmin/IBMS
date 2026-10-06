@@ -270,10 +270,10 @@ export const invoiceService = {
       items: data.items.filter((row) => String(row.entityId) === String(id)),
     };
   },
-  async downloadPdf(invoice) {
+  async downloadPdf(invoice, selectedTemplateId = null) {
     await templateApi.generateInvoicePdf(invoice.id, {
       invoiceId: invoice.id,
-      overrideTemplateId: null,
+      overrideTemplateId: selectedTemplateId == null ? null : Number(selectedTemplateId),
       forceRegenerate: false,
     });
     const blob = await templateApi.downloadInvoicePdf(invoice.id, false);
