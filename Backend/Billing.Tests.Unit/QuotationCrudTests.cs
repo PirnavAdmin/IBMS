@@ -382,4 +382,106 @@ public class QuotationCrudTests
         Assert.False(response.Success);
         Assert.Equal("CONCURRENCY_CONFLICT", response.ErrorCode);
     }
+
+    [Fact]
+    public async Task CreateDraft_WithChargesAndDiscount_IncludesChargesAndAuditLogs()
+    {
+        // Arrange
+        var auditRepo = new FakeAuditLogRepository();
+        var quotationServiceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var mockActionService = new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>();
+        var controller = new QuotationsController(quotationServiceWithAudit, mockActionService.Object, NullLogger<QuotationsController>.Instance, auditRepo);
+        SetUserContext(controller, tenantId: 1);
+
+        var request = new CreateQuotationRequest
+        {
+            CustomerId = 10,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(15),
+            ChargesAmount = 50m,
+            Items = new List<CreateQuotationItemRequest>
+            {
+                new()
+                {
+                    Description = "Service Item",
+                    Quantity = 2m,
+                    UnitPrice = 100m,
+                    DiscountType = "Percentage",
+                    DiscountRate = 10m,
+                    TaxType = "GST",
+                    TaxRate = 18m
+                }
+            }
+        };
+
+        // Act
+        var result = await controller.CreateDraftQuotation(request);
+
+        // Assert
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(created.Value);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(50m, response.Data.ChargesAmount);
+        Assert.Equal(200m, response.Data.Subtotal);
+        Assert.Equal(20m, response.Data.DiscountAmount);
+        Assert.Equal(32.4m, response.Data.TaxAmount);
+        // Total = 200 - 20 + 32.4 + 50 = 262.4
+        Assert.Equal(262.4m, response.Data.TotalAmount);
+        Assert.Equal("CUST-001", response.Data.CustomerCode);
+
+        // Verify audit logs were written
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Created");
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Discount Override");
+    }
+
+    [Fact]
+    public async Task UpdateDraft_WithCharges_UpdatesChargesAndAuditLogs()
+    {
+        // Arrange
+        var auditRepo = new FakeAuditLogRepository();
+        var quotationServiceWithAudit = new QuotationService(_quotationRepo, _customerRepo, _numberGenerationService, auditRepo);
+        var mockActionService = new Moq.Mock<Billing.Application.Interfaces.IQuotationActionService>();
+        var controller = new QuotationsController(quotationServiceWithAudit, mockActionService.Object, NullLogger<QuotationsController>.Instance, auditRepo);
+        SetUserContext(controller, tenantId: 1);
+
+        var quote = new Quotation
+        {
+            Id = 505,
+            TenantId = 1,
+            QuoteNumber = "QT-505",
+            CustomerId = 10,
+            Status = QuotationStatus.Draft,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(7),
+            RowVersion = DateTime.UtcNow
+        };
+        await _quotationRepo.AddAsync(quote);
+
+        var updateRequest = new UpdateQuotationRequest
+        {
+            CustomerId = 10,
+            QuotationDate = DateTime.UtcNow,
+            ValidUntil = DateTime.UtcNow.AddDays(14),
+            ChargesAmount = 75m,
+            Items = new List<CreateQuotationItemRequest>
+            {
+                new() { Description = "Updated Item", Quantity = 1m, UnitPrice = 300m }
+            }
+        };
+
+        // Act
+        var result = await controller.UpdateDraftQuotation(quote.Id, updateRequest);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ApiResponse<QuotationDetailResponse>>(ok.Value);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(75m, response.Data.ChargesAmount);
+        Assert.Equal(375m, response.Data.TotalAmount); // 300 + 75
+        Assert.NotNull(response.Data.UpdatedAtUtc);
+
+        Assert.Contains(auditRepo.Logs, l => l.Action == "Edited");
+    }
 }

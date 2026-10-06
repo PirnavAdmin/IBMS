@@ -46,7 +46,7 @@ export const customerValidationSchema = yup.object({
     .trim()
     .required('Contact / Customer name is required')
     .min(2, 'Name must be at least 2 characters')
-    .max(256, 'Name must not exceed 256 characters'),
+    .max(100, 'Customer name must not exceed 100 characters'),
   customerCode: yup
     .string()
     .trim()
@@ -91,25 +91,41 @@ export const customerValidationSchema = yup.object({
   phone: yup
     .string()
     .trim()
-    .required('Mobile / Phone number is required')
-    .max(64, 'Phone number must not exceed 64 characters')
-    .test('phone-format', 'Enter a complete phone number for the selected country', function (val) {
-      if (!val) return true; // The required validator handles empty input.
-      if (!PHONE_REGEX.test(val)) return false;
+    .required('Mobile number is required')
+    .test('phone-digits', 'Mobile number must contain digits only', function (val) {
+      if (!val) return true;
+      return /^[0-9]+$/.test(val);
+    })
+    .test('phone-length', 'Enter a complete phone number', function (val) {
+      if (!val) return true;
       const code = this.parent.phoneCountryCode || '+91';
-      const number = parsePhoneNumberFromString(val.startsWith('+') ? val : `${code} ${val}`);
-      if (number && `+${number.countryCallingCode}` === code && number.isValid()) return true;
-
-      // Keep country-specific guidance, but let phone metadata validate the number.
-      // Never strip a dialing code from a national number merely because it starts with it.
       const config = COUNTRY_PHONE_CONFIG[code];
-      const digits = number?.nationalNumber?.length ?? val.replace(/\D/g, '').length;
-      if (config && !val.startsWith('+') && (digits < config.min || digits > config.max)) {
+      const digits = val.length;
+
+      if (code === '+91') {
+        if (digits !== 10) {
+          return this.createError({
+            message: 'Mobile number must be exactly 10 digits',
+          });
+        }
+        return true;
+      }
+
+      if (config) {
+        if (digits < config.min || digits > config.max) {
+          return this.createError({
+            message: `Phone number for ${config.country} (${code}) requires ${config.label} (currently entered ${digits} digits)`,
+          });
+        }
+        return true;
+      }
+
+      if (digits < 7 || digits > 15) {
         return this.createError({
-          message: `Phone number for ${config.country} (${code}) requires ${config.label} (currently entered ${digits} digits)`,
+          message: 'Phone number must be between 7 and 15 digits',
         });
       }
-      return false;
+      return true;
     }),
   website: yup
     .string()
@@ -166,6 +182,12 @@ export const customerValidationSchema = yup.object({
       .trim()
       .required('Billing street address is required')
       .max(512, 'Street address must not exceed 512 characters'),
+    addressLine2: yup
+      .string()
+      .trim()
+      .max(256, 'Address line 2 must not exceed 256 characters')
+      .nullable()
+      .transform((curr, orig) => (orig === '' ? null : curr)),
     city: yup
       .string()
       .trim()
@@ -206,6 +228,12 @@ export const customerValidationSchema = yup.object({
           .trim()
           .required('Shipping street address is required')
           .max(512, 'Street address must not exceed 512 characters'),
+        addressLine2: yup
+          .string()
+          .trim()
+          .max(256, 'Address line 2 must not exceed 256 characters')
+          .nullable()
+          .transform((curr, orig) => (orig === '' ? null : curr)),
         city: yup
           .string()
           .trim()
@@ -291,6 +319,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   isShippingSameAsBilling: true,
   billingAddress: {
     street: '',
+    addressLine2: '',
     city: '',
     state: '',
     postalCode: '',
@@ -298,6 +327,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   },
   shippingAddress: {
     street: '',
+    addressLine2: '',
     city: '',
     state: '',
     postalCode: '',

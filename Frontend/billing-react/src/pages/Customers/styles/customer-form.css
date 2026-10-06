@@ -124,11 +124,41 @@
 
 /* Main Form Card */
 .cust-wizard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.cust-form-section {
+  min-width: 0;
+  padding: 0 0 8px;
   background: #ffffff;
   border: 1px solid #eae3db;
   border-radius: 12px;
   box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
-  overflow: hidden;
+  scroll-margin-top: 24px;
+}
+
+.cust-form-section-title {
+  margin: 0;
+  padding: 20px 24px 14px;
+  color: #4c3023;
+  font-size: 1.05rem;
+  font-weight: 750;
+  border-bottom: 1px solid #eee5dc;
+}
+
+.cust-review-section {
+  border-bottom: 0;
+}
+
+.cust-review-section > .cust-form-section-title {
+  margin-bottom: 0;
 }
 
 /* Header inside the Step Card */
@@ -138,6 +168,10 @@
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #eae3db;
+  background: #ffffff;
+  border: 1px solid #eae3db;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -255,6 +289,58 @@
   padding-left: 32px !important;
 }
 
+.cust-field .cust-themed-select.MuiOutlinedInput-root {
+  min-height: 42px;
+  background: #ffffff;
+  border-radius: 7px;
+  color: #302a26;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.cust-field .cust-themed-select .MuiOutlinedInput-notchedOutline {
+  border-color: #e0dcd7;
+}
+
+.cust-field .cust-themed-select.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #9a6c49;
+  border-width: 1px;
+}
+
+.cust-status-select-wrap .cust-themed-select .MuiSelect-select {
+  padding-left: 32px;
+}
+
+.cust-phone-group .cust-themed-select.cust-phone-code-select {
+  width: 96px;
+  min-width: 88px;
+  max-width: 105px;
+  flex: 0 0 96px;
+  font-size: 0.84rem;
+}
+
+.cust-filters-right .cust-themed-select.MuiOutlinedInput-root {
+  min-width: 150px;
+  background: #ffffff;
+  border-radius: 8px;
+  color: #302a26;
+}
+
+.cust-filters-right .cust-themed-select .MuiOutlinedInput-notchedOutline {
+  border-color: #e0dcd7;
+}
+
+.customer-dropdown-menu .MuiMenuItem-root.Mui-selected {
+  background-color: transparent;
+  color: inherit;
+}
+
+.customer-dropdown-menu .MuiMenuItem-root:hover,
+.customer-dropdown-menu .MuiMenuItem-root.Mui-focusVisible {
+  background-color: #d8b795;
+  color: #4d301d;
+}
+
 /* Bottom Actions in Form Card */
 .cust-wizard-actions {
   display: flex;
@@ -263,6 +349,9 @@
   padding: 20px 24px;
   border-top: 1px solid #eae3db;
   background: #ffffff;
+  border: 1px solid #eae3db;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
   gap: 16px;
 }
 
@@ -544,6 +633,216 @@
   }
 }
 
+/* Full-width, section-by-section editing on the customer edit screen. */
+.cust-edit-page {
+  box-sizing: border-box;
+  height: calc(100vh - 76px);
+  height: calc(100dvh - 76px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.cust-edit-intro {
+  position: static;
+  top: auto;
+  z-index: auto;
+  margin: -8px -8px 20px;
+  padding: 10px 18px 16px;
+  background: rgba(250, 246, 240, 0.97);
+  border: 1px solid #e5d7c8;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(67, 48, 33, 0.07);
+  backdrop-filter: none;
+}
+
+.cust-edit-intro .cust-breadcrumbs {
+  margin-bottom: 8px;
+}
+
+.cust-edit-intro .cust-header {
+  margin-bottom: 0;
+}
+
+.cust-edit-intro .cust-header h1 {
+  margin: 0;
+  color: #4b2d1d;
+  font-size: clamp(1.5rem, 2vw, 1.9rem);
+  line-height: 1.2;
+}
+
+.cust-edit-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cust-edit-avatar {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  place-items: center;
+  border: 1px solid #ddc4a9;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #f1e2d0, #e5ceb5);
+  color: #68452d;
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.cust-edit-title-copy {
+  min-width: 0;
+}
+
+.cust-edit-title-copy .cust-eyebrow {
+  margin-bottom: 5px;
+}
+
+.cust-edit-title-copy p {
+  margin-top: 5px;
+}
+
+.cust-edit-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.cust-edit-status > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cust-edit-status.active {
+  border-color: #c9ddce;
+  background: #edf5ed;
+  color: #426b4d;
+}
+
+.cust-edit-status.inactive {
+  border-color: #e7c9bf;
+  background: #fbefeb;
+  color: #8b5142;
+}
+
+.cust-edit-page .cust-wizard-layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.cust-edit-page .cust-wizard-aside {
+  display: none;
+}
+
+.cust-edit-page .cust-form-section {
+  min-height: max(360px, calc(100dvh - 220px));
+  background-color: #f7efe4;
+  border-color: #e5d7c8;
+}
+
+.cust-edit-page .cust-field input:not([readonly]):not([disabled]),
+.cust-edit-page .cust-field select:not(:disabled),
+.cust-edit-page .cust-field textarea {
+  background-color: #fffdf9;
+  border-color: #e3d3c0;
+}
+
+.cust-edit-page .cust-field input:not([readonly]):not([disabled]):focus,
+.cust-edit-page .cust-field select:not(:disabled):focus,
+.cust-edit-page .cust-field textarea:focus {
+  background-color: #ffffff;
+  border-color: #a87952;
+}
+
+.cust-edit-page .cust-themed-select.MuiOutlinedInput-root:not(.Mui-disabled) {
+  background-color: #fffdf9;
+}
+
+.cust-edit-page .cust-themed-select .MuiOutlinedInput-notchedOutline {
+  border-color: #e3d3c0;
+}
+
+.cust-edit-page .cust-themed-select.Mui-focused:not(.Mui-disabled) {
+  background-color: #ffffff;
+}
+
+/* Match the create form sections and fields to the Edit Customer palette. */
+.cust-page:not(.cust-edit-page) .cust-form-section {
+  background-color: #f7efe4;
+  border-color: #e5d7c8;
+}
+
+.cust-page:not(.cust-edit-page) .cust-field input:not([readonly]):not([disabled]),
+.cust-page:not(.cust-edit-page) .cust-field select:not(:disabled),
+.cust-page:not(.cust-edit-page) .cust-field textarea {
+  background-color: #fffdf9;
+  border-color: #e3d3c0;
+}
+
+.cust-page:not(.cust-edit-page) .cust-field input:not([readonly]):not([disabled]):focus,
+.cust-page:not(.cust-edit-page) .cust-field select:not(:disabled):focus,
+.cust-page:not(.cust-edit-page) .cust-field textarea:focus {
+  background-color: #ffffff;
+  border-color: #a87952;
+}
+
+.cust-page:not(.cust-edit-page) .cust-themed-select.MuiOutlinedInput-root:not(.Mui-disabled) {
+  background-color: #fffdf9;
+}
+
+.cust-page:not(.cust-edit-page) .cust-themed-select .MuiOutlinedInput-notchedOutline {
+  border-color: #e3d3c0;
+}
+
+.cust-page:not(.cust-edit-page) .cust-themed-select.Mui-focused:not(.Mui-disabled) {
+  background-color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .cust-edit-page {
+    padding-inline: 14px;
+  }
+
+  .cust-edit-intro {
+    margin-inline: -4px;
+    padding-inline: 12px;
+  }
+
+  .cust-edit-intro .cust-header {
+    align-items: flex-start;
+  }
+
+  .cust-edit-title-group {
+    gap: 10px;
+  }
+
+  .cust-edit-avatar {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 12px;
+  }
+
+  .cust-edit-status {
+    margin-left: 52px;
+  }
+
+  .cust-edit-page .cust-form-section {
+    min-height: max(340px, calc(100dvh - 190px));
+  }
+}
+
 /* Customer Code Read-Only & Badge */
 .cust-field-badge {
   display: inline-flex;
@@ -577,4 +876,202 @@
   border-color: #d6cdc4 !important;
   box-shadow: none !important;
 }
+
+/* ==========================================================================
+   Smooth Wizard Directional Transitions
+   ========================================================================== */
+.cust-step-panel {
+  width: 100%;
+  will-change: transform, opacity;
+}
+
+@keyframes stepSlideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stepSlideInFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cust-step-panel.slide-forward {
+  animation: stepSlideInFromRight 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cust-step-panel.slide-backward {
+  animation: stepSlideInFromLeft 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cust-step-panel,
+  .cust-step-panel.slide-forward,
+  .cust-step-panel.slide-backward {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   PIN Code Lookup & Locality Selection Styles
+   ========================================================================== */
+.cust-input-with-action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cust-input-with-action input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.cust-input-status-icon {
+  position: absolute;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cust-input-status-icon.cust-spin svg {
+  animation: custRotate 1s linear infinite;
+  color: #754d34;
+}
+
+.cust-input-status-icon.cust-success svg {
+  color: #2e7d32;
+}
+
+@keyframes custRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cust-pin-status {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.cust-pin-success {
+  color: #2e7d32;
+}
+
+.cust-pin-loading {
+  color: #8c7d71;
+  font-style: italic;
+}
+
+.cust-pin-warning {
+  color: #b76e00;
+}
+
+/* Locality Selection Chips under Address Line 2 */
+.cust-locality-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.cust-locality-chips-label {
+  font-size: 0.72rem;
+  color: #8c7d71;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cust-locality-chip {
+  background: #f7f3ef;
+  border: 1px solid #dfd7cf;
+  color: #64442e;
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  outline: none;
+}
+
+.cust-locality-chip:hover {
+  background: #eae0d6;
+  border-color: #8c674b;
+  color: #3b2516;
+}
+
+.cust-locality-chip.active {
+  background: #754d34;
+  border-color: #754d34;
+  color: #ffffff;
+}
+
+/* Dark Mode Overrides for PIN Status and Locality Chips */
+body.dark-mode .cust-locality-chip,
+[data-theme="dark"] .cust-locality-chip {
+  background: #231B15;
+  border-color: #3B2E24;
+  color: #D6C2B2;
+}
+
+body.dark-mode .cust-locality-chip:hover,
+[data-theme="dark"] .cust-locality-chip:hover {
+  background: #33251C;
+  border-color: #E0935C;
+  color: #FFFFFF;
+}
+
+body.dark-mode .cust-locality-chip.active,
+[data-theme="dark"] .cust-locality-chip.active {
+  background: #E0935C;
+  border-color: #E0935C;
+  color: #140E0A;
+}
+
+body.dark-mode .cust-pin-success,
+[data-theme="dark"] .cust-pin-success {
+  color: #7ee787;
+}
+
+body.dark-mode .cust-input-status-icon.cust-success svg,
+[data-theme="dark"] .cust-input-status-icon.cust-success svg {
+  color: #7ee787;
+}
+
+body.dark-mode .cust-input-status-icon.cust-spin svg,
+[data-theme="dark"] .cust-input-status-icon.cust-spin svg {
+  color: #E0935C;
+}
+
+body.dark-mode .cust-pin-warning,
+[data-theme="dark"] .cust-pin-warning {
+  color: #f0b757;
+}
+
+
 

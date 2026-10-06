@@ -171,20 +171,22 @@ public class NumberGenerationService : INumberGenerationService
         if (norm.Contains("quote") || norm.Contains("quotation")) return "QT-";
         if (norm.Contains("recurring")) return "REC-";
         if (norm.Contains("challan")) return "DC-";
+        if (norm.Contains("payment")) return "PAY-";
+        if (norm.Contains("receipt")) return "RCPT-";
         return "INV-";
     }
 
     private static string GetDefaultTokens(string documentType)
     {
         var norm = documentType.Trim().ToLowerInvariant();
-        if (norm.Contains("quote") || norm.Contains("quotation")) return "{YYYY}-{MM}-";
+        if (norm.Contains("quote") || norm.Contains("quotation")) return "{YEAR}-{MM}-";
         return "{YEAR}-";
     }
 
     private static int GetDefaultSequenceLength(string documentType)
     {
         var norm = documentType.Trim().ToLowerInvariant();
-        if (norm.Contains("quote") || norm.Contains("quotation")) return 6;
+        if (norm.Contains("quote") || norm.Contains("quotation")) return 4;
         return 4;
     }
 }

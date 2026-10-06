@@ -112,6 +112,15 @@ public class QuotationActionService : IQuotationActionService
         if (quotation.CustomerId <= 0)
             return ApiResponse<bool>.Fail("Customer is required before sending.");
 
+        if (quotation.Items == null || !quotation.Items.Any())
+            return ApiResponse<bool>.Fail("Quotation must contain at least one line item before sending.", errorCode: "EMPTY_ITEMS");
+
+        if (quotation.TotalAmount <= 0)
+            return ApiResponse<bool>.Fail("Quotation total amount must be greater than zero before sending.", errorCode: "INVALID_TOTAL");
+
+        if (quotation.ValidUntil.Date < DateTime.UtcNow.Date)
+            return ApiResponse<bool>.Fail("Quotation validity has expired and cannot be sent.", errorCode: "EXPIRED_VALIDITY");
+
         quotation.Status = QuotationStatus.Sent;
         quotation.Communications.Add(new QuotationCommunication
         {
@@ -142,8 +151,18 @@ public class QuotationActionService : IQuotationActionService
         return ApiResponse<bool>.Ok(true, "Quotation sent.");
     }
 
-    public async Task<ApiResponse<bool>> ApproveQuotationAsync(int quotationId, int tenantId, string approverId)
+    public async Task<ApiResponse<bool>> ApproveQuotationAsync(int quotationId, int tenantId, string approverId, string? approverRole = null)
     {
+        if (!string.IsNullOrWhiteSpace(approverRole))
+        {
+            var allowedRoles = new[] { "TenantAdmin", "SuperAdmin", "Admin", "Manager" };
+            var roles = approverRole.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (!roles.Any(r => allowedRoles.Contains(r, StringComparer.OrdinalIgnoreCase)))
+            {
+                return ApiResponse<bool>.Fail("Only TenantAdmin, SuperAdmin, Admin, or Manager can approve quotations.", errorCode: "FORBIDDEN");
+            }
+        }
+
         var quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
             ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null) return ApiResponse<bool>.Fail("Not found");
@@ -181,6 +200,9 @@ public class QuotationActionService : IQuotationActionService
 
         if (quotation.Status == QuotationStatus.Converted)
             return ApiResponse<bool>.Fail("Converted quotes cannot be cancelled.");
+
+        if (quotation.Status == QuotationStatus.Cancelled)
+            return ApiResponse<bool>.Fail("Quotation is already cancelled.", errorCode: "ALREADY_CANCELLED");
 
         quotation.Status = QuotationStatus.Cancelled;
         quotation.Notes = string.IsNullOrEmpty(quotation.Notes) ? $"Cancelled: {reason}" : $"{quotation.Notes}\nCancelled: {reason}";
@@ -243,11 +265,16 @@ public class QuotationActionService : IQuotationActionService
                 InvoiceNumber = numResp.Data!.GeneratedNumber,
                 CustomerId = quotation.CustomerId,
                 InvoiceDate = DateTime.UtcNow,
+                DueDate = quotation.ValidUntil > DateTime.UtcNow ? quotation.ValidUntil : DateTime.UtcNow.AddDays(30),
+                Reference = quotation.QuoteNumber,
+                QuotationId = quotation.Id,
                 Subtotal = quotation.Subtotal,
                 DiscountAmount = quotation.DiscountAmount,
                 TaxAmount = quotation.TaxAmount,
                 ChargesAmount = quotation.ChargesAmount,
                 TotalAmount = quotation.TotalAmount,
+                PaidAmount = 0m,
+                BalanceAmount = quotation.TotalAmount,
                 Notes = quotation.Notes,
                 TermsAndConditions = quotation.TermsAndConditions,
                 Status = "Draft",

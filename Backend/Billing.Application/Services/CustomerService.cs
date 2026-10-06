@@ -15,6 +15,10 @@ public class CustomerService : ICustomerService
         @"^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$",
         RegexOptions.Compiled);
 
+    private static IEnumerable<Invoice> BillableInvoices(Customer customer) => customer.Invoices.Where(i =>
+        i.TenantId == customer.TenantId && !new[] { "Draft", "Cancelled", "Void" }.Contains(i.Status, StringComparer.OrdinalIgnoreCase));
+    private static decimal Outstanding(Customer customer) => BillableInvoices(customer).Sum(i => Math.Max(0, i.BalanceAmount));
+
     private readonly ICustomerRepository _customerRepository;
 
     public CustomerService(ICustomerRepository customerRepository)
@@ -393,16 +397,21 @@ public class CustomerService : ICustomerService
             Addresses = customer.Addresses.Select(MapAddressToDto).ToList(),
             FinancialSummary = new CustomerFinancialSummaryDto
             {
-                TotalInvoiced = 0.00m,
-                TotalPaid = 0.00m,
-                OutstandingBalance = 0.00m,
+                TotalInvoiced = BillableInvoices(customer).Sum(i => i.TotalAmount),
+                TotalPaid = BillableInvoices(customer).Sum(i => i.PaidAmount),
+                OutstandingBalance = Outstanding(customer),
                 CreditLimit = 0.00m,
                 Currency = customer.Currency,
-                TotalInvoicesCount = 0,
-                OpenInvoicesCount = 0,
-                OverdueInvoicesCount = 0
+                TotalInvoicesCount = customer.Invoices.Count(i => i.TenantId == customer.TenantId),
+                OpenInvoicesCount = BillableInvoices(customer).Count(i => i.BalanceAmount > 0),
+                OverdueInvoicesCount = BillableInvoices(customer).Count(i => i.BalanceAmount > 0 && i.DueDate < DateTime.UtcNow.Date)
             },
-            Invoices = new List<CustomerInvoiceSummaryDto>(),
+            Invoices = customer.Invoices.Where(i => i.TenantId == customer.TenantId).OrderBy(i => i.DueDate).Select(i => new CustomerInvoiceSummaryDto
+            {
+                Id = i.Id, InvoiceNumber = i.InvoiceNumber, IssueDate = i.InvoiceDate,
+                DueDate = i.DueDate ?? i.InvoiceDate, TotalAmount = i.TotalAmount,
+                AmountPaid = i.PaidAmount, BalanceDue = i.BalanceAmount, Status = i.Status, Currency = customer.Currency
+            }).ToList(),
             Payments = new List<CustomerPaymentSummaryDto>()
         };
 
@@ -426,7 +435,7 @@ public class CustomerService : ICustomerService
             TotalCustomers = totalCount,
             ActiveCustomers = activeCount,
             InactiveCustomers = inactiveCount,
-            TotalOutstanding = 0.00m,
+            TotalOutstanding = allItems.Sum(Outstanding),
             Currency = "INR"
         };
 
@@ -591,7 +600,7 @@ public class CustomerService : ICustomerService
             Website = customer.Website,
             Notes = customer.Notes,
             Currency = customer.Currency,
-            OutstandingBalance = 0.00m,
+            OutstandingBalance = Outstanding(customer),
             PaymentTerms = customer.PaymentTerms,
             Status = customer.Status,
             IsActive = customer.IsActive,

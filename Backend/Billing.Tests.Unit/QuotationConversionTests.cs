@@ -55,8 +55,11 @@ public class QuotationConversionTests
         var numResp = ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto { GeneratedNumber = "INV-001" }, "Success");
         _mockNumberGen.Setup(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), 1)).ReturnsAsync(numResp);
 
+        Invoice? capturedInvoice = null;
         var savedInvoice = new Invoice { Id = 500 };
-        _mockInvoiceRepo.Setup(r => r.AddAsync(It.IsAny<Invoice>())).ReturnsAsync(savedInvoice);
+        _mockInvoiceRepo.Setup(r => r.AddAsync(It.IsAny<Invoice>()))
+            .Callback<Invoice>(inv => capturedInvoice = inv)
+            .ReturnsAsync(savedInvoice);
 
         // Act
         var result = await _service.ConvertToInvoiceAsync(1, 1, "user1");
@@ -66,6 +69,12 @@ public class QuotationConversionTests
         Assert.Equal(500, result.Data);
         Assert.Equal(QuotationStatus.Converted, q.Status);
         Assert.Equal(500, q.ConvertedInvoiceId);
+        
+        Assert.NotNull(capturedInvoice);
+        Assert.Equal(1, capturedInvoice.QuotationId);
+        Assert.Equal(110m, capturedInvoice.BalanceAmount);
+        Assert.Equal(110m, capturedInvoice.TotalAmount);
+        Assert.Equal("Draft", capturedInvoice.Status);
         
         _mockUow.Verify(u => u.BeginTransactionAsync(), Times.Once);
         _mockInvoiceRepo.Verify(r => r.AddAsync(It.IsAny<Invoice>()), Times.Once);

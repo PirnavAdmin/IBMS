@@ -1,0 +1,22 @@
+[
+  {
+    "endpoint": "/api/v1/invoices",
+    "status": 401
+  },
+  {
+    "endpoint": "/api/v1/invoices/summary",
+    "status": 401
+  },
+  {
+    "endpoint": "/api/v1/settings/numbering?documentType=Invoice",
+    "status": 401
+  },
+  {
+    "endpoint": "/api/v1/customers",
+    "status": 401
+  },
+  {
+    "endpoint": "/api/v1/products",
+    "status": 401
+  }
+]

@@ -12,15 +12,18 @@ public class QuotationService : IQuotationService
     private readonly IQuotationRepository _quotationRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly INumberGenerationService _numberGenerationService;
+    private readonly IAuditLogRepository? _auditLogRepository;
 
     public QuotationService(
         IQuotationRepository quotationRepository,
         ICustomerRepository customerRepository,
-        INumberGenerationService numberGenerationService)
+        INumberGenerationService numberGenerationService,
+        IAuditLogRepository? auditLogRepository = null)
     {
         _quotationRepository = quotationRepository;
         _customerRepository = customerRepository;
         _numberGenerationService = numberGenerationService;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<ApiResponse<PagedResult<QuotationResponse>>> GetPagedListAsync(QuotationListFilterRequest filter, int tenantId)
@@ -180,16 +183,46 @@ public class QuotationService : IQuotationService
         quotation.Subtotal = subtotal;
         quotation.DiscountAmount = totalDiscount;
         quotation.TaxAmount = totalTax;
-        quotation.ChargesAmount = 0m;
-        quotation.TotalAmount = subtotal - totalDiscount + totalTax;
+        quotation.ChargesAmount = request.ChargesAmount ?? 0m;
+        quotation.TotalAmount = subtotal - totalDiscount + totalTax + quotation.ChargesAmount;
 
         await _quotationRepository.AddAsync(quotation);
         quotation.Customer = customer;
 
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                CustomerId = quotation.CustomerId,
+                EntityName = "Quotation",
+                EntityId = quotation.Id.ToString(),
+                Action = "Created",
+                UserName = userId ?? "system",
+                Changes = $"Quotation draft {quotation.QuoteNumber} created.",
+                Timestamp = DateTime.UtcNow
+            });
+
+            if (totalDiscount > 0)
+            {
+                await _auditLogRepository.AddAsync(new AuditLog
+                {
+                    TenantId = tenantId,
+                    CustomerId = quotation.CustomerId,
+                    EntityName = "Quotation",
+                    EntityId = quotation.Id.ToString(),
+                    Action = "Discount Override",
+                    UserName = userId ?? "system",
+                    Changes = $"Discount applied: {totalDiscount:F2}",
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+        }
+
         return ApiResponse<QuotationDetailResponse>.Ok(MapToDetailResponse(quotation), "Quotation draft created successfully.");
     }
 
-    public async Task<ApiResponse<QuotationDetailResponse>> UpdateDraftAsync(int id, UpdateQuotationRequest request, int tenantId)
+    public async Task<ApiResponse<QuotationDetailResponse>> UpdateDraftAsync(int id, UpdateQuotationRequest request, int tenantId, string? userId = null)
     {
         if (tenantId <= 0)
         {
@@ -304,10 +337,43 @@ public class QuotationService : IQuotationService
         quotation.Subtotal = subtotal;
         quotation.DiscountAmount = totalDiscount;
         quotation.TaxAmount = totalTax;
+        quotation.ChargesAmount = request.ChargesAmount ?? 0m;
         quotation.TotalAmount = subtotal - totalDiscount + totalTax + quotation.ChargesAmount;
+        quotation.UpdatedAtUtc = DateTime.UtcNow;
+        quotation.RowVersion = DateTime.UtcNow;
 
         await _quotationRepository.UpdateAsync(quotation);
         quotation.Customer = customer;
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                CustomerId = quotation.CustomerId,
+                EntityName = "Quotation",
+                EntityId = quotation.Id.ToString(),
+                Action = "Edited",
+                UserName = userId ?? "system",
+                Changes = $"Quotation draft {quotation.QuoteNumber} updated.",
+                Timestamp = DateTime.UtcNow
+            });
+
+            if (totalDiscount > 0)
+            {
+                await _auditLogRepository.AddAsync(new AuditLog
+                {
+                    TenantId = tenantId,
+                    CustomerId = quotation.CustomerId,
+                    EntityName = "Quotation",
+                    EntityId = quotation.Id.ToString(),
+                    Action = "Discount Override",
+                    UserName = userId ?? "system",
+                    Changes = $"Discount applied: {totalDiscount:F2}",
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+        }
 
         return ApiResponse<QuotationDetailResponse>.Ok(MapToDetailResponse(quotation), "Quotation draft updated successfully.");
     }
@@ -321,6 +387,7 @@ public class QuotationService : IQuotationService
             QuoteNumber = q.QuoteNumber,
             CustomerId = q.CustomerId,
             CustomerName = q.Customer?.Name ?? string.Empty,
+            CustomerCode = q.Customer?.CustomerCode,
             QuotationDate = q.QuotationDate,
             ValidUntil = q.ValidUntil,
             Reference = q.Reference,
@@ -347,6 +414,7 @@ public class QuotationService : IQuotationService
             QuoteNumber = q.QuoteNumber,
             CustomerId = q.CustomerId,
             CustomerName = q.Customer?.Name ?? string.Empty,
+            CustomerCode = q.Customer?.CustomerCode,
             CustomerEmail = q.Customer?.Email,
             CustomerPhone = q.Customer?.Phone,
             CustomerAddress = q.Customer?.Address,

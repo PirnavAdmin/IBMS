@@ -27,14 +27,14 @@
 .product-summary-card div > span { color: #756763; font-size: 12px; }
 .product-summary-card strong { display: block; font-size: 24px; letter-spacing: -.5px; line-height: 1.25; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .product-panel { background: #fffefd; border: 1px solid #eee2d2; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 22px #69513907; }
-.product-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px; border-bottom: 1px solid #f0e9e4; }
+.product-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f0e9e4; }
 .product-panel-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .product-panel-icon { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; background: #f5efea; color: #8d6e63; border-radius: 10px; }
 .product-panel-title p { margin: 4px 0 0; color: #756763; font-size: 12px; }
 .product-panel-heading .product-result-count { background: #f5efea; color: #5d4037; border: 1px solid #e8ddd7; border-radius: 20px; padding: 5px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .product-panel-heading h2 { font-size: 16px; margin: 0; }
 .product-panel-heading > span { color: #756763; font-size: 12px; }
-.product-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 150px auto; gap: 14px; padding: 24px 22px; }
+.product-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 150px auto; gap: 14px; padding: 14px 16px; }
 .product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #8d6e63; }
 .product-table { max-width: 100%; overflow-x: auto; }
 .product-table table { min-width: 1080px; }
@@ -65,7 +65,7 @@
 .product-badge.active { background: #edf5ef; color: #386449; }
 .product-badge.inactive { background: #f8eeee; color: #945454; }
 .product-badge.active::before, .product-badge.inactive::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.product-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 22px; background: #fffbf5; border-top: 1px solid #eee6e1; }
+.product-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: 12px 16px; background: #fffbf5; border-top: 1px solid #eee6e1; }
 .product-pagination > span { margin-right: auto; font-size: 12px; color: #756763; }
 .product-pagination .MuiTextField-root { width: 115px; }
 .product-pagination .Mui-selected { background-color: #4a2c2a !important; color: white; }
@@ -83,8 +83,59 @@
 /* Keep summary and list edges aligned at the same compact desktop width. */
 @media (min-width: 1101px) {
   .product-page:not(.product-list-page) .product-panel {
-    width: 96%;
+    width: 100%;
     margin-inline: auto;
     box-sizing: border-box;
   }
+}
+
+.product-heading .product-row-actions { flex-wrap: wrap; }
+
+/* Shared catalog controls and their portaled menus. */
+.product-page .MuiInputBase-root:has(.MuiSelect-select),
+.product-form-container .product-themed-select,
+.product-select-menu.MuiPaper-root,
+.product-actions-menu.MuiPaper-root {
+  background: var(--bg-main, #fffaf2);
+  color: var(--text-primary, #2f2523);
+  border-radius: 8px;
+}
+.product-themed-select .MuiSelect-select { font-size: 13.5px; padding: 10px 14px; }
+.product-page .MuiOutlinedInput-notchedOutline,
+.product-form-container .product-themed-select .MuiOutlinedInput-notchedOutline { border-color: var(--border, #dcd1c6); }
+.product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.product-form-container .product-themed-select.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: var(--secondary, #8d6e63); }
+.product-form-container .product-themed-select.Mui-focused { box-shadow: 0 0 0 3px #8d6e6324; }
+.product-form-container .product-themed-select.Mui-error .MuiOutlinedInput-notchedOutline { border-color: #b33927; }
+.product-select-menu.MuiPaper-root,
+.product-actions-menu.MuiPaper-root { border: 1px solid var(--border, #dcd1c6); box-shadow: var(--shadow-card, 0 6px 20px #4a2c2a22); }
+.product-select-menu .MuiMenuItem-root,
+.product-actions-menu .MuiMenuItem-root { transition: background-color 180ms ease; font-size: 13.5px; }
+.product-select-menu .MuiMenuItem-root:hover,
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible,
+.product-actions-menu .MuiMenuItem-root:hover,
+.product-actions-menu .MuiMenuItem-root.Mui-focusVisible { background: #eadcc9; }
+.product-select-menu .MuiMenuItem-root.Mui-selected,
+.product-select-menu .MuiMenuItem-root.Mui-selected:hover,
+.product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible { background: var(--primary, #4a2c2a); color: #fff; }
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible,
+.product-actions-menu .MuiMenuItem-root.Mui-focusVisible { outline: 2px solid var(--secondary, #8d6e63); outline-offset: -2px; }
+.product-actions-menu .MuiMenuItem-root { color: var(--text-primary, #2f2523); min-width: 140px; }
+.product-actions-menu .MuiListItemIcon-root { color: var(--primary, #4a2c2a); }
+.product-page .product-table .MuiTableRow-hover:hover { background: #f1e5d4; }
+.product-page .product-summary-card { transition: background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; }
+.product-page .product-summary-card:hover { background: #f1e5d4; border-color: #c5a98a; box-shadow: 0 4px 12px #4a2c2a16; }
+.product-page .MuiButton-root,
+.product-page .MuiIconButton-root,
+.product-form-container .MuiButton-root,
+.product-form-container .product-themed-select { transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.product-page .MuiButton-text:hover,
+.product-page .MuiButton-outlined:hover,
+.product-page .product-action-overflow:hover,
+.product-form-container .MuiButton-outlined:hover,
+.product-form-container .product-themed-select:not(.Mui-disabled):hover { background: #eadcc9; border-color: #bfa58b; }
+.product-page .product-action-overflow { color: var(--primary, #4a2c2a); }
+.product-page .product-name:hover { background: #eadcc9; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .product-select-menu *, .product-actions-menu *, .product-form-container * { transition: none !important; }
 }

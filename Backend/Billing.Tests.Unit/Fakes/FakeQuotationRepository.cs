@@ -57,6 +57,19 @@ public class FakeQuotationRepository : IQuotationRepository
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(filter.Validity) && !string.Equals(filter.Validity, "All", StringComparison.OrdinalIgnoreCase))
+        {
+            var now = DateTime.UtcNow;
+            if (string.Equals(filter.Validity, "Valid", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(q => q.ValidUntil >= now);
+            }
+            else if (string.Equals(filter.Validity, "Expired", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(q => q.ValidUntil < now);
+            }
+        }
+
         if (filter.CustomerId.HasValue && filter.CustomerId.Value > 0)
         {
             query = query.Where(q => q.CustomerId == filter.CustomerId.Value);

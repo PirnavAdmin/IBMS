@@ -3,7 +3,15 @@ import { History, Search, PersonOutline } from '@mui/icons-material';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];
 const eventKey = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
-function eventLabel(action) {
+function eventLabel(action, description = '') {
+  const detail = String(description || '');
+  const statusMatch = detail.match(/status changed to\s+(draft|sent|approved|cancelled|canceled|converted)/i);
+  if (statusMatch) {
+    const status = statusMatch[1].toLowerCase();
+    return status === 'draft' ? 'Created' : status === 'canceled' ? 'Cancelled' : status[0].toUpperCase() + status.slice(1);
+  }
+  if (/converted to invoice/i.test(detail)) return 'Converted';
+  if (/discount\s+(applied|override)/i.test(detail)) return 'Discount Override';
   const key = eventKey(action);
   if (['statuschange', 'statuschanged', 'statuschanges'].includes(key)) return 'Status Changes';
   return events.find(event => eventKey(event) === key) || action || 'Activity';
@@ -28,7 +36,17 @@ export function QuotationAudit({ entries = [] }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [order, setOrder] = useState('newest');
-  const rows = entries.map(entry => ({ ...entry, label: eventLabel(entry.action) }));
+  const rows = entries.map(entry => {
+    const action = entry.action || entry.label || '';
+    const desc = entry.description || entry.changes || '';
+    const label = eventLabel(action, desc);
+    const description = label === 'Converted'
+      ? String(desc || '').replace(/^Converted to Invoice\s+#?\d+\s*$/i, 'Converted to Invoice')
+      : desc;
+    const date = entry.date || entry.timestamp;
+    const user = entry.user || entry.userName;
+    return { ...entry, label, description, date, user, action };
+  });
   const query = search.trim().toLowerCase();
   const visible = rows.filter(entry => (filter === 'All' || entry.label === filter)
     && `${entry.label} ${userLabel(entry.user)} ${entry.description || ''}`.toLowerCase().includes(query))
@@ -37,9 +55,10 @@ export function QuotationAudit({ entries = [] }) {
   return <section className="quote-card quote-audit-panel" aria-labelledby="quote-audit-title">
     <div className="quote-audit-heading">
       <div className="quote-audit-title"><span className="quote-audit-symbol"><History /></span><div>
-        <h2 id="quote-audit-title">Audit trail</h2>
+        <h2 id="quote-audit-title">Audit trail <span className="quote-audit-count">{entries.length}</span></h2>
         <p>A record of activity and changes to this quotation.</p>
       </div></div>
+      <span className="quote-audit-timezone">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
     </div>
     <div className="quote-audit-filters" aria-label="Filter audit events">
       {['All', ...events].map(event => <button key={event} type="button" aria-pressed={filter === event}

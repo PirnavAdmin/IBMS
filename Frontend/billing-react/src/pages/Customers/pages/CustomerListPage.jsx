@@ -1,42 +1,174 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Avatar, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, Tooltip, MenuItem, Pagination, PaginationItem, Skeleton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
-import { Add, CheckCircleOutline, GroupOutlined, VisibilityOutlined, EditOutlined, ReceiptLongOutlined, PersonOffOutlined, Search, AccountBalanceWalletOutlined } from '@mui/icons-material';
-import { useCustomers, useCustomerStatus, useCustomerSummary } from '../hooks/useCustomers';
+import { CustomerCardDetails } from "../components/CustomerCardDetails";
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
+import { useEffect, useRef, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  InputAdornment,
+  Tooltip,
+  MenuItem,
+  Pagination,
+  PaginationItem,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  TextField,
+} from "@mui/material";
+import {
+  Add,
+  CheckCircleOutline,
+  GroupOutlined,
+  EditOutlined,
+  VisibilityOutlined,
+  PrintOutlined,
+  PersonOffOutlined,
+  Search,
+  AccountBalanceWalletOutlined,
+} from "@mui/icons-material";
+import {
+  useCustomers,
+  useCustomerStatus,
+  useCustomerSummary,
+} from "../hooks/useCustomers";
 
-import { useSearchCommit } from '../../../hooks/useSearchDebounce';
-import { customerCapabilities } from '../api/customerContract';
-import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
-import '../styles/customer-list.css';
+import { useSearchCommit } from "../../../hooks/useSearchDebounce";
+import { customerCapabilities } from "../api/customerContract";
+import { DashboardErrorState } from "../../../components/dashboard/DashboardStates";
+import "../styles/customer-list.css";
 
-export const money = (value) => value == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
-export const StatusChip = ({ status }) => !['active', 'inactive'].includes(status) ? <span>—</span> : <span className={`customer-status ${status}`}><i />{status}</span>;
+export const money = (value) =>
+  value == null
+    ? "—"
+    : new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 2,
+      }).format(value);
+export const StatusChip = ({ status }) =>
+  !["active", "inactive"].includes(status) ? (
+    <span>—</span>
+  ) : (
+    <span className={`customer-status ${status}`}>
+      <i />
+      {status}
+    </span>
+  );
 const moneyWithCurrency = (value, currency) => {
-  if (value == null || !Number.isFinite(value) || !currency?.trim()) return '—';
-  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency.trim().toUpperCase(), maximumFractionDigits: 2 }).format(value); }
-  catch { return '—'; }
+  if (value == null || !Number.isFinite(value) || !currency?.trim()) return "—";
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: currency.trim().toUpperCase(),
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return "—";
+  }
 };
 const filterOptions = {
-  status: { label: 'Customer status', values: [['active', 'Active'], ['inactive', 'Inactive']] },
-  customerType: { label: 'Customer type', values: [['Individual', 'Individual'], ['Business', 'Business'], ['Organization', 'Organization']] },
-  taxRegistration: { label: 'Tax registration', values: [['Registered', 'Registered'], ['Unregistered', 'Unregistered']] },
-  outstanding: { label: 'Outstanding', values: [['Has Outstanding', 'Has Outstanding'], ['No Outstanding', 'No Outstanding']] },
+  status: {
+    label: "Customer status",
+    values: [
+      ["active", "Active"],
+      ["inactive", "Inactive"],
+    ],
+  },
+  customerType: {
+    label: "Customer type",
+    values: [
+      ["Individual", "Individual"],
+      ["Business", "Business"],
+      ["Organization", "Organization"],
+    ],
+  },
+  taxRegistration: {
+    label: "Tax registration",
+    values: [
+      ["Registered", "Registered"],
+      ["Unregistered", "Unregistered"],
+    ],
+  },
+  outstanding: {
+    label: "Outstanding",
+    values: [
+      ["Has Outstanding", "Has Outstanding"],
+      ["No Outstanding", "No Outstanding"],
+    ],
+  },
 };
-const columns = [['customerCode', 'Customer code'], ['name', 'Customer'], ['customerType', 'Type'], ['', 'Tax ID / GSTIN'], ['', 'Contact'], ['outstandingBalance', 'Outstanding'], ['status', 'Status'], ['', 'Actions']];
+const columns = [
+  ["customerCode", "Customer code"],
+  ["name", "Customer"],
+  ["customerType", "Type"],
+  ["", "Tax ID / GSTIN"],
+  ["", "Contact"],
+  ["outstandingBalance", "Outstanding"],
+  ["status", "Status"],
+  ["", "Actions"],
+];
 export function CustomerListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const summaryQuery = useCustomerSummary();
   const [url, setUrl] = useSearchParams();
-  const params = { page: Math.max(1, Number(url.get('page')) || 1), pageSize: [10, 25, 50, 100].includes(Number(url.get('pageSize'))) ? Number(url.get('pageSize')) : 10,
-    taxId: url.get('taxId') || '', search: url.get('search') || '', sortBy: ['customerCode', 'name'].includes(url.get('sortBy')) ? url.get('sortBy') : 'customerCode', sortOrder: url.get('sortOrder') === 'desc' ? 'desc' : 'asc',
-    ...Object.fromEntries(Object.entries(filterOptions).map(([key, option]) => [key, option.values.some(([value]) => value === url.get(key)) ? url.get(key) : ''])) };
+  const params = {
+    page: Math.max(1, Number(url.get("page")) || 1),
+    pageSize: [10, 25, 50, 100].includes(Number(url.get("pageSize")))
+      ? Number(url.get("pageSize"))
+      : 10,
+    taxId: url.get("taxId") || "",
+    search: url.get("search") || "",
+    sortBy: ["customerCode", "name"].includes(url.get("sortBy"))
+      ? url.get("sortBy")
+      : "customerCode",
+    sortOrder: url.get("sortOrder") === "desc" ? "desc" : "asc",
+    ...Object.fromEntries(
+      Object.entries(filterOptions).map(([key, option]) => [
+        key,
+        option.values.some(([value]) => value === url.get(key))
+          ? url.get(key)
+          : "",
+      ])
+    ),
+  };
   const [search, setSearch] = useState(params.search);
   const [taxId, setTaxId] = useState(params.taxId);
-  const change = (values) => setUrl(previous => { const next = new URLSearchParams(previous); Object.entries(values).forEach(([key, value]) => value ? next.set(key, String(value)) : next.delete(key)); return next; }, { replace: true });
-  useEffect(() => { setSearch(params.search); }, [params.search]);
-  useEffect(() => { setTaxId(params.taxId); }, [params.taxId]);
-  useSearchCommit(JSON.stringify([search.trim(), taxId.trim()]), value => {
+  const change = (values) =>
+    setUrl(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        Object.entries(values).forEach(([key, value]) =>
+          value ? next.set(key, String(value)) : next.delete(key)
+        );
+        return next;
+      },
+      { replace: true }
+    );
+  useEffect(() => {
+    setSearch(params.search);
+  }, [params.search]);
+  useEffect(() => {
+    setTaxId(params.taxId);
+  }, [params.taxId]);
+  useSearchCommit(JSON.stringify([search.trim(), taxId.trim()]), (value) => {
     const [nextSearch, nextTaxId] = JSON.parse(value);
     if (nextSearch !== params.search || nextTaxId !== params.taxId) {
       change({ search: nextSearch, taxId: nextTaxId, page: 1 });
@@ -46,63 +178,563 @@ export function CustomerListPage() {
   const mutation = useCustomerStatus();
   const statusLock = useRef(false);
   const [confirm, setConfirm] = useState(null);
-  const [notice, setNotice] = useState(location.state?.customerNotice || '');
-  useEffect(() => { if (location.state?.customerNotice) navigate(location.pathname + location.search, { replace: true, state: null }); }, [location.state, location.pathname, location.search, navigate]);
+  const [reason, setReason] = useState("");
+  const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
+  const selectCard = (view) => {
+    setSearch(""); setTaxId("");
+    setUrl(view === "total" ? {} : view === "outstanding" ? { outstanding: "Has Outstanding" } : { status: view });
+  };
+  const [notice, setNotice] = useState(location.state?.customerNotice || "");
+  useEffect(() => {
+    if (location.state?.customerNotice)
+      navigate(location.pathname + location.search, {
+        replace: true,
+        state: null,
+      });
+  }, [location.state, location.pathname, location.search, navigate]);
   const data = query.data;
   const visibleCustomers = data?.items || [];
-  const reset = () => { setSearch(''); setTaxId(''); setUrl({}); };
-  const filtered = !!params.taxId || params.sortBy !== 'customerCode' || params.sortOrder !== 'asc' || !!params.search || Object.keys(filterOptions).some(key => !!params[key]);
-  return <main className="customers-page">
-    <nav className="customers-breadcrumb" aria-label="Breadcrumb"><strong aria-current="page">Customers</strong></nav>
-    <header className="customers-heading"><div><h1>Customers</h1><p>Manage customer profiles, billing information and account activity.</p></div><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/customers/create')}>Create Customer</Button></header>
-    <section className="customer-stats" aria-label="Customer summary">{[
-      { label: 'Total Customers', value: summaryQuery.data?.total, text: 'Your customer network', icon: <GroupOutlined />, tone: 'brown' },
-      { label: 'Active Customers', value: summaryQuery.data?.active, text: 'Ready for new invoices', icon: <CheckCircleOutline />, tone: 'green' },
-      { label: 'Inactive Customers', value: summaryQuery.data?.inactive, text: 'History safely retained', icon: <PersonOffOutlined />, tone: 'gray' },
-      { label: 'Total Outstanding', value: summaryQuery.data ? moneyWithCurrency(summaryQuery.data.outstanding, summaryQuery.data.currency) : undefined, text: 'Across all customers', icon: <AccountBalanceWalletOutlined />, tone: 'orange' },
-    ].map(stat => <article key={stat.label} className={`customer-stat ${stat.tone}`}><div className="customer-stat-top"><span>{stat.label}</span><span className="customer-stat-icon">{stat.icon}</span></div><strong>{summaryQuery.isLoading ? <Skeleton width="60%" /> : stat.value ?? '—'}</strong><small>{stat.text}</small></article>)}</section>
-    {summaryQuery.isError && !query.isError && <DashboardErrorState title="Unable to load customer summary" message={summaryQuery.error.message} onRetry={() => summaryQuery.refetch()} />}
-    <section className="customer-panel">
-      <div className="customer-panel-heading"><div><h2>Customer directory <span>{data?.totalCount ?? '—'}</span></h2><p>All your customer relationships, in one place.</p></div></div>
-      <div className="customer-filters"><TextField disabled={!customerCapabilities.search} className="customer-search" size="small" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name, code, email or mobile…" inputProps={{ 'aria-label': 'Search customers' }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-        <div className="customer-filter-row">{Object.entries(filterOptions).map(([key, option]) => <TextField select size="small" label={option.label} key={key} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }} value={params[key] || ''} onChange={event => change({ [key]: event.target.value, page: 1 })}><MenuItem value="">All</MenuItem>{option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField>)}<TextField size="small" label="Tax ID / GST / VAT ID" value={taxId} onChange={event => setTaxId(event.target.value)} /><Button onClick={reset} disabled={!filtered && !search && !taxId && !url.toString()}>Reset filters</Button></div>
-        <div className="customer-compact-sort" aria-label="Customer sorting">
-          <TextField select size="small" label="Sort customers by" value={params.sortBy} onChange={event => change({ sortBy: event.target.value, page: 1 })} disabled={!customerCapabilities.sorting}>
-            <MenuItem value="customerCode">Customer code</MenuItem>
-            <MenuItem value="name">Customer name</MenuItem>
-          </TextField>
-          <TextField select size="small" label="Sort order" value={params.sortOrder} onChange={event => change({ sortOrder: event.target.value, page: 1 })} disabled={!customerCapabilities.sorting}>
-            <MenuItem value="asc">Ascending</MenuItem>
-            <MenuItem value="desc">Descending</MenuItem>
-          </TextField>
+  const reset = () => {
+    setSearch("");
+    setTaxId("");
+    setUrl({});
+  };
+  const filtered =
+    !!params.taxId ||
+    params.sortBy !== "customerCode" ||
+    params.sortOrder !== "asc" ||
+    !!params.search ||
+    Object.keys(filterOptions).some((key) => !!params[key]);
+  return (
+    <main className="customers-page">
+      <nav className="customers-breadcrumb" aria-label="Breadcrumb">
+        <strong aria-current="page">Customers</strong>
+      </nav>
+      <header className="customers-heading">
+        <div>
+          <h1>Customers</h1>
+          <p>
+            Manage customer profiles, billing information and account activity.
+          </p>
         </div>
-        {filtered && <div className="customer-filter-chips">{params.taxId && <Chip size="small" label={`Tax ID: ${params.taxId}`} onDelete={() => { setTaxId(''); change({ taxId: '', page: 1 }); }} />}{params.search && <Chip size="small" label={`Search: ${params.search}`} onDelete={() => { setSearch(''); change({ search: '', page: 1 }); }} />}{Object.entries(filterOptions).filter(([key]) => params[key]).map(([key, option]) => <Chip key={key} size="small" label={`${option.label}: ${option.values.find(([v]) => v === params[key])?.[1]}`} onDelete={() => change({ [key]: '', page: 1 })} />)}</div>}
-      </div>
-      <div className="customer-progress">{query.isFetching && <LinearProgress />}</div>
-      {query.isError ? <DashboardErrorState title="Unable to load customers" message={query.error.message} onRetry={() => { query.refetch(); if (summaryQuery.isError) summaryQuery.refetch(); }} /> : query.isLoading ? <div className="customer-skeleton">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} height={65} />)}</div> : !data?.items.length ? <div className="customer-empty"><GroupOutlined /><h2>{filtered ? 'No matching records found' : 'No customers found'}</h2><p>{filtered ? 'No customers match your current search or filters.' : 'Add your first customer to start billing.'}</p><Button variant="outlined" onClick={() => filtered ? reset() : navigate('/customers/create')}>{filtered ? 'Clear Filters' : 'Create Customer'}</Button></div> : <>
-      <TableContainer className="customer-table"><Table size="small" aria-label="Customer directory"><TableHead><TableRow>{columns.map(([key, label], index) => <TableCell key={index} sortDirection={params.sortBy === key ? params.sortOrder : false} align={key === 'outstandingBalance' ? 'right' : 'left'}>{['customerCode', 'name'].includes(key) ? <TableSortLabel disabled={!customerCapabilities.sorting} active={!!params.sortBy && params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => customerCapabilities.sorting && change({ sortBy: key, sortOrder: params.sortBy === key && params.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 })}>{label}</TableSortLabel> : label || <span className="customer-sr-only">Actions</span>}</TableCell>)}</TableRow></TableHead><TableBody>{visibleCustomers.map(customer => <TableRow key={customer.id} hover>
-        <TableCell data-label="Code"><span className="customer-code">{(customer.customerCode || '').trim() || '—'}</span></TableCell>
-        <TableCell data-label="Customer"><div className="customer-identity"><Avatar className={`customer-avatar tone-${Number((customer.customerCode || '').slice(-1)) % 3}`}>{(customer.name || '').split(' ').slice(0, 2).map(n => n[0]).join('')}</Avatar><div><Link to={`/customers/${customer.id}`}>{(customer.name || '').trim() || '—'}</Link><small>{(customer.companyName || '').trim() || '—'}</small></div></div></TableCell>
-        <TableCell data-label="Type"><span className="customer-type">{customer.customerType || '—'}</span></TableCell>
-        <TableCell data-label="Tax ID"><div className="customer-tax"><small>{(customer.gstin || '').trim() ? 'GSTIN' : (customer.taxId || '').trim() ? 'PAN / Tax ID' : '—'}</small>{(customer.gstin || '').trim() || (customer.taxId || '').trim() || '—'}</div></TableCell>
-        <TableCell data-label="Contact"><div className="customer-contact">{(customer.email || '').trim() ? <a href={`mailto:${(customer.email || '').trim()}`}>{customer.email}</a> : <span>—</span>}<small>{(customer.mobile || '').trim() || '—'}</small></div></TableCell>
-        <TableCell data-label="Outstanding" align="right"><strong className={(customer.outstandingBalance ?? 0) > 0 ? 'customer-balance due' : 'customer-balance'}>{moneyWithCurrency(customer.outstandingBalance, customer.currency)}</strong></TableCell>
-        <TableCell data-label="Status"><StatusChip status={customer.status} /></TableCell>
-        <TableCell data-label="Actions"><div className="customer-row-actions" role="group" aria-label={`Actions for ${customer.name}`}>
-          <Tooltip title="View details"><IconButton className="action-view" size="small" aria-label={`View ${customer.name}`} onClick={() => navigate(`/customers/${customer.id}`)}><VisibilityOutlined /></IconButton></Tooltip>
-          <Tooltip title="Edit customer"><IconButton className="action-edit" size="small" aria-label={`Edit ${customer.name}`} onClick={() => navigate(`/customers/${customer.id}/edit`)}><EditOutlined /></IconButton></Tooltip>
-          <Tooltip title={customer.status === 'inactive' ? 'Inactive customers cannot receive new invoices' : 'Create invoice'}><span><IconButton className="action-invoice" size="small" disabled={customer.status !== 'active'} aria-label={`Create invoice for ${customer.name}`} onClick={() => navigate(`/invoices/new?customerId=${customer.id}`)}><ReceiptLongOutlined /></IconButton></span></Tooltip>
-          {customer.status === 'active' && <Tooltip title="Deactivate customer"><IconButton className="action-deactivate" size="small" aria-label={`Deactivate ${customer.name}`} onClick={() => { mutation.reset(); setConfirm(customer); }}><PersonOffOutlined /></IconButton></Tooltip>}
-        </div></TableCell>
-      </TableRow>)}</TableBody></Table></TableContainer>
-      <footer className="customer-pagination">
-        <span role="status">Showing {data.totalCount ? (data.page - 1) * data.pageSize + 1 : 0}&ndash;{Math.min(data.page * data.pageSize, data.totalCount)} of {data.totalCount} customers</span>
-        <TextField disabled={query.isFetching} select size="small" label="Rows per page" value={params.pageSize} onChange={event => change({ pageSize: event.target.value, page: 1 })}>{[10, 25, 50, 100].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}</TextField>
-        <Pagination aria-label="Customer pages" count={Math.max(1, data.totalPages)} page={data.page} onChange={(_, page) => change({ page })} disabled={query.isFetching} shape="rounded" color="primary" renderItem={item => <PaginationItem {...item} slots={{ previous: () => <span>Previous</span>, next: () => <span>Next</span> }} />} />
-      </footer>
-      </>}
-    </section>
-    <Dialog open={!!confirm} onClose={() => !mutation.isPending && setConfirm(null)} fullWidth maxWidth="xs"><DialogTitle>Deactivate Customer?</DialogTitle><DialogContent><p>Are you sure you want to deactivate “{confirm?.name}”?</p><p className="customer-dialog-note">The customer will become inactive. Existing invoices, payments and historical records will be preserved.</p>{mutation.isError && <Alert severity="error">Unable to update customer. {mutation.error?.message}</Alert>}</DialogContent><DialogActions><Button disabled={mutation.isPending} onClick={() => setConfirm(null)}>Cancel</Button><Button variant="contained" disabled={mutation.isPending} onClick={() => { if (!confirm || statusLock.current) return; statusLock.current = true; mutation.mutate(confirm, { onSuccess: () => { setNotice(`Customer deactivated successfully.`); setConfirm(null); }, onSettled: () => { statusLock.current = false; } }); }}>{mutation.isPending ? 'Saving…' : 'Deactivate'}</Button></DialogActions></Dialog>
-    <Snackbar open={!!notice} autoHideDuration={4000} onClose={() => setNotice('')}><Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert></Snackbar>
-  </main>;
+        <div className="customers-heading-actions">
+          <Tooltip title="Print current customer page">
+            <Button
+              aria-label="Print current customer page"
+              onClick={() => window.print()}
+              variant="outlined"
+              startIcon={<PrintOutlined />}
+            >
+              Print
+            </Button>
+          </Tooltip>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate("/customers/create")}
+          >
+            Create Customer
+          </Button>
+        </div>
+      </header>
+      <section className="customer-stats" aria-label="Customer summary">
+        {[
+          {
+            label: "Total Customers",
+            view: "total",
+            value: summaryQuery.data?.total,
+            text: "Your customer network",
+            icon: <GroupOutlined />,
+            tone: "brown",
+          },
+          {
+            label: "Active Customers",
+            view: "active",
+            value: summaryQuery.data?.active,
+            text: "Ready for new invoices",
+            icon: <CheckCircleOutline />,
+            tone: "green",
+          },
+          {
+            label: "Inactive Customers",
+            view: "inactive",
+            value: summaryQuery.data?.inactive,
+            text: "History safely retained",
+            icon: <PersonOffOutlined />,
+            tone: "gray",
+          },
+          {
+            label: "Total Outstanding",
+            view: "outstanding",
+            value: summaryQuery.data
+              ? moneyWithCurrency(
+                  summaryQuery.data.outstanding,
+                  summaryQuery.data.currency
+                )
+              : undefined,
+            text: "Across all customers",
+            icon: <AccountBalanceWalletOutlined />,
+            tone: "orange",
+          },
+        ].map((stat) => (
+          <button type="button" key={stat.label} className={`customer-stat ${stat.tone}`} aria-pressed={cardView === stat.view} onClick={() => selectCard(stat.view)}>
+            <div className="customer-stat-top">
+              <span>{stat.label}</span>
+              <span className="customer-stat-icon">{stat.icon}</span>
+            </div>
+            <strong>
+              {summaryQuery.isLoading ? (
+                <Skeleton width="60%" />
+              ) : (
+                stat.value ?? "—"
+              )}
+            </strong>
+            <small>{stat.text}</small>
+          </button>
+        ))}
+      </section>
+      <section className="customer-panel">
+        <div className="customer-panel-heading">
+          <div>
+            <h2>
+              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"} <span>{data?.totalCount ?? "—"}</span>
+            </h2>
+            <p>{cardView === "inactive" ? "Review each inactive profile, its recorded reason and deactivation details." : cardView === "outstanding" ? "Unpaid invoices are listed by due date, earliest first." : "Select a customer name to view their profile and transactions."}</p>
+          </div>
+          {(query.isError || summaryQuery.isError) && (
+            <span className="customer-result-count unavailable" role="status">
+              {query.isError ? "Directory unavailable" : "Summary unavailable"}
+            </span>
+          )}
+        </div>
+        <div className="customer-filters">
+          <TextField
+            disabled={!customerCapabilities.search}
+            className="customer-search"
+            size="small"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by name, code, email or mobile…"
+            inputProps={{ "aria-label": "Search customers" }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <div className="customer-filter-row">
+            {Object.entries(filterOptions).map(([key, option]) => (
+              <TextField
+                select
+                size="small"
+                label={option.label}
+                key={key}
+                InputLabelProps={{ shrink: true }}
+                SelectProps={{ displayEmpty: true }}
+                value={params[key] || ""}
+                onChange={(event) =>
+                  change({ [key]: event.target.value, page: 1 })
+                }
+              >
+                <MenuItem value="">All</MenuItem>
+                {option.values.map(([value, label]) => (
+                  <MenuItem key={value} value={value}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ))}
+            <TextField
+              size="small"
+              label="Tax ID / GST / VAT ID"
+              value={taxId}
+              onChange={(event) => setTaxId(event.target.value)}
+            />
+            <Button
+              onClick={reset}
+              disabled={!filtered && !search && !taxId && !url.toString()}
+            >
+              Reset filters
+            </Button>
+          </div>
+          <div className="customer-compact-sort" aria-label="Customer sorting">
+            <TextField
+              select
+              size="small"
+              label="Sort customers by"
+              value={params.sortBy}
+              onChange={(event) =>
+                change({ sortBy: event.target.value, page: 1 })
+              }
+              disabled={!customerCapabilities.sorting}
+            >
+              <MenuItem value="customerCode">Customer code</MenuItem>
+              <MenuItem value="name">Customer name</MenuItem>
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Sort order"
+              value={params.sortOrder}
+              onChange={(event) =>
+                change({ sortOrder: event.target.value, page: 1 })
+              }
+              disabled={!customerCapabilities.sorting}
+            >
+              <MenuItem value="asc">Ascending</MenuItem>
+              <MenuItem value="desc">Descending</MenuItem>
+            </TextField>
+          </div>
+          {filtered && (
+            <div className="customer-filter-chips">
+              {params.taxId && (
+                <Chip
+                  size="small"
+                  label={`Tax ID: ${params.taxId}`}
+                  onDelete={() => {
+                    setTaxId("");
+                    change({ taxId: "", page: 1 });
+                  }}
+                />
+              )}
+              {params.search && (
+                <Chip
+                  size="small"
+                  label={`Search: ${params.search}`}
+                  onDelete={() => {
+                    setSearch("");
+                    change({ search: "", page: 1 });
+                  }}
+                />
+              )}
+              {Object.entries(filterOptions)
+                .filter(([key]) => params[key])
+                .map(([key, option]) => (
+                  <Chip
+                    key={key}
+                    size="small"
+                    label={`${option.label}: ${
+                      option.values.find(([v]) => v === params[key])?.[1]
+                    }`}
+                    onDelete={() => change({ [key]: "", page: 1 })}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
+        {query.isError ? (
+          <DashboardErrorState
+            title="Unable to load customers"
+            message={query.error.message}
+            onRetry={() => {
+              query.refetch();
+              if (summaryQuery.isError) summaryQuery.refetch();
+            }}
+          />
+        ) : query.isLoading ? (
+          <div className="customer-skeleton">
+            {Array.from({ length: 8 }, (_, i) => (
+              <Skeleton key={i} height={65} />
+            ))}
+          </div>
+        ) : !data?.items.length ? (
+          <div className="customer-empty">
+            <GroupOutlined />
+            <h2>
+              {filtered ? "No matching records found" : "No customers found"}
+            </h2>
+            <p>
+              {filtered
+                ? "No customers match your current search or filters."
+                : "Add your first customer to start billing."}
+            </p>
+            <Button
+              variant="outlined"
+              onClick={() =>
+                filtered ? reset() : navigate("/customers/create")
+              }
+            >
+              {filtered ? "Clear Filters" : "Create Customer"}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <TableContainer className={`customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
+              <Table size="small" aria-label="Customer directory">
+                <TableHead>
+                  <TableRow>
+                    {columns.map(([key, label], index) => (
+                      <TableCell
+                        key={index}
+                        sortDirection={
+                          params.sortBy === key ? params.sortOrder : false
+                        }
+                        align={key === "outstandingBalance" ? "right" : "left"}
+                      >
+                        {["customerCode", "name"].includes(key) ? (
+                          <TableSortLabel
+                            disabled={!customerCapabilities.sorting}
+                            active={!!params.sortBy && params.sortBy === key}
+                            direction={
+                              params.sortBy === key ? params.sortOrder : "asc"
+                            }
+                            onClick={() =>
+                              customerCapabilities.sorting &&
+                              change({
+                                sortBy: key,
+                                sortOrder:
+                                  params.sortBy === key &&
+                                  params.sortOrder === "asc"
+                                    ? "desc"
+                                    : "asc",
+                                page: 1,
+                              })
+                            }
+                          >
+                            {label}
+                          </TableSortLabel>
+                        ) : (
+                          label || (
+                            <span className="customer-sr-only">Actions</span>
+                          )
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visibleCustomers.map((customer) => (
+                    <TableRow hover key={customer.id}>
+                      <TableCell data-label="Code">
+                        <span className="customer-code">
+                          {(customer.customerCode || "").trim() || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label="Customer">
+                        <div className="customer-identity">
+                          <Avatar
+                            className={`customer-avatar tone-${
+                              Number((customer.customerCode || "").slice(-1)) %
+                              3
+                            }`}
+                          >
+                            {(customer.name || "")
+                              .split(" ")
+                              .slice(0, 2)
+                              .map((n) => n[0])
+                              .join("")}
+                          </Avatar>
+                          <div>
+                            <Link to={`/customers/${customer.id}`}>
+                              {(customer.name || "").trim() || "—"}
+                            </Link>
+                            <small>
+                              {(customer.companyName || "").trim() || "—"}
+                            </small>
+                          </div>
+                        </div>
+                        {cardView === "inactive" && (
+                          <CustomerCardDetails customerId={customer.id} view="inactive" compact />
+                        )}
+                      </TableCell>
+                      <TableCell data-label="Type">
+                        <span className="customer-type">
+                          {customer.customerType || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label="Tax ID">
+                        <div className="customer-tax">
+                          <small>
+                            {(customer.gstin || "").trim()
+                              ? "GSTIN"
+                              : (customer.taxId || "").trim()
+                              ? "PAN / Tax ID"
+                              : "—"}
+                          </small>
+                          {(customer.gstin || "").trim() ||
+                            (customer.taxId || "").trim() ||
+                            "—"}
+                        </div>
+                      </TableCell>
+                      <TableCell data-label="Contact">
+                        <div className="customer-contact">
+                          {(customer.email || "").trim() ? (
+                            <a href={`mailto:${(customer.email || "").trim()}`}>
+                              {customer.email}
+                            </a>
+                          ) : (
+                            <span>—</span>
+                          )}
+                          <small>{(customer.mobile || "").trim() || "—"}</small>
+                        </div>
+                      </TableCell>
+                      <TableCell data-label="Outstanding" align="right">
+                        <strong
+                          className={
+                            (customer.outstandingBalance ?? 0) > 0
+                              ? "customer-balance due"
+                              : "customer-balance"
+                          }
+                        >
+                          {moneyWithCurrency(
+                            customer.outstandingBalance,
+                            customer.currency
+                          )}
+                        </strong>
+                        <Link className="customer-detail-link" to={`/customers/${customer.id}?tab=invoices`}>View invoices</Link>
+                        {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
+                      </TableCell>
+                      <TableCell data-label="Status">
+                        <StatusChip status={customer.status} />
+                      </TableCell>
+                      <TableCell data-label="Actions">
+                        <div
+                          className="customer-row-actions"
+                          role="group"
+                          aria-label={`Actions for ${customer.name}`}
+                        >
+                          <Tooltip title="View details">
+                            <IconButton
+                              className="action-view"
+                              size="small"
+                              aria-label={`View ${customer.name}`}
+                              component={Link}
+                              to={`/customers/${encodeURIComponent(customer.id)}`}
+                            >
+                              <VisibilityOutlined />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Edit customer">
+                            <IconButton
+                              className="action-edit"
+                              size="small"
+                              aria-label={`Edit ${customer.name}`}
+                              onClick={() =>
+                                navigate(`/customers/${customer.id}/edit`)
+                              }
+                            >
+                              <EditOutlined />
+                            </IconButton>
+                          </Tooltip>
+                          {customer.status === "active" && (
+                            <Tooltip title="Deactivate customer">
+                              <IconButton
+                                className="action-deactivate"
+                                size="small"
+                                aria-label={`Deactivate ${customer.name}`}
+                                onClick={() => {
+                                  mutation.reset();
+                                  setReason("");
+                                  setConfirm(customer);
+                                }}
+                              >
+                                <PersonOffOutlined />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <footer className="customer-pagination">
+              <span role="status">
+                Showing{" "}
+                {data.totalCount ? (data.page - 1) * data.pageSize + 1 : 0}
+                &ndash;{Math.min(data.page * data.pageSize, data.totalCount)} of{" "}
+                {data.totalCount} customers
+              </span>
+              <TextField
+                disabled={query.isFetching}
+                select
+                size="small"
+                label="Rows per page"
+                value={params.pageSize}
+                onChange={(event) =>
+                  change({ pageSize: event.target.value, page: 1 })
+                }
+              >
+                {[10, 25, 50, 100].map((n) => (
+                  <MenuItem key={n} value={n}>
+                    {n}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Pagination
+                aria-label="Customer pages"
+                count={Math.max(1, data.totalPages)}
+                page={data.page}
+                onChange={(_, page) => change({ page })}
+                disabled={query.isFetching}
+                shape="rounded"
+                color="primary"
+                renderItem={(item) => (
+                  <PaginationItem
+                    {...item}
+                    slots={{
+                      previous: () => <span>Previous</span>,
+                      next: () => <span>Next</span>,
+                    }}
+                  />
+                )}
+              />
+            </footer>
+          </>
+        )}
+      </section>
+      <Dialog
+        open={!!confirm}
+        onClose={() => !mutation.isPending && setConfirm(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Deactivate Customer?</DialogTitle>
+        <DialogContent>
+          <p>Are you sure you want to deactivate “{confirm?.name}”?</p>
+          <p className="customer-dialog-note">
+            The customer will become inactive. Existing invoices, payments and
+            historical records will be preserved.
+          </p>
+          <TextField autoFocus fullWidth required multiline minRows={2} margin="normal" label="Reason for deactivation" value={reason} inputProps={{ maxLength: 500 }} onChange={(event) => setReason(event.target.value)} />
+          {mutation.isError && (
+            <Alert severity="error">
+              Unable to update customer. {mutation.error?.message}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => setConfirm(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={mutation.isPending || !reason.trim()}
+            onClick={() => {
+              if (!confirm || statusLock.current) return;
+              statusLock.current = true;
+              mutation.mutate({ ...confirm, reason: reason.trim() }, {
+                onSuccess: () => {
+                  setNotice(`Customer deactivated successfully.`);
+                  setConfirm(null);
+                },
+                onSettled: () => {
+                  statusLock.current = false;
+                },
+              });
+            }}
+          >
+            {mutation.isPending ? "Saving…" : "Deactivate"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
+    </main>
+  );
 }

@@ -32,6 +32,8 @@ public class QuotationRepository : IQuotationRepository
         return await _context.Quotations
             .Include(q => q.Customer)
             .Include(q => q.Items)
+                .ThenInclude(i => i.Product)
+            .Include(q => q.Communications)
             .FirstOrDefaultAsync(q => q.Id == id && q.TenantId == tenantId);
     }
 
@@ -74,6 +76,7 @@ public class QuotationRepository : IQuotationRepository
             query = query.Where(q =>
                 q.QuoteNumber.ToLower().Contains(search) ||
                 (q.Customer != null && q.Customer.Name.ToLower().Contains(search)) ||
+                (q.Customer != null && q.Customer.CustomerCode.ToLower().Contains(search)) ||
                 (q.Reference != null && q.Reference.ToLower().Contains(search)));
         }
 

@@ -30,4 +30,13 @@ public class FakeAuditLogRepository : IAuditLogRepository
         var items = tenantLogs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         return Task.FromResult((items, tenantLogs.Count));
     }
+
+    public Task<(List<AuditLog> Items, int TotalCount)> GetFilteredPagedAsync(int tenantId, Billing.Contracts.AuditLogFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        var tenantLogs = _logs.Where(l => l.TenantId == tenantId).ToList();
+        var page = filter.Page <= 0 ? 1 : filter.Page;
+        var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+        var items = tenantLogs.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult((items, tenantLogs.Count));
+    }
 }

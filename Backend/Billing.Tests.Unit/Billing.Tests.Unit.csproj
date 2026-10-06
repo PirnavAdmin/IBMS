@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Billing.Application\Billing.Application.csproj" />
     <ProjectReference Include="..\Billing.Contracts\Billing.Contracts.csproj" />
     <ProjectReference Include="..\Billing.Domain\Billing.Domain.csproj" />
+    <ProjectReference Include="..\Billing.Infrastructure\Billing.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
