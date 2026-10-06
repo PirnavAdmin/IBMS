@@ -87,9 +87,33 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
     {
         var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
         var company = template.CompanyDetails;
+        var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
 
         header.Column(col =>
         {
+            // Logo files are stored by the template API as data URIs.  Decode the selected
+            // template logo here so preview PDFs and generated invoice PDFs use the same
+            // saved branding.
+            if (template.Layout.ShowLogo && logoBytes is not null)
+            {
+                var logoPosition = (template.Branding.LogoPosition ?? "left").Trim().ToLowerInvariant();
+                var logoWidth = Math.Clamp(template.Branding.LogoWidth, 48, 240);
+                var logoContainer = logoPosition switch
+                {
+                    "center" => col.Item().AlignCenter(),
+                    "right" => col.Item().AlignRight(),
+                    _ => col.Item().AlignLeft()
+                };
+
+                logoContainer
+                    .Width(logoWidth)
+                    .Height(Math.Min(logoWidth * 0.6f, 96))
+                    .Image(logoBytes)
+                    .FitArea();
+
+                col.Item().PaddingBottom(6);
+            }
+
             col.Item().Row(row =>
             {
                 // Left: Company Info & Branding
@@ -136,6 +160,31 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
             col.Item().PaddingTop(8).PaddingBottom(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
         });
+    }
+
+    private static byte[]? TryGetLogoBytes(string? logoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(logoUrl) ||
+            !logoUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        const string base64Marker = ";base64,";
+        var markerIndex = logoUrl.IndexOf(base64Marker, StringComparison.OrdinalIgnoreCase);
+        if (markerIndex < 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return Convert.FromBase64String(logoUrl[(markerIndex + base64Marker.Length)..]);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
     }
 
     #endregion
