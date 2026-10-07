@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { History, Search, PersonOutline } from '@mui/icons-material';
+import { ThemedSelect } from './ThemedSelect';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];
 const eventKey = value => String(value || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -69,9 +70,7 @@ export function QuotationAudit({ entries = [] }) {
     <div className="quote-audit-toolbar">
       <label className="quote-audit-search"><Search aria-hidden="true" /><input type="search" aria-label="Search audit history"
         placeholder="Search activity, user or description…" value={search} onChange={event => setSearch(event.target.value)} /></label>
-      <label className="quote-audit-sort">Sort by <select value={order} onChange={event => setOrder(event.target.value)}>
-        <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
-      </select></label>
+      <label className="quote-audit-sort">Sort by <ThemedSelect label="Sort audit history" value={order} onChange={setOrder} options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} /></label>
     </div>
     {visible.length ? <div className="quote-table-wrap"><table className="quote-audit-table">
       <caption className="quote-audit-sr-only">Quotation activity history</caption>
