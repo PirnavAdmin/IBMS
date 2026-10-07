@@ -105,6 +105,13 @@
 .quote-picker { position: relative; min-width: 0; }
 .quote-picker-input { display: flex; align-items: center; border: 1px solid #d9cec5; border-radius: 7px; background: #fff; }
 .quote-picker-input:focus-within { border-color: #d9cec5; box-shadow: none; }
+.quote-picker-input > input { flex: 1; min-width: 0; }
+.quote-picker-chevron { display: grid; flex: 0 0 auto; place-items: center; align-self: stretch; width: 42px; height: auto; margin: 0 2px 0 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-primary); cursor: pointer; }
+.quote-picker-chevron-icon { width: 9px; height: 9px; margin-top: -5px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.quote-picker-chevron:focus { outline: none; box-shadow: none; }
+.quote-picker-chevron:hover { background: #fbf3ed; color: var(--primary); }
+.quote-picker-chevron:focus-visible { outline: 2px solid var(--secondary); outline-offset: -2px; }
+.quote-picker-chevron:disabled { cursor: not-allowed; opacity: .55; }
 .quote-picker-input svg { margin-left: 9px; color: var(--secondary); font-size: 17px; }
 .quote-picker-input input { border: 0 !important; outline: 0; padding-left: 7px !important; background: transparent; }
 .quote-picker-input input:focus-visible { outline: 0; outline-offset: 0; }
@@ -138,7 +145,7 @@
 .quote-audit-filters button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .quote-audit-filters button.active span { background: #ffffff26; }
 .quote-audit-panel button:focus-visible, .quote-audit-panel select:focus-visible, .quote-audit-panel input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
-.quote-charge-row.quote-tax-row,
+.quote-charge-row.quote-tax-row { max-width: min(100%, 920px); grid-template-columns: repeat(3, minmax(0, 1fr)) 35px; align-items: center; }
 .quote-charge-row.quote-discount-row,
 .quote-charge-row.quote-additional-charge-row { max-width: min(100%, 920px); grid-template-columns: repeat(3, minmax(0, 1fr)) 35px; align-items: center; }
 .quote-charge-row.quote-tax-row > select,
@@ -173,6 +180,7 @@
   .quote-charge-row.quote-tax-row > .quote-icon-btn,
   .quote-charge-row.quote-discount-row > .quote-icon-btn,
   .quote-charge-row.quote-additional-charge-row > .quote-icon-btn { grid-column: 2; grid-row: 1 / 4; align-self: center; }
+  .quote-charge-row.quote-tax-row > .quote-icon-btn { grid-row: 1 / 5; }
 }
 .quote-audit-toolbar { justify-content: space-between; margin: 18px 0; flex-wrap: wrap; }
 .quote-audit-search { display: flex; align-items: center; gap: 8px; width: min(100%, 370px); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text-secondary); }
@@ -1327,7 +1335,14 @@
 .quote-themed-select-trigger:hover,.quote-themed-select-trigger[aria-expanded="true"]{border-color:var(--secondary);background:#fcf7f2}
 .quote-themed-select-trigger:focus-visible{outline:2px solid var(--secondary);outline-offset:1px}
 .quote-themed-select-trigger:disabled{opacity:.65;cursor:not-allowed}
-.quote-themed-select-chevron{flex:0 0 auto;color:var(--primary)}
+.quote-themed-select-chevron{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:50%;background:#f8eee8;color:var(--primary);font-size:0;transition:background-color .15s ease}
+.quote-themed-select-chevron::before{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;content:"";transform:translateY(-2px) rotate(45deg);transition:transform .15s ease}
+.quote-themed-select-trigger:hover .quote-themed-select-chevron,.quote-themed-select-trigger[aria-expanded="true"] .quote-themed-select-chevron{background:#efddd1}
+.quote-themed-select-trigger[aria-expanded="true"] .quote-themed-select-chevron::before{transform:translateY(2px) rotate(225deg)}
+.quote-item-select .quote-themed-select-chevron{flex-basis:22px;width:22px;height:22px;border-radius:0;background:transparent}
+.quote-item-select .quote-themed-select-chevron::before{width:8px;height:8px;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+.quote-item-select .quote-themed-select-trigger:hover .quote-themed-select-chevron,.quote-item-select .quote-themed-select-trigger[aria-expanded="true"] .quote-themed-select-chevron{background:transparent}
+.quote-item-select .quote-themed-select-trigger[aria-expanded="true"] .quote-themed-select-chevron::before{transform:translateY(2px) rotate(225deg)}
 .quote-themed-select-menu{position:fixed;z-index:2000;display:grid;overflow-y:auto;padding:3px;border:1px solid var(--border);border-radius:7px;background:var(--surface);box-shadow:0 8px 20px rgba(60,37,24,.18)}
 .quote-themed-select-menu button{min-height:36px;margin:2px;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer}
 .quote-themed-select-menu button:hover,.quote-themed-select-menu button:focus-visible{border-color:var(--secondary);background:var(--surface);color:var(--primary);outline:2px solid var(--secondary);outline-offset:1px}

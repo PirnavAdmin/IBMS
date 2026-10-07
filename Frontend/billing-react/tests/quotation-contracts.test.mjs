@@ -21,7 +21,8 @@ function text(node){if(node==null||typeof node==='boolean')return '';if(typeof n
 test('date range, product, quantity and non-negative amounts are validated',()=>{
  assert.deepEqual(validateQuotation(form()),{});
  for(const change of [{customerId:''},{quotationDate:''},{validUntil:'2026-09-27'},{items:[]}])assert.ok(Object.keys(validateQuotation({...form(),...change})).length);
- for(const change of [{productId:''},{quantity:0},{unitPrice:-1},{discountRate:-1},{taxRate:-1},{taxRate:101}])assert.ok(Object.keys(validateQuotation({...form(),items:[{...form().items[0],...change}]})).length);
+ for(const change of [{productId:''},{quantity:-1},{quantity:1.01},{unitPrice:-1},{discountRate:-1},{taxRate:-1},{taxRate:101}])assert.ok(Object.keys(validateQuotation({...form(),items:[{...form().items[0],...change}]})).length);
+ for(const quantity of [0,1,2,1000000])assert.deepEqual(validateQuotation({...form(),items:[{...form().items[0],quantity}]}),{});
 });
 test('server query omits unsupported validity; save carries rowVersion but no generated number',()=>{
  const query=quotationQuery({...initialQuotationQuery,search:'a',customerId:7,fromDate:'2026-09-01',validity:'Expired'});
@@ -32,6 +33,14 @@ test('server query omits unsupported validity; save carries rowVersion but no ge
 test('saved totals are preserved and absent tax does not become a default tax',()=>{
  const q=normalizeQuotation({id:1,customerId:1,subtotal:100,discountAmount:5,taxAmount:7,chargesAmount:3,totalAmount:105,items:[{quantity:1,unitPrice:100,taxAmount:7,totalAmount:102}]});
  assert.equal(q.totalAmount,105);assert.equal(q.chargesAmount,3);assert.equal(q.items[0].taxType,'');assert.equal(q.items[0].taxRate,0);
+});
+test('additional product tax and discount rows are included in quotation summary totals',()=>{
+ const item={id:'line-1',productId:'2',quantity:1,unitPrice:50000,discountType:'percentage',discountRate:0,taxRate:18};
+ const totals=quotationTotals([item],{type:'percentage',value:0},[],[{itemId:'line-1',taxAmount:'500'}],[{itemId:'line-1',discountType:'percentage',discountValue:'10'}]);
+ assert.equal(totals.discountAmount,5000);
+ assert.equal(totals.taxableAmount,45000);
+ assert.equal(totals.taxAmount,8600);
+ assert.equal(totals.totalAmount,53600);
 });
 test('product picker excludes inactive and unknown-status products',async()=>{
  const {isSelectableProduct}=await load('../src/pages/Quotations/components/QuotationLookup.jsx');

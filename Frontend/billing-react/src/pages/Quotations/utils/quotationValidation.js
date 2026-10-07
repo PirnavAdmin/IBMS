@@ -12,7 +12,7 @@ export function validateQuotation(form) {
     const key = `item-${index}`;
     if (!normalizeId(item.productId)) errors[key] = 'Select a valid product.';
     if (!item.description?.trim() || item.description.length > 500) errors[key] = 'Enter a description (maximum 500 characters).';
-    if (!Number.isFinite(Number(item.quantity)) || Number(item.quantity) < 0.0001 || Number(item.quantity) > 1000000) errors[key] = 'Quantity must be between 0.0001 and 1,000,000.';
+    if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 0) errors[key] = 'Quantity must be a whole number of 0 or more.';
     if (item.unitPrice === '' || !Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0 || Number(item.unitPrice) > 1000000000) errors[key] = 'Enter a valid non-negative unit price.';
     const discount = Number(item.discountType === 'percentage' ? item.discountRate || 0 : item.discountAmount || 0);
     if (!Number.isFinite(discount) || discount < 0 || (item.discountType === 'percentage' ? discount > 100 : discount > Number(item.quantity) * Number(item.unitPrice))) errors[key] = 'Discount cannot exceed the item amount (or 100%).';
