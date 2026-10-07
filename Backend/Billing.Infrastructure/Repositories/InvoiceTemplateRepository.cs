@@ -39,7 +39,7 @@ public class InvoiceTemplateRepository : IInvoiceTemplateRepository
     public async Task<InvoiceTemplate?> GetDefaultTemplateAsync(int tenantId)
     {
         return await _dbContext.InvoiceTemplates
-            .Include(t => t.Versions.Where(v => v.Status == TemplateStatus.Active))
+            .Include(t => t.Versions.OrderByDescending(v => v.VersionNumber))
             .Where(t => t.TenantId == tenantId && t.IsDefault && t.Status == TemplateStatus.Active)
             .FirstOrDefaultAsync();
     }
