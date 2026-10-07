@@ -10,6 +10,49 @@ export function lineTotals(item) {
   return { gross, discount, taxable, tax, total: taxable + tax };
 }
 
+export function applyAdditionalDiscounts(items = [], additionalDiscounts = []) {
+  const discountByItem = new Map();
+  const remainingByItem = new Map(items.map(item => {
+    const line = lineTotals(item);
+    return [String(item.id), line.taxable];
+  }));
+
+  for (const discount of additionalDiscounts) {
+    const itemKey = String(discount.itemId ?? '');
+    const remaining = remainingByItem.get(itemKey);
+    if (remaining === undefined || remaining <= 0) continue;
+    const value = Math.max(0, Number(discount.discountValue) || 0);
+    const requested = discount.discountType === 'percentage' ? remaining * value / 100 : value;
+    const applied = Math.min(remaining, requested);
+    discountByItem.set(itemKey, (discountByItem.get(itemKey) || 0) + applied);
+    remainingByItem.set(itemKey, remaining - applied);
+  }
+
+  return items.map(item => {
+    const itemDiscount = discountByItem.get(String(item.id)) || 0;
+    if (!itemDiscount) return item;
+    const combinedDiscount = lineTotals(item).discount + itemDiscount;
+    return { ...item, discountType: 'fixed', discountRate: combinedDiscount, discountAmount: combinedDiscount };
+  });
+}
+
+export function applyAdditionalTaxes(items = [], additionalTaxes = []) {
+  const taxByItem = new Map();
+  for (const tax of additionalTaxes) {
+    const itemKey = String(tax.itemId ?? '');
+    if (!itemKey) continue;
+    taxByItem.set(itemKey, (taxByItem.get(itemKey) || 0) + Math.max(0, Number(tax.taxAmount) || 0));
+  }
+
+  return items.map(item => {
+    const additionalTax = taxByItem.get(String(item.id)) || 0;
+    const taxable = lineTotals(item).taxable;
+    if (!additionalTax || taxable <= 0) return item;
+    const additionalRate = additionalTax / taxable * 100;
+    return { ...item, taxRate: Math.max(0, Number(item.taxRate) || 0) + additionalRate };
+  });
+}
+
 export function quotationTotals(items = [], invoiceDiscount = { type: 'percentage', value: 0 }, charges = [], additionalTaxes = [], additionalDiscounts = []) {
   const lines = items.map(lineTotals);
   const subtotal = lines.reduce((sum, line) => sum + line.gross, 0);

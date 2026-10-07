@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { transform } from 'esbuild';
 import { validateQuotation } from '../src/pages/Quotations/utils/quotationValidation.js';
 import { quotationQuery, initialQuotationQuery } from '../src/pages/Quotations/utils/quotationQuery.js';
-import { currency, lineTotals, quotationTotals } from '../src/pages/Quotations/utils/quotationCalculations.js';
+import { applyAdditionalDiscounts, applyAdditionalTaxes, currency, lineTotals, quotationTotals } from '../src/pages/Quotations/utils/quotationCalculations.js';
 import { quotationPayload, normalizeQuotation } from '../../billing-api-client/quotationApi.js';
 
 const form=()=>({customerId:'1',quotationDate:'2026-09-28',validUntil:'2026-09-29',items:[{productId:'2',description:'Service',quantity:1,unitPrice:100,discountType:'percentage',discountRate:5,taxRate:0}]});
@@ -41,6 +41,23 @@ test('additional product tax and discount rows are included in quotation summary
  assert.equal(totals.taxableAmount,45000);
  assert.equal(totals.taxAmount,8600);
  assert.equal(totals.totalAmount,53600);
+});
+test('additional product discount is included in the saved item discount payload',()=>{
+ const item={id:'line-1',productId:'2',description:'Product',quantity:1,unitPrice:50000,discountType:'percentage',discountRate:5,taxRate:18};
+ const items=applyAdditionalDiscounts([item],[{itemId:'line-1',discountType:'fixed',discountValue:'2500'}]);
+ assert.equal(items[0].discountType,'fixed');
+ assert.equal(items[0].discountAmount,5000);
+ assert.equal(quotationPayload({...form(),items}).items[0].discountType,'Fixed');
+ assert.equal(quotationPayload({...form(),items}).items[0].discountRate,5000);
+});
+test('additional product tax is included in the saved item tax rate and totals',()=>{
+ const item={id:'line-1',productId:'2',description:'Product',quantity:1,unitPrice:100,discountType:'percentage',discountRate:10,taxRate:18};
+ const discountedItems=applyAdditionalDiscounts([item],[{itemId:'line-1',discountType:'fixed',discountValue:'5'}]);
+ const items=applyAdditionalTaxes(discountedItems,[{itemId:'line-1',taxAmount:'5'}]);
+ const payload=quotationPayload({...form(),items}).items[0];
+ assert.equal(payload.discountRate,15);
+ assert.ok(Math.abs(lineTotals(items[0]).tax - 20.3) < 0.000001);
+ assert.equal(quotationTotals(items).totalAmount,105.3);
 });
 test('product picker excludes inactive and unknown-status products',async()=>{
  const {isSelectableProduct}=await load('../src/pages/Quotations/components/QuotationLookup.jsx');
