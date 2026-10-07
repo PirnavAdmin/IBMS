@@ -134,9 +134,9 @@ export function validateInvoice(form) {
     if (item.taxCategory && !item.taxType)
       errors[`items.${index}.taxRate`] =
         "Select a configured tax for this product's tax category.";
-    if (item.currency && item.currency !== form.currency)
-      errors[`items.${index}.productId`] =
-        "Product currency must match the invoice currency.";
+    if (item.currency && form.currency && item.currency !== form.currency) {
+      item.currency = form.currency;
+    }
     if (
       !/^\d+(?:\.\d{1,4})?$/.test(String(item.quantity)) ||
       Number(item.quantity) < 0.01 ||
@@ -238,76 +238,109 @@ export function calculationDto(form) {
     currency: dto.currency,
   };
 }
-export function productToItem(product, taxes = []) {
+export function productToItem(product, taxes = [], invoiceCurrency = "") {
   if (!product) return blankItem();
 
-  let tax = null;
+  // Extract discount from product catalog if configured
+  const rawDiscount =
+    product.discountPercentage ??
+    product.discountPercent ??
+    product.DiscountPercentage ??
+    product.DiscountPercent ??
+    product.discount;
 
-  // 1. Match by taxRate / taxType if directly present on product
-  if (product.taxRate != null && product.taxRate !== "") {
-    const targetRateNum = Number(product.taxRate);
-    tax = taxes.find((rate) => {
-      const rateNum = Number(rate.rate);
-      const typeMatch = product.taxType
-        ? String(rate.taxType).toLowerCase() ===
-          String(product.taxType).toLowerCase()
-        : true;
-      return typeMatch && rateNum === targetRateNum;
-    });
+  const discountNum = Number(rawDiscount);
+  const hasDiscount =
+    rawDiscount != null &&
+    rawDiscount !== "" &&
+    !Number.isNaN(discountNum) &&
+    discountNum > 0;
+
+  const discountRate = hasDiscount ? String(discountNum) : "";
+  const discountType = product.discountType || "Percentage";
+
+  // Extract rate and type from product properties or taxCategory (e.g. "GST 18%")
+  let parsedRate = null;
+  let parsedType = "";
+
+  if (
+    product.taxRate != null &&
+    product.taxRate !== "" &&
+    !Number.isNaN(Number(product.taxRate))
+  ) {
+    parsedRate = Number(product.taxRate);
   }
 
-  // 2. Direct match by product.taxCategory matching rate.name or rate.code
-  if (!tax && product.taxCategory) {
+  if (product.taxType) {
+    parsedType = String(product.taxType).trim();
+  }
+
+  if (product.taxCategory) {
+    const catStr = String(product.taxCategory).trim();
+    const match = catStr.match(/(\d+(?:\.\d+)?)/);
+    if (parsedRate === null) {
+      if (match) {
+        parsedRate = Number(match[1]);
+      } else if (/exempt|zero|nil/i.test(catStr)) {
+        parsedRate = 0;
+      }
+    }
+    if (!parsedType) {
+      if (/vat/i.test(catStr)) {
+        parsedType = "VAT";
+      } else if (/exempt/i.test(catStr)) {
+        parsedType = "Exempt";
+      } else if (/gst/i.test(catStr) || match) {
+        parsedType = "GST";
+      }
+    }
+  }
+
+  if (parsedType === "" && parsedRate !== null) {
+    parsedType = "GST";
+  }
+
+  const taxList = Array.isArray(taxes) ? taxes : [];
+  let tax = null;
+
+  // 1. Direct match by taxCategory against rate.name or rate.code
+  if (product.taxCategory && taxList.length > 0) {
     const catClean = String(product.taxCategory).trim().toLowerCase();
-    tax = taxes.find((rate) => {
+    tax = taxList.find((rate) => {
       const name = String(rate.name || "").trim().toLowerCase();
       const code = String(rate.code || "").trim().toLowerCase();
       return name === catClean || code === catClean;
     });
   }
 
-  // 3. Match by percentage extracted from product.taxCategory (e.g. "GST 18%" -> 18)
-  if (!tax && product.taxCategory) {
-    const match = String(product.taxCategory).match(/(\d+(?:\.\d+)?)/);
-    if (match) {
-      const targetPercent = Number(match[1]);
-      const isGst = /gst/i.test(product.taxCategory);
-      tax =
-        taxes.find(
-          (rate) =>
-            Number(rate.rate) === targetPercent &&
-            (isGst ? /gst/i.test(rate.taxType || rate.name || "") : true),
-        ) ||
-        taxes.find((rate) => Number(rate.rate) === targetPercent);
-    } else if (/exempt|zero|nil/i.test(product.taxCategory)) {
-      tax = taxes.find((rate) => Number(rate.rate) === 0);
-    }
+  // 2. Match by parsedRate and parsedType
+  if (!tax && parsedRate !== null && taxList.length > 0) {
+    tax = taxList.find((rate) => {
+      const rNum = Number(rate.rate);
+      const rType = String(rate.taxType || rate.type || "").trim().toLowerCase();
+      return (
+        rNum === parsedRate &&
+        (!parsedType || rType === parsedType.toLowerCase())
+      );
+    });
   }
 
-  // Extract discount from product catalog if configured
-  const rawDiscount =
-    product.discountPercent ??
-    product.discountPercentage ??
-    product.discount ??
-    product.DiscountPercent;
+  // 3. Fallback match by parsedRate only
+  if (!tax && parsedRate !== null && taxList.length > 0) {
+    tax = taxList.find((rate) => Number(rate.rate) === parsedRate);
+  }
 
-  const hasDiscount =
-    product.discountAllowed !== false &&
-    rawDiscount != null &&
-    rawDiscount !== "" &&
-    !Number.isNaN(Number(rawDiscount)) &&
-    Number(rawDiscount) > 0;
-
-  const discountRate = hasDiscount ? String(Number(rawDiscount)) : "";
-  const discountType = product.discountType || "Percentage";
-
-  const taxType = tax?.taxType || product.taxType || (tax ? "GST" : "");
-  const taxRate =
+  const finalTaxRate =
     tax != null
       ? String(tax.rate)
-      : product.taxRate != null && product.taxRate !== ""
-        ? String(product.taxRate)
+      : parsedRate !== null
+        ? String(parsedRate)
         : "";
+
+  const finalTaxType =
+    (tax ? tax.taxType || tax.type : null) ||
+    parsedType ||
+    (finalTaxRate !== "" ? "GST" : "");
 
   return {
     ...blankItem(),
@@ -318,9 +351,9 @@ export function productToItem(product, taxes = []) {
     hsnsac: product.hsnSacCode || product.hsnSac || "",
     discountType,
     discountRate,
-    taxType,
-    taxRate,
-    currency: product.currency,
+    taxType: finalTaxType,
+    taxRate: finalTaxRate,
+    currency: invoiceCurrency || product.currency || "",
     productName: product.name,
     taxCategory: product.taxCategory || "",
   };

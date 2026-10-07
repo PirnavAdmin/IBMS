@@ -89,6 +89,7 @@ export function DateField({
   className = "",
   fullWidth = true,
   name,
+  size,
 }) {
   const toDisplay = (iso) => {
     if (!iso) return "";
@@ -167,6 +168,7 @@ export function DateField({
     <div style={{ position: "relative" }} className={className}>
       <TextField
         fullWidth={fullWidth}
+        size={size}
         label={label}
         name={name}
         required={required}
@@ -175,7 +177,7 @@ export function DateField({
         value={text}
         onChange={handleTextChange}
         error={Boolean(error)}
-        helperText={error || helperText || "Format: dd/mm/yyyy"}
+        helperText={error || (helperText !== undefined ? helperText : "Format: dd/mm/yyyy")}
         inputProps={{ maxLength: 10 }}
         InputLabelProps={{ shrink: true }}
         InputProps={{

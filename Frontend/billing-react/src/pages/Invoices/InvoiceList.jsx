@@ -379,7 +379,7 @@ export function InvoiceList() {
         <div className="invoice-filters">
           <TextField
             className="invoice-filter-search"
-            label="Search number, customer or reference"
+            placeholder="Search number, customer or reference"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -387,19 +387,25 @@ export function InvoiceList() {
               change("page", 1);
             }}
             type="search"
+            size="small"
+            inputProps={{
+              "aria-label": "Search number, customer or reference",
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search sx={{ color: "var(--secondary)", fontSize: 20 }} />
+                  <Search sx={{ color: "var(--secondary)", fontSize: 18 }} />
                 </InputAdornment>
               ),
             }}
           />
           <TextField
             select
+            size="small"
             label="Status"
             value={filters.status}
             onChange={(event) => change("status", event.target.value)}
+            className="invoice-filter-status"
           >
             <MenuItem value="">All statuses</MenuItem>
             {INVOICE_STATUSES.map((status) => (
@@ -409,6 +415,8 @@ export function InvoiceList() {
             ))}
           </TextField>
           <Autocomplete
+            className="invoice-filter-customer"
+            size="small"
             options={customers.data?.items || []}
             filterOptions={(options) => options}
             value={customer}
@@ -420,22 +428,27 @@ export function InvoiceList() {
               setCustomer(value);
               change("customerId", value?.id || "");
             }}
-            renderInput={(params) => <TextField {...params} label="Customer" />}
+            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
           />
           <DateField
             className="invoice-filter-from"
-            label="Invoice date from"
+            size="small"
+            label="From date"
             value={filters.startDate}
             onChange={(val) => change("startDate", val)}
+            helperText=""
           />
           <DateField
             className="invoice-filter-to"
-            label="Invoice date to"
+            size="small"
+            label="To date"
             value={filters.endDate}
             onChange={(val) => change("endDate", val)}
+            helperText=""
           />
           <TextField
             className="invoice-filter-currency"
+            size="small"
             label="Currency"
             value={filters.currency}
             onChange={(event) =>
@@ -445,9 +458,11 @@ export function InvoiceList() {
           />
           <TextField
             select
+            size="small"
             label="Payment state"
             value={filters.paymentState}
             onChange={(event) => change("paymentState", event.target.value)}
+            className="invoice-filter-payment"
           >
             <MenuItem value="">All payment states</MenuItem>
             {["Paid", "Partially Paid", "Unpaid", "Outstanding", "Overdue"].map(
@@ -460,6 +475,7 @@ export function InvoiceList() {
           </TextField>
           <Button
             variant="outlined"
+            size="small"
             className="invoice-filter-reset"
             startIcon={<RestartAlt />}
             onClick={() => {
