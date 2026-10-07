@@ -414,8 +414,15 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         {
             snapshotDto = JsonSerializer.Deserialize<InvoiceSnapshotDto>(snapshot.SnapshotDataJson, JsonOpts)
                           ?? BuildSnapshotDto(invoice);
-            versionDto = JsonSerializer.Deserialize<TemplateVersionDto>(snapshot.TemplateConfigJson, JsonOpts)
-                         ?? (version != null ? MapVersionToDto(version) : BuildDefaultVersionDto());
+            if ((request.ForceRegenerate || request.OverrideTemplateId.HasValue) && version != null)
+            {
+                versionDto = MapVersionToDto(version);
+            }
+            else
+            {
+                versionDto = JsonSerializer.Deserialize<TemplateVersionDto>(snapshot.TemplateConfigJson, JsonOpts)
+                             ?? (version != null ? MapVersionToDto(version) : BuildDefaultVersionDto());
+            }
         }
         else
         {
