@@ -28,6 +28,11 @@
 .quote-list-toolbar .quote-search svg { position: static; flex: 0 0 auto; margin-left: 13px; color: var(--secondary); }
 .quote-list-toolbar .quote-search input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 11px 12px 11px 10px; background: transparent; font-size: .9rem; }
 .quote-list-toolbar .quote-search input::placeholder { color: #8b7d76; }
+.quotation-page select { accent-color: var(--primary); }
+.quotation-page select option { background: var(--surface); color: var(--text-primary); }
+.quotation-page select option:checked,
+.quotation-page select option:hover { background: var(--primary); color: #fff; }
+.quotation-page select:focus-visible { border-color: var(--secondary); outline: 2px solid var(--secondary); outline-offset: 1px; }
 .quote-pagination .quote-page-size { gap: 8px; }
 .quote-pagination .quote-page-size-control { position: relative; display: inline-flex; flex: 0 0 52px; margin-right: 0; }
 .quote-page-size-trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; min-height: 28px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text-primary); font: inherit; font-size: .74rem; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
@@ -106,10 +111,18 @@
 .quote-picker-menu { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 12; max-height: 210px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; box-shadow: 0 10px 22px rgba(50,30,18,.16); }
 .quote-picker-menu button { display: flex; width: 100%; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 0; border-bottom: 0; background: #fff; color: var(--text-primary); text-align: left; font-size: .8rem; cursor: pointer; }
 .quote-picker-menu button:hover { background: #fbf3ed; }
+.quote-picker-menu button:focus-visible,
+.quote-picker-menu button.selected { background: #f4e3d5; color: var(--primary); outline: 0; }
 .quote-picker-menu button:disabled { cursor: not-allowed; color: #9a918d; background: #f6f3f1; }
 .quote-picker-menu small { color: #b42318; font-weight: 700; }
 .quote-picker-menu p { padding: 11px; color: var(--text-secondary); font-size: .8rem; }
 .quote-product-picker .quote-picker-input input { min-width: 150px; }
+.quote-discount-type-picker { width: 100%; }
+.quote-discount-type-picker .quote-picker-input { min-height: 32px; }
+.quote-discount-type-picker .quote-picker-input input { width: 100%; min-width: 0; padding-left: 10px !important; font-size: .8rem; }
+.quote-charge-discount-type-picker { width: 100%; }
+.quote-charge-discount-type-picker .quote-picker-input { min-height: 40px; }
+.quote-charge-discount-type-picker .quote-picker-input input { width: 100%; min-width: 0; padding-left: 10px !important; }
 
 /* Quotation audit history. */
 .quote-audit-panel { padding: 24px; }
@@ -125,6 +138,42 @@
 .quote-audit-filters button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .quote-audit-filters button.active span { background: #ffffff26; }
 .quote-audit-panel button:focus-visible, .quote-audit-panel select:focus-visible, .quote-audit-panel input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.quote-charge-row.quote-tax-row,
+.quote-charge-row.quote-discount-row,
+.quote-charge-row.quote-additional-charge-row { max-width: min(100%, 920px); grid-template-columns: repeat(3, minmax(0, 1fr)) 35px; align-items: center; }
+.quote-charge-row.quote-tax-row > select,
+.quote-charge-row.quote-tax-row > input,
+.quote-charge-row.quote-discount-row > select,
+.quote-charge-row.quote-discount-row > input,
+.quote-charge-row.quote-additional-charge-row > select { min-width: 0; padding: 7px 8px; font-size: .8rem; }
+.quote-charge-row.quote-tax-row > input,
+.quote-charge-row.quote-discount-row > input,
+.quote-charge-amount > input { box-sizing: border-box; height: 40px; }
+.quote-charge-product-picker { width: 100%; }
+.quote-charge-product-picker .quote-picker-input { box-sizing: border-box; height: 40px; }
+.quote-charge-product-picker .quote-picker-input input { width: 100%; min-width: 0; }
+.quote-charge-tax-type-picker { width: 100%; }
+.quote-charge-tax-type-picker .quote-picker-input { box-sizing: border-box; height: 40px; }
+.quote-charge-tax-type-picker .quote-picker-input input { width: 100%; min-width: 0; }
+.quote-charge-name-picker { width: 100%; }
+.quote-charge-name-picker .quote-picker-input { box-sizing: border-box; height: 40px; }
+.quote-charge-name-picker .quote-picker-input input { width: 100%; min-width: 0; }
+.quote-charge-amount { position: relative; min-width: 0; }
+.quote-charge-amount > span { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); color: var(--text-primary); font-size: .8rem; pointer-events: none; }
+.quote-charge-amount > input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 8px 7px 27px; font-size: .8rem; }
+.quote-tax-delete { justify-self: center; }
+@media (max-width: 700px) {
+  .quote-charge-row.quote-tax-row,
+  .quote-charge-row.quote-discount-row,
+  .quote-charge-row.quote-additional-charge-row { max-width: 100%; grid-template-columns: minmax(0, 1fr) 35px; }
+  .quote-charge-row.quote-tax-row > *,
+  .quote-charge-row.quote-discount-row > *,
+  .quote-charge-row.quote-additional-charge-row > *,
+  .quote-charge-row.quote-additional-charge-row .quote-charge-name { grid-column: 1; }
+  .quote-charge-row.quote-tax-row > .quote-icon-btn,
+  .quote-charge-row.quote-discount-row > .quote-icon-btn,
+  .quote-charge-row.quote-additional-charge-row > .quote-icon-btn { grid-column: 2; grid-row: 1 / 4; align-self: center; }
+}
 .quote-audit-toolbar { justify-content: space-between; margin: 18px 0; flex-wrap: wrap; }
 .quote-audit-search { display: flex; align-items: center; gap: 8px; width: min(100%, 370px); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text-secondary); }
 .quote-audit-search svg { font-size: 19px; }
@@ -1273,5 +1322,37 @@
 }
 /* Keep paired discount and tax controls visually distinct in the item editor. */
 .quote-inline-controls{display:grid;grid-template-columns:minmax(58px,.8fr) minmax(72px,1.2fr);gap:8px;align-items:center}.quote-items-table td.quote-item-discount{min-width:152px}.quote-items-table td:nth-child(6){min-width:132px}.quote-items-table td:nth-child(6)>select,.quote-items-table td:nth-child(6)>input{display:block;margin-bottom:7px}.quote-items-table td:nth-child(6)>small{margin-top:2px}
+.quote-themed-select{position:relative;display:block;width:100%;min-width:0}
+.quote-themed-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:38px;padding:8px 10px;border:1px solid #d9cec5;border-radius:7px;background:var(--surface);color:var(--text-primary);font:inherit;font-size:.86rem;text-align:left;cursor:pointer}
+.quote-themed-select-trigger:hover,.quote-themed-select-trigger[aria-expanded="true"]{border-color:var(--secondary);background:#fcf7f2}
+.quote-themed-select-trigger:focus-visible{outline:2px solid var(--secondary);outline-offset:1px}
+.quote-themed-select-trigger:disabled{opacity:.65;cursor:not-allowed}
+.quote-themed-select-chevron{flex:0 0 auto;color:var(--primary)}
+.quote-themed-select-menu{position:fixed;z-index:2000;display:grid;overflow-y:auto;padding:3px;border:1px solid var(--border);border-radius:7px;background:var(--surface);box-shadow:0 8px 20px rgba(60,37,24,.18)}
+.quote-themed-select-menu button{min-height:36px;margin:2px;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer}
+.quote-themed-select-menu button:hover,.quote-themed-select-menu button:focus-visible{border-color:var(--secondary);background:var(--surface);color:var(--primary);outline:2px solid var(--secondary);outline-offset:1px}
+.quote-themed-select-menu button.selected{border-color:var(--secondary);background:#f8eee8;color:var(--primary)}
+.quote-date-picker{width:100%;min-width:0}
+.quote-date-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:38px;padding:8px 10px;border:1px solid #d9cec5;border-radius:7px;background:var(--surface);color:var(--text-primary);font:inherit;font-size:.86rem;text-align:left;cursor:pointer}
+.quote-date-trigger:hover,.quote-date-trigger[aria-expanded="true"]{border-color:var(--secondary);background:#fcf7f2}
+.quote-date-trigger:focus-visible{outline:2px solid var(--secondary);outline-offset:1px}
+.quote-date-trigger:disabled{opacity:.65;cursor:not-allowed}
+.quote-date-trigger .placeholder{color:var(--text-secondary)}
+.quote-date-icon{color:var(--primary)}
+.quote-calendar{position:fixed;z-index:2000;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-primary);box-shadow:0 10px 26px rgba(60,37,24,.2)}
+.quote-calendar-header{display:flex;align-items:center;justify-content:space-between;min-height:36px;margin-bottom:6px}
+.quote-calendar-header strong{font-size:.9rem}
+.quote-calendar-header button,.quote-calendar-footer button{padding:5px 9px;border:0;border-radius:6px;background:transparent;color:var(--primary);font:inherit;font-size:1.2rem;cursor:pointer}
+.quote-calendar-header button:hover,.quote-calendar-footer button:hover{background:#f8eee8}
+.quote-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
+.quote-calendar-weekdays{margin-bottom:3px;color:var(--text-secondary);font-size:.75rem}
+.quote-calendar-weekdays span{padding:5px 0}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button{min-width:0;aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--text-primary);font:inherit;font-size:.8rem;cursor:pointer}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button:hover{border-color:var(--secondary);background:#f8eee8;color:var(--primary)}
+.quote-calendar-grid button.outside-month{color:var(--text-secondary);opacity:.65}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button.selected{border-color:var(--primary);background:var(--primary);color:#fff;font-weight:700}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button.today:not(.selected){border-color:var(--secondary);color:var(--primary);font-weight:700}
+.quote-calendar-footer{display:flex;justify-content:space-between;margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
+.quote-calendar-footer button{font-size:.82rem}
 
 .quote-inline-controls{grid-template-columns:minmax(0,1fr);gap:7px}.quote-items-table td.quote-item-discount{min-width:132px}
