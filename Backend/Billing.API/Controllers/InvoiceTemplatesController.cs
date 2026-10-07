@@ -192,6 +192,32 @@ public class InvoiceTemplatesController : ControllerBase
     }
 
     /// <summary>
+    /// Makes this active template the tenant default for future official invoice PDF generation.
+    /// </summary>
+    [HttpPatch("{id:int}/default")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceTemplateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceTemplateDto>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetDefaultTemplate([FromRoute] int id, CancellationToken ct)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        try
+        {
+            var template = await _templateService.SetDefaultTemplateAsync(id, tenantId.Value, GetUserName(), ct);
+            return Ok(ApiResponse<InvoiceTemplateDto>.Ok(template, "Template set as default successfully."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<InvoiceTemplateDto>.Fail(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<InvoiceTemplateDto>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>
     /// Deactivates a template, preventing new invoices from utilizing it.
     /// </summary>
     [HttpPatch("{id:int}/deactivate")]
@@ -271,14 +297,16 @@ public class InvoiceTemplatesController : ControllerBase
         if (!tenantId.HasValue) return Forbid();
 
         var template = await _templateService.GetTemplateByIdAsync(id, tenantId.Value, ct);
+        var previewVersion = template.Versions.OrderByDescending(version => version.VersionNumber).FirstOrDefault()
+            ?? template.ActiveVersion;
         var previewRequest = new TemplatePreviewRequest
         {
             Style = template.Style,
-            Branding = template.ActiveVersion?.Branding ?? new BrandingConfigDto(),
-            CompanyDetails = template.ActiveVersion?.CompanyDetails ?? new CompanyDetailsConfigDto(),
-            Layout = template.ActiveVersion?.Layout ?? new LayoutConfigDto(),
-            PaymentInstructions = template.ActiveVersion?.PaymentInstructions ?? new PaymentInstructionsConfigDto(),
-            Terms = template.ActiveVersion?.Terms ?? new TermsConfigDto()
+            Branding = previewVersion?.Branding ?? new BrandingConfigDto(),
+            CompanyDetails = previewVersion?.CompanyDetails ?? new CompanyDetailsConfigDto(),
+            Layout = previewVersion?.Layout ?? new LayoutConfigDto(),
+            PaymentInstructions = previewVersion?.PaymentInstructions ?? new PaymentInstructionsConfigDto(),
+            Terms = previewVersion?.Terms ?? new TermsConfigDto()
         };
 
         var pdfBytes = await _templateService.GeneratePreviewPdfAsync(previewRequest, tenantId.Value, ct);

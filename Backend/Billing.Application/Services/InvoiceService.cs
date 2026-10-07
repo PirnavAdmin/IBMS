@@ -39,6 +39,14 @@ public class InvoiceService : IInvoiceService
 
     private async Task RecalculateInvoiceTotalsAsync(Invoice invoice, int tenantId)
     {
+        // Avoid double-applying line-level discounts if invoice.DiscountAmount already includes them from previous calculation
+        decimal existingLineDiscounts = invoice.Items.Sum(i => i.DiscountAmount);
+        decimal invoiceDiscountVal = invoice.DiscountAmount;
+        if (existingLineDiscounts > 0 && invoiceDiscountVal >= existingLineDiscounts)
+        {
+            invoiceDiscountVal -= existingLineDiscounts;
+        }
+
         var request = new FinancialCalculationRequest
         {
             Items = invoice.Items.Select(i => new FinancialLineItemRequest
@@ -47,11 +55,12 @@ public class InvoiceService : IInvoiceService
                 ProductCode = i.Product?.ProductCode,
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
-                LineDiscountType = i.DiscountType,
+                LineDiscountType = !string.IsNullOrWhiteSpace(i.DiscountType) ? i.DiscountType : "Percentage",
                 LineDiscountValue = i.DiscountRate,
-                TaxRatePercent = i.TaxRate
+                TaxRatePercent = i.TaxRate,
+                IsTaxInclusive = string.Equals(i.TaxType, "Inclusive", StringComparison.OrdinalIgnoreCase)
             }).ToList(),
-            InvoiceDiscount = invoice.DiscountAmount > 0 ? new FinancialInvoiceDiscountRequest { DiscountType = "Fixed", Value = invoice.DiscountAmount } : null,
+            InvoiceDiscount = invoiceDiscountVal > 0 ? new FinancialInvoiceDiscountRequest { DiscountType = "Fixed", Value = invoiceDiscountVal } : null,
             Charges = invoice.ChargesAmount > 0 ? new List<FinancialChargeRequest> { new FinancialChargeRequest { Name = "Other Charges", Amount = invoice.ChargesAmount, CalculationType = "Fixed" } } : null,
             TransactionDate = invoice.InvoiceDate,
             Currency = invoice.GetCurrency()
@@ -95,6 +104,11 @@ public class InvoiceService : IInvoiceService
         invoice.Status = "Draft";
         invoice.CreatedAtUtc = DateTime.UtcNow;
         invoice.RowVersion = DateTime.UtcNow;
+        
+        if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+        {
+            invoice.InvoiceNumber = $"DRAFT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+        }
         
         int order = 1;
         foreach (var item in invoice.Items)
@@ -145,6 +159,7 @@ public class InvoiceService : IInvoiceService
                 UnitPrice = item.UnitPrice,
                 DiscountType = item.DiscountType,
                 DiscountRate = item.DiscountRate,
+                DiscountAmount = item.DiscountAmount,
                 TaxType = item.TaxType,
                 TaxRate = item.TaxRate,
                 HSNSAC = item.HSNSAC,
@@ -183,16 +198,33 @@ public class InvoiceService : IInvoiceService
 
             await RecalculateInvoiceTotalsAsync(invoice, tenantId);
 
-            var numberRequest = new GenerateNumberRequest { DocumentType = "Invoice", TransactionDate = invoice.InvoiceDate };
-            var numberResponse = await _numberGenerationService.GenerateNextNumberAsync(numberRequest, tenantId);
-
-            if (!numberResponse.Success || numberResponse.Data == null)
+            GenerateNumberResponseDto? numberData = null;
+            for (int attempt = 0; attempt < 20; attempt++)
             {
-                await _unitOfWork.RollbackTransactionAsync();
-                return ApiResponse<Invoice>.Fail("Failed to generate invoice number: " + numberResponse.Message);
+                var numberRequest = new GenerateNumberRequest { DocumentType = "Invoice", TransactionDate = invoice.InvoiceDate };
+                var numberResponse = await _numberGenerationService.GenerateNextNumberAsync(numberRequest, tenantId);
+
+                if (!numberResponse.Success || numberResponse.Data == null)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return ApiResponse<Invoice>.Fail("Failed to generate invoice number: " + numberResponse.Message);
+                }
+
+                var existingInvWithNum = await _invoiceRepository.GetByInvoiceNumberAsync(numberResponse.Data.GeneratedNumber, tenantId);
+                if (existingInvWithNum == null || existingInvWithNum.Id == invoice.Id)
+                {
+                    numberData = numberResponse.Data;
+                    break;
+                }
             }
 
-            invoice.InvoiceNumber = numberResponse.Data.GeneratedNumber;
+            if (numberData == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return ApiResponse<Invoice>.Fail("Failed to allocate a unique invoice number.");
+            }
+
+            invoice.InvoiceNumber = numberData.GeneratedNumber;
             invoice.Status = "Issued";
             invoice.UpdatedAtUtc = DateTime.UtcNow;
             invoice.RowVersion = DateTime.UtcNow;

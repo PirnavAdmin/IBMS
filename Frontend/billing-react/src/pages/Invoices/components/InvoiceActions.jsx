@@ -6,12 +6,25 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   IconButton,
+  ListItemIcon,
   Menu,
   MenuItem,
   TextField,
 } from "@mui/material";
-import { MoreVert } from "@mui/icons-material";
+import {
+  BlockOutlined,
+  CancelOutlined,
+  DescriptionOutlined,
+  EditOutlined,
+  MoreVert,
+  PaymentOutlined,
+  PictureAsPdfOutlined,
+  ReceiptLongOutlined,
+  SendOutlined,
+  VisibilityOutlined,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -29,17 +42,49 @@ import {
   validateInvoice,
 } from "../validation/invoiceValidation";
 import { numberingService } from "../../NumberingSettings/services/numberingService";
-const labels = {
-  view: "View",
-  edit: "Edit draft",
-  preview: "Preview",
-  issue: "Issue Invoice",
-  pdf: "Download PDF",
-  payment: "Record Payment",
-  credit: "Create Credit Note",
-  cancel: "Cancel Invoice",
-  void: "Void Invoice",
+
+const actionConfig = {
+  view: {
+    label: "View",
+    icon: VisibilityOutlined,
+  },
+  edit: {
+    label: "Edit",
+    icon: EditOutlined,
+  },
+  preview: {
+    label: "Preview",
+    icon: DescriptionOutlined,
+  },
+  pdf: {
+    label: "Download PDF",
+    icon: PictureAsPdfOutlined,
+  },
+  issue: {
+    label: "Issue Invoice",
+    icon: SendOutlined,
+  },
+  payment: {
+    label: "Record Payment",
+    icon: PaymentOutlined,
+  },
+  credit: {
+    label: "Create Credit Note",
+    icon: ReceiptLongOutlined,
+  },
+  cancel: {
+    label: "Cancel Invoice",
+    icon: CancelOutlined,
+  },
+  void: {
+    label: "Void Invoice",
+    icon: BlockOutlined,
+  },
 };
+
+const labels = Object.fromEntries(
+  Object.entries(actionConfig).map(([key, item]) => [key, item.label]),
+);
 export function InvoiceActions({ invoice, permissions }) {
   const [anchor, setAnchor] = useState(null);
   const [review, setReview] = useState(null);
@@ -162,36 +207,66 @@ export function InvoiceActions({ invoice, permissions }) {
   return (
     <div className="invoice-action-control">
       <IconButton
+        id={`invoice-actions-btn-${invoice.id}`}
+        className={`invoice-action-trigger ${anchor ? "is-active" : ""}`}
+        size="small"
         aria-label={`Actions for ${identifier(invoice)}`}
+        aria-haspopup="menu"
+        aria-expanded={Boolean(anchor)}
+        aria-controls={anchor ? `invoice-actions-${invoice.id}` : undefined}
         disabled={busy || !actions.length}
         onClick={(event) => setAnchor(event.currentTarget)}
       >
-        <MoreVert />
+        <MoreVert fontSize="small" />
       </IconButton>
       <Menu
-        sx={{
-          "& .MuiPaper-root": {
-            borderRadius: "10px",
-            border: "1px solid #e5d6c5",
-            minWidth: 180,
-          },
-          "& .MuiMenuItem-root": {
-            fontSize: 14,
-            minHeight: 38,
-            color: "#632b0b",
-            transition: "background-color 180ms",
-            "&:hover, &.Mui-focusVisible": { backgroundColor: "#f4e9db" },
-          },
-        }}
+        id={`invoice-actions-${invoice.id}`}
         anchorEl={anchor}
         open={Boolean(anchor)}
         onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{
+          paper: {
+            className: "invoice-actions-dropdown-paper",
+            elevation: 4,
+          },
+        }}
+        MenuListProps={{
+          "aria-labelledby": `invoice-actions-btn-${invoice.id}`,
+          dense: true,
+          className: "invoice-actions-menu-list",
+        }}
       >
-        {actions.map((action) => (
-          <MenuItem key={action} onClick={() => select(action)}>
-            {labels[action]}
-          </MenuItem>
-        ))}
+        {actions.map((action, index) => {
+          const config = actionConfig[action];
+          if (!config) return null;
+          const Icon = config.icon;
+          const isDestructive = action === "cancel" || action === "void";
+          const showDivider =
+            isDestructive &&
+            index > 0 &&
+            !["cancel", "void"].includes(actions[index - 1]);
+
+          return [
+            showDivider && (
+              <Divider
+                key={`divider-${action}`}
+                className="invoice-actions-divider"
+              />
+            ),
+            <MenuItem
+              key={action}
+              className={`invoice-action-item ${isDestructive ? "is-destructive" : ""}`}
+              onClick={() => select(action)}
+            >
+              <ListItemIcon className="invoice-action-item-icon">
+                <Icon fontSize="small" />
+              </ListItemIcon>
+              <span className="invoice-action-item-label">{config.label}</span>
+            </MenuItem>,
+          ];
+        })}
       </Menu>
       {error && !review && (
         <Alert severity="error" onClose={() => setError("")}>

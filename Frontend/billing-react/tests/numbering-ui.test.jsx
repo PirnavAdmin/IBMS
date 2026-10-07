@@ -8,7 +8,7 @@ import { NumberingSettings } from '../src/pages/NumberingSettings/pages/Numberin
 
 test('Numbering page renders configuration, clear action and preview without a runtime exception', () => {
   const html = renderToStaticMarkup(<QueryClientProvider client={new QueryClient()}><StaticRouter location="/settings/numbering"><NumberingSettings /></StaticRouter></QueryClientProvider>);
-  for (const text of ['Invoice Numbering', 'Loading invoice data', 'without consuming the sequence']) {
+  for (const text of ['Invoice Numbering', 'Select Document Type', 'Build Your Format', 'Clear All', 'Live Preview', 'Save Changes', 'Loading numbering settings']) {
     assert.ok(html.includes(text), `Missing numbering content: ${text}`);
   }
 });

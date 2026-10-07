@@ -44,7 +44,7 @@ function formatCommunicationDate(value) {
 }
 const amount = value => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
 const exportWidthPx = Math.round((196 / 25.4) * 96);
-const exportHeightPx = Math.round((285 / 25.4) * 96);
+const createBarcodePattern = value => `101${Array.from(String(value || 'QUOTATION'), character => character.charCodeAt(0).toString(2).padStart(8, '0')).join('0')}101`;
 function drawSignature(canvas, strokes) {
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
@@ -75,7 +75,7 @@ function drawSignature(canvas, strokes) {
     context.stroke();
   });
 }
-export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
+export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onAction, onEdit }) {
   const [tab, setTab] = useState('Details');
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -108,11 +108,19 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
   const customerEmail = quotation.customerEmail || customer.email || '';
   const customerPhone = quotation.customerPhone || customer.phone || customer.mobile || '';
   const customerTaxId = String(quotation.customerGstin || customer.taxId || customer.taxInfo || '').replace(/^GSTIN\s*:\s*/i, '');
-  const sellerName = quotation.companyName || quotation.businessName || quotation.company?.name || quotation.business?.name || 'ACME ADMIN STORE';
-  const sellerAddress = makeAddress(quotation.companyAddress || quotation.businessAddress || quotation.company?.address || quotation.business?.address || '12, Green Park Main Road, Kondapur, Hyderabad - 500084, Telangana, India');
-  const sellerPhone = quotation.companyPhone || quotation.businessPhone || quotation.company?.phone || quotation.business?.phone || '1800 123 4567 | +91 98765 43210';
-  const sellerEmail = quotation.companyEmail || quotation.businessEmail || quotation.company?.email || quotation.business?.email || 'support@acmeadmin.com';
-  const sellerWebsite = quotation.companyWebsite || quotation.businessWebsite || quotation.company?.website || quotation.business?.website || 'www.acmeadmin.com';
+  const sellerName = tenantProfile.name || quotation.companyName || quotation.businessName || quotation.company?.name || quotation.business?.name || 'ACME ADMIN STORE';
+  const sellerBrandName = sellerName
+    .replace(/\btechnologies\b/gi, '')
+    .replace(/\s+STORE$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const sellerInitial = Array.from(sellerBrandName.trim())[0]?.toLocaleUpperCase() || 'S';
+  const sellerCompanyName = `${sellerBrandName} STORE`;
+  const sellerAddress = makeAddress(tenantProfile.address || quotation.companyAddress || quotation.businessAddress || quotation.company?.address || quotation.business?.address || '12, Green Park Main Road, Kondapur, Hyderabad - 500084, Telangana, India');
+  const sellerPhone = tenantProfile.phone || quotation.companyPhone || quotation.businessPhone || quotation.company?.phone || quotation.business?.phone || '1800 123 4567 | +91 98765 43210';
+  const sellerEmail = tenantProfile.companyEmail || quotation.companyEmail || quotation.businessEmail || quotation.company?.email || quotation.business?.email || 'support@acmeadmin.com';
+  const sellerTaxId = tenantProfile.taxId || quotation.companyTaxId || quotation.businessTaxId || quotation.company?.taxId || quotation.business?.taxId || '';
+  const sellerWebsite = tenantProfile.website || quotation.companyWebsite || quotation.businessWebsite || quotation.company?.website || quotation.business?.website || 'www.acmeadmin.com';
   const taxGroups = (quotation.items || []).reduce((groups, item) => {
     const tax = item.taxAmount ?? lineTotals(item).tax;
     const type = String(item.taxType || 'GST').toUpperCase();
@@ -143,6 +151,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
     'Keep this invoice for returns and warranty claims.',
     'No exchange or refund on opened products.',
   ];
+  const barcodePattern = createBarcodePattern(quotation.quoteNumber);
   useEffect(() => {
     try {
       setSignature(window.localStorage.getItem(signatureStorageKey) || '');
@@ -239,7 +248,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
           margin: [6, 7, 6, 7],
           filename: fileName,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 816 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: [] },
         })
@@ -277,23 +286,6 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
   };
   const printInvoice = () => {
     if (!invoiceRef.current) return;
-    const invoice = invoiceRef.current;
-    const originalStyle = invoice.getAttribute('style');
-    invoice.classList.add('is-print-export');
-    invoice.style.display = 'block';
-    invoice.style.width = `${exportWidthPx}px`;
-    invoice.style.maxWidth = 'none';
-    invoice.style.margin = '0 auto';
-    invoice.style.padding = '0';
-    invoice.style.zoom = String(Math.min(1, exportHeightPx / invoice.scrollHeight));
-
-    const restoreInvoice = () => {
-      invoice.classList.remove('is-print-export');
-      if (originalStyle === null) invoice.removeAttribute('style');
-      else invoice.setAttribute('style', originalStyle);
-      window.removeEventListener('afterprint', restoreInvoice);
-    };
-    window.addEventListener('afterprint', restoreInvoice);
     window.print();
   };
   const actions = <div className="quote-header-actions">
@@ -325,18 +317,19 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
     <article ref={invoiceRef} className="quotation-print-sheet invoice-design-sheet" aria-label="Quotation document">
       <header className="invoice-brand-header">
         <div className="invoice-brand-block">
-          <div className="invoice-brand-mark" aria-hidden="true"><span className="invoice-brand-mark-shape" /></div>
+          <div className="invoice-brand-mark" role="img" aria-label={`${sellerBrandName} initial`}>{sellerInitial}</div>
           <div className="invoice-brand-copy">
-            <div className="invoice-brand-title">{sellerName.replace(/\s+STORE$/i, '')}</div>
+            <div className="invoice-brand-title">{sellerBrandName}</div>
             <div className="invoice-brand-subtitle">STORE</div>
             <div className="invoice-brand-tagline">Wholesale&nbsp; • &nbsp;Retail&nbsp; • &nbsp;Bulk Supply</div>
           </div>
         </div>
         <div className="invoice-brand-contact">
-          <strong>{sellerName}</strong>
+          <strong>{sellerCompanyName}</strong>
           {sellerAddress && <div className="invoice-contact-row"><span className="invoice-contact-symbol">●</span>{sellerAddress}</div>}
           {sellerPhone && <div className="invoice-contact-row"><span className="invoice-contact-symbol">☎</span>Ph: {sellerPhone}</div>}
           {sellerEmail && <div className="invoice-contact-row"><span className="invoice-contact-symbol">✉</span>Email: {sellerEmail}</div>}
+          {sellerTaxId && <div className="invoice-contact-row"><span className="invoice-contact-symbol">▣</span>GSTIN: {sellerTaxId}</div>}
           {sellerWebsite && <div className="invoice-contact-row"><span className="invoice-contact-symbol">◎</span>{sellerWebsite}</div>}
         </div>
       </header>
@@ -348,7 +341,9 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
         </div>
         <div className="invoice-barcode-box">
           <div className="invoice-barcode">
-            <span className="invoice-barcode-lines" aria-hidden="true" />
+            <svg className="invoice-barcode-lines" viewBox={`0 0 ${barcodePattern.length} 38`} preserveAspectRatio="none" aria-hidden="true">
+              {[...barcodePattern].map((bit, index) => bit === '1' && <rect key={index} x={index} y="0" width="1" height="38" />)}
+            </svg>
             <strong>{quotation.quoteNumber || '—'}</strong>
           </div>
         </div>
@@ -429,7 +424,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
           <ol className="invoice-terms-copy">{invoiceTerms.map(term => <li key={term}>{term}</li>)}</ol>
         </div>
         <div className="invoice-sign-box">
-          <h2><EditOutlined aria-hidden="true" /> For {sellerName}</h2>
+          <h2><EditOutlined aria-hidden="true" /> For {sellerBrandName}</h2>
           {signature && <div className="invoice-signature has-saved-signature">
             <img className="invoice-saved-signature" src={signature} alt="Saved authorized signature" />
           </div>}
@@ -455,7 +450,7 @@ export function QuotationDetails({ quotation, onBack, onAction, onEdit }) {
       </div>
 
       <footer className="invoice-footer-strip">
-        <div className="invoice-footer-brand"><span className="invoice-brand-mark"><span className="invoice-brand-mark-shape" /></span><span><strong>{sellerName.replace(/\s+STORE$/i, '')}</strong><b>STORE</b></span></div>
+        <div className="invoice-footer-brand"><span className="invoice-brand-mark" aria-hidden="true">{sellerInitial}</span><span><strong>{sellerBrandName}</strong><b>STORE</b></span></div>
         <div className="invoice-feature"><span aria-hidden="true">▣</span>Wholesale Prices</div>
         <div className="invoice-feature"><span aria-hidden="true">◇</span>Quality Products</div>
         <div className="invoice-feature"><span aria-hidden="true">♙</span>Bulk Purchasing</div>

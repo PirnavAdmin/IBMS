@@ -1,21 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Autocomplete,
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
+  InputAdornment,
   MenuItem,
   TextField,
+  Tooltip,
 } from "@mui/material";
 import {
   Add,
+  ArrowBack,
+  ArrowDownward,
+  ArrowUpward,
   DeleteOutline,
-  VisibilityOutlined,
+  PersonOutline,
+  ReceiptLongOutlined,
   SaveOutlined,
+  Tag,
+  LocalOfferOutlined,
 } from "@mui/icons-material";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,17 +38,19 @@ import {
   invoiceDto,
   calculationDto,
   productToItem,
+  getTodayIso,
+  getOneMonthLaterIso,
 } from "./validation/invoiceValidation";
 import {
   InvoiceShell,
   InvoiceState,
   InvoiceTotals,
   InvoiceValues,
+  DateField,
   useDebounced,
   useInvoiceUser,
   money,
 } from "./components/InvoiceShared";
-import { InvoiceDocument } from "./components/InvoiceDocument";
 import { numberingService } from "../NumberingSettings/services/numberingService";
 function ProductSelect({ item, onSelect, error, disabled }) {
   const [search, setSearch] = useState("");
@@ -106,7 +112,6 @@ export function InvoiceForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [chargeId, setChargeId] = useState("");
   const guard = useRef(createSubmissionGuard());
   const term = useDebounced(customerSearch);
@@ -187,7 +192,7 @@ export function InvoiceForm() {
     loaded &&
     (!id || persisted.data?.status === "Draft") &&
     !blockers.length &&
-    user.permissions.manage;
+    user.permissions.manage !== false;
   const valid = Object.keys(validateInvoice(form)).length === 0;
   const debounceForm = useDebounced(form, 350);
   const calculation = useQuery({
@@ -199,22 +204,47 @@ export function InvoiceForm() {
     staleTime: 0,
   });
   const freshCalculation = debounceForm === form ? calculation.data : null;
-  const rates = (taxes.data?.taxRates || []).filter(
+  const rawRates = Array.isArray(taxes.data)
+    ? taxes.data
+    : taxes.data?.taxRates || taxes.data?.TaxRates || [];
+  const rates = rawRates.filter(
     (rate) =>
-      rate.isActive &&
-      !rate.isInclusive &&
+      rate.isActive !== false &&
+      rate.status !== "Inactive" &&
       !rate.isCompound &&
-      ["Item", "Both"].includes(rate.applicationLevel),
+      (!rate.applicationLevel ||
+        ["Item", "Both"].includes(rate.applicationLevel)),
   );
   const configuredCharges = (charges.data || []).filter(
-    (charge) =>
-      charge.status === "Active" &&
-      charge.calculationType === "Fixed" &&
-      !charge.taxable,
+    (charge) => charge.status === "Active",
   );
+  const currentSubtotal = useMemo(() => {
+    if (calculation.data?.grossSubtotal != null) {
+      return calculation.data.grossSubtotal;
+    }
+    return (form.items || []).reduce((sum, item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      return sum + Math.max(0, qty * price);
+    }, 0);
+  }, [calculation.data?.grossSubtotal, form.items]);
   const change = (key, value) => {
     setForm((previous) => ({ ...previous, [key]: value }));
     setErrors((previous) => ({ ...previous, [key]: "" }));
+  };
+  const handleInvoiceDateChange = (val) => {
+    setForm((previous) => {
+      const next = { ...previous, invoiceDate: val };
+      if (!id && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        next.dueDate = getOneMonthLaterIso(val);
+      }
+      return next;
+    });
+    setErrors((previous) => ({
+      ...previous,
+      invoiceDate: "",
+      ...(val && /^\d{4}-\d{2}-\d{2}$/.test(val) ? { dueDate: "" } : {}),
+    }));
   };
   const changeItem = (index, key, value) => {
     setForm((previous) => ({
@@ -226,16 +256,81 @@ export function InvoiceForm() {
   };
   const chooseCustomer = (value) => {
     change("customerId", value ? String(value.id) : "");
+    if (value?.currency && !id) {
+      change("currency", value.currency.toUpperCase());
+    }
+  };
+  const moveItem = (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= form.items.length) return;
+    setForm((previous) => {
+      const updated = [...previous.items];
+      const temp = updated[index];
+      updated[index] = updated[targetIndex];
+      updated[targetIndex] = temp;
+      return { ...previous, items: updated };
+    });
+  };
+  const isDirty = useMemo(() => {
+    if (!loaded) return false;
+    const initial =
+      id && persisted.data ? formFromInvoice(persisted.data) : blankInvoice();
+    return (
+      form.customerId !== initial.customerId ||
+      form.invoiceDate !== initial.invoiceDate ||
+      form.dueDate !== initial.dueDate ||
+      form.currency !== initial.currency ||
+      form.reference !== initial.reference ||
+      form.notes !== initial.notes ||
+      form.termsAndConditions !== initial.termsAndConditions ||
+      form.discountAmount !== initial.discountAmount ||
+      form.chargesAmount !== initial.chargesAmount ||
+      form.items.length !== initial.items.length ||
+      form.items.some((item, i) => {
+        const initItem = initial.items[i];
+        if (!initItem) return true;
+        return (
+          item.productId !== initItem.productId ||
+          item.description !== initItem.description ||
+          item.quantity !== initItem.quantity ||
+          item.unitPrice !== initItem.unitPrice ||
+          item.taxRate !== initItem.taxRate
+        );
+      })
+    );
+  }, [form, persisted.data, id, loaded]);
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (isDirty && !busy) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty, busy]);
+  const handleLeave = (event) => {
+    if (
+      isDirty &&
+      !window.confirm("You have unsaved changes. Discard changes and leave?")
+    ) {
+      event.preventDefault();
+    }
   };
   useEffect(() => {
     if (
       !id &&
       customer.data &&
-      form.customerId === String(customer.data.id) &&
-      !form.currency
-    )
-      change("currency", customer.data.currency?.toUpperCase() || "");
-  }, [customer.data, form.customerId, form.currency, id]);
+      form.customerId === String(customer.data.id)
+    ) {
+      if (
+        customer.data.currency &&
+        (!form.currency || !form.items.some((i) => i.productId))
+      ) {
+        change("currency", customer.data.currency.toUpperCase());
+      }
+    }
+  }, [customer.data, form.customerId, id]);
   async function chooseProduct(index, option) {
     if (!guard.current.acquire()) return;
     setBusy(true);
@@ -252,15 +347,27 @@ export function InvoiceForm() {
       }
       await invoiceService.validateProduct(option.id);
       const product = await invoiceService.product(option.id);
-      if (product.currency !== form.currency)
-        throw new Error(
-          `Product currency ${product.currency} does not match invoice currency ${form.currency || "(select currency first)"}.`,
-        );
-      const item = productToItem(product, rates);
+      const targetCurrency = form.currency || product.currency || "INR";
+      if (!form.currency && targetCurrency) {
+        change("currency", targetCurrency.toUpperCase());
+      }
+      const fullProduct = { ...(option || {}), ...(product || {}) };
+      const item = productToItem(fullProduct, rates, targetCurrency);
+      item.currency = targetCurrency;
       setForm((previous) => ({
         ...previous,
+        currency: previous.currency || targetCurrency,
         items: previous.items.map((old, i) => (i === index ? item : old)),
       }));
+      setErrors((previous) => {
+        const next = { ...previous };
+        delete next[`items.${index}.productId`];
+        delete next[`items.${index}.unitPrice`];
+        delete next[`items.${index}.quantity`];
+        delete next[`items.${index}.taxRate`];
+        delete next[`items.${index}.discountRate`];
+        return next;
+      });
     } catch (e) {
       setError(invoiceError(e));
     } finally {
@@ -269,13 +376,13 @@ export function InvoiceForm() {
     }
   }
   async function applyCharge() {
-    if (!freshCalculation || !guard.current.acquire()) return;
+    if (!chargeId || !guard.current.acquire()) return;
     setBusy(true);
     setError("");
     try {
       const result = await invoiceService.calculateCharges(
-        freshCalculation.grossSubtotal,
-        chargeId ? [Number(chargeId)] : [],
+        currentSubtotal,
+        [Number(chargeId)],
       );
       if (!Number.isFinite(result.totalCharges))
         throw new Error("Invalid charges calculation response.");
@@ -287,8 +394,8 @@ export function InvoiceForm() {
       setBusy(false);
     }
   }
-  async function save(event) {
-    event.preventDefault();
+  async function submitForm(event, shouldIssue = false) {
+    if (event?.preventDefault) event.preventDefault();
     const validation = validateInvoice(form);
     setErrors(validation);
     if (Object.keys(validation).length || !editable || !guard.current.acquire())
@@ -311,13 +418,8 @@ export function InvoiceForm() {
         String(currentCustomer.status).toLowerCase() === "inactive"
       )
         throw new Error("Select an active customer.");
-      if (
-        currentCustomer.currency &&
-        currentCustomer.currency !== form.currency
-      )
-        throw new Error(
-          "Invoice currency must match the selected customer currency.",
-        );
+      if (!form.currency)
+        throw new Error("Currency is required.");
       await Promise.all(
         form.items.map((item) =>
           invoiceService.validateProduct(item.productId),
@@ -329,13 +431,32 @@ export function InvoiceForm() {
           form.discountAmount,
           computed.grossSubtotal,
         );
-        if (!validation.isValid)
-          throw new Error(validation.message || "Discount validation failed.");
+        if (!validation.isValid) {
+          const msg = validation.message || "Discount validation failed.";
+          setErrors((previous) => ({ ...previous, discountAmount: msg }));
+          throw new Error(msg);
+        }
       }
       const saved = await invoiceService.save(
         id,
-        invoiceDto(form, Boolean(id)),
+        invoiceDto(form, Boolean(id), user.data?.tenantId),
       );
+
+      if (shouldIssue) {
+        if (!saved?.id) {
+          throw new Error("Failed to save draft invoice before issuing.");
+        }
+        const issued = await invoiceService.issue(saved.id);
+        await invalidateInvoices(client);
+        navigate(`/invoices/${issued.id}`, {
+          replace: true,
+          state: {
+            invoiceNotice: `Invoice created and issued successfully as ${issued.invoiceNumber || identifier(issued)}.`,
+          },
+        });
+        return;
+      }
+
       await invalidateInvoices(client);
       navigate(`/invoices/${saved.id}`, {
         replace: true,
@@ -368,9 +489,9 @@ export function InvoiceForm() {
       value={form[key]}
       onChange={(event) => change(key, event.target.value)}
       error={Boolean(errors[key])}
-      helperText={errors[key]}
       {...(type === "date" ? { InputLabelProps: { shrink: true } } : {})}
       {...extra}
+      helperText={errors[key] || extra.helperText}
     />
   );
   return (
@@ -382,18 +503,22 @@ export function InvoiceForm() {
           : "Create a new customer invoice with products, taxes and billing details."
       }
       actions={
-        <Button component={Link} to="/invoices" disabled={busy}>
+        <Button
+          component={Link}
+          to={id ? `/invoices/${id}` : "/invoices"}
+          variant="outlined"
+          startIcon={<ArrowBack />}
+          disabled={busy}
+          onClick={handleLeave}
+        >
           Back to invoices
         </Button>
       }
     >
       <InvoiceState
-        loading={user.isPending || (id && persisted.isPending)}
-        error={user.error || persisted.error}
-        retry={() => {
-          user.refetch();
-          persisted.refetch();
-        }}
+        loading={id ? persisted.isPending : false}
+        error={persisted.error}
+        retry={() => persisted.refetch()}
       />
       {loaded && id && persisted.data?.status !== "Draft" && (
         <Alert severity="warning">
@@ -411,11 +536,18 @@ export function InvoiceForm() {
           Invoice creation and editing require TenantAdmin or SuperAdmin.
         </Alert>
       )}
-      <form onSubmit={save} noValidate>
+      <form onSubmit={(e) => submitForm(e, false)} noValidate>
         <fieldset className="invoice-fieldset" disabled={busy || !editable}>
-          <section className="invoice-panel">
-            <h2>Customer &amp; invoice information</h2>
-            <div className="invoice-form-grid">
+          <section className="invoice-panel invoice-customer-panel">
+            <div className="invoice-section-heading">
+              <div>
+                <h2>Customer &amp; invoice information</h2>
+                <p>
+                  Select a customer to load commercial terms, billing details and tax information.
+                </p>
+              </div>
+            </div>
+            <div className="invoice-customer-selection-row">
               <Autocomplete
                 options={customers.data?.items || []}
                 filterOptions={(values) => values}
@@ -432,30 +564,23 @@ export function InvoiceForm() {
                     {...params}
                     required
                     label="Customer"
+                    placeholder="Search registered customer by name or company..."
                     error={Boolean(errors.customerId)}
-                    helperText={errors.customerId}
+                    helperText={errors.customerId || "Select from registered active customers"}
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <PersonOutline sx={{ color: "var(--secondary)", opacity: 0.8 }} />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                    }}
                   />
                 )}
               />
-              <TextField
-                label="Invoice number"
-                value={
-                  numberPreview.data?.fullPreview || "Auto-generated on issue"
-                }
-                InputProps={{ readOnly: true }}
-                helperText="Advisory preview; final number is assigned by the backend."
-              />
-              {field("invoiceDate", "Invoice date", "date", { required: true })}
-              {field("dueDate", "Due date", "date", { required: true })}
-              {field("currency", "Currency", "text", {
-                required: true,
-                inputProps: { maxLength: 3 },
-                InputProps: { readOnly: Boolean(id) },
-                helperText: id
-                  ? "Currency changes are not persisted by the current draft update API."
-                  : errors.currency,
-              })}
-              {field("reference", "Reference")}
             </div>
             <InvoiceState
               error={customers.error || customer.error}
@@ -464,6 +589,99 @@ export function InvoiceForm() {
                 customer.refetch();
               }}
             />
+            {customer.data && (
+              <div className="invoice-customer-card">
+                <div className="invoice-customer-card-header">
+                  <div className="invoice-customer-avatar">
+                    {customer.data.name?.charAt(0)?.toUpperCase() || "C"}
+                  </div>
+                  <div className="invoice-customer-meta">
+                    <strong>{customer.data.name}</strong>
+                    <span>{customer.data.email || "No email on record"}</span>
+                  </div>
+                  {customer.data.taxId && (
+                    <span className="invoice-tax-id-tag">Tax ID: {customer.data.taxId}</span>
+                  )}
+                </div>
+                <div className="invoice-customer-card-details">
+                  <div className="invoice-customer-detail-group">
+                    <span className="invoice-detail-label">Billing Address</span>
+                    <p>
+                      {[
+                        customer.data.address,
+                        customer.data.city,
+                        customer.data.state,
+                        customer.data.postalCode,
+                        customer.data.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || "No address supplied"}
+                    </p>
+                  </div>
+                  <div className="invoice-customer-detail-group">
+                    <span className="invoice-detail-label">Payment Terms</span>
+                    <p>{customer.data.paymentTerms || "Standard / Net 30"}</p>
+                  </div>
+                  <div className="invoice-customer-detail-group">
+                    <span className="invoice-detail-label">Commercial Currency</span>
+                    <p>{customer.data.currency || form.currency || "INR"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="invoice-subheading-row">
+              <h3 className="invoice-subheading">Invoice details</h3>
+              <span className="invoice-subheading-hint">Dates, currency and legal reference</span>
+            </div>
+            <div className="invoice-form-grid invoice-details-grid">
+              <div className="invoice-number-card">
+                <div className="invoice-number-card-top">
+                  <span className="invoice-number-label">Invoice Number</span>
+                  <span className="invoice-auto-tag">Auto-Generated</span>
+                </div>
+                <div className="invoice-number-card-body">
+                  <Tag className="invoice-number-icon" sx={{ fontSize: 18, color: "var(--secondary)" }} />
+                  <span>{numberPreview.data?.fullPreview || "Auto-generated on issue"}</span>
+                </div>
+                <span className="invoice-number-hint">Advisory preview; assigned on issue</span>
+              </div>
+              <DateField
+                label="Invoice date"
+                required
+                value={form.invoiceDate}
+                onChange={handleInvoiceDateChange}
+                error={Boolean(errors.invoiceDate)}
+                helperText={errors.invoiceDate}
+                disabled={busy || !editable}
+              />
+              <DateField
+                label="Due date"
+                required
+                value={form.dueDate}
+                onChange={(val) => change("dueDate", val)}
+                error={Boolean(errors.dueDate)}
+                helperText={errors.dueDate}
+                disabled={busy || !editable}
+              />
+              {field("currency", "Currency", "text", {
+                required: true,
+                inputProps: { maxLength: 3 },
+                InputProps: { readOnly: Boolean(id) },
+                helperText: id
+                  ? "Currency locked on existing draft."
+                  : errors.currency,
+              })}
+              {field("reference", "Customer PO / Reference", "text", {
+                placeholder: "e.g. PO-2026-001",
+                InputProps: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ReceiptLongOutlined sx={{ color: "var(--secondary)", opacity: 0.8 }} />
+                    </InputAdornment>
+                  ),
+                },
+              })}
+            </div>
             <InvoiceState
               error={numbering.error || numberPreview.error}
               retry={() => {
@@ -471,37 +689,18 @@ export function InvoiceForm() {
                 if (form.invoiceDate) numberPreview.refetch();
               }}
             />
-            {customer.data && (
-              <InvoiceValues
-                values={[
-                  [
-                    "Current billing address",
-                    [
-                      customer.data.address,
-                      customer.data.city,
-                      customer.data.state,
-                      customer.data.postalCode,
-                      customer.data.country,
-                    ]
-                      .filter(Boolean)
-                      .join(", "),
-                  ],
-                  ["Email", customer.data.email],
-                  ["Payment terms", customer.data.paymentTerms],
-                ]}
-              />
-            )}
           </section>
-          <section className="invoice-panel">
+          <section className="invoice-panel invoice-line-items-panel">
             <div className="invoice-section-heading">
               <div>
                 <h2>Line items</h2>
                 <p>
-                  Select real products or services. Historical drafts keep their
-                  saved rates until you select another product.
+                  Select real products or services. Rates, taxes and totals reflect authoritative backend calculations.
                 </p>
               </div>
               <Button
+                variant="contained"
+                className="invoice-add-item-btn"
                 startIcon={<Add />}
                 onClick={() => {
                   setForm((previous) => ({
@@ -510,7 +709,7 @@ export function InvoiceForm() {
                   }));
                 }}
               >
-                Add Line
+                Add Line Item
               </Button>
             </div>
             <InvoiceState error={taxes.error} retry={() => taxes.refetch()} />
@@ -518,20 +717,24 @@ export function InvoiceForm() {
               <table className="invoice-table invoice-edit-table">
                 <thead>
                   <tr>
+                    <th>#</th>
                     <th>Product / Service &amp; description</th>
-                    <th>HSN/SAC / Unit</th>
+                    <th>HSN/SAC</th>
                     <th>Quantity</th>
                     <th>Unit Price</th>
                     <th>Discount</th>
-                    <th>Tax</th>
-                    <th className="numeric">Tax amount</th>
-                    <th className="numeric">Line total</th>
+                    <th>Tax Rate</th>
+                    <th>Tax amount</th>
+                    <th>Line total</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {form.items.map((item, index) => (
                     <tr key={index}>
+                      <td>
+                        <span className="invoice-row-index">{index + 1}</span>
+                      </td>
                       <td>
                         <ProductSelect
                           item={item}
@@ -566,12 +769,16 @@ export function InvoiceForm() {
                         <TextField
                           size="small"
                           label="HSN/SAC"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="e.g. 8471"
                           value={item.hsnsac || ""}
                           onChange={(event) =>
                             changeItem(index, "hsnsac", event.target.value)
                           }
                         />
-                        <small>{item.unit || "\u2014"}</small>
+                        {item.unit && (
+                          <span className="invoice-unit-badge">{item.unit}</span>
+                        )}
                       </td>
                       <td>
                         <TextField
@@ -579,6 +786,8 @@ export function InvoiceForm() {
                           required
                           type="number"
                           label="Quantity"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="1"
                           value={item.quantity}
                           onChange={(event) =>
                             changeItem(index, "quantity", event.target.value)
@@ -593,7 +802,9 @@ export function InvoiceForm() {
                           size="small"
                           required
                           type="number"
-                          label="Price"
+                          label="Unit Price"
+                          InputLabelProps={{ shrink: true }}
+                          placeholder="0.00"
                           value={item.unitPrice}
                           onChange={(event) =>
                             changeItem(index, "unitPrice", event.target.value)
@@ -604,33 +815,99 @@ export function InvoiceForm() {
                         />
                       </td>
                       <td>
-                        <span title="Line discount recalculation requires a backend fix.">
-                          Unavailable
-                        </span>
+                        <TextField
+                          size="small"
+                          type="number"
+                          label="Discount"
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
+                          value={item.discountRate ?? ""}
+                          onChange={(event) =>
+                            changeItem(index, "discountRate", event.target.value)
+                          }
+                          inputProps={{
+                            min: 0,
+                            max: item.discountType === "Percentage" ? 100 : 999999999,
+                            step: 0.01,
+                          }}
+                          InputProps={{
+                            endAdornment: (
+                              <InputAdornment position="end" sx={{ mr: -0.5 }}>
+                                <select
+                                  aria-label={`Discount type line ${index + 1}`}
+                                  value={item.discountType || "Percentage"}
+                                  onChange={(e) =>
+                                    changeItem(index, "discountType", e.target.value)
+                                  }
+                                  className="invoice-line-discount-select"
+                                >
+                                  <option value="Percentage">%</option>
+                                  <option value="Fixed">{form.currency || "Val"}</option>
+                                </select>
+                              </InputAdornment>
+                            ),
+                          }}
+                          error={Boolean(errors[`items.${index}.discountRate`])}
+                          helperText={
+                            errors[`items.${index}.discountRate`] ||
+                            (freshCalculation?.items?.[index]?.discountAmount > 0
+                              ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
+                              : "")
+                          }
+                        />
                       </td>
                       <td>
                         <TextField
                           select
                           size="small"
-                          label="Tax"
+                          label="Tax Rate"
+                          InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
                           value={
-                            item.taxType
-                              ? `${item.taxType}|${item.taxRate}`
-                              : ""
+                            (() => {
+                              if (item.taxRate === "" || item.taxRate == null) return "";
+                              const itemRateNum = Number(item.taxRate);
+                              const matched =
+                                rates.find(
+                                  (r) =>
+                                    Number(r.rate) === itemRateNum &&
+                                    (!item.taxType ||
+                                      String(r.taxType || r.type || "").toLowerCase() ===
+                                        String(item.taxType).toLowerCase()),
+                                ) || rates.find((r) => Number(r.rate) === itemRateNum);
+                              if (matched) {
+                                return `${matched.taxType || matched.type || "GST"}|${matched.rate}`;
+                              }
+                              return `${item.taxType || "GST"}|${item.taxRate}`;
+                            })()
                           }
                           disabled={Boolean(taxes.error) || taxes.isPending}
                           onChange={(event) => {
-                            const [taxType, taxRate] =
-                              event.target.value.split("|");
+                            const val = event.target.value;
+                            if (!val) {
+                              setForm((previous) => ({
+                                ...previous,
+                                items: previous.items.map((old, i) =>
+                                  i === index
+                                    ? {
+                                        ...old,
+                                        taxType: "",
+                                        taxRate: "",
+                                      }
+                                    : old,
+                                ),
+                              }));
+                              return;
+                            }
+                            const [taxType, taxRate] = val.split("|");
                             setForm((previous) => ({
                               ...previous,
                               items: previous.items.map((old, i) =>
                                 i === index
                                   ? {
                                       ...old,
-                                      taxType: taxType || "",
+                                      taxType: taxType || "GST",
                                       taxRate: taxRate || "",
                                     }
                                   : old,
@@ -639,72 +916,135 @@ export function InvoiceForm() {
                           }}
                         >
                           <MenuItem value="">No item tax</MenuItem>
-                          {item.taxType &&
+                          {item.taxRate !== "" &&
+                            item.taxRate != null &&
                             !rates.some(
-                              (rate) =>
-                                rate.taxType === item.taxType &&
-                                String(rate.rate) === String(item.taxRate),
+                              (rate) => Number(rate.rate) === Number(item.taxRate),
                             ) && (
                               <MenuItem
-                                value={`${item.taxType}|${item.taxRate}`}
+                                value={`${item.taxType || "GST"}|${item.taxRate}`}
                               >
-                                Saved {item.taxType} {item.taxRate}%
+                                {item.taxType || "GST"} {item.taxRate}%
                               </MenuItem>
                             )}
-                          {rates.map((rate) => (
-                            <MenuItem
-                              key={rate.id}
-                              value={`${rate.taxType}|${rate.rate}`}
-                            >
-                              {rate.name} / {rate.rate}%
-                            </MenuItem>
-                          ))}
+                          {rates.map((rate) => {
+                            const rateType = rate.taxType || rate.type || "GST";
+                            return (
+                              <MenuItem
+                                key={rate.id || `${rateType}-${rate.rate}`}
+                                value={`${rateType}|${rate.rate}`}
+                              >
+                                {rate.name || `${rateType} ${rate.rate}%`} / {rate.rate}%
+                              </MenuItem>
+                            );
+                          })}
                         </TextField>
                       </td>
-                      <td className="numeric">
+                      <td>
                         {money(
                           freshCalculation?.items?.[index]?.taxAmount,
                           form.currency,
                         )}
                       </td>
-                      <td className="numeric">
+                      <td style={{ fontWeight: 700, color: "var(--primary)" }}>
                         {money(
                           freshCalculation?.items?.[index]?.lineTotal,
                           form.currency,
                         )}
                       </td>
                       <td>
-                        <IconButton
-                          aria-label={`Remove line ${index + 1}`}
-                          disabled={form.items.length === 1}
-                          onClick={() => {
-                            setForm((previous) => ({
-                              ...previous,
-                              items: previous.items.filter(
-                                (_, i) => i !== index,
-                              ),
-                            }));
-                          }}
-                        >
-                          <DeleteOutline />
-                        </IconButton>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+                          <Tooltip title="Move line up">
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Move line ${index + 1} up`}
+                                disabled={index === 0}
+                                onClick={() => moveItem(index, -1)}
+                              >
+                                <ArrowUpward fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Move line down">
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Move line ${index + 1} down`}
+                                disabled={index === form.items.length - 1}
+                                onClick={() => moveItem(index, 1)}
+                              >
+                                <ArrowDownward fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Delete line">
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Remove line ${index + 1}`}
+                                className="invoice-delete-line-btn"
+                                disabled={form.items.length === 1}
+                                onClick={() => {
+                                  setForm((previous) => ({
+                                    ...previous,
+                                    items: previous.items.filter(
+                                      (_, i) => i !== index,
+                                    ),
+                                  }));
+                                }}
+                              >
+                                <DeleteOutline fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <div className="invoice-table-footer-actions">
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={() => {
+                  setForm((previous) => ({
+                    ...previous,
+                    items: [...previous.items, blankItem()],
+                  }));
+                }}
+              >
+                Add Another Line
+              </Button>
+            </div>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
             <p className="invoice-footnote">
-              Line discounts, inclusive/compound taxes and detailed charge tax
-              persistence require backend support. This form uses the supported
-              single exclusive item tax.
+              Line discounts and single exclusive item taxes are calculated by the authoritative backend engine.
             </p>
           </section>
           <div className="invoice-form-bottom">
             <div>
-              <section className="invoice-panel">
-                <h2>Discounts &amp; additional charges</h2>
+              <section className="invoice-panel invoice-adjustments-panel">
+                <div className="invoice-section-heading">
+                  <div>
+                    <h2>Discounts &amp; additional charges</h2>
+                    <p>Configure invoice-level discounts and applicable charges.</p>
+                  </div>
+                  <Button
+                    size="small"
+                    variant="text"
+                    component={Link}
+                    to="/settings/discounts"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<LocalOfferOutlined />}
+                    sx={{ fontSize: "12.5px", fontWeight: 700 }}
+                  >
+                    Discount Configuration
+                  </Button>
+                </div>
                 <InvoiceState
                   error={discounts.error || charges.error}
                   retry={() => {
@@ -712,66 +1052,137 @@ export function InvoiceForm() {
                     charges.refetch();
                   }}
                 />
-                <div className="invoice-form-grid">
+                {discounts.data &&
+                  (discounts.data.status !== "Active" ||
+                    discounts.data.allowInvoiceLevel === false) && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      Invoice-level discounts are currently disabled in tenant
+                      settings.{" "}
+                      <Link
+                        to="/settings/discounts"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Enable in Discount Configuration
+                      </Link>
+                    </Alert>
+                  )}
+                <div className="invoice-form-grid invoice-charges-grid">
                   {field(
                     "discountAmount",
-                    "Invoice discount (fixed)",
+                    `Invoice discount (fixed${form.currency ? ` in ${form.currency}` : ""})`,
                     "number",
                     {
                       inputProps: { min: 0, step: 0.01 },
+                      placeholder: "0.00",
+                      InputLabelProps: { shrink: true },
                       disabled:
                         discounts.isPending ||
                         Boolean(discounts.error) ||
                         discounts.data?.status !== "Active" ||
                         discounts.data?.allowInvoiceLevel === false,
+                      helperText: (
+                        <span>
+                          Validated against tenant maximum discount limits.{" "}
+                          <Link
+                            to="/settings/discounts"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Manage limits
+                          </Link>
+                        </span>
+                      ),
                     },
                   )}
+                  <div className="invoice-charge-apply-group">
+                    <TextField
+                      select
+                      fullWidth
+                      label="Configured charge"
+                      value={chargeId}
+                      onChange={(event) => setChargeId(event.target.value)}
+                      disabled={charges.isPending || Boolean(charges.error) || !editable}
+                      SelectProps={{
+                        renderValue: (selectedId) => {
+                          if (!selectedId) return "No additional charge";
+                          const selected = configuredCharges.find(
+                            (c) => String(c.id) === String(selectedId)
+                          );
+                          if (!selected) return "No additional charge";
+                          const rateLabel =
+                            selected.calculationType === "Percentage"
+                              ? `${selected.value}%`
+                              : money(selected.value, form.currency);
+                          return `${selected.name} (${rateLabel})`;
+                        },
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>No additional charge</em>
+                      </MenuItem>
+                      {configuredCharges.map((charge) => (
+                        <MenuItem key={charge.id} value={String(charge.id)}>
+                          <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                            <span style={{ fontWeight: 600 }}>{charge.name}</span>
+                            <span
+                              style={{
+                                fontSize: "11.5px",
+                                color: "var(--secondary)",
+                                opacity: 0.85,
+                              }}
+                            >
+                              {charge.calculationType === "Percentage"
+                                ? `Percentage • ${charge.value}%`
+                                : `Fixed • ${money(charge.value, form.currency)}`}
+                              {charge.taxable ? " • Taxable" : ""}
+                            </span>
+                          </div>
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <Button
+                      variant="outlined"
+                      onClick={applyCharge}
+                      disabled={
+                        !chargeId ||
+                        charges.isPending ||
+                        Boolean(charges.error) ||
+                        busy
+                      }
+                      className="invoice-apply-charge-btn"
+                    >
+                      Apply charge
+                    </Button>
+                  </div>
                   <TextField
-                    label="Persisted charge amount"
+                    label="Additional Charges Total"
                     value={form.chargesAmount}
                     InputProps={{ readOnly: true }}
-                    helperText="Calculated from enabled, fixed, non-taxable charge settings."
+                    helperText={`Total additional charges applied in ${form.currency}.`}
                   />
-                  <TextField
-                    select
-                    label="Configured charge"
-                    value={chargeId}
-                    onChange={(event) => setChargeId(event.target.value)}
-                  >
-                    <MenuItem value="">No additional charge</MenuItem>
-                    {configuredCharges.map((charge) => (
-                      <MenuItem key={charge.id} value={String(charge.id)}>
-                        {charge.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <Button
-                    onClick={applyCharge}
-                    disabled={
-                      !freshCalculation ||
-                      charges.isPending ||
-                      Boolean(charges.error)
-                    }
-                  >
-                    Apply configured charge
-                  </Button>
                 </div>
                 <p className="invoice-footnote">
-                  Discount limits are validated by the existing configuration
-                  API. Override reasons and richer discount rules cannot be
-                  persisted in the invoice contract.
+                  Discount limits are validated against tenant settings. Calculations reflect backend calculation service rules.
                 </p>
               </section>
-              <section className="invoice-panel">
-                <h2>Notes &amp; terms</h2>
-                <div className="invoice-form-grid">
-                  {field("notes", "Notes", "text", {
+              <section className="invoice-panel invoice-notes-panel">
+                <div className="invoice-section-heading">
+                  <div>
+                    <h2>Notes &amp; terms</h2>
+                    <p>Customer remarks, payment instructions and terms of service.</p>
+                  </div>
+                </div>
+                <div className="invoice-form-grid invoice-notes-grid">
+                  {field("notes", "Notes & Remarks", "text", {
                     multiline: true,
                     minRows: 3,
+                    placeholder: "Payment instructions, bank transfer details, or customer notes...",
                   })}
-                  {field("termsAndConditions", "Terms & conditions", "text", {
+                  {field("termsAndConditions", "Terms & Conditions", "text", {
                     multiline: true,
                     minRows: 3,
+                    placeholder: "Payment timeline, delayed payment interest, delivery conditions...",
                   })}
                 </div>
               </section>
@@ -786,31 +1197,29 @@ export function InvoiceForm() {
                 calculation={freshCalculation}
                 currency={form.currency}
               />
-              <p className="invoice-footnote">
-                The invoice backend applies whole-unit rounding on Save/Issue.
-                Saved totals replace this preview.
+              <p className="invoice-footnote" style={{ marginTop: "12px" }}>
+                The invoice backend applies whole-unit rounding on Save/Issue. Saved totals replace this preview.
               </p>
             </div>
           </div>
           {error && (
             <Alert
               severity="error"
+              sx={{ mt: 2.5, borderRadius: "10px" }}
               action={id && <Button onClick={reload}>Reload latest</Button>}
             >
               {error}
             </Alert>
           )}
           <div className="invoice-form-actions">
-            <Button component={Link} to={id ? `/invoices/${id}` : "/invoices"}>
-              Cancel
-            </Button>
             <Button
+              component={Link}
+              to={id ? `/invoices/${id}` : "/invoices"}
               variant="outlined"
-              startIcon={<VisibilityOutlined />}
-              disabled={!freshCalculation}
-              onClick={() => setPreviewOpen(true)}
+              onClick={handleLeave}
+              className="invoice-btn-cancel"
             >
-              Preview
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -822,34 +1231,14 @@ export function InvoiceForm() {
                 calculation.isFetching ||
                 Boolean(customer.error)
               }
+              onClick={(e) => submitForm(e, false)}
+              className="invoice-btn-save-draft"
             >
               Save Draft
             </Button>
           </div>
         </fieldset>
       </form>
-      <Dialog
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        fullWidth
-        maxWidth="lg"
-      >
-        <DialogTitle>Unsaved draft preview</DialogTitle>
-        <DialogContent>
-          <Alert severity="info">
-            This preview preserves your input. It does not allocate a number or
-            generate the final invoice PDF.
-          </Alert>
-          <InvoiceDocument
-            invoice={{ ...form, status: "Unsaved draft" }}
-            calculation={freshCalculation}
-            customer={customer.data}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPreviewOpen(false)}>Back to Edit</Button>
-        </DialogActions>
-      </Dialog>
     </InvoiceShell>
   );
 }

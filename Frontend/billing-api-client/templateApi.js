@@ -66,6 +66,12 @@ export const templateApi = {
     return unwrap(res);
   },
 
+  /** Makes a template the tenant default for future official invoice PDFs. */
+  setDefault: async (id) => {
+    const res = await apiClient.patch(API_ENDPOINTS.TEMPLATES.DEFAULT(id));
+    return unwrap(res);
+  },
+
   /**
    * Deactivate template.
    */
@@ -108,9 +114,17 @@ export const templateApi = {
    */
   uploadLogo: async (file) => {
     const formData = new FormData();
-    formData.append('file', file);
+    // The API validates the filename extension. Normalize valid image MIME
+    // types because platforms can provide JPEG files as .jfif or extensionless.
+    const extension = file.type === 'image/png' ? '.png'
+      : ['image/jpeg', 'image/pjpeg'].includes(file.type) || /\.jfif$/i.test(file.name) ? '.jpg'
+      : /\.(png|jpe?g|webp)$/i.exec(file.name)?.[0];
+    const uploadName = extension ? `${file.name.replace(/\.[^.]*$/, '')}${extension}` : file.name;
+    formData.append('file', file, uploadName);
     const res = await apiClient.post(API_ENDPOINTS.TEMPLATES.LOGO_UPLOAD, formData, {
-      // Let Axios/browser set the multipart boundary for FormData.
+      // apiClient defaults to application/json; override it so Axios sends the
+      // FormData as multipart and supplies the matching boundary.
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return unwrap(res);
   },

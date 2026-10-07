@@ -377,7 +377,7 @@ test("Catalog selection populates price/unit/HSN/tax; saved invoice keeps histor
   assert.equal(mapped.hsnsac, "HSN");
   assert.equal(formFromInvoice(invoice).items[0].unitPrice, "100");
 });
-test("Action visibility uses backend roles, actual states and unsafe discount blocker", () => {
+test("Action visibility uses backend roles, actual states and discount validation", () => {
   assert.deepEqual(
     invoiceActions(invoice, invoicePermissions({ role: "Customer" })),
     [],
@@ -387,6 +387,13 @@ test("Action visibility uses backend roles, actual states and unsafe discount bl
   assert.equal(
     invoiceActions(
       { ...invoice, items: [{ ...item, discountRate: 5 }] },
+      perms,
+    ).includes("issue"),
+    true,
+  );
+  assert.equal(
+    invoiceActions(
+      { ...invoice, items: [{ ...item, discountRate: -5 }] },
       perms,
     ).includes("issue"),
     false,

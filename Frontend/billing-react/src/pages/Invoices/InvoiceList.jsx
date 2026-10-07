@@ -3,10 +3,23 @@ import {
   Alert,
   Autocomplete,
   Button,
+  InputAdornment,
   MenuItem,
   TextField,
 } from "@mui/material";
-import { Add, Refresh, RestartAlt } from "@mui/icons-material";
+import {
+  Add,
+  CheckCircleOutline,
+  DescriptionOutlined,
+  EditNoteOutlined,
+  ErrorOutline,
+  HourglassEmptyOutlined,
+  ReceiptLongOutlined,
+  Refresh,
+  RestartAlt,
+  Search,
+  WarningAmberOutlined,
+} from "@mui/icons-material";
 import { Link, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, INVOICE_STATUSES } from "./services/invoiceService";
@@ -15,6 +28,7 @@ import {
   InvoiceShell,
   InvoiceState,
   InvoiceStatus,
+  DateField,
   money,
   date,
   identifier,
@@ -33,6 +47,44 @@ export const initialFilters = {
   sortBy: "InvoiceDate",
   sortOrder: "desc",
 };
+function KpiDonut({ percent = 0, icon }) {
+  const visualPercent = percent > 0 ? Math.max(6, Math.min(100, percent)) : 0;
+  const circumference = 119.38;
+  const strokeDashoffset =
+    visualPercent === 0
+      ? circumference
+      : circumference - (visualPercent / 100) * circumference;
+
+  return (
+    <div className="invoice-kpi-donut-wrap" aria-hidden="true">
+      <svg
+        className="invoice-kpi-donut-svg"
+        viewBox="0 0 48 48"
+        width="48"
+        height="48"
+      >
+        <circle
+          className="invoice-kpi-donut-track"
+          cx="24"
+          cy="24"
+          r="19"
+        />
+        <circle
+          className="invoice-kpi-donut-progress"
+          cx="24"
+          cy="24"
+          r="19"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeOpacity={percent > 0 ? 1 : 0}
+          transform="rotate(-90 24 24)"
+        />
+      </svg>
+      <span className="invoice-kpi-donut-icon">{icon}</span>
+    </div>
+  );
+}
+
 export function InvoiceList() {
   const context = useOutletContext() || {};
   const [search, setSearch] = useState("");
@@ -109,7 +161,7 @@ export function InvoiceList() {
           >
             Refresh
           </Button>
-          {user.permissions.manage && (
+          {user.permissions.manage !== false && (
             <Button
               component={Link}
               to="/invoices/new"
@@ -123,64 +175,211 @@ export function InvoiceList() {
         </>
       }
     >
-      <InvoiceState
-        loading={user.isPending}
-        error={user.error}
-        retry={() => user.refetch()}
-      />
-      {!user.isPending && !user.error && !user.permissions.view && (
+      {!user.isPending && !user.permissions.view && (
         <Alert severity="warning">
           Invoice access requires TenantAdmin or SuperAdmin.
         </Alert>
       )}
-      <InvoiceState
-        loading={summary.isFetching && !summary.data}
-        error={summary.error}
-        retry={() => summary.refetch()}
-      />
-      {summary.data?.map((group) => (
-        <section
-          key={group.currency}
-          className="invoice-summary-group"
-          aria-label={`${group.currency} invoice summary`}
-        >
-          <h2>{group.currency} / All invoices</h2>
-          <div className="invoice-summary-grid">
-            {[
-              ["Total Invoiced", group.totalInvoiced, null],
-              ["Total Paid", group.totalPaid, null],
-              ["Outstanding", group.totalOutstanding, "Outstanding"],
-              ["Overdue", group.overdueAmount, "Overdue"],
-            ].map(([label, value, paymentState]) => (
-              <button
-                key={label}
-                className="invoice-summary-card"
-                disabled={!paymentState}
-                onClick={() =>
-                  setFilters((previous) => ({
-                    ...previous,
-                    currency: group.currency,
-                    paymentState,
-                    status: "",
-                    page: 1,
-                  }))
+      {summary.data?.map((group) => {
+        const totalInvoicedNum = Number(group.totalInvoiced) || 0;
+        const totalPaidNum = Number(group.totalPaid) || 0;
+        const totalOutstandingNum = Number(group.totalOutstanding) || 0;
+        const overdueAmountNum = Number(group.overdueAmount) || 0;
+        const overdueCountNum = Number(group.overdueCount) || 0;
+        const draftCountNum = Number(group.draftCount) || 0;
+        const draftAmountNum = Number(group.draftAmount) || 0;
+        const totalPortfolio = totalInvoicedNum + draftAmountNum;
+
+        const kpiCards = [
+          {
+            label: "Total Invoiced",
+            formattedValue: money(group.totalInvoiced, group.currency),
+            paymentState: "",
+            statusFilter: "",
+            icon: <ReceiptLongOutlined />,
+            tone: "invoice-tone-sand",
+            progress: 100,
+          },
+          {
+            label: "Total Paid",
+            formattedValue: money(group.totalPaid, group.currency),
+            paymentState: "Paid",
+            statusFilter: "",
+            icon: <CheckCircleOutline />,
+            tone: "invoice-tone-mint",
+            progress:
+              totalInvoicedNum > 0
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round((totalPaidNum / totalInvoicedNum) * 100)
+                    )
+                  )
+                : totalPaidNum > 0
+                ? 100
+                : 0,
+          },
+          {
+            label: "Total Outstanding",
+            formattedValue: money(group.totalOutstanding, group.currency),
+            paymentState: "Outstanding",
+            statusFilter: "",
+            icon: <HourglassEmptyOutlined />,
+            tone: "invoice-tone-amber",
+            progress:
+              totalInvoicedNum > 0
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round(
+                        (totalOutstandingNum / totalInvoicedNum) * 100
+                      )
+                    )
+                  )
+                : 0,
+          },
+          {
+            label: "Overdue Amount",
+            formattedValue: money(group.overdueAmount, group.currency),
+            paymentState: "Overdue",
+            statusFilter: "",
+            icon: <WarningAmberOutlined />,
+            tone: "invoice-tone-rose",
+            progress:
+              totalInvoicedNum > 0
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round((overdueAmountNum / totalInvoicedNum) * 100)
+                    )
+                  )
+                : 0,
+          },
+          {
+            label: "Overdue Count",
+            formattedValue: `${overdueCountNum}`,
+            paymentState: "Overdue",
+            statusFilter: "",
+            icon: <ErrorOutline />,
+            tone: "invoice-tone-rose",
+            progress:
+              overdueCountNum === 0
+                ? 0
+                : Math.min(100, Math.max(12, overdueCountNum * 12)),
+          },
+          {
+            label: "Draft Count",
+            formattedValue: `${draftCountNum}`,
+            paymentState: "",
+            statusFilter: "Draft",
+            icon: <EditNoteOutlined />,
+            tone: "invoice-tone-sand",
+            progress:
+              draftCountNum === 0
+                ? 0
+                : Math.min(100, Math.max(12, draftCountNum * 8)),
+          },
+          {
+            label: "Draft Amount",
+            formattedValue: money(group.draftAmount, group.currency),
+            paymentState: "",
+            statusFilter: "Draft",
+            icon: <DescriptionOutlined />,
+            tone: "invoice-tone-amber",
+            progress:
+              totalPortfolio > 0
+                ? Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round((draftAmountNum / totalPortfolio) * 100)
+                    )
+                  )
+                : draftAmountNum > 0
+                ? 100
+                : 0,
+          },
+        ];
+
+        return (
+          <section
+            key={group.currency}
+            className="invoice-summary-group"
+            aria-label={`${group.currency} invoice summary`}
+          >
+            <h2>{group.currency} / All invoices</h2>
+            <div className="invoice-summary-grid">
+              {kpiCards.map(
+                ({
+                  label,
+                  formattedValue,
+                  paymentState,
+                  statusFilter,
+                  icon,
+                  tone,
+                  progress,
+                }) => {
+                  const isActive =
+                    filters.currency === group.currency &&
+                    (label === "Total Invoiced"
+                      ? !filters.paymentState && !filters.status
+                      : label === "Total Paid"
+                      ? filters.paymentState === "Paid" && !filters.status
+                      : label === "Total Outstanding"
+                      ? filters.paymentState === "Outstanding" && !filters.status
+                      : label === "Overdue Amount" || label === "Overdue Count"
+                      ? filters.paymentState === "Overdue" && !filters.status
+                      : label === "Draft Count" || label === "Draft Amount"
+                      ? filters.status === "Draft" && !filters.paymentState
+                      : false);
+
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`invoice-summary-card invoice-kpi-circular-card ${tone} ${
+                        isActive ? "is-active" : ""
+                      }`}
+                      onClick={() =>
+                        setFilters((previous) => ({
+                          ...previous,
+                          currency: group.currency,
+                          paymentState: paymentState || "",
+                          status: statusFilter || "",
+                          page: 1,
+                        }))
+                      }
+                      title={`Filter invoices by ${label} (${group.currency})`}
+                    >
+                      <span className="invoice-kpi-label">{label}</span>
+                      <KpiDonut percent={progress} icon={icon} />
+                      <div className="invoice-kpi-value-block">
+                        <strong
+                          className="invoice-kpi-value"
+                          title={formattedValue}
+                        >
+                          {formattedValue}
+                        </strong>
+                        <small className="invoice-kpi-subtext">
+                          Filter invoices
+                        </small>
+                      </div>
+                    </button>
+                  );
                 }
-              >
-                <span>{label}</span>
-                <strong>{money(value, group.currency)}</strong>
-                <small>
-                  {paymentState ? "Filter invoices" : "Currency-scoped total"}
-                </small>
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
+              )}
+            </div>
+          </section>
+        );
+      })}
       <section className="invoice-panel invoice-list-panel">
         <div className="invoice-filters">
           <TextField
             className="invoice-filter-search"
-            label="Search number, customer or reference"
+            placeholder="Search number, customer or reference"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -188,12 +387,25 @@ export function InvoiceList() {
               change("page", 1);
             }}
             type="search"
+            size="small"
+            inputProps={{
+              "aria-label": "Search number, customer or reference",
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "var(--secondary)", fontSize: 18 }} />
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             select
+            size="small"
             label="Status"
             value={filters.status}
             onChange={(event) => change("status", event.target.value)}
+            className="invoice-filter-status"
           >
             <MenuItem value="">All statuses</MenuItem>
             {INVOICE_STATUSES.map((status) => (
@@ -203,6 +415,8 @@ export function InvoiceList() {
             ))}
           </TextField>
           <Autocomplete
+            className="invoice-filter-customer"
+            size="small"
             options={customers.data?.items || []}
             filterOptions={(options) => options}
             value={customer}
@@ -214,26 +428,27 @@ export function InvoiceList() {
               setCustomer(value);
               change("customerId", value?.id || "");
             }}
-            renderInput={(params) => <TextField {...params} label="Customer" />}
+            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
           />
-          <TextField
+          <DateField
             className="invoice-filter-from"
-            type="date"
-            label="Invoice date from"
+            size="small"
+            label="From date"
             value={filters.startDate}
-            onChange={(event) => change("startDate", event.target.value)}
-            InputLabelProps={{ shrink: true }}
+            onChange={(val) => change("startDate", val)}
+            helperText=""
           />
-          <TextField
+          <DateField
             className="invoice-filter-to"
-            type="date"
-            label="Invoice date to"
+            size="small"
+            label="To date"
             value={filters.endDate}
-            onChange={(event) => change("endDate", event.target.value)}
-            InputLabelProps={{ shrink: true }}
+            onChange={(val) => change("endDate", val)}
+            helperText=""
           />
           <TextField
             className="invoice-filter-currency"
+            size="small"
             label="Currency"
             value={filters.currency}
             onChange={(event) =>
@@ -243,9 +458,11 @@ export function InvoiceList() {
           />
           <TextField
             select
+            size="small"
             label="Payment state"
             value={filters.paymentState}
             onChange={(event) => change("paymentState", event.target.value)}
+            className="invoice-filter-payment"
           >
             <MenuItem value="">All payment states</MenuItem>
             {["Paid", "Partially Paid", "Unpaid", "Outstanding", "Overdue"].map(
@@ -258,6 +475,7 @@ export function InvoiceList() {
           </TextField>
           <Button
             variant="outlined"
+            size="small"
             className="invoice-filter-reset"
             startIcon={<RestartAlt />}
             onClick={() => {
@@ -276,10 +494,6 @@ export function InvoiceList() {
           </Alert>
         )}
         <InvoiceState
-          error={customers.error}
-          retry={() => customers.refetch()}
-        />
-        <InvoiceState
           loading={list.isFetching}
           error={list.error}
           retry={() => list.refetch()}
@@ -291,7 +505,7 @@ export function InvoiceList() {
                 <h2>Invoices</h2>
                 <p>All customer invoices</p>
               </div>
-              {list.data && <span>{list.data.totalCount} invoices</span>}
+              {list.data && <span className="invoice-count-badge">{list.data.totalCount} invoices</span>}
             </div>
             <div
               className="invoice-table-scroll"
@@ -327,19 +541,20 @@ export function InvoiceList() {
                     </th>
                     <th>Due Date</th>
                     <th>Currency</th>
-                    <th className="numeric">Subtotal</th>
-                    <th className="numeric">Discount</th>
-                    <th className="numeric">Tax</th>
-                    <th className="numeric">Charges</th>
-                    <th className="numeric">
+                    <th>Subtotal</th>
+                    <th>Discount</th>
+                    <th>Tax</th>
+                    <th>Charges</th>
+                    <th>Rounding</th>
+                    <th>
                       {sortHeading("Grand Total", "TotalAmount")}
                     </th>
-                    <th className="numeric">Paid</th>
-                    <th className="numeric">
+                    <th>Paid</th>
+                    <th>
                       {sortHeading("Outstanding", "BalanceAmount")}
                     </th>
-                    <th className="invoice-cell-center">Status</th>
-                    <th className="invoice-cell-center invoice-actions-cell">
+                    <th>Status</th>
+                    <th className="invoice-actions-cell">
                       Actions
                     </th>
                   </tr>
@@ -361,18 +576,26 @@ export function InvoiceList() {
                         "discountAmount",
                         "taxAmount",
                         "chargesAmount",
+                        "roundingAmount",
                         "totalAmount",
                         "paidAmount",
                         "balanceAmount",
                       ].map((key) => (
-                        <td className="numeric" key={key}>
+                        <td
+                          key={key}
+                          className={
+                            key === "totalAmount" || key === "balanceAmount"
+                              ? "invoice-amount-highlight"
+                              : "invoice-amount-cell"
+                          }
+                        >
                           {money(invoice[key], invoice.currency)}
                         </td>
                       ))}
-                      <td className="invoice-cell-center">
+                      <td>
                         <InvoiceStatus status={invoice.status} />
                       </td>
-                      <td className="invoice-cell-center invoice-actions-cell">
+                      <td className="invoice-actions-cell">
                         <InvoiceActions
                           invoice={invoice}
                           permissions={user.permissions}

@@ -119,7 +119,7 @@ export function CreditNoteList() {
                 <TableCell align="right"><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
                 <TableCell><CreditNoteStatusBadge status={note.status} /></TableCell>
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
-                <TableCell align="right"><Tooltip title="Print credit note"><IconButton size="small" onClick={(event) => { event.stopPropagation(); navigate(`/credit-notes/${note.id}/preview`); }} aria-label={`Print ${note.number}`}><LocalPrintshopOutlined /></IconButton></Tooltip><Tooltip title="More actions"><IconButton size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreHoriz /></IconButton></Tooltip></TableCell>
+                <TableCell align="right"><Tooltip title="More actions"><IconButton size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreHoriz /></IconButton></Tooltip></TableCell>
               </TableRow>)}
               {!query.isPending && !query.isError && !items.length && <TableRow><TableCell colSpan={9}><div className="cn-empty-state"><span className="cn-empty-icon"><ReceiptLongOutlined /></span><strong>{totalCount ? 'No records on this page' : 'No Credit Notes in the billing API'}</strong><span>{totalCount ? 'Adjust page or filters to see other records.' : 'Create a note after the billing API returns eligible invoices.'}</span>{!totalCount && <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button>}</div></TableCell></TableRow>}
             </TableBody>

@@ -69,6 +69,11 @@ public class NumberGenerationService : INumberGenerationService
                 return ApiResponse<GenerateNumberResponseDto>.Fail("Setting provision error", "Unable to load or initialize numbering setting.");
             }
 
+            if (!string.Equals(setting.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            {
+                return ApiResponse<GenerateNumberResponseDto>.Fail("Inactive numbering configuration", $"The numbering configuration for '{docType}' is inactive and cannot be used to generate numbers.");
+            }
+
             // Check and apply reset policy
             if (ShouldReset(setting.ResetPolicy, setting.LastResetDateUtc, date))
             {

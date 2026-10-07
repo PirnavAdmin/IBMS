@@ -31,3 +31,8 @@ Thumbs.db
 
 # Local application settings
 appsettings.Local.json
+
+# Local scripts and archives
+*.zip
+*.bat
+
