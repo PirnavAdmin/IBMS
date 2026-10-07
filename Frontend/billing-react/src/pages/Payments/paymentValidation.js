@@ -7,9 +7,9 @@ export const paymentSchema = yup.object({
     if (!value) return true;
     return value >= '2000-01-01' && value <= new Date(Date.now() + 86400000).toISOString().slice(0, 10) && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
   }),
-  amount: yup.number().transform((value, original) => original === '' ? undefined : value)
+  amount: yup.number().transform((value, original) => original === '' ? undefined : (value != null ? Math.trunc(value) : value))
     .typeError('Enter a numeric payment amount.').required('Payment Amount is required.')
-    .min(0.01, 'Payment Amount must be at least 0.01.').max(1000000000, 'Payment Amount must not exceed 1000000000.').test('precision', 'Use no more than 2 decimal places.', value => value == null || Math.abs(value * 100 - Math.round(value * 100)) < 0.00001).test('finite', 'Enter a finite payment amount.', value => value == null || Number.isFinite(value)),
+    .min(0, 'Payment Amount must be at least 0.').max(1000000000, 'Payment Amount must not exceed 1000000000.').test('finite', 'Enter a finite payment amount.', value => value == null || Number.isFinite(value)),
   method: yup.string().oneOf(PAYMENT_METHODS, 'Select a supported payment method.').required('Payment Method is required.'),
   reference: yup.string().trim().max(128).test('reference', 'Transaction reference is required.', function(value) { return !['BankTransfer','UPI','Card','Gateway'].includes(this.parent.method) || Boolean(value || (this.parent.method !== 'BankTransfer' && this.parent.providerTransactionId?.trim())); }),
   bankName: yup.string().trim().max(128), accountLabel: yup.string().trim().max(128), upiPayerMetadata: yup.string().trim().max(256),

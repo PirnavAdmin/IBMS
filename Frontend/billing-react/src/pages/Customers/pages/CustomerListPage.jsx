@@ -178,6 +178,7 @@ export function CustomerListPage() {
   const mutation = useCustomerStatus();
   const statusLock = useRef(false);
   const [confirm, setConfirm] = useState(null);
+  const [inactiveDetails, setInactiveDetails] = useState(null);
   const [reason, setReason] = useState("");
   const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
   const selectCard = (view) => {
@@ -261,7 +262,7 @@ export function CustomerListPage() {
             value: summaryQuery.data?.inactive,
             text: "History safely retained",
             icon: <PersonOffOutlined />,
-            tone: "gray",
+            tone: "red",
           },
           {
             label: "Total Outstanding",
@@ -535,9 +536,6 @@ export function CustomerListPage() {
                             </small>
                           </div>
                         </div>
-                        {cardView === "inactive" && (
-                          <CustomerCardDetails customerId={customer.id} view="inactive" compact />
-                        )}
                       </TableCell>
                       <TableCell data-label="Type">
                         <span className="customer-type">
@@ -587,7 +585,20 @@ export function CustomerListPage() {
                         {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
                       </TableCell>
                       <TableCell data-label="Status">
-                        <StatusChip status={customer.status} />
+                        <div className="customer-status-details">
+                          <StatusChip status={customer.status} />
+                          {customer.status === "inactive" && (
+                            <Button
+                              className="customer-reason-trigger"
+                              size="small"
+                              aria-label={`View deactivation reason for ${customer.name}`}
+                              aria-haspopup="dialog"
+                              onClick={() => setInactiveDetails(customer)}
+                            >
+                              View reason
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell data-label="Actions">
                         <div
@@ -686,6 +697,28 @@ export function CustomerListPage() {
           </>
         )}
       </section>
+      <Dialog
+        className="customer-reason-dialog"
+        open={!!inactiveDetails}
+        onClose={() => setInactiveDetails(null)}
+        aria-labelledby="customer-reason-title"
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle id="customer-reason-title">Deactivation details</DialogTitle>
+        <DialogContent>
+          <div className="customer-reason-profile">
+            <strong>{inactiveDetails?.name}</strong>
+            <span>{inactiveDetails?.customerCode}</span>
+          </div>
+          {inactiveDetails && (
+            <CustomerCardDetails key={inactiveDetails.id} customerId={inactiveDetails.id} view="inactive" compact />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInactiveDetails(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={!!confirm}
         onClose={() => !mutation.isPending && setConfirm(null)}

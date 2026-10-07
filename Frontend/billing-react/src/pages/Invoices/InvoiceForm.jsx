@@ -18,7 +18,6 @@ import {
   PersonOutline,
   ReceiptLongOutlined,
   SaveOutlined,
-  SendOutlined,
   Tag,
   LocalOfferOutlined,
 } from "@mui/icons-material";
@@ -205,11 +204,13 @@ export function InvoiceForm() {
     staleTime: 0,
   });
   const freshCalculation = debounceForm === form ? calculation.data : null;
-  const rates = (taxes.data?.taxRates || taxes.data?.TaxRates || []).filter(
+  const rawRates = Array.isArray(taxes.data)
+    ? taxes.data
+    : taxes.data?.taxRates || taxes.data?.TaxRates || [];
+  const rates = rawRates.filter(
     (rate) =>
       rate.isActive !== false &&
       rate.status !== "Inactive" &&
-      !rate.isInclusive &&
       !rate.isCompound &&
       (!rate.applicationLevel ||
         ["Item", "Both"].includes(rate.applicationLevel)),
@@ -255,6 +256,9 @@ export function InvoiceForm() {
   };
   const chooseCustomer = (value) => {
     change("customerId", value ? String(value.id) : "");
+    if (value?.currency && !id) {
+      change("currency", value.currency.toUpperCase());
+    }
   };
   const moveItem = (index, direction) => {
     const targetIndex = index + direction;
@@ -319,7 +323,10 @@ export function InvoiceForm() {
       customer.data &&
       form.customerId === String(customer.data.id)
     ) {
-      if (!form.currency && customer.data.currency) {
+      if (
+        customer.data.currency &&
+        (!form.currency || !form.items.some((i) => i.productId))
+      ) {
         change("currency", customer.data.currency.toUpperCase());
       }
     }
@@ -340,14 +347,16 @@ export function InvoiceForm() {
       }
       await invoiceService.validateProduct(option.id);
       const product = await invoiceService.product(option.id);
-      if (product.currency !== form.currency)
-        throw new Error(
-          `Product currency ${product.currency} does not match invoice currency ${form.currency || "(select currency first)"}.`,
-        );
+      const targetCurrency = form.currency || product.currency || "INR";
+      if (!form.currency && targetCurrency) {
+        change("currency", targetCurrency.toUpperCase());
+      }
       const fullProduct = { ...(option || {}), ...(product || {}) };
-      const item = productToItem(fullProduct, rates);
+      const item = productToItem(fullProduct, rates, targetCurrency);
+      item.currency = targetCurrency;
       setForm((previous) => ({
         ...previous,
+        currency: previous.currency || targetCurrency,
         items: previous.items.map((old, i) => (i === index ? item : old)),
       }));
       setErrors((previous) => {
@@ -409,13 +418,8 @@ export function InvoiceForm() {
         String(currentCustomer.status).toLowerCase() === "inactive"
       )
         throw new Error("Select an active customer.");
-      if (
-        currentCustomer.currency &&
-        currentCustomer.currency !== form.currency
-      )
-        throw new Error(
-          "Invoice currency must match the selected customer currency.",
-        );
+      if (!form.currency)
+        throw new Error("Currency is required.");
       await Promise.all(
         form.items.map((item) =>
           invoiceService.validateProduct(item.productId),
@@ -861,21 +865,49 @@ export function InvoiceForm() {
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
                           value={
-                            item.taxType
-                              ? `${item.taxType}|${item.taxRate}`
-                              : ""
+                            (() => {
+                              if (item.taxRate === "" || item.taxRate == null) return "";
+                              const itemRateNum = Number(item.taxRate);
+                              const matched =
+                                rates.find(
+                                  (r) =>
+                                    Number(r.rate) === itemRateNum &&
+                                    (!item.taxType ||
+                                      String(r.taxType || r.type || "").toLowerCase() ===
+                                        String(item.taxType).toLowerCase()),
+                                ) || rates.find((r) => Number(r.rate) === itemRateNum);
+                              if (matched) {
+                                return `${matched.taxType || matched.type || "GST"}|${matched.rate}`;
+                              }
+                              return `${item.taxType || "GST"}|${item.taxRate}`;
+                            })()
                           }
                           disabled={Boolean(taxes.error) || taxes.isPending}
                           onChange={(event) => {
-                            const [taxType, taxRate] =
-                              event.target.value.split("|");
+                            const val = event.target.value;
+                            if (!val) {
+                              setForm((previous) => ({
+                                ...previous,
+                                items: previous.items.map((old, i) =>
+                                  i === index
+                                    ? {
+                                        ...old,
+                                        taxType: "",
+                                        taxRate: "",
+                                      }
+                                    : old,
+                                ),
+                              }));
+                              return;
+                            }
+                            const [taxType, taxRate] = val.split("|");
                             setForm((previous) => ({
                               ...previous,
                               items: previous.items.map((old, i) =>
                                 i === index
                                   ? {
                                       ...old,
-                                      taxType: taxType || "",
+                                      taxType: taxType || "GST",
                                       taxRate: taxRate || "",
                                     }
                                   : old,
@@ -884,26 +916,28 @@ export function InvoiceForm() {
                           }}
                         >
                           <MenuItem value="">No item tax</MenuItem>
-                          {item.taxType &&
+                          {item.taxRate !== "" &&
+                            item.taxRate != null &&
                             !rates.some(
-                              (rate) =>
-                                rate.taxType === item.taxType &&
-                                String(rate.rate) === String(item.taxRate),
+                              (rate) => Number(rate.rate) === Number(item.taxRate),
                             ) && (
                               <MenuItem
-                                value={`${item.taxType}|${item.taxRate}`}
+                                value={`${item.taxType || "GST"}|${item.taxRate}`}
                               >
-                                Saved {item.taxType} {item.taxRate}%
+                                {item.taxType || "GST"} {item.taxRate}%
                               </MenuItem>
                             )}
-                          {rates.map((rate) => (
-                            <MenuItem
-                              key={rate.id}
-                              value={`${rate.taxType}|${rate.rate}`}
-                            >
-                              {rate.name} / {rate.rate}%
-                            </MenuItem>
-                          ))}
+                          {rates.map((rate) => {
+                            const rateType = rate.taxType || rate.type || "GST";
+                            return (
+                              <MenuItem
+                                key={rate.id || `${rateType}-${rate.rate}`}
+                                value={`${rateType}|${rate.rate}`}
+                              >
+                                {rate.name || `${rateType} ${rate.rate}%`} / {rate.rate}%
+                              </MenuItem>
+                            );
+                          })}
                         </TextField>
                       </td>
                       <td>
@@ -1189,7 +1223,7 @@ export function InvoiceForm() {
             </Button>
             <Button
               type="submit"
-              variant="outlined"
+              variant="contained"
               startIcon={<SaveOutlined />}
               disabled={
                 busy ||
@@ -1201,22 +1235,6 @@ export function InvoiceForm() {
               className="invoice-btn-save-draft"
             >
               Save Draft
-            </Button>
-            <Button
-              type="button"
-              variant="contained"
-              startIcon={<SendOutlined />}
-              disabled={
-                busy ||
-                !editable ||
-                calculation.isFetching ||
-                Boolean(customer.error) ||
-                blockers.length > 0
-              }
-              onClick={(e) => submitForm(e, true)}
-              className="invoice-btn-issue"
-            >
-              Issue Invoice
             </Button>
           </div>
         </fieldset>

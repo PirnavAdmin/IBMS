@@ -9,6 +9,7 @@ import {
   TextField,
 } from "@mui/material";
 import { CalendarTodayOutlined } from "@mui/icons-material";
+import { DashboardErrorState } from "../../../components/dashboard/DashboardStates";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiClient } from "billing-api-client";
@@ -89,6 +90,7 @@ export function DateField({
   className = "",
   fullWidth = true,
   name,
+  size,
 }) {
   const toDisplay = (iso) => {
     if (!iso) return "";
@@ -167,6 +169,7 @@ export function DateField({
     <div style={{ position: "relative" }} className={className}>
       <TextField
         fullWidth={fullWidth}
+        size={size}
         label={label}
         name={name}
         required={required}
@@ -175,7 +178,7 @@ export function DateField({
         value={text}
         onChange={handleTextChange}
         error={Boolean(error)}
-        helperText={error || helperText || "Format: dd/mm/yyyy"}
+        helperText={error || (helperText !== undefined ? helperText : "Format: dd/mm/yyyy")}
         inputProps={{ maxLength: 10 }}
         InputLabelProps={{ shrink: true }}
         InputProps={{
@@ -250,12 +253,7 @@ export function InvoiceState({ loading, error, empty, retry }) {
         </div>
       )}
       {error && (
-        <Alert
-          severity="error"
-          action={retry && <Button onClick={retry}>Retry</Button>}
-        >
-          {invoiceError(error)}
-        </Alert>
+        <DashboardErrorState title="Unable to load invoice data" message={invoiceError(error)} onRetry={retry} />
       )}
       {!loading && !error && empty && (
         <div className="invoice-empty">{empty}</div>

@@ -1,4 +1,5 @@
 import { apiClient } from '../../../../../billing-api-client/apiClient.js';
+import { roundCurrency } from '../utils/creditNoteCalculations.js';
 
 const creditNotesPath = '/api/v1/credit-notes';
 const invoicesPath = '/api/v1/invoices';
@@ -223,7 +224,7 @@ export const creditNoteService = {
           description: line.description,
           quantity: Number(line.quantity),
           unitPrice: Number(line.unitPrice),
-          discountAmount: Number(line.discountAmount || 0) * Number(line.quantity) / Math.max(Number(line.originalQuantity || line.quantity), 0.000001),
+          discountAmount: roundCurrency(Number(line.discountAmount || 0) * Number(line.quantity) / Math.max(Number(line.originalQuantity || line.quantity), 0.000001)),
           taxType: line.taxType || null,
           taxRate: Number(line.taxRate || 0),
           hsnSac: line.code || null,

@@ -354,4 +354,72 @@ public class InvoiceTemplateTests
         _mockSnapshotRepo.Verify(r => r.AddAsync(It.Is<InvoiceSnapshot>(s => s.InvoiceId == 101)), Times.Once);
         _mockStorage.Verify(s => s.SaveDocumentAsync(It.IsAny<byte[]>(), "INV-2026-0001.pdf", "application/pdf", 1, default), Times.Once);
     }
+
+    [Fact]
+    public async Task SetDefaultTemplate_ValidTemplate_SetsAsActiveDefaultAndLogsAudit()
+    {
+        // Arrange
+        var template = new InvoiceTemplate
+        {
+            Id = 8,
+            TenantId = 1,
+            Name = "TrailTemplate",
+            Status = DomainStatus.Draft,
+            IsDefault = false,
+            CurrentVersionNumber = 2,
+            Versions = new List<TemplateVersion>
+            {
+                new()
+                {
+                    Id = 81,
+                    TemplateId = 8,
+                    VersionNumber = 1,
+                    Status = DomainStatus.Draft
+                },
+                new()
+                {
+                    Id = 82,
+                    TemplateId = 8,
+                    VersionNumber = 2,
+                    Status = DomainStatus.Draft
+                }
+            }
+        };
+
+        _mockTemplateRepo.Setup(r => r.GetByIdAsync(8, 1, true))
+            .ReturnsAsync(template);
+        _mockTemplateRepo.Setup(r => r.ClearDefaultTemplateAsync(1, 8, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockTemplateRepo.Setup(r => r.UpdateVersionAsync(It.IsAny<TemplateVersion>()))
+            .Returns(Task.CompletedTask);
+        _mockTemplateRepo.Setup(r => r.UpdateAsync(It.IsAny<InvoiceTemplate>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _service.SetDefaultTemplateAsync(8, 1, "Acme Admin");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsDefault);
+        Assert.Equal(ContractStatus.Active, result.Status);
+        Assert.Equal(82, template.ActiveVersionId);
+        var v2 = template.Versions.First(v => v.VersionNumber == 2);
+        Assert.Equal(DomainStatus.Active, v2.Status);
+
+        _mockTemplateRepo.Verify(r => r.ClearDefaultTemplateAsync(1, 8, It.IsAny<CancellationToken>()), Times.Once);
+        _mockTemplateRepo.Verify(r => r.UpdateVersionAsync(It.Is<TemplateVersion>(v => v.Id == 82 && v.Status == DomainStatus.Active)), Times.Once);
+        _mockTemplateRepo.Verify(r => r.UpdateAsync(It.Is<InvoiceTemplate>(t => t.Id == 8 && t.IsDefault && t.Status == DomainStatus.Active)), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetDefaultTemplate_NonExistentTemplate_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        _mockTemplateRepo.Setup(r => r.GetByIdAsync(999, 1, true))
+            .ReturnsAsync((InvoiceTemplate?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            _service.SetDefaultTemplateAsync(999, 1, "Acme Admin"));
+    }
 }
