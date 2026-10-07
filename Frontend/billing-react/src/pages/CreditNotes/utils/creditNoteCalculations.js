@@ -35,6 +35,22 @@ export const calculateCredit = (items = []) => {
   return { subtotal, cgst, sgst, igst, taxAmount, rounding: 0, total: roundCurrency(subtotal + taxAmount) };
 };
 
+// Invoice totals are rounded to whole rupees when saved. A full credit must
+// carry that same invoice-level rounding adjustment instead of rebuilding an
+// unrounded line total that can exceed the persisted invoice balance.
+export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull = false, allInvoiceItems = items) => {
+  const selectedById = new Map(items.map((item) => [item.id, item]));
+  const includesAllRemainingLines = allInvoiceItems.length > 0 && allInvoiceItems.every((invoiceItem) => {
+    const remaining = Number(invoiceItem.remainingQuantity || 0);
+    return remaining <= 0 || Number(selectedById.get(invoiceItem.id)?.quantity || 0) >= remaining;
+  });
+  if (!isFull || !items.length || !includesAllRemainingLines) return totals;
+  const total = roundCurrency(eligibleAmount);
+  const difference = roundCurrency(total - totals.total);
+  if (difference === 0) return totals;
+  return { ...totals, rounding: roundCurrency((totals.rounding || 0) + difference), total };
+};
+
 export const refundableBalance = (note) => Math.max(0, Number(note?.remainingRefundable ?? (Number(note?.total || 0) - Number(note?.refunded || 0))));
 
 export const formatDate = (date) => date
@@ -45,4 +61,4 @@ export const formatDateTime = (date) => date
   ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(date))
   : '—';
 
-export const eligibleCredit = (invoice) => Math.max(0, Number(invoice?.remainingAmount ?? (Number(invoice?.total || 0) - Number(invoice?.previousCredits || 0))));
+export const eligibleCredit = (invoice) => roundCurrency(Math.max(0, Number(invoice?.remainingAmount ?? (Number(invoice?.total || 0) - Number(invoice?.previousCredits || 0)))));

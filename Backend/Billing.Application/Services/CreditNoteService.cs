@@ -810,6 +810,34 @@ public class CreditNoteService : ICreditNoteService
         creditNote.Subtotal = subtotal;
         creditNote.TaxAmount = taxAmount;
         creditNote.TotalAmount = totalAmount;
+
+        // InvoiceService rounds the saved invoice grand total to whole rupees.
+        // When this is a full credit of every remaining line, carry that saved
+        // invoice-level rounding adjustment into the credit so it reconciles
+        // to the authoritative remaining invoice amount.
+        if (string.Equals(creditNote.Type, "Full", StringComparison.OrdinalIgnoreCase) && creditNote.Items.Count > 0)
+        {
+            var remainingLineIds = invoice.Items
+                .Where(item => item.Quantity - previouslyCreditedQuantities.GetValueOrDefault(item.Id) > 0m)
+                .Select(item => item.Id)
+                .ToHashSet();
+            var fullySelected = remainingLineIds.Count == creditNote.Items.Count && creditNote.Items.All(item =>
+            {
+                var source = invoice.Items.First(invoiceItem => invoiceItem.Id == item.InvoiceItemId);
+                return item.Quantity == source.Quantity - previouslyCreditedQuantities.GetValueOrDefault(source.Id);
+            });
+            if (fullySelected)
+            {
+                var authoritativeRemaining = Math.Max(0m, Math.Round(invoice.GetRemainingCreditableAmount(), 2, MidpointRounding.AwayFromZero));
+                var adjustment = Math.Round(authoritativeRemaining - creditNote.TotalAmount, 2, MidpointRounding.AwayFromZero);
+                if (adjustment != 0m)
+                {
+                    var lastLine = creditNote.Items.Last();
+                    lastLine.TotalAmount = Math.Round(lastLine.TotalAmount + adjustment, 2, MidpointRounding.AwayFromZero);
+                    creditNote.TotalAmount = authoritativeRemaining;
+                }
+            }
+        }
         return null;
     }
 
