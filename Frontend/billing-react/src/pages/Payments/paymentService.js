@@ -63,8 +63,67 @@ export const paymentService = {
   async getInvoiceBalance(id, { signal } = {}) { return mapBalance(unwrapPayment(await apiClient.get(`${base}/invoices/${encodeURIComponent(id)}/balance`, { signal }))); },
 };
 export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers'].map(key => client.invalidateQueries({ queryKey: [key] })));
-export const money = (amount, currency) => amount == null ? '\u2014' : new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount);
-export const displayDate = value => value ? value.slice(0, 10) : '\u2014';
+export const money = (amount, currency) => {
+  if (amount == null) return '\u2014';
+  const val = Math.trunc(Number(amount) || 0);
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency || 'INR',
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(val);
+};
+export const displayDate = value => {
+  if (!value) return '\u2014';
+  let target = value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return '\u2014';
+    if (trimmed.length === 10) {
+      target = `${trimmed}T00:00:00`;
+    } else if (!trimmed.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(trimmed)) {
+      target = `${trimmed.replace(' ', 'T')}Z`;
+    } else {
+      target = trimmed;
+    }
+  }
+  const d = target instanceof Date ? target : new Date(target);
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value.slice(0, 10) : '\u2014';
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(d);
+};
+
+export const formatIndianDateTime = (value, includeSeconds = true) => {
+  if (!value) return '\u2014';
+  let target = value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return '\u2014';
+    if (trimmed.length === 10) {
+      target = `${trimmed}T00:00:00Z`;
+    } else if (!trimmed.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(trimmed)) {
+      target = `${trimmed.replace(' ', 'T')}Z`;
+    } else {
+      target = trimmed;
+    }
+  }
+  const d = target instanceof Date ? target : new Date(target);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(includeSeconds ? { second: '2-digit' } : {}),
+    hour12: true,
+  }).format(d);
+};
 export function paymentPermissions(user) {
   const list = value => (Array.isArray(value) ? value : [value]).filter(Boolean).flatMap(v => String(v).split(',')).map(v => v.trim().toLowerCase());
   const roles = list(user?.roles ?? user?.role); const permissions = list(user?.permissions);

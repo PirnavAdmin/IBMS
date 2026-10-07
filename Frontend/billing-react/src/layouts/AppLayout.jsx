@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import '../styles/Dashboard.css';
+import '../styles/ModuleSpacing.css';
 
 const routeModules = {
   '/dashboard': 'dashboard',

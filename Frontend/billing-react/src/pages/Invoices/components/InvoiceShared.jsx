@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Breadcrumbs, Button, LinearProgress } from "@mui/material";
+import { Breadcrumbs, LinearProgress } from "@mui/material";
+import { DashboardErrorState } from "../../../components/dashboard/DashboardStates";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiClient } from "billing-api-client";
@@ -75,12 +76,7 @@ export function InvoiceState({ loading, error, empty, retry }) {
         </div>
       )}
       {error && (
-        <Alert
-          severity="error"
-          action={retry && <Button onClick={retry}>Retry</Button>}
-        >
-          {invoiceError(error)}
-        </Alert>
+        <DashboardErrorState title="Unable to load invoice data" message={invoiceError(error)} onRetry={retry} />
       )}
       {!loading && !error && empty && (
         <div className="invoice-empty">{empty}</div>

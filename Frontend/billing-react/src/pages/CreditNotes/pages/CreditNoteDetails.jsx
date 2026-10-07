@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { formatDate, formatDateTime, money, refundableBalance } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
@@ -83,7 +84,7 @@ export function CreditNoteDetails() {
   };
 
   if (query.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading credit note…</div></main>;
-  if (query.isError) return <main className="cn-page"><div className="cn-state-error"><strong>Credit note unavailable</strong><span>{query.error.message}</span><Button component={Link} to="/credit-notes">Back to Credit Notes</Button></div></main>;
+  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes">Back to Credit Notes</Button></main>;
 
   const canSubmit = note.status === 'Draft';
   const canReview = note.status === 'Pending Approval';

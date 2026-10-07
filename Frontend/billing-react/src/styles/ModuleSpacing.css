@@ -1,0 +1,68 @@
+/* Customer List is the reference for authenticated module page gutters.
+   Scope to route roots so cards, dialogs, document canvases and public pages
+   keep their existing internal layout. Print styles remain module-owned. */
+@media screen {
+  .app-layout {
+    --module-page-gutter: clamp(12px, 1.1vw, 16px);
+    --module-page-block-padding: 32px;
+  }
+
+  .app-layout > .app-layout-main > .app-layout-content > main:is(
+    .customers-page,
+    .customer-page,
+    .cust-page,
+    .customer-print-page,
+    .invoice-page,
+    .payments-page,
+    .product-page,
+    .cn-page,
+    .quotation-page,
+    .template-page,
+    .numbering-page-root,
+    .settings-page,
+    .module-placeholder
+  ),
+  .app-layout > .app-layout-main > .app-layout-content > :is(.bd-shell, .tax-module) > main,
+  .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding: var(--module-page-block-padding) var(--module-page-gutter);
+  }
+
+  /* Settings had a second centered wrapper that moved its visible page edges. */
+  .app-layout > .app-layout-main > .app-layout-content > main.settings-page > :is(
+    .settings-page-header,
+    .settings-hero,
+    .settings-card-grid,
+    .settings-layout,
+    .settings-full
+  ) {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  /* The shared profile header already reserves mobile navigation space.
+     Module-specific 72?80px offsets would otherwise add it a second time. */
+  .app-layout > .app-layout-main > .app-layout-content > main:is(
+    .customers-page,
+    .customer-page,
+    .cust-page,
+    .customer-print-page,
+    .invoice-page,
+    .payments-page,
+    .product-page,
+    .cn-page,
+    .quotation-page,
+    .template-page,
+    .numbering-page-root,
+    .settings-page,
+    .module-placeholder
+  ),
+  .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {
+    min-height: 100%;
+  }
+}

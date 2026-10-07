@@ -21,16 +21,30 @@ export function RecordPayment() {
   const balance=useQuery({queryKey:['payment-balance',selected?.invoiceId],queryFn:({signal})=>paymentService.getInvoiceBalance(selected.invoiceId,{signal}),enabled:Boolean(selected),retry:false,staleTime:0});
   const current=balance.error?null:balance.data;
   useEffect(()=>{if(preselected.current || !location.state?.invoiceId || !invoices.data)return;const target=invoices.data.find(row=>String(row.invoiceId)===String(location.state.invoiceId));if(target){setSelected(target);setForm(previous=>({...previous,invoice:String(target.invoiceId)}));}else{setMessage('The selected invoice is not currently eligible for a payment. Refresh the invoice balance before proceeding.');}preselected.current=true;},[invoices.data,location.state]);
-  const change=key=>event=>{const value=event.target.value;setForm(previous=>({...previous,[key]:value,...(key==='method'?Object.fromEntries(Object.keys(labels).map(k=>[k,''])):{})}));setErrors(previous=>({...previous,[key]:''}));setConfirmation(null);};
-  const review=async event=>{
-    event.preventDefault();if(!lock.current.acquire())return;setBusy(true);setMessage('');
+  const change = key => event => {
+    let value = event.target.value;
+    if (key === 'amount') {
+      if (value.includes('.')) {
+        value = value.split('.')[0];
+      }
+      if (value !== '') {
+        const num = Math.trunc(Number(value) || 0);
+        value = String(num);
+      }
+    }
+    setForm(previous => ({ ...previous, [key]: value, ...(key === 'method' ? Object.fromEntries(Object.keys(labels).map(k => [k, ''])) : {}) }));
+    setErrors(previous => ({ ...previous, [key]: '' }));
+    setConfirmation(null);
+  };
+  const review = async event => {
+    event.preventDefault(); if (!lock.current.acquire()) return; setBusy(true); setMessage('');
     try {
-      const result=await validatePayment(paymentSchema,form);setErrors(result.errors);if(Object.keys(result.errors).length)return;
-      const fresh=await balance.refetch();if(fresh.error)throw fresh.error;
-      if(!fresh.data?.isEligibleForPayment){setMessage(fresh.data?.ineligibilityReason || 'This invoice is not eligible for payment.');return;}
-      if(Number(form.amount)>fresh.data.currentOutstanding){setErrors({amount:'Payment exceeds the current outstanding balance.'});return;}
-      setConfirmation({values:result.values,invoice:fresh.data});
-    } catch(error){setMessage(paymentError(error));} finally{lock.current.release();setBusy(false);}
+      const result = await validatePayment(paymentSchema, form); setErrors(result.errors); if (Object.keys(result.errors).length) return;
+      const fresh = await balance.refetch(); if (fresh.error) throw fresh.error;
+      if (!fresh.data?.isEligibleForPayment) { setMessage(fresh.data?.ineligibilityReason || 'This invoice is not eligible for payment.'); return; }
+      if (Number(form.amount) > Math.trunc(fresh.data.currentOutstanding)) { setErrors({ amount: 'Payment exceeds the current outstanding balance.' }); return; }
+      setConfirmation({ values: result.values, invoice: fresh.data });
+    } catch (error) { setMessage(paymentError(error)); } finally { lock.current.release(); setBusy(false); }
   };
   const submit=async()=>{
     if(!confirmation || !user.permissions.create || !lock.current.acquire())return;setBusy(true);setMessage('');
@@ -63,7 +77,7 @@ export function RecordPayment() {
       {current && !current.isEligibleForPayment && <Alert severity="warning">{current.ineligibilityReason || 'This invoice is not eligible for payment.'}</Alert>}
       <h2>Payment information</h2><div className="payment-form-grid">
         <TextField required type="date" label="Payment Date" value={form.date} onChange={change('date')} InputLabelProps={{shrink:true}} error={Boolean(errors.date)} helperText={errors.date} />
-        <TextField required type="number" label="Payment Amount" value={form.amount} onChange={change('amount')} inputProps={{min:0.01,step:0.01}} error={Boolean(errors.amount)} helperText={errors.amount} />
+        <TextField required type="number" label="Payment Amount" value={form.amount} onChange={change('amount')} inputProps={{min:0,step:1}} error={Boolean(errors.amount)} helperText={errors.amount} />
         <TextField select required label="Payment Method" value={form.method} onChange={change('method')} error={Boolean(errors.method)} helperText={errors.method}>{PAYMENT_METHODS.map(method=><MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</TextField>
         {(methodFields[form.method] || []).map(field)}
         <TextField className="payment-full" label="Notes" multiline minRows={3} value={form.notes} onChange={change('notes')} error={Boolean(errors.notes)} helperText={errors.notes || 'Maximum 1000 characters. Never enter card numbers, CVV, PIN, OTP or secrets.'} />
