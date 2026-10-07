@@ -266,6 +266,8 @@
 }
 .customers-page button.customer-stat.green { --card-accent: #378362; --card-glow: #37836224; }
 .customers-page button.customer-stat.gray { --card-accent: #8d66ad; --card-glow: #8d66ad24; }
+.customers-page button.customer-stat.red { --card-accent: #d14343; --card-glow: #d1434324; background: #fff1f0; border-color: #f2cecb; border-top-color: #d14343; }
+.customers-page button.customer-stat.red .customer-stat-icon { background: #ffe0de; color: #c62828; }
 .customers-page button.customer-stat.orange { --card-accent: #a38a22; --card-glow: #a38a2224; }
 .customers-page button.customer-stat:hover {
   border-color: var(--card-accent);
@@ -370,11 +372,6 @@
 .customers-page .customer-table .customer-inactivity-reason { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 2px 7px; max-width: none; margin: 0; padding: 0; background: transparent; }
 .customers-page .customer-table .customer-inactivity-reason > .MuiSvgIcon-root { grid-row: 1 / span 3; margin-top: 2px; color: #96704e; font-size: 16px; }
 .customers-page .customer-table .customer-inactivity-reason > div { min-width: 0; }
-.customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason { grid-template-columns: 14px minmax(0, 1fr); gap: 3px 6px; margin: 8px 0 0 43px; padding: 8px 10px; border-left: 2px solid #c49a78; border-radius: 7px; background: #faf4ec; }
-.customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason > .MuiSvgIcon-root { margin-top: 1px; font-size: 14px; }
-.customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason strong { color: #65472f; font-size: 10px; }
-.customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason p { margin: 2px 0 3px; color: #55483d; font-size: 11px; line-height: 1.4; }
-.customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason small { color: #807160; font-size: 9px; }
 .customers-page .customer-table .customer-inactivity-reason strong { color: #65472f; font-size: 10px; }
 .customers-page .customer-table .customer-inactivity-reason p { margin: 3px 0 4px; color: #55483d; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
 .customers-page .customer-table .customer-inactivity-reason small { color: #807160; font-size: 10px; }
@@ -432,6 +429,26 @@
   .customers-page .customer-identity { min-width: 0; gap: 5px; }
   .customers-page .customer-avatar { display: none; }
   .customers-page .customer-code { font-size: 8px; }
-  .customers-page .customer-table.is-inactive-view .customer-identity + .customer-inactivity-reason { margin-left: 0; }
   .customers-page .customer-table tr { break-inside: avoid; }
 }
+
+/* Keep the directory compact; deactivation details open from the status cell. */
+.customers-page .customer-status-details { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.customers-page .customer-reason-trigger.MuiButton-root { min-width: 0; padding: 2px 0; color: #8c5f3c; font-size: 10px; line-height: 1.5; text-transform: none; white-space: nowrap; }
+.customers-page .customer-reason-trigger.MuiButton-root:hover { background: transparent; color: #59371f; text-decoration: underline; }
+.customers-page .customer-reason-trigger.MuiButton-root:focus-visible { outline: 2px solid #ac7b50; outline-offset: 3px; border-radius: 3px; }
+.customer-reason-dialog .MuiDialog-paper { border: 1px solid #e1d0bc; border-radius: 16px; background: #fffaf3; color: #493322; box-shadow: 0 16px 48px #3c27192b; }
+.customer-reason-dialog .MuiDialogTitle-root { padding: 20px 22px 12px; font-size: 18px; font-weight: 650; }
+.customer-reason-dialog .MuiDialogContent-root { padding: 8px 22px 18px; }
+.customer-reason-dialog .customer-reason-profile { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; padding: 0 0 14px; border-bottom: 1px solid #ebdecc; }
+.customer-reason-dialog .customer-reason-profile strong { font-size: 14px; overflow-wrap: anywhere; }
+.customer-reason-dialog .customer-reason-profile span { color: #89715d; font-size: 11px; }
+.customer-reason-dialog .customer-inactivity-reason { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; max-width: none; margin: 16px 0 0; padding: 14px; border: 1px solid #e9dbc7; border-radius: 10px; background: #f7efe3; overflow-wrap: anywhere; }
+.customer-reason-dialog .customer-inactivity-reason > svg { color: #a57a55; font-size: 19px; }
+.customer-reason-dialog .customer-inactivity-reason strong { color: #795739; font-size: 11px; font-weight: 650; }
+.customer-reason-dialog .customer-inactivity-reason p { margin: 7px 0 10px; color: #493727; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.customer-reason-dialog .customer-inactivity-reason small { display: block; color: #89715d; font-size: 11px; line-height: 1.6; }
+.customer-reason-dialog .customer-inactivity-error { margin-top: 16px; }
+.customer-reason-dialog .MuiDialogActions-root { padding: 10px 22px 16px; }
+.customer-reason-dialog .MuiDialogActions-root .MuiButton-root { color: #805633; text-transform: none; }
+@media print { .customers-page .customer-reason-trigger { display: none; } }

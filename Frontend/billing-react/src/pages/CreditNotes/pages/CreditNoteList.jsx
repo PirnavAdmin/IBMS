@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { formatDate, money } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
@@ -108,7 +109,7 @@ export function CreditNoteList() {
             </TableRow></TableHead>
             <TableBody>
               {query.isPending && <TableRow><TableCell colSpan={9}><div className="cn-table-state"><span className="cn-spinner" />Loading credit notes…</div></TableCell></TableRow>}
-              {query.isError && <TableRow><TableCell colSpan={9}><div className="cn-table-state cn-state-error"><strong>Billing API records could not be loaded</strong><span>{query.error?.message || 'Try again in a moment.'}</span><Button onClick={() => query.refetch()}>Retry</Button></div></TableCell></TableRow>}
+              {query.isError && <TableRow><TableCell colSpan={9}><DashboardErrorState title="Unable to load credit notes" message={query.error?.message} onRetry={() => query.refetch()} /></TableCell></TableRow>}
               {!query.isPending && !query.isError && items.map((note) => <TableRow hover key={note.id} className="cn-data-row" onClick={() => navigate(`/credit-notes/${note.id}`)}>
                 <TableCell><span className="cn-number-cell">{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
                 <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell">{note.invoiceNumber}</span></TableCell>

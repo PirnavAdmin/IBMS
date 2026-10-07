@@ -846,8 +846,9 @@
 @media print {
 	@page { size: A4 portrait; margin: 6mm 7mm; }
 	html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; }
-	body * { visibility: hidden !important; }
-	.quotation-print-sheet, .quotation-print-sheet * { visibility: visible !important; }
+	body:has(.quotation-details-page, .quotation-page, .quotation-print-sheet) * { visibility: hidden !important; }
+	body:has(.quotation-details-page, .quotation-page, .quotation-print-sheet) .quotation-print-sheet,
+	body:has(.quotation-details-page, .quotation-page, .quotation-print-sheet) .quotation-print-sheet * { visibility: visible !important; }
 	.app-layout { display: block !important; width: 100% !important; min-height: 0 !important; height: auto !important; }
 	.app-layout > .bd-sidebar, .app-layout-main > .bd-header { display: none !important; }
 	.app-layout-main { display: block !important; width: 100% !important; min-height: 0 !important; height: auto !important; }

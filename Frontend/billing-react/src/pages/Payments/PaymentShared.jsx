@@ -1,20 +1,33 @@
-import { Alert, Breadcrumbs, Button, LinearProgress } from '@mui/material';
+import { Breadcrumbs, LinearProgress } from '@mui/material';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from 'billing-api-client';
-import { paymentError, paymentPermissions } from './paymentService';
+import { paymentError, paymentPermissions, formatIndianDateTime } from './paymentService';
 import '../../styles/Payments.css';
 
 export function PaymentShell({ title, children, actions, subtitle }) {
-  return <main className="payments-page"><Breadcrumbs aria-label="Breadcrumb"><Link to="/payments">Payments</Link><span>{title}</span></Breadcrumbs>
-    <header className="payments-heading"><div><span className="payment-eyebrow">Billing workspace</span><h1>{title}</h1><p>{subtitle || ({ "Payment Management": "Record, track and manage customer payments.", "Record Payment": "Record a customer payment against an eligible invoice.", "Payment Details": "Review payment information, allocations and activity." }[title])}</p></div><div className="payment-actions">{actions}</div></header>{children}</main>;
+  return <main className="payments-page">
+    <div className="payment-print-banner" aria-hidden="true">
+      <div className="payment-print-brand">
+        <strong>INVOICE.BILLING</strong>
+        <span>Payment Management Module</span>
+      </div>
+      <div className="payment-print-meta">
+        <span>{title}</span>
+        <small>Printed: {formatIndianDateTime(new Date())}</small>
+      </div>
+    </div>
+    <Breadcrumbs aria-label="Breadcrumb"><Link to="/payments">Payments</Link><span>{title}</span></Breadcrumbs>
+    <header className="payments-heading"><div><span className="payment-eyebrow">Billing workspace</span><h1>{title}</h1><p>{subtitle || ({ "Payment Management": "Record, track and manage customer payments.", "Record Payment": "Record a customer payment against an eligible invoice.", "Payment Details": "Review payment information, allocations and activity." }[title])}</p></div><div className="payment-actions">{actions}</div></header>{children}
+  </main>;
 }
 export function PaymentValues({ values }) {
   return <dl className="payment-values">{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value == null || value === '' ? '\u2014' : value}</dd></div>)}</dl>;
 }
 export function PaymentState({ loading, error, empty, onRetry }) {
   if (loading && !error) return <div className="payment-loading" role="status"><LinearProgress />Loading payment data...</div>;
-  return <>{error && <Alert className="payment-error" severity="error" action={onRetry && <Button onClick={onRetry}>Retry</Button>}>{typeof error === 'string' ? error : paymentError(error)}</Alert>}{empty && !error && <p className="payments-state">{empty}</p>}</>;
+  return <>{error && <DashboardErrorState title="Unable to load payment data" message={typeof error === 'string' ? error : paymentError(error)} onRetry={onRetry} />}{empty && !error && <p className="payments-state">{empty}</p>}</>;
 }
 export function usePaymentUser() {
   const query = useQuery({ queryKey: ['payment-user'], queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }), retry: false, staleTime: 60000 });
