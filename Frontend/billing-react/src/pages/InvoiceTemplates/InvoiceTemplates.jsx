@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Alert, Button, Checkbox, Chip, CircularProgress, FormControlLabel, IconButton, Menu, MenuItem, TextField } from '@mui/material';
+import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Menu, MenuItem, TextField } from '@mui/material';
 import { Add, ArrowBack, ImageOutlined, MoreVert, VisibilityOutlined } from '@mui/icons-material';
 import { templateApi } from 'billing-api-client/templateApi.js';
 import { invoiceApi } from 'billing-api-client/invoiceApi.js';
@@ -100,6 +100,10 @@ export function InvoiceTemplates() {
   const [notice, setNotice] = useState(() => location.state?.notice || '');
   const [statusMenu, setStatusMenu] = useState(null);
   const [statusBusyId, setStatusBusyId] = useState(null);
+  const [defaultBusyId, setDefaultBusyId] = useState(null);
+  const [viewTemplate, setViewTemplate] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState('');
   const load = async () => {
     setLoading(true); setError('');
     try {
@@ -122,6 +126,29 @@ export function InvoiceTemplates() {
     } catch (requestError) { setError(asError(requestError)); }
     finally { setStatusBusyId(null); setStatusMenu(null); }
   };
+  const setDefaultTemplate = async (template) => {
+    setDefaultBusyId(template.id); setError('');
+    try {
+      const response = await templateApi.setDefault(template.id);
+      setNotice(response?.message || 'Template set as default for future invoice PDFs.');
+      await load();
+    } catch (requestError) { setError(asError(requestError)); }
+    finally { setDefaultBusyId(null); setStatusMenu(null); }
+  };
+  const openTemplatePreview = async (template) => {
+    setStatusMenu(null);
+    setViewLoading(true);
+    setViewError('');
+    setViewTemplate({ name: template.name || template.Name || 'Template', config: null });
+    try {
+      const detail = await templateApi.get(template.id || template.Id);
+      setViewTemplate({ name: detail.name || detail.Name || template.name || template.Name || 'Template', config: configFromTemplate(detail, true) });
+    } catch (requestError) {
+      setViewError(asError(requestError));
+    } finally {
+      setViewLoading(false);
+    }
+  };
   return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button>}>
     {notice && <Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert>}{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     <section className="template-list-card" aria-labelledby="template-list-heading">
@@ -131,10 +158,19 @@ export function InvoiceTemplates() {
         <TextField label="Status" select value={status} onChange={(event) => setStatus(event.target.value)} size="small"><MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></TextField>
         <TextField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField>
       </div>
-      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : <div className="template-table-wrap"><table className="template-table"><caption className="sr-only">Invoice templates with version and status</caption><thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col">View</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead><tbody>{visibleTemplates.map((template) => <tr key={template.id}><td><Link className="template-name-link" to={`/templates-branding/${template.id}/edit`}>{template.name}</Link></td><td>{typeof template.style === 'number' ? STYLES[template.style - 1] : template.style}</td><td>{template.version || `v${template.currentVersionNumber}`}</td><td>{STATUS_LABELS[template.status] || template.status}</td><td>{formatDateTime(template.lastModifiedDate || template.lastModified || template.updatedAtUtc || template.createdAtUtc)}</td><td>{template.lastModifiedUser || template.updatedBy || template.createdBy}</td><td className="template-view-cell"><IconButton component={Link} to={`/templates-branding/preview?templateId=${template.id}`} aria-label={`View ${template.name}`} title="View template"><VisibilityOutlined /></IconButton></td><td className="template-actions-cell"><IconButton aria-label={`More actions for ${template.name}`} aria-haspopup="menu" onClick={(event) => setStatusMenu({ anchor: event.currentTarget, template })}><MoreVert /></IconButton></td></tr>)}{visibleTemplates.length === 0 && <tr><td colSpan="8"><div className="template-empty"><strong>{search || status || style ? 'No matching templates' : 'No templates available'}</strong></div></td></tr>}</tbody></table><Menu anchorEl={statusMenu?.anchor} open={Boolean(statusMenu)} onClose={() => setStatusMenu(null)}>{statusMenu && <><MenuItem disabled>Status: {STATUS_LABELS[statusMenu.template.status] || statusMenu.template.status}</MenuItem><MenuItem disabled={statusBusyId === statusMenu.template.id} onClick={() => updateTemplateStatus(statusMenu.template)}>{statusMenu.template.status === 2 || statusMenu.template.status === 'Active' ? 'Deactivate' : 'Activate'}</MenuItem></>}</Menu></div>}
+      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : <div className="template-table-wrap"><table className="template-table"><caption className="sr-only">Invoice templates with version and status</caption><thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead><tbody>{visibleTemplates.map((template) => <tr key={template.id}><td><Link className="template-name-link" to={`/templates-branding/${template.id}/edit`}>{template.name}</Link></td><td>{typeof template.style === 'number' ? STYLES[template.style - 1] : template.style}</td><td>{template.version || `v${template.currentVersionNumber}`}</td><td>{STATUS_LABELS[template.status] || template.status}</td><td>{formatDateTime(template.lastModifiedDate || template.lastModified || template.updatedAtUtc || template.createdAtUtc)}</td><td>{template.lastModifiedUser || template.updatedBy || template.createdBy}</td><td className="template-actions-cell"><IconButton aria-label={`More actions for ${template.name}`} aria-haspopup="menu" onClick={(event) => setStatusMenu({ anchor: event.currentTarget, template })}><MoreVert /></IconButton></td></tr>)}{visibleTemplates.length === 0 && <tr><td colSpan="7"><div className="template-empty"><strong>{search || status || style ? 'No matching templates' : 'No templates available'}</strong></div></td></tr>}</tbody></table><Menu anchorEl={statusMenu?.anchor} open={Boolean(statusMenu)} onClose={() => setStatusMenu(null)}>{statusMenu && <><MenuItem onClick={() => openTemplatePreview(statusMenu.template)}>View</MenuItem>{!(statusMenu.template.isDefault || statusMenu.template.IsDefault) && <MenuItem disabled={defaultBusyId === statusMenu.template.id} onClick={() => setDefaultTemplate(statusMenu.template)}>{defaultBusyId === statusMenu.template.id ? 'Setting default…' : 'Make default'}</MenuItem>}<MenuItem disabled>Status: {STATUS_LABELS[statusMenu.template.status] || statusMenu.template.status}</MenuItem><MenuItem disabled={statusBusyId === statusMenu.template.id || defaultBusyId === statusMenu.template.id} onClick={() => updateTemplateStatus(statusMenu.template)}>{statusMenu.template.status === 2 || statusMenu.template.status === 'Active' ? 'Deactivate' : 'Activate'}</MenuItem></>}</Menu></div>}
       <div className="template-actions"><Button disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}>Previous</Button><span>Page {page} of {pageCount}</span><Button disabled={page >= pageCount || loading} onClick={() => setPage((value) => value + 1)}>Next</Button></div>
       <p className="template-list-footnote">{visibleTemplates.length} templates shown</p>
     </section>
+    <Dialog open={Boolean(viewTemplate)} onClose={viewLoading ? undefined : () => setViewTemplate(null)} maxWidth="lg" fullWidth>
+      <DialogTitle>{viewTemplate ? `${viewTemplate.name} preview` : 'Template preview'}</DialogTitle>
+      <DialogContent dividers>
+        {viewLoading && <div className="template-empty"><CircularProgress size={24} /><span>Loading template preview…</span></div>}
+        {viewError && <Alert severity="error">{viewError}</Alert>}
+        {viewTemplate?.config && <SampleInvoicePreview style={viewTemplate.config.style} config={viewTemplate.config} />}
+      </DialogContent>
+      <DialogActions><Button onClick={() => setViewTemplate(null)} disabled={viewLoading}>Close</Button></DialogActions>
+    </Dialog>
   </TemplatePage>;
 }
 

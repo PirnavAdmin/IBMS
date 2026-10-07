@@ -29,7 +29,6 @@
 .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(7),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(7) { width:7%; text-align:center; }
 .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(8),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(8) { width:5%; text-align:center; }
 .template-list-card[aria-labelledby="template-list-heading"] .template-table td.template-actions-cell { padding:5px 8px; white-space:nowrap; }
-.template-list-card[aria-labelledby="template-list-heading"] .template-view-cell .MuiIconButton-root { color:#70472f; }
 .template-name-link { color:inherit; text-decoration:none; }
 .template-name-link:hover,.template-name-link:focus-visible { color:#70472f; text-decoration:underline; }
 .template-empty { min-height:135px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:8px; padding:24px; text-align:center; color:#756b63; }

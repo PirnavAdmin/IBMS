@@ -17,6 +17,8 @@ public interface IInvoiceTemplateService
 
     Task<InvoiceTemplateDto> ActivateTemplateAsync(int id, int? versionNumber, int tenantId, string user, CancellationToken ct = default);
 
+    Task<InvoiceTemplateDto> SetDefaultTemplateAsync(int id, int tenantId, string user, CancellationToken ct = default);
+
     Task<InvoiceTemplateDto> DeactivateTemplateAsync(int id, int tenantId, string user, CancellationToken ct = default);
 
     Task<List<TemplateVersionDto>> GetTemplateVersionsAsync(int templateId, int tenantId, CancellationToken ct = default);

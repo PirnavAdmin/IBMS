@@ -275,6 +275,36 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         return MapToDto(template);
     }
 
+    public async Task<InvoiceTemplateDto> SetDefaultTemplateAsync(int id, int tenantId, string user, CancellationToken ct = default)
+    {
+        var template = await _templateRepository.GetByIdAsync(id, tenantId, includeVersions: true);
+        if (template == null)
+            throw new KeyNotFoundException($"Invoice template with ID {id} not found.");
+
+        var version = template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        if (version == null)
+            throw new InvalidOperationException("A template version is required before it can be set as default.");
+
+        await _templateRepository.ClearDefaultTemplateAsync(tenantId, template.Id, ct);
+
+        if (version.Status != DomainStatus.Active)
+        {
+            version.Status = DomainStatus.Active;
+            await _templateRepository.UpdateVersionAsync(version);
+        }
+
+        template.IsDefault = true;
+        template.Status = DomainStatus.Active;
+        template.ActiveVersionId = version.Id;
+        template.UpdatedAtUtc = DateTime.UtcNow;
+        template.UpdatedBy = user;
+        await _templateRepository.UpdateAsync(template);
+
+        await RecordAuditAsync(tenantId, "Template Set as Default", "InvoiceTemplate", template.Id.ToString(), user, $"Set '{template.Name}' version v{version.VersionNumber} as the default invoice PDF template.", ct);
+
+        return MapToDto(template);
+    }
+
     public async Task<InvoiceTemplateDto> DeactivateTemplateAsync(int id, int tenantId, string user, CancellationToken ct = default)
     {
         var template = await _templateRepository.GetByIdAsync(id, tenantId, includeVersions: true);

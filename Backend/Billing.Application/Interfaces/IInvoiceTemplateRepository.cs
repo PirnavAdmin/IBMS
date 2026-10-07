@@ -11,6 +11,8 @@ public interface IInvoiceTemplateRepository
 
     Task<InvoiceTemplate?> GetDefaultTemplateAsync(int tenantId);
 
+    Task ClearDefaultTemplateAsync(int tenantId, int exceptTemplateId, CancellationToken ct = default);
+
     Task<(List<InvoiceTemplate> Items, int TotalCount)> GetPagedListAsync(
         int tenantId,
         string? search,

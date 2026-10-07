@@ -44,6 +44,23 @@ public class InvoiceTemplateRepository : IInvoiceTemplateRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task ClearDefaultTemplateAsync(int tenantId, int exceptTemplateId, CancellationToken ct = default)
+    {
+        var currentDefaults = await _dbContext.InvoiceTemplates
+            .Where(t => t.TenantId == tenantId && t.Id != exceptTemplateId && t.IsDefault)
+            .ToListAsync(ct);
+
+        foreach (var currentDefault in currentDefaults)
+        {
+            currentDefault.IsDefault = false;
+        }
+
+        if (currentDefaults.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync(ct);
+        }
+    }
+
     public async Task<(List<InvoiceTemplate> Items, int TotalCount)> GetPagedListAsync(
         int tenantId,
         string? search,

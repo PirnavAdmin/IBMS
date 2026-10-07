@@ -66,6 +66,12 @@ export const templateApi = {
     return unwrap(res);
   },
 
+  /** Makes a template the tenant default for future official invoice PDFs. */
+  setDefault: async (id) => {
+    const res = await apiClient.patch(API_ENDPOINTS.TEMPLATES.DEFAULT(id));
+    return unwrap(res);
+  },
+
   /**
    * Deactivate template.
    */

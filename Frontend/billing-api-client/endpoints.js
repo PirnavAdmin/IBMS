@@ -55,6 +55,7 @@ export const API_ENDPOINTS = {
     PREVIEW_BY_ID: (id) => `/api/v1/invoice-templates/${id}/preview`,
     DUPLICATE: (id) => `/api/v1/invoice-templates/${id}/duplicate`,
     ACTIVATE: (id) => `/api/v1/invoice-templates/${id}/activate`,
+    DEFAULT: (id) => `/api/v1/invoice-templates/${id}/default`,
     DEACTIVATE: (id) => `/api/v1/invoice-templates/${id}/deactivate`,
     LOGO_UPLOAD: '/api/v1/invoice-templates/logo-upload',
     AUDIT: '/api/v1/invoice-templates/audit',
