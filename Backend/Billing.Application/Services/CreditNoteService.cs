@@ -118,105 +118,48 @@ public class CreditNoteService : ICreditNoteService
             RowVersion = DateTime.UtcNow
         };
 
+        var invoiceCredits = await _creditNoteRepository.GetByInvoiceIdAsync(invoice.Id, tenantId, cancellationToken);
+        var issuedCredits = invoiceCredits.Where(IsIssuedCredit).ToList();
+
+        var previouslyCreditedQuantities = GetPreviouslyCreditedQuantities(issuedCredits);
+        var requestedItems = request.Items ?? new List<CreateCreditNoteItemRequest>();
         if (string.Equals(creditNote.Type, "Full", StringComparison.OrdinalIgnoreCase))
         {
-            // Full Credit: Copy all invoice lines
-            foreach (var item in invoice.Items)
-            {
-                var lineTax = Math.Round(item.TaxAmount, 2, MidpointRounding.AwayFromZero);
-                var lineTotal = Math.Round(item.TotalAmount, 2, MidpointRounding.AwayFromZero);
-
-                creditNote.Items.Add(new CreditNoteItem
+            var remainingLines = invoice.Items
+                .Select(item => new
                 {
-                    InvoiceItemId = item.Id,
-                    ProductId = item.ProductId,
-                    Description = item.Description,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    DiscountAmount = item.DiscountAmount,
-                    TaxType = item.TaxType,
-                    TaxRate = item.TaxRate,
-                    TaxAmount = lineTax,
-                    TotalAmount = lineTotal,
-                    HSNSAC = item.HSNSAC
-                });
+                    Item = item,
+                    Quantity = Math.Max(0m, item.Quantity - previouslyCreditedQuantities.GetValueOrDefault(item.Id))
+                })
+                .Where(line => line.Quantity > 0m)
+                .ToList();
+            if (requestedItems.Count == 0)
+            {
+                requestedItems = remainingLines.Select(line => new CreateCreditNoteItemRequest
+                {
+                    InvoiceItemId = line.Item.Id,
+                    Description = line.Item.Description,
+                    Quantity = line.Quantity
+                }).ToList();
             }
-
-            creditNote.Subtotal = Math.Round(invoice.Subtotal, 2, MidpointRounding.AwayFromZero);
-            creditNote.TaxAmount = Math.Round(invoice.TaxAmount, 2, MidpointRounding.AwayFromZero);
-            creditNote.TotalAmount = Math.Round(invoice.TotalAmount, 2, MidpointRounding.AwayFromZero);
+            var requestedById = requestedItems
+                .Where(item => item.InvoiceItemId.HasValue)
+                .GroupBy(item => item.InvoiceItemId!.Value)
+                .ToDictionary(group => group.Key, group => group.ToList());
+            if (requestedById.Count != requestedItems.Count || remainingLines.Any(line =>
+                    !requestedById.TryGetValue(line.Item.Id, out var lines) || lines.Count != 1 || lines[0].Quantity != line.Quantity) ||
+                requestedById.Keys.Any(id => remainingLines.All(line => line.Item.Id != id)))
+            {
+                return ApiResponse<CreditNoteDetailDto>.Fail("Full credit must include every remaining eligible invoice line at its remaining quantity.");
+            }
         }
-        else
+        else if (requestedItems.Count == 0)
         {
-            // Partial Credit: Validate and add requested items
-            if (request.Items == null || request.Items.Count == 0)
-            {
-                return ApiResponse<CreditNoteDetailDto>.Fail("At least one line item must be selected for partial credit.");
-            }
-
-            decimal subtotal = 0m;
-            decimal taxAmount = 0m;
-            decimal totalAmount = 0m;
-
-            foreach (var reqItem in request.Items)
-            {
-                if (reqItem.Quantity <= 0)
-                {
-                    return ApiResponse<CreditNoteDetailDto>.Fail($"Quantity for '{reqItem.Description}' must be greater than zero.");
-                }
-
-                InvoiceItem? matchingInvoiceItem = null;
-                if (reqItem.InvoiceItemId.HasValue)
-                {
-                    matchingInvoiceItem = invoice.Items.FirstOrDefault(i => i.Id == reqItem.InvoiceItemId.Value);
-                    if (matchingInvoiceItem == null)
-                    {
-                        return ApiResponse<CreditNoteDetailDto>.Fail($"Invoice item with ID {reqItem.InvoiceItemId.Value} was not found on this invoice.");
-                    }
-
-                    if (reqItem.Quantity > matchingInvoiceItem.Quantity)
-                    {
-                        return ApiResponse<CreditNoteDetailDto>.Fail($"Credit quantity ({reqItem.Quantity}) for '{matchingInvoiceItem.Description}' cannot exceed invoice quantity ({matchingInvoiceItem.Quantity}).");
-                    }
-                }
-
-                var unitPrice = reqItem.UnitPrice > 0 ? reqItem.UnitPrice : (matchingInvoiceItem?.UnitPrice ?? 0m);
-                var discount = reqItem.DiscountAmount;
-                var lineSubtotal = Math.Max(0m, Math.Round(reqItem.Quantity * unitPrice - discount, 2, MidpointRounding.AwayFromZero));
-
-                var taxRate = reqItem.TaxRate ?? matchingInvoiceItem?.TaxRate ?? 0m;
-                var lineTax = reqItem.TaxAmount > 0
-                    ? reqItem.TaxAmount
-                    : Math.Round(lineSubtotal * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
-
-                var lineTotal = reqItem.TotalAmount > 0
-                    ? reqItem.TotalAmount
-                    : Math.Round(lineSubtotal + lineTax, 2, MidpointRounding.AwayFromZero);
-
-                subtotal += lineSubtotal;
-                taxAmount += lineTax;
-                totalAmount += lineTotal;
-
-                creditNote.Items.Add(new CreditNoteItem
-                {
-                    InvoiceItemId = reqItem.InvoiceItemId,
-                    ProductId = reqItem.ProductId ?? matchingInvoiceItem?.ProductId,
-                    Description = !string.IsNullOrWhiteSpace(reqItem.Description) ? reqItem.Description : matchingInvoiceItem?.Description ?? "Credit Item",
-                    Quantity = reqItem.Quantity,
-                    UnitPrice = unitPrice,
-                    DiscountAmount = discount,
-                    TaxType = reqItem.TaxType ?? matchingInvoiceItem?.TaxType,
-                    TaxRate = taxRate,
-                    TaxAmount = lineTax,
-                    TotalAmount = lineTotal,
-                    HSNSAC = reqItem.HSNSAC ?? matchingInvoiceItem?.HSNSAC
-                });
-            }
-
-            creditNote.Subtotal = subtotal;
-            creditNote.TaxAmount = taxAmount;
-            creditNote.TotalAmount = totalAmount;
+            return ApiResponse<CreditNoteDetailDto>.Fail("At least one line item must be selected for partial credit.");
         }
+        var calculationError = PopulateCreditNoteItems(creditNote, invoice, requestedItems, previouslyCreditedQuantities);
+        if (calculationError != null)
+            return ApiResponse<CreditNoteDetailDto>.Fail(calculationError);
 
         var remainingCreditable = invoice.GetRemainingCreditableAmount();
         if (creditNote.TotalAmount > remainingCreditable)
@@ -291,84 +234,48 @@ public class CreditNoteService : ICreditNoteService
 
         creditNote.Items.Clear();
 
+        var invoiceCredits = await _creditNoteRepository.GetByInvoiceIdAsync(invoice.Id, tenantId, cancellationToken);
+        var issuedCredits = invoiceCredits.Where(IsIssuedCredit).ToList();
+
+        var previouslyCreditedQuantities = GetPreviouslyCreditedQuantities(issuedCredits);
+        var requestedItems = request.Items ?? new List<CreateCreditNoteItemRequest>();
         if (string.Equals(creditNote.Type, "Full", StringComparison.OrdinalIgnoreCase))
         {
-            foreach (var item in invoice.Items)
-            {
-                creditNote.Items.Add(new CreditNoteItem
+            var remainingLines = invoice.Items
+                .Select(item => new
                 {
-                    CreditNoteId = creditNote.Id,
-                    InvoiceItemId = item.Id,
-                    ProductId = item.ProductId,
-                    Description = item.Description,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    DiscountAmount = item.DiscountAmount,
-                    TaxType = item.TaxType,
-                    TaxRate = item.TaxRate,
-                    TaxAmount = item.TaxAmount,
-                    TotalAmount = item.TotalAmount,
-                    HSNSAC = item.HSNSAC
-                });
+                    Item = item,
+                    Quantity = Math.Max(0m, item.Quantity - previouslyCreditedQuantities.GetValueOrDefault(item.Id))
+                })
+                .Where(line => line.Quantity > 0m)
+                .ToList();
+            if (requestedItems.Count == 0)
+            {
+                requestedItems = remainingLines.Select(line => new CreateCreditNoteItemRequest
+                {
+                    InvoiceItemId = line.Item.Id,
+                    Description = line.Item.Description,
+                    Quantity = line.Quantity
+                }).ToList();
             }
-
-            creditNote.Subtotal = Math.Round(invoice.Subtotal, 2, MidpointRounding.AwayFromZero);
-            creditNote.TaxAmount = Math.Round(invoice.TaxAmount, 2, MidpointRounding.AwayFromZero);
-            creditNote.TotalAmount = Math.Round(invoice.TotalAmount, 2, MidpointRounding.AwayFromZero);
+            var requestedById = requestedItems
+                .Where(item => item.InvoiceItemId.HasValue)
+                .GroupBy(item => item.InvoiceItemId!.Value)
+                .ToDictionary(group => group.Key, group => group.ToList());
+            if (requestedById.Count != requestedItems.Count || remainingLines.Any(line =>
+                    !requestedById.TryGetValue(line.Item.Id, out var lines) || lines.Count != 1 || lines[0].Quantity != line.Quantity) ||
+                requestedById.Keys.Any(id => remainingLines.All(line => line.Item.Id != id)))
+            {
+                return ApiResponse<CreditNoteDetailDto>.Fail("Full credit must include every remaining eligible invoice line at its remaining quantity.");
+            }
         }
-        else
+        else if (requestedItems.Count == 0)
         {
-            if (request.Items == null || request.Items.Count == 0)
-            {
-                return ApiResponse<CreditNoteDetailDto>.Fail("At least one line item must be selected for partial credit.");
-            }
-
-            decimal subtotal = 0m;
-            decimal taxAmount = 0m;
-            decimal totalAmount = 0m;
-
-            foreach (var reqItem in request.Items)
-            {
-                var matchingInvoiceItem = reqItem.InvoiceItemId.HasValue
-                    ? invoice.Items.FirstOrDefault(i => i.Id == reqItem.InvoiceItemId.Value)
-                    : null;
-
-                var unitPrice = reqItem.UnitPrice > 0 ? reqItem.UnitPrice : (matchingInvoiceItem?.UnitPrice ?? 0m);
-                var discount = reqItem.DiscountAmount;
-                var lineSubtotal = Math.Max(0m, Math.Round(reqItem.Quantity * unitPrice - discount, 2, MidpointRounding.AwayFromZero));
-                var taxRate = reqItem.TaxRate ?? matchingInvoiceItem?.TaxRate ?? 0m;
-                var lineTax = reqItem.TaxAmount > 0
-                    ? reqItem.TaxAmount
-                    : Math.Round(lineSubtotal * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
-                var lineTotal = reqItem.TotalAmount > 0
-                    ? reqItem.TotalAmount
-                    : Math.Round(lineSubtotal + lineTax, 2, MidpointRounding.AwayFromZero);
-
-                subtotal += lineSubtotal;
-                taxAmount += lineTax;
-                totalAmount += lineTotal;
-
-                creditNote.Items.Add(new CreditNoteItem
-                {
-                    CreditNoteId = creditNote.Id,
-                    InvoiceItemId = reqItem.InvoiceItemId,
-                    ProductId = reqItem.ProductId ?? matchingInvoiceItem?.ProductId,
-                    Description = !string.IsNullOrWhiteSpace(reqItem.Description) ? reqItem.Description : matchingInvoiceItem?.Description ?? "Credit Item",
-                    Quantity = reqItem.Quantity,
-                    UnitPrice = unitPrice,
-                    DiscountAmount = discount,
-                    TaxType = reqItem.TaxType ?? matchingInvoiceItem?.TaxType,
-                    TaxRate = taxRate,
-                    TaxAmount = lineTax,
-                    TotalAmount = lineTotal,
-                    HSNSAC = reqItem.HSNSAC ?? matchingInvoiceItem?.HSNSAC
-                });
-            }
-
-            creditNote.Subtotal = subtotal;
-            creditNote.TaxAmount = taxAmount;
-            creditNote.TotalAmount = totalAmount;
+            return ApiResponse<CreditNoteDetailDto>.Fail("At least one line item must be selected for partial credit.");
         }
+        var calculationError = PopulateCreditNoteItems(creditNote, invoice, requestedItems, previouslyCreditedQuantities);
+        if (calculationError != null)
+            return ApiResponse<CreditNoteDetailDto>.Fail(calculationError);
 
         var remainingCreditable = invoice.GetRemainingCreditableAmount();
         if (creditNote.TotalAmount > remainingCreditable)
@@ -823,6 +730,87 @@ public class CreditNoteService : ICreditNoteService
 
         var invoice = await _invoiceRepository.GetByIdAsync(creditNote.InvoiceId, tenantId, cancellationToken);
         return ApiResponse<CreditNoteDetailDto>.Ok(MapToDetailDto(creditNote, invoice));
+    }
+
+    private static bool IsIssuedCredit(CreditNote creditNote) =>
+        string.Equals(creditNote.Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(creditNote.Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(creditNote.Status, "Refunded", StringComparison.OrdinalIgnoreCase);
+
+    private static Dictionary<int, decimal> GetPreviouslyCreditedQuantities(IEnumerable<CreditNote> issuedCredits) =>
+        issuedCredits
+            .SelectMany(creditNote => creditNote.Items)
+            .Where(item => item.InvoiceItemId.HasValue)
+            .GroupBy(item => item.InvoiceItemId!.Value)
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+
+    private static string? PopulateCreditNoteItems(
+        CreditNote creditNote,
+        Invoice invoice,
+        IReadOnlyCollection<CreateCreditNoteItemRequest> requestedItems,
+        IReadOnlyDictionary<int, decimal> previouslyCreditedQuantities)
+    {
+        var seenInvoiceItemIds = new HashSet<int>();
+        decimal subtotal = 0m;
+        decimal taxAmount = 0m;
+        decimal totalAmount = 0m;
+
+        foreach (var requestedItem in requestedItems)
+        {
+            if (requestedItem.Quantity <= 0m)
+                return $"Quantity for '{requestedItem.Description}' must be greater than zero.";
+
+            var sourceItem = requestedItem.InvoiceItemId.HasValue
+                ? invoice.Items.FirstOrDefault(item => item.Id == requestedItem.InvoiceItemId.Value)
+                : null;
+            if (requestedItem.InvoiceItemId.HasValue && sourceItem == null)
+                return $"Invoice item with ID {requestedItem.InvoiceItemId.Value} was not found on this invoice.";
+
+            if (sourceItem != null)
+            {
+                if (!seenInvoiceItemIds.Add(sourceItem.Id))
+                    return $"Invoice line '{sourceItem.Description}' can only be selected once.";
+
+                var previouslyCredited = previouslyCreditedQuantities.GetValueOrDefault(sourceItem.Id);
+                var remainingQuantity = Math.Max(0m, sourceItem.Quantity - previouslyCredited);
+                if (requestedItem.Quantity > remainingQuantity)
+                    return $"Credit quantity ({requestedItem.Quantity}) for '{sourceItem.Description}' cannot exceed its remaining eligible quantity ({remainingQuantity}).";
+            }
+
+            var unitPrice = sourceItem?.UnitPrice ?? requestedItem.UnitPrice;
+            var originalQuantity = sourceItem?.Quantity ?? requestedItem.Quantity;
+            var discount = sourceItem != null && originalQuantity > 0m
+                ? Math.Round(sourceItem.DiscountAmount * requestedItem.Quantity / originalQuantity, 2, MidpointRounding.AwayFromZero)
+                : requestedItem.DiscountAmount;
+            var lineSubtotal = Math.Max(0m, Math.Round(requestedItem.Quantity * unitPrice - discount, 2, MidpointRounding.AwayFromZero));
+            var taxRate = sourceItem?.TaxRate ?? requestedItem.TaxRate ?? 0m;
+            var lineTax = Math.Round(lineSubtotal * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
+            var lineTotal = Math.Round(lineSubtotal + lineTax, 2, MidpointRounding.AwayFromZero);
+
+            subtotal += lineSubtotal;
+            taxAmount += lineTax;
+            totalAmount += lineTotal;
+            creditNote.Items.Add(new CreditNoteItem
+            {
+                CreditNoteId = creditNote.Id,
+                InvoiceItemId = requestedItem.InvoiceItemId,
+                ProductId = sourceItem?.ProductId ?? requestedItem.ProductId,
+                Description = sourceItem?.Description ?? requestedItem.Description,
+                Quantity = requestedItem.Quantity,
+                UnitPrice = unitPrice,
+                DiscountAmount = discount,
+                TaxType = sourceItem?.TaxType ?? requestedItem.TaxType,
+                TaxRate = taxRate,
+                TaxAmount = lineTax,
+                TotalAmount = lineTotal,
+                HSNSAC = sourceItem?.HSNSAC ?? requestedItem.HSNSAC
+            });
+        }
+
+        creditNote.Subtotal = subtotal;
+        creditNote.TaxAmount = taxAmount;
+        creditNote.TotalAmount = totalAmount;
+        return null;
     }
 
     public async Task<ApiResponse<InvoiceCreditableSummaryDto>> GetInvoiceCreditableSummaryAsync(

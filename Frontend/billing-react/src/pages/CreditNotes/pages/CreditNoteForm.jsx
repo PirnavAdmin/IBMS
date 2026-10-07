@@ -44,6 +44,15 @@ export function CreditNoteForm() {
   const isEditing = Boolean(id);
 
   useEffect(() => {
+    if (isEditing && noteQuery.data) return;
+    if (!selectedInvoice?.items?.length || Object.keys(quantities).length) return;
+    const firstEligible = selectedInvoice.items.find((item) => Number(item.remainingQuantity) > 0);
+    if (firstEligible) {
+      setQuantities({ [firstEligible.id]: Math.min(1, Number(firstEligible.remainingQuantity)) });
+    }
+  }, [selectedInvoice, quantities, isEditing, noteQuery.data]);
+
+  useEffect(() => {
     const note = noteQuery.data;
     if (!note) return;
     if (note.status !== 'Draft') {
@@ -56,7 +65,7 @@ export function CreditNoteForm() {
     }
     if (!selectedInvoice) return;
     setInvoiceId(note.invoiceId);
-    setType(note.type === 'Full' && Number(selectedInvoice.previousCredits) > 0 ? 'Partial' : note.type);
+    setType(note.type);
     setReason(note.reason);
     setReasonNote(note.reasonNote || '');
     setReference(note.reference || '');
@@ -65,6 +74,7 @@ export function CreditNoteForm() {
 
   const selectInvoice = (value) => {
     setInvoiceId(value);
+    setType('Partial');
     setQuantities({});
     setError('');
   };
@@ -76,7 +86,6 @@ export function CreditNoteForm() {
   };
 
   const chooseCreditType = (nextType) => {
-    if (nextType === 'Full' && selectedInvoice?.previousCredits > 0) return;
     setType(nextType);
     if (nextType === 'Full' && selectedInvoice) {
       setQuantities(Object.fromEntries(selectedInvoice.items.map((item) => [item.id, item.remainingQuantity])));
@@ -109,7 +118,7 @@ export function CreditNoteForm() {
     if (step === 0 && !invoiceId) return setError('Choose an issued invoice before continuing.');
     if (step === 1) {
       if (!selectedItems.length || totals.total <= 0) return setError('Select at least one credit line with a quantity greater than zero.');
-      if (totals.total > eligibleAmount + 0.01) return setError('Credit total exceeds the invoice’s remaining eligible credit. Reduce the selected quantities.');
+      if (totals.total > eligibleAmount) return setError('Credit total exceeds the invoice’s remaining eligible credit. Reduce the selected quantities.');
     }
     if (step === 2 && (!reason || reasonNote.trim().length < 8)) return setError('Choose a reason and enter at least 8 characters of supporting detail.');
     setStep((current) => Math.min(current + 1, steps.length - 1));
@@ -117,9 +126,9 @@ export function CreditNoteForm() {
 
   const save = (submit) => {
     setError('');
-    if (!invoiceId || !reason || reasonNote.trim().length < 8 || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount + 0.01 || (type === 'Full' && Number(selectedInvoice?.previousCredits) > 0)) {
-      setStep(!invoiceId ? 0 : !selectedItems.length || totals.total > eligibleAmount + 0.01 ? 1 : 2);
-      setError(!invoiceId ? 'Choose an issued invoice.' : type === 'Full' && Number(selectedInvoice?.previousCredits) > 0 ? 'Full credit is unavailable because this invoice already has issued credits. Choose partial credit.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount + 0.01 ? 'Credit total exceeds the remaining eligible amount.' : 'Add a reason and supporting detail before saving.');
+    if (!invoiceId || !reason || reasonNote.trim().length < 8 || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount) {
+      setStep(!invoiceId ? 0 : !selectedItems.length || totals.total > eligibleAmount ? 1 : 2);
+      setError(!invoiceId ? 'Choose an issued invoice.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount ? 'Credit total exceeds the remaining eligible amount.' : 'Add a reason and supporting detail before saving.');
       return;
     }
     mutation.mutate({ submit });
@@ -150,7 +159,7 @@ export function CreditNoteForm() {
           </div>}
 
           {step === 1 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Choose credit scope &amp; items</h2><p>Set credit quantities within the remaining invoice quantities.</p></div></div>
-            <div className="cn-credit-type-select"><span>Credit scope</span><div>{['Partial', 'Full'].map((option) => { const fullCreditUnavailable = option === 'Full' && Number(selectedInvoice?.previousCredits) > 0; return <button key={option} type="button" disabled={fullCreditUnavailable} className={`${type === option ? 'selected' : ''} ${fullCreditUnavailable ? 'unavailable' : ''}`} onClick={() => chooseCreditType(option)}><strong>{option} credit</strong><small>{fullCreditUnavailable ? 'Unavailable after a previous credit' : option === 'Full' ? 'Credit all remaining invoice lines' : 'Choose specific items and quantities'}</small></button>; })}</div></div>
+            <div className="cn-credit-type-select"><span>Credit scope</span><div>{['Partial', 'Full'].map((option) => <button key={option} type="button" className={type === option ? 'selected' : ''} onClick={() => chooseCreditType(option)}><strong>{option} credit</strong><small>{option === 'Full' ? 'Credit all remaining eligible invoice quantities' : 'Choose specific items and quantities'}</small></button>)}</div></div>
             <TableContainer className="cn-lines-table"><Table size="small"><TableHead><TableRow><TableCell>Item / service · HSN/SAC</TableCell><TableCell align="right">Original qty</TableCell><TableCell align="right">Previously credited</TableCell><TableCell align="right">Available qty</TableCell><TableCell align="right">Unit price</TableCell><TableCell align="right">Tax</TableCell><TableCell align="right">Credit qty</TableCell><TableCell align="right">Credit total</TableCell></TableRow></TableHead><TableBody>{(selectedInvoice?.items || []).map((item) => { const quantity = Number(quantities[item.id]) || 0; const lineTotal = creditLineAmounts(item, quantity).total; const previousQty = Math.max(0, item.quantity - item.remainingQuantity); return <TableRow key={item.id} className={!item.remainingQuantity ? 'cn-line-fully-credited' : ''}><TableCell><strong>{item.description}</strong><small className="cn-sub-cell">{item.code}</small></TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{previousQty}</TableCell><TableCell align="right">{item.remainingQuantity > 0 ? item.remainingQuantity : <span className="cn-fully-credited">Fully credited</span>}</TableCell><TableCell align="right">{money(item.unitPrice, selectedInvoice.currency)}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right"><TextField disabled={!item.remainingQuantity} type="number" size="small" value={quantities[item.id] ?? ''} inputProps={{ min: 0, max: item.remainingQuantity, step: 0.01, 'aria-label': `Quantity to credit for ${item.description}` }} onChange={(event) => setLineQuantity(item, event.target.value)} /></TableCell><TableCell align="right"><strong>{money(lineTotal, selectedInvoice.currency)}</strong></TableCell></TableRow>; })}</TableBody></Table></TableContainer>
             <div className={`cn-eligibility-message ${totals.total > eligibleAmount ? 'warning' : ''}`}><span>{totals.total > eligibleAmount ? 'Credit exceeds remaining eligibility' : 'Remaining invoice credit'}</span><strong>{money(eligibleAmount)}</strong></div>
           </div>}

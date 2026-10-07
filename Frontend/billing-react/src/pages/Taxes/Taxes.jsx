@@ -12,7 +12,7 @@ import {
   useParams,
 } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, CircularProgress, Skeleton } from "@mui/material";
+import { Alert, CircularProgress, MenuItem, Select, Skeleton } from "@mui/material";
 import {
   AccountTreeOutlined,
   CheckCircleOutline,
@@ -53,26 +53,35 @@ function Field({
 }) {
   return (
     <div className="tax-form-group">
-      <label htmlFor={`tax-${name}`}>
+      <label id={`tax-${name}-label`} htmlFor={`tax-${name}`}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
       {options ? (
-        <select
+        <Select
+          className="tax-select"
           id={`tax-${name}`}
+          labelId={`tax-${name}-label`}
           value={value}
           onChange={onChange}
           required={required}
-          aria-invalid={!!error}
-          aria-describedby={error ? `tax-${name}-error` : undefined}
+          inputProps={{
+            "aria-label": label,
+            "aria-invalid": !!error,
+            "aria-describedby": error ? `tax-${name}-error` : undefined,
+          }}
+          MenuProps={{
+            PaperProps: { className: "tax-select-menu" },
+            MenuListProps: { className: "tax-select-menu-list" },
+          }}
           {...props}
         >
           {options.map((option) => (
-            <option key={option} value={option}>
+            <MenuItem key={option} value={option}>
               {option || "Select an option"}
-            </option>
+            </MenuItem>
           ))}
-        </select>
+        </Select>
       ) : (
         <input
           id={`tax-${name}`}
@@ -238,6 +247,15 @@ function TaxList({ search, setSearch }) {
   const [notice, setNotice] = useState(() => state?.taxNotice || "");
   const [selectedTax, setSelectedTax] = useState(null);
   const taxes = query.data || [];
+  const openSummary = (tone) => {
+    setSearch("");
+    setType("All");
+    setStatus(tone === "active" ? "Active" : tone === "inactive" ? "Inactive" : "All");
+    document.getElementById("tax-register")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (tone === "types") {
+      window.setTimeout(() => document.getElementById("tax-filter-type")?.focus(), 180);
+    }
+  };
   const filtered = prioritizePrefix(
     taxes.filter(
       (tax) =>
@@ -295,9 +313,12 @@ function TaxList({ search, setSearch }) {
                 tone: "types",
               },
             ].map((stat) => (
-              <article
+              <button
+                type="button"
                 className={`tax-summary-card tax-summary-${stat.tone}`}
                 key={stat.label}
+                onClick={() => openSummary(stat.tone)}
+                aria-label={`${stat.label}: ${stat.value}. Show related tax rules.`}
               >
                 <div className="tax-summary-top">
                   <span>{stat.label}</span>
@@ -307,10 +328,10 @@ function TaxList({ search, setSearch }) {
                 </div>
                 <strong>{stat.value}</strong>
                 <small>{stat.text}</small>
-              </article>
+              </button>
             ))}
           </section>
-          <section className="tax-card">
+          <section className="tax-card" id="tax-register" tabIndex={-1}>
             <div className="tax-toolbar">
               <Field
                 name="search"

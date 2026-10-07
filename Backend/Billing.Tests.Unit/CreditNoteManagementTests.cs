@@ -177,6 +177,115 @@ public class CreditNoteManagementTests
     }
 
     [Fact]
+    public async Task CreateCreditNote_PartialDiscountedCreditUsesInvoiceDiscountProportion()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+        var invoice = await ctx.SeedInvoiceAsync(subtotal: 900m, tax: 162m);
+        invoice.Items[0].DiscountAmount = 100m;
+        invoice.Items[0].TaxAmount = 162m;
+        invoice.Items[0].TotalAmount = 1062m;
+        invoice.DiscountAmount = 100m;
+        invoice.Subtotal = 900m;
+        invoice.TaxAmount = 162m;
+        invoice.TotalAmount = 1062m;
+        invoice.BalanceAmount = 1062m;
+        await ctx.InvoiceRepo.UpdateAsync(invoice);
+
+        var result = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = invoice.Id,
+                Type = "Partial",
+                Reason = "Return one discounted unit",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                }
+            },
+            "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
+
+        Assert.True(result.Success);
+        Assert.Equal(50m, result.Data!.Items.Single().DiscountAmount);
+        Assert.Equal(450m, result.Data.Subtotal);
+        Assert.Equal(81m, result.Data.TaxAmount);
+        Assert.Equal(531m, result.Data.TotalAmount);
+    }
+
+    [Fact]
+    public async Task CreateCreditNote_FullCreditAfterPreviousIssueUsesOnlyRemainingQuantity()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+        var invoice = await ctx.SeedInvoiceAsync(subtotal: 1000m, tax: 180m);
+        var partial = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = invoice.Id,
+                Type = "Partial",
+                Reason = "Return one unit",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                }
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+        Assert.True(partial.Success);
+        await ctx.CreditNoteService.SubmitForApprovalAsync(Tenant1, partial.Data!.Id, "Staff", new List<string> { "Staff" }, new List<string>());
+        await ctx.CreditNoteService.ApproveCreditNoteAsync(Tenant1, partial.Data.Id, "Manager", new List<string> { "FinanceAdmin" }, new List<string>());
+        await ctx.CreditNoteService.IssueCreditNoteAsync(Tenant1, partial.Data.Id, "Manager", new List<string> { "FinanceAdmin" }, new List<string>());
+
+        var full = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = invoice.Id,
+                Type = "Full",
+                Reason = "Credit remaining invoice amount",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                }
+            },
+            "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
+
+        Assert.True(full.Success);
+        Assert.Equal("Full", full.Data!.Type);
+        Assert.Equal(1m, full.Data.Items.Single().Quantity);
+        Assert.Equal(590m, full.Data.TotalAmount);
+    }
+
+    [Fact]
+    public async Task CreateCreditNote_RejectsPartialAmountAboveRemainingCreditableBalance()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+        var invoice = await ctx.SeedInvoiceAsync(subtotal: 1000m, tax: 180m);
+        invoice.CreditedAmount = 1170m;
+        invoice.RecalculateBalanceAndStatus();
+        await ctx.InvoiceRepo.UpdateAsync(invoice);
+
+        var result = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = invoice.Id,
+                Type = "Partial",
+                Reason = "Credit selected unit",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                }
+            },
+            "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
+
+        Assert.False(result.Success);
+        Assert.Contains("cannot exceed remaining eligible creditable amount", result.Message);
+    }
+
+    [Fact]
     public async Task CreditNoteLifecycle_DraftToSubmittedToApprovedToIssued_ReducesInvoiceBalance()
     {
         var ctx = new TestContext();
