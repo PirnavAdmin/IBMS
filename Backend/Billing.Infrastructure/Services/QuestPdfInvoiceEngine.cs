@@ -88,13 +88,14 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
         var company = template.CompanyDetails;
         var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
+        var usePirnavLayout = template.Layout.UsePirnavStandardLayout;
 
         header.Column(col =>
         {
             // Logo files are stored by the template API as data URIs.  Decode the selected
             // template logo here so preview PDFs and generated invoice PDFs use the same
             // saved branding.
-            if (template.Layout.ShowLogo && logoBytes is not null)
+            if (template.Layout.ShowLogo && logoBytes is not null && !usePirnavLayout)
             {
                 var logoPosition = (template.Branding.LogoPosition ?? "left").Trim().ToLowerInvariant();
                 var logoWidth = Math.Clamp(template.Branding.LogoWidth, 48, 240);
@@ -149,12 +150,20 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     }
                 });
 
-                // Right: Invoice Title & Status Badge
+                // The Pirnav layout reserves the top-right position for the saved
+                // branding logo. Existing layouts keep their invoice title unchanged.
                 row.ConstantItem(180).AlignRight().Column(c =>
                 {
-                    c.Item().Text("TAX INVOICE").FontSize(18).ExtraBold().FontColor(primaryColor);
-                    c.Item().Text($"# {snapshot.InvoiceNumber}").FontSize(11).Bold().FontColor(Colors.Grey.Darken3);
-                    c.Item().PaddingTop(2).Text($"Status: {snapshot.Status}").FontSize(9).Bold().FontColor(snapshot.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? Colors.Green.Darken2 : Colors.Blue.Darken2);
+                    if (usePirnavLayout && template.Layout.ShowLogo && logoBytes is not null)
+                    {
+                        c.Item().AlignRight().Width(Math.Clamp(template.Branding.LogoWidth, 48, 180)).Height(72).Image(logoBytes).FitArea();
+                    }
+                    else if (!usePirnavLayout)
+                    {
+                        c.Item().Text("TAX INVOICE").FontSize(18).ExtraBold().FontColor(primaryColor);
+                        c.Item().Text($"# {snapshot.InvoiceNumber}").FontSize(11).Bold().FontColor(Colors.Grey.Darken3);
+                        c.Item().PaddingTop(2).Text($"Status: {snapshot.Status}").FontSize(9).Bold().FontColor(snapshot.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase) ? Colors.Green.Darken2 : Colors.Blue.Darken2);
+                    }
                 });
             });
 
@@ -195,7 +204,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
     {
         var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
         var secondaryColor = template.Branding.SecondaryColor ?? "#0284c7";
-        var isCompact = template.Layout.MarginTopMm < 10; // or based on template style
+        var usePirnavLayout = template.Layout.UsePirnavStandardLayout;
 
         content.Column(col =>
         {
@@ -228,6 +237,12 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 // Invoice Meta (Dates & Terms)
                 row.ConstantItem(180).AlignRight().Column(c =>
                 {
+                    if (usePirnavLayout)
+                    {
+                        MetaRow(c, "Invoice #:", snapshot.InvoiceNumber);
+                        MetaRow(c, "Customer Code:", snapshot.Customer.CustomerCode ?? "-");
+                        MetaRow(c, "Status:", snapshot.Status);
+                    }
                     c.Item().Row(r =>
                     {
                         r.RelativeItem().Text("Invoice Date:").FontSize(8.5f).Bold();
@@ -249,6 +264,11 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             // 2. Line Items Table (with Repeating Header for Multi-Page support)
             col.Item().PaddingBottom(10).Table(table =>
             {
+                if (usePirnavLayout)
+                {
+                    ComposePirnavItemsTable(table, snapshot, primaryColor);
+                    return;
+                }
                 table.ColumnsDefinition(columns =>
                 {
                     columns.ConstantColumn(24);  // #
@@ -367,7 +387,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                         r.ConstantItem(85).AlignRight().Text(FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol)).FontSize(12).ExtraBold().FontColor(primaryColor);
                     });
 
-                    if (snapshot.AmountPaid > 0)
+                    if (snapshot.AmountPaid > 0 || usePirnavLayout)
                     {
                         SummaryRow(c, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), Colors.Green.Darken2);
                         c.Item().Row(r =>
@@ -388,6 +408,56 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             r.RelativeItem().Text(label).FontSize(8.5f).FontColor(Colors.Grey.Darken2);
             r.ConstantItem(85).AlignRight().Text(value).FontSize(8.5f).FontColor(fontColor ?? Colors.Grey.Darken3);
         });
+    }
+
+    private static void MetaRow(ColumnDescriptor column, string label, string value)
+    {
+        column.Item().Row(row =>
+        {
+            row.RelativeItem().Text(label).FontSize(8.5f).Bold();
+            row.ConstantItem(85).AlignRight().Text(value).FontSize(8.5f);
+        });
+    }
+
+    private static void ComposePirnavItemsTable(TableDescriptor table, InvoiceSnapshotDto snapshot, string primaryColor)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.ConstantColumn(32);
+            columns.RelativeColumn(3);
+            columns.ConstantColumn(82);
+            columns.ConstantColumn(75);
+            columns.ConstantColumn(78);
+        });
+
+        table.Header(header =>
+        {
+            header.Cell().Element(HeaderCell).Text("Item #");
+            header.Cell().Element(HeaderCell).Text("Description");
+            header.Cell().Element(HeaderCell).Text("Months / Payment");
+            header.Cell().Element(HeaderCell).AlignRight().Text("Rate");
+            header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+        });
+
+        var index = 1;
+        foreach (var item in snapshot.Items)
+        {
+            var background = index % 2 == 0 ? Colors.Grey.Lighten5 : Colors.White;
+            table.Cell().Element(c => RowCell(c, background)).Text(index.ToString());
+            table.Cell().Element(c => RowCell(c, background)).Column(itemColumn =>
+            {
+                itemColumn.Item().Text(item.ItemName).Bold().FontColor(Colors.Grey.Darken4);
+                if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.Description, item.ItemName, StringComparison.Ordinal))
+                    itemColumn.Item().Text(item.Description).FontSize(8).FontColor(Colors.Grey.Darken1);
+            });
+            table.Cell().Element(c => RowCell(c, background)).Text(string.IsNullOrWhiteSpace(item.Unit) ? "-" : item.Unit);
+            table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol));
+            table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).Bold().FontColor(primaryColor);
+            index++;
+        }
+
+        static IContainer HeaderCell(IContainer container) => container.Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Grey.Darken1).PaddingVertical(4).PaddingHorizontal(3);
+        static IContainer RowCell(IContainer container, string background) => container.Background(background).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).PaddingVertical(4).PaddingHorizontal(3);
     }
 
     #endregion

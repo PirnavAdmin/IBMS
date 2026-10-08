@@ -527,11 +527,24 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         if (_auditLogRepo != null)
         {
-            var templateLogs = await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceTemplate", templateId?.ToString() ?? string.Empty, ct);
-            var documentLogs = await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceDocument", string.Empty, ct);
+            var templateLogs = templateId.HasValue
+                ? await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceTemplate", templateId.Value.ToString(), ct)
+                : (await _auditLogRepo.GetFilteredPagedAsync(tenantId, new AuditLogFilterRequest
+                {
+                    EntityName = "InvoiceTemplate",
+                    Page = 1,
+                    PageSize = 500
+                }, ct)).Items;
+            var documentLogs = (await _auditLogRepo.GetFilteredPagedAsync(tenantId, new AuditLogFilterRequest
+            {
+                EntityName = "InvoiceDocument",
+                Page = 1,
+                PageSize = 500
+            }, ct)).Items;
 
             var combined = (templateLogs ?? new List<AuditLog>())
                 .Concat(documentLogs ?? new List<AuditLog>())
+                .Where(log => !string.Equals(log.Changes, "Automated data mutation log", StringComparison.Ordinal))
                 .OrderByDescending(l => l.Timestamp)
                 .ToList();
 
@@ -547,49 +560,6 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                     TemplateVersionOrDocument = log.EntityName == "InvoiceDocument" ? $"Invoice #{log.EntityId} PDF" : $"Template #{log.EntityId}"
                 });
             }
-        }
-
-        if (result.Count == 0)
-        {
-            result.AddRange(new[]
-            {
-                new TemplateAuditLogDto
-                {
-                    Id = 1,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-24),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Standard Professional' default template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 2,
-                    Event = "Version Activated",
-                    DateAndTime = DateTime.UtcNow.AddHours(-20),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Published version v1 as active live billing layout",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 3,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-18),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Modern Minimalist' template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 4,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-16),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Executive Compact' template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                }
-            });
         }
 
         return result;
@@ -630,8 +600,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             IssueDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30),
             Status = invoice.Status,
-            Currency = customer?.Currency ?? "INR",
-            CurrencySymbol = (customer?.Currency ?? "INR") == "USD" ? "$" : "₹",
+            Currency = invoice.GetCurrency(),
+            CurrencySymbol = invoice.GetCurrency() == "USD" ? "$" : "₹",
             Customer = new CustomerSnapshotDto
             {
                 CustomerId = invoice.CustomerId,
@@ -646,11 +616,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             Items = invoice.Items.Select(i => new InvoiceItemSnapshotDto
             {
                 ItemId = i.Id,
-                ItemName = !string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item",
-                Description = i.Description,
+                ItemName = !string.IsNullOrWhiteSpace(i.Product?.Name) ? i.Product.Name : (!string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item"),
+                Description = i.Description ?? i.Product?.Description,
                 HsnSacCode = i.HSNSAC,
                 Quantity = i.Quantity,
-                Unit = "Unit",
+                Unit = i.Product?.Unit ?? "Unit",
                 UnitPrice = i.UnitPrice,
                 DiscountAmount = i.DiscountAmount,
                 TaxRatePercent = i.TaxRate ?? 0,
