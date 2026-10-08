@@ -506,13 +506,15 @@ public static class DbInitializer
             // Add the reusable Pirnav layout independently of the original seed block.
             // Existing installations already have templates, so the template must not be
             // hidden behind the "no templates" condition above.
-            var pirnavTemplate = await context.InvoiceTemplates
-                .FirstOrDefaultAsync(t => t.TenantId == 1 && t.Name == "Pirnav Standard Invoice");
-            if (pirnavTemplate == null)
+            foreach (var pirnavTenantId in new[] { 1, 2 })
             {
+                var pirnavTemplate = await context.InvoiceTemplates
+                    .FirstOrDefaultAsync(t => t.TenantId == pirnavTenantId && t.Name == "Pirnav Standard Invoice");
+                if (pirnavTemplate != null) continue;
+
                 pirnavTemplate = new InvoiceTemplate
                 {
-                    TenantId = 1,
+                    TenantId = pirnavTenantId,
                     Name = "Pirnav Standard Invoice",
                     Description = "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.",
                     Style = Domain.Enums.TemplateStyle.Professional,
@@ -524,7 +526,7 @@ public static class DbInitializer
 
                 var pirnavVersion = new TemplateVersion
                 {
-                    TenantId = 1,
+                    TenantId = pirnavTenantId,
                     VersionNumber = 1,
                     Status = Domain.Enums.TemplateStatus.Active,
                     VersionDescription = "Initial reusable Pirnav standard invoice layout",
@@ -544,7 +546,7 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 pirnavTemplate.ActiveVersionId = pirnavVersion.Id;
                 await context.SaveChangesAsync();
-                logger?.LogInformation("Seeded reusable Pirnav Standard Invoice template for tenant 1");
+                logger?.LogInformation("Seeded reusable Pirnav Standard Invoice template for tenant {TenantId}", pirnavTenantId);
             }
         }
         catch (Exception ex)
