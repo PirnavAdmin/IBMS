@@ -528,9 +528,9 @@ public static class DbInitializer
                     VersionNumber = 1,
                     Status = Domain.Enums.TemplateStatus.Active,
                     VersionDescription = "Initial reusable Pirnav standard invoice layout",
-                    // LogoUrl deliberately remains empty: the existing branding upload
-                    // flow stores the tenant's actual logo as a data URI on this version.
-                    BrandingJson = "{\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
+                    // The same supplied logo is served by the frontend and embedded in
+                    // the PDF engine, so previews and final PDFs keep the same aspect ratio.
+                    BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
                     CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"\",\"Phone\":\"\",\"Website\":\"\",\"AddressLine1\":\"\",\"Country\":\"India\"}",
                     LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
                     PaymentInstructionsJson = "{}",

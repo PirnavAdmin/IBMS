@@ -13,6 +13,8 @@ namespace Billing.Infrastructure.Services;
 /// </summary>
 public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 {
+    private const string PirnavLogoPath = "/template-assets/pirnav.png";
+
     static QuestPdfInvoiceEngine()
     {
         // QuestPDF Community License registration
@@ -173,6 +175,17 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static byte[]? TryGetLogoBytes(string? logoUrl)
     {
+        if (string.Equals(logoUrl, PirnavLogoPath, StringComparison.OrdinalIgnoreCase))
+        {
+            using var stream = typeof(QuestPdfInvoiceEngine).Assembly
+                .GetManifestResourceStream("Billing.Infrastructure.Assets.pirnav.png");
+            if (stream == null) return null;
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
+        }
+
         if (string.IsNullOrWhiteSpace(logoUrl) ||
             !logoUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
         {
