@@ -409,6 +409,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         var snapshot = await _snapshotRepository.GetByInvoiceIdAsync(invoice.Id, tenantId);
         InvoiceSnapshotDto snapshotDto;
         TemplateVersionDto versionDto;
+        var refreshSnapshotTemplate = false;
 
         if (snapshot != null)
         {
@@ -417,6 +418,9 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             if ((request.ForceRegenerate || request.OverrideTemplateId.HasValue) && version != null)
             {
                 versionDto = MapVersionToDto(version);
+                snapshot.TemplateVersionId = version.Id;
+                snapshot.TemplateConfigJson = JsonSerializer.Serialize(versionDto, JsonOpts);
+                refreshSnapshotTemplate = true;
             }
             else
             {
@@ -442,6 +446,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             };
 
             await _snapshotRepository.AddAsync(snapshot);
+        }
+
+        if (refreshSnapshotTemplate && snapshot != null)
+        {
+            await _snapshotRepository.UpdateAsync(snapshot);
         }
 
         // Generate PDF using immutable snapshot and template configuration

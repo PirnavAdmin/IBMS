@@ -87,7 +87,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeHeader(IContainer header, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
-        var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
+        var primaryColor = template.Layout.UsePirnavStandardLayout ? "#6B2E0C" : template.Branding.PrimaryColor ?? "#0f2942";
         var company = template.CompanyDetails;
         var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
         var usePirnavLayout = template.Layout.UsePirnavStandardLayout;
@@ -123,7 +123,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 row.RelativeItem().Column(c =>
                 {
                     var companyName = string.IsNullOrWhiteSpace(company.CompanyName) ? "IBMS Solutions Pvt Ltd" : company.CompanyName;
-                    c.Item().Text(companyName).FontSize(16).Bold().FontColor(primaryColor);
+                    c.Item().Text(companyName).FontSize(usePirnavLayout ? 20 : 16).Bold().FontColor(primaryColor);
 
                     if (!string.IsNullOrWhiteSpace(company.LegalName) && company.LegalName != companyName)
                     {
@@ -154,11 +154,12 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
                 // The Pirnav layout reserves the top-right position for the saved
                 // branding logo. Existing layouts keep their invoice title unchanged.
-                row.ConstantItem(180).AlignRight().Column(c =>
+                row.ConstantItem(usePirnavLayout ? 220 : 180).AlignRight().Column(c =>
                 {
                     if (usePirnavLayout && template.Layout.ShowLogo && logoBytes is not null)
                     {
-                        c.Item().AlignRight().Width(Math.Clamp(template.Branding.LogoWidth, 48, 180)).Height(72).Image(logoBytes).FitArea();
+                        var pirnavLogoWidth = Math.Clamp(Math.Max(template.Branding.LogoWidth, 180), 120, 210);
+                        c.Item().AlignRight().Width(pirnavLogoWidth).Height(88).Image(logoBytes).FitArea();
                     }
                     else if (!usePirnavLayout)
                     {
@@ -215,6 +216,12 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
+        if (template.Layout.UsePirnavStandardLayout)
+        {
+            ComposePirnavContent(content, snapshot, template);
+            return;
+        }
+
         var primaryColor = template.Branding.PrimaryColor ?? "#0f2942";
         var secondaryColor = template.Branding.SecondaryColor ?? "#0284c7";
         var usePirnavLayout = template.Layout.UsePirnavStandardLayout;
@@ -414,6 +421,122 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         });
     }
 
+    private static void ComposePirnavContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        const string primary = "#6B2E0C";
+        const string softBackground = "#F7EDE5";
+
+        content.Column(column =>
+        {
+            column.Item().PaddingBottom(16).Row(row =>
+            {
+                row.RelativeItem(3).Column(customer =>
+                {
+                    customer.Item().Background(primary).PaddingVertical(3).PaddingHorizontal(6).Text("Bill To:").FontSize(9).Bold().FontColor(Colors.White);
+                    customer.Item().PaddingTop(5).Text(snapshot.Customer.CustomerName).FontSize(11).Bold();
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.CustomerCode)) customer.Item().Text($"Customer Code: {snapshot.Customer.CustomerCode}").FontSize(8.5f);
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.BillingAddress)) customer.Item().Text(snapshot.Customer.BillingAddress).FontSize(8.5f);
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.Email)) customer.Item().Text($"Email: {snapshot.Customer.Email}").FontSize(8.5f);
+                });
+
+                row.ConstantItem(250).PaddingLeft(18).Column(meta =>
+                {
+                    PirnavMetaRow(meta, "Invoice #:", snapshot.InvoiceNumber);
+                    PirnavMetaRow(meta, "Invoice Date:", snapshot.IssueDate.ToString("dd MMM yyyy"));
+                    PirnavMetaRow(meta, "Customer Code:", snapshot.Customer.CustomerCode ?? "-");
+                    PirnavMetaRow(meta, "Currency:", snapshot.Currency);
+                    PirnavMetaRow(meta, "Status:", snapshot.Status, snapshot.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase) ? Colors.Red.Darken2 : null);
+                });
+            });
+
+            column.Item().Table(table => ComposePirnavReferenceItemsTable(table, snapshot, primary, softBackground));
+            column.Item().PaddingTop(16).AlignRight().Width(260).Column(totals =>
+            {
+                PirnavTotalRow(totals, "Subtotal", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
+                PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, primary);
+                PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Colors.Green.Darken2);
+                totals.Item().Background(primary).PaddingVertical(3).PaddingHorizontal(7).Row(row =>
+                {
+                    row.RelativeItem().Text("Balance Due").FontSize(10).Bold().FontColor(Colors.White);
+                    row.ConstantItem(100).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(10).Bold().FontColor(Colors.White);
+                });
+            });
+
+            column.Item().PaddingTop(17).Text("Amount in Words").FontSize(9).Bold();
+            column.Item().Text(FormatAmountInWords(snapshot.GrandTotal, snapshot.Currency)).FontSize(8.5f);
+            if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(template.Terms.TermsAndConditions))
+            {
+                column.Item().PaddingTop(12).Background(primary).PaddingVertical(4).PaddingHorizontal(6).Text("Terms & Conditions").FontSize(9).Bold().FontColor(Colors.White);
+                column.Item().Border(0.5f).BorderColor("#D8B9A8").Padding(6).Text(template.Terms.TermsAndConditions).FontSize(8.3f);
+            }
+        });
+    }
+
+    private static void PirnavMetaRow(ColumnDescriptor column, string label, string value, string? valueColor = null)
+    {
+        column.Item().PaddingBottom(1).Row(row =>
+        {
+            row.ConstantItem(96).Text(label).FontSize(8.5f);
+            row.RelativeItem().Border(0.5f).BorderColor("#D8B9A8").PaddingVertical(3).PaddingHorizontal(5).Text(value).FontSize(8.5f).FontColor(valueColor ?? Colors.Grey.Darken4);
+        });
+    }
+
+    private static void PirnavTotalRow(ColumnDescriptor column, string label, string value, bool bold = false, string? color = null)
+    {
+        column.Item().PaddingVertical(3).PaddingHorizontal(7).BorderBottom(0.5f).BorderColor("#D8B9A8").Row(row =>
+        {
+            var left = row.RelativeItem().Text(label).FontSize(bold ? 10 : 9);
+            var right = row.ConstantItem(100).AlignRight().Text(value).FontSize(bold ? 10 : 9);
+            if (bold) { left.Bold(); right.Bold(); }
+            if (color != null) { left.FontColor(color); right.FontColor(color); }
+        });
+    }
+
+    private static void ComposePirnavReferenceItemsTable(TableDescriptor table, InvoiceSnapshotDto snapshot, string primaryColor, string softBackground)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.ConstantColumn(42); columns.RelativeColumn(3); columns.ConstantColumn(92); columns.ConstantColumn(82); columns.ConstantColumn(88);
+        });
+        table.Header(header =>
+        {
+            header.Cell().Element(HeaderCell).Text("Item #"); header.Cell().Element(HeaderCell).Text("Description"); header.Cell().Element(HeaderCell).Text("Months / Payment"); header.Cell().Element(HeaderCell).AlignRight().Text("Rate"); header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+        });
+        var number = 1;
+        foreach (var item in snapshot.Items)
+        {
+            table.Cell().Element(RowCell).Text(number.ToString());
+            table.Cell().Element(RowCell).Column(description =>
+            {
+                description.Item().Text(item.ItemName).FontSize(8.5f).Bold();
+                if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.ItemName, item.Description, StringComparison.Ordinal)) description.Item().Text(item.Description).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+            });
+            table.Cell().Element(RowCell).Text(string.IsNullOrWhiteSpace(item.Unit) ? "-" : item.Unit).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol)).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).FontSize(8.5f).Bold();
+            number++;
+        }
+        IContainer HeaderCell(IContainer container) => container.Background(primaryColor).PaddingVertical(5).PaddingHorizontal(6).DefaultTextStyle(style => style.FontSize(8.5f).Bold().FontColor(Colors.White));
+        IContainer RowCell(IContainer container) => container.Background(softBackground).PaddingVertical(5).PaddingHorizontal(6);
+    }
+
+    private static string FormatAmountInWords(decimal amount, string currency)
+    {
+        var roundedAmount = Math.Max(0, decimal.ToInt64(decimal.Truncate(amount)));
+        var prefix = string.Equals(currency, "INR", StringComparison.OrdinalIgnoreCase) ? "Rupees" : currency;
+        return $"{prefix} {IndianNumberWords(roundedAmount)} Only";
+    }
+
+    private static string IndianNumberWords(long value)
+    {
+        if (value == 0) return "Zero";
+        var words = new[] { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+        var tens = new[] { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+        string BelowThousand(long number) => number switch { < 20 => words[number], < 100 => tens[number / 10] + (number % 10 > 0 ? " " + words[number % 10] : string.Empty), _ => words[number / 100] + " Hundred" + (number % 100 > 0 ? " " + BelowThousand(number % 100) : string.Empty) };
+        string Join(long number, long divisor, string unit) => IndianNumberWords(number / divisor) + " " + unit + (number % divisor > 0 ? " " + IndianNumberWords(number % divisor) : string.Empty);
+        return value >= 10_000_000 ? Join(value, 10_000_000, "Crore") : value >= 100_000 ? Join(value, 100_000, "Lakh") : value >= 1_000 ? Join(value, 1_000, "Thousand") : BelowThousand(value);
+    }
+
     private static void SummaryRow(ColumnDescriptor col, string label, string value, string? fontColor = null)
     {
         col.Item().PaddingVertical(1).Row(r =>
@@ -479,6 +602,23 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeFooter(IContainer footer, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
+        if (template.Layout.UsePirnavStandardLayout)
+        {
+            var footerNote = string.IsNullOrWhiteSpace(template.Terms.FooterNote)
+                ? "Thank you for choosing us! This is a system-generated invoice and does not require a physical signature."
+                : template.Terms.FooterNote;
+            var separator = footerNote.IndexOf(" This is", StringComparison.OrdinalIgnoreCase);
+            var thankYou = separator > 0 ? footerNote[..separator].Trim() : footerNote;
+            var systemNote = separator > 0 ? footerNote[separator..].Trim() : "This is a system-generated invoice and does not require a physical signature.";
+
+            footer.Column(column =>
+            {
+                column.Item().AlignCenter().Text(thankYou).FontSize(10).Bold().FontColor("#6B2E0C");
+                column.Item().PaddingTop(3).AlignCenter().Text(systemNote).FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
+            });
+            return;
+        }
+
         footer.Column(col =>
         {
             col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);

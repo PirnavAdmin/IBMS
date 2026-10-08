@@ -59,6 +59,8 @@ export function InvoiceDetails() {
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const user = useInvoiceUser();
 
   const invoice = useQuery({
@@ -130,6 +132,21 @@ export function InvoiceDetails() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const regeneratePdf = async () => {
+    if (!row || pdfBusy) return;
+    setPdfBusy(true);
+    setPdfError("");
+    try {
+      await invoiceService.downloadPdf(row, null, true);
+      setNotice("Invoice PDF regenerated using the current default template.");
+      await Promise.all([invoice.refetch(), audit.refetch()]);
+    } catch (error) {
+      setPdfError(invoiceError(error));
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <InvoiceShell
       title={row ? identifier(row) : "Invoice Details"}
@@ -188,6 +205,17 @@ export function InvoiceDetails() {
             </Button>
           )}
 
+          {canDownloadPdf && (
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              disabled={pdfBusy}
+              onClick={regeneratePdf}
+            >
+              {pdfBusy ? "Regenerating PDF..." : "Regenerate PDF"}
+            </Button>
+          )}
+
           {row && (
             <InvoiceActions invoice={row} permissions={user.permissions} />
           )}
@@ -201,6 +229,11 @@ export function InvoiceDetails() {
       )}
       {location.state?.invoiceNotice && !notice && (
         <Alert severity="success">{location.state.invoiceNotice}</Alert>
+      )}
+      {pdfError && (
+        <Alert severity="error" onClose={() => setPdfError("")} sx={{ mb: 2 }}>
+          {pdfError}
+        </Alert>
       )}
 
       <InvoiceState
