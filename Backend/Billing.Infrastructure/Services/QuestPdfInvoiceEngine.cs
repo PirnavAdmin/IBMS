@@ -136,6 +136,10 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     }
 
                     var addressLine = $"{company.AddressLine1} {company.AddressLine2}, {company.City} {company.State} {company.PostalCode}".Trim().Trim(',').Trim();
+                    if (usePirnavLayout)
+                    {
+                        addressLine = BreakPirnavAddressBeforeTelangana(addressLine);
+                    }
                     if (!string.IsNullOrWhiteSpace(addressLine))
                     {
                         c.Item().Text(addressLine).FontSize(8.5f).FontColor(Colors.Grey.Darken2);
@@ -172,6 +176,15 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
             col.Item().PaddingTop(8).PaddingBottom(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
         });
+    }
+
+    private static string BreakPirnavAddressBeforeTelangana(string address)
+    {
+        var telanganaIndex = address.IndexOf("Telangana", StringComparison.OrdinalIgnoreCase);
+        if (telanganaIndex <= 0) return address;
+
+        var firstLine = address[..telanganaIndex].TrimEnd().TrimEnd(',');
+        return $"{firstLine},{Environment.NewLine}{address[telanganaIndex..].TrimStart()}";
     }
 
     private static byte[]? TryGetLogoBytes(string? logoUrl)
@@ -425,6 +438,12 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
     {
         const string primary = "#6B2E0C";
         const string softBackground = "#F7EDE5";
+        var footerNote = string.IsNullOrWhiteSpace(template.Terms.FooterNote)
+            ? "Thank you for choosing us! This is a system-generated invoice and does not require a physical signature."
+            : template.Terms.FooterNote;
+        var footerSeparator = footerNote.IndexOf(" This is", StringComparison.OrdinalIgnoreCase);
+        var thankYou = footerSeparator > 0 ? footerNote[..footerSeparator].Trim() : footerNote;
+        var systemNote = footerSeparator > 0 ? footerNote[footerSeparator..].Trim() : "This is a system-generated invoice and does not require a physical signature.";
 
         content.Column(column =>
         {
@@ -469,6 +488,9 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 column.Item().PaddingTop(12).Background(primary).PaddingVertical(4).PaddingHorizontal(6).Text("Terms & Conditions").FontSize(9).Bold().FontColor(Colors.White);
                 column.Item().Border(0.5f).BorderColor("#D8B9A8").Padding(6).Text(template.Terms.TermsAndConditions).FontSize(8.3f);
             }
+
+            column.Item().PaddingTop(17).AlignCenter().Text(thankYou).FontSize(10).Bold().FontColor(primary);
+            column.Item().PaddingTop(3).AlignCenter().Text(systemNote).FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
         });
     }
 
@@ -609,12 +631,34 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 : template.Terms.FooterNote;
             var separator = footerNote.IndexOf(" This is", StringComparison.OrdinalIgnoreCase);
             var thankYou = separator > 0 ? footerNote[..separator].Trim() : footerNote;
-            var systemNote = separator > 0 ? footerNote[separator..].Trim() : "This is a system-generated invoice and does not require a physical signature.";
+            var company = template.CompanyDetails;
+            var locationParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(company.City)) locationParts.Add(company.City);
+            if (!string.IsNullOrWhiteSpace(company.State)) locationParts.Add(company.State);
+            if (!string.IsNullOrWhiteSpace(company.PostalCode)) locationParts.Add(company.PostalCode);
+            var footerLocation = string.Join(", ", locationParts);
+            if (string.IsNullOrWhiteSpace(footerLocation))
+            {
+                var address = company.AddressLine1 ?? string.Empty;
+                var hyderabadIndex = address.IndexOf("Hyderabad", StringComparison.OrdinalIgnoreCase);
+                footerLocation = hyderabadIndex >= 0 ? address[hyderabadIndex..].Trim() : address;
+            }
+
+            var footerContactParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(company.CompanyName)) footerContactParts.Add(company.CompanyName);
+            if (!string.IsNullOrWhiteSpace(footerLocation)) footerContactParts.Add(footerLocation);
+            if (!string.IsNullOrWhiteSpace(company.Email)) footerContactParts.Add(company.Email);
+            if (!string.IsNullOrWhiteSpace(company.Phone)) footerContactParts.Add(company.Phone);
+            var footerContact = string.Join(" | ", footerContactParts);
 
             footer.Column(column =>
             {
-                column.Item().AlignCenter().Text(thankYou).FontSize(10).Bold().FontColor("#6B2E0C");
-                column.Item().PaddingTop(3).AlignCenter().Text(systemNote).FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
+                column.Item().LineHorizontal(0.5f).LineColor("#D8B9A8");
+                if (!string.IsNullOrWhiteSpace(footerContact))
+                {
+                    column.Item().PaddingTop(5).AlignCenter().Text(footerContact).FontSize(8).FontColor(Colors.Grey.Darken1);
+                }
+                column.Item().PaddingTop(2).AlignCenter().Text(thankYou).FontSize(8).FontColor(Colors.Grey.Darken1);
             });
             return;
         }
