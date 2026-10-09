@@ -94,6 +94,21 @@ public class DiscountEngineTests
             var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
             return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
         }
+
+        public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
+        {
+            var tenantLogs = Logs.Where(l => l.TenantId == tenantId).ToList();
+            var entityNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.EntityName)).Select(l => l.EntityName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var actions = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.Action)).Select(l => l.Action.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var userNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.UserName)).Select(l => l.UserName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+
+            return Task.FromResult(new Billing.Contracts.AuditFilterOptionsResponse
+            {
+                EntityNames = entityNames,
+                Actions = actions,
+                UserNames = userNames
+            });
+        }
     }
 
     #region IBMSBE-006: Discount Models and DTOs

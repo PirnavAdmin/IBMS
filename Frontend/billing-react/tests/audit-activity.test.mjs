@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apiClient } from '../../billing-api-client/apiClient.js';
-import { getAuditActivity } from '../src/pages/AuditActivity/auditApi.js';
+import { getAuditActivity, getAuditFilterOptions } from '../src/pages/AuditActivity/auditApi.js';
 import { auditQuery, readAuditPage, auditDate, auditSnapshot, emptyAuditFilters, searchAuditPage } from '../src/pages/AuditActivity/auditModel.js';
 
 const record = { id: 7, action: 'PDF Generated', userName: 'Admin', entityName: 'InvoiceDocument', entityId: '52', timestamp: '2026-10-09T04:52:23.454293Z', changes: 'Saved invoice PDF', oldValues: null, newValues: '{"Status":"Generated"}' };
@@ -71,3 +71,34 @@ test('API integration uses the authenticated shared client, real endpoint, pagin
     await assert.rejects(getAuditActivity(emptyAuditFilters, 1, 20), error => error === forbidden);
   } finally { apiClient.get = original; }
 });
+
+test('getAuditFilterOptions calls /api/Audit/filter-options and extracts distinct filter arrays', async () => {
+  const original = apiClient.get;
+  const controller = new AbortController();
+  const mockResponse = {
+    success: true,
+    data: {
+      entityNames: ['Customer', 'Invoice', 'Quotation'],
+      actions: ['CREATE', 'ISSUE', 'UPDATE'],
+      userNames: ['Alice', 'Bob'],
+      modules: ['Customer', 'Invoice', 'Quotation'],
+      eventNames: ['CREATE', 'ISSUE', 'UPDATE'],
+      performedBy: ['Alice', 'Bob']
+    }
+  };
+  try {
+    apiClient.get = async (url, config) => {
+      assert.equal(url, '/api/Audit/filter-options');
+      assert.equal(config.signal, controller.signal);
+      return mockResponse;
+    };
+    const options = await getAuditFilterOptions(controller.signal);
+    assert.deepEqual(options.entityNames, ['Customer', 'Invoice', 'Quotation']);
+    assert.deepEqual(options.actions, ['CREATE', 'ISSUE', 'UPDATE']);
+    assert.deepEqual(options.userNames, ['Alice', 'Bob']);
+    assert.deepEqual(options.modules, ['Customer', 'Invoice', 'Quotation']);
+    assert.deepEqual(options.eventNames, ['CREATE', 'ISSUE', 'UPDATE']);
+    assert.deepEqual(options.performedBy, ['Alice', 'Bob']);
+  } finally { apiClient.get = original; }
+});
+
