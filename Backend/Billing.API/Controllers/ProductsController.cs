@@ -28,7 +28,7 @@ public class ProductsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
     {
         var tenantId = GetTenantId();
@@ -86,7 +86,7 @@ public class ProductsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -136,7 +136,7 @@ public class ProductsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]
     [HttpGet("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProductById([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -160,7 +160,7 @@ public class ProductsController : ControllerBase
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     [HttpPut("{id:int}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateProduct([FromRoute] int id, [FromBody] UpdateProductRequest request)
     {
         var tenantId = GetTenantId();

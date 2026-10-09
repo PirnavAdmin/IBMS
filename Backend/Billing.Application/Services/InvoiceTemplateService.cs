@@ -48,6 +48,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
     public async Task<PagedResult<InvoiceTemplateDto>> GetTemplatesAsync(TemplateFilterRequest filter, int tenantId, CancellationToken ct = default)
     {
+        if (tenantId > 0 && !await _templateRepository.ExistsByNameAsync("Pirnav Standard Invoice", tenantId))
+        {
+            await EnsurePirnavStandardTemplateAsync(tenantId, ct);
+        }
+
         DomainStyle? domainStyle = null;
         if (!string.IsNullOrWhiteSpace(filter.Style) && !filter.Style.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
@@ -72,6 +77,48 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         var dtos = items.Select(MapToDto).ToList();
         return new PagedResult<InvoiceTemplateDto>(dtos, totalCount, filter.PageNumber, filter.PageSize);
+    }
+
+    private async Task EnsurePirnavStandardTemplateAsync(int tenantId, CancellationToken ct)
+    {
+        try
+        {
+            var pirnavTemplate = new InvoiceTemplate
+            {
+                TenantId = tenantId,
+                Name = "Pirnav Standard Invoice",
+                Description = "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.",
+                Style = DomainStyle.Professional,
+                Status = DomainStatus.Active,
+                CurrentVersionNumber = 1,
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            var pirnavVersion = new TemplateVersion
+            {
+                TenantId = tenantId,
+                VersionNumber = 1,
+                Status = DomainStatus.Active,
+                VersionDescription = "Initial reusable Pirnav standard invoice layout",
+                BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
+                CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"\",\"Phone\":\"\",\"Website\":\"\",\"AddressLine1\":\"\",\"Country\":\"India\"}",
+                LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
+                PaymentInstructionsJson = "{}",
+                TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}",
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            pirnavTemplate.Versions.Add(pirnavVersion);
+            await _templateRepository.AddAsync(pirnavTemplate);
+            pirnavTemplate.ActiveVersionId = pirnavVersion.Id;
+            await _templateRepository.UpdateAsync(pirnavTemplate);
+        }
+        catch
+        {
+            // Ignore concurrent creation
+        }
     }
 
     public async Task<InvoiceTemplateDto> GetTemplateByIdAsync(int id, int tenantId, CancellationToken ct = default)

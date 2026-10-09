@@ -464,7 +464,12 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     PirnavMetaRow(meta, "Invoice Date:", snapshot.IssueDate.ToString("dd MMM yyyy"));
                     PirnavMetaRow(meta, "Customer Code:", snapshot.Customer.CustomerCode ?? "-");
                     PirnavMetaRow(meta, "Currency:", snapshot.Currency);
-                    PirnavMetaRow(meta, "Status:", snapshot.Status, snapshot.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase) ? Colors.Red.Darken2 : null);
+                    Color? statusColor = snapshot.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase)
+                        ? Colors.Red.Darken2
+                        : snapshot.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase)
+                            ? Colors.Green.Darken2
+                            : (Color?)null;
+                    PirnavMetaRow(meta, "Status:", snapshot.Status, statusColor);
                 });
             });
 
@@ -472,7 +477,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             column.Item().PaddingTop(16).AlignRight().Width(260).Column(totals =>
             {
                 PirnavTotalRow(totals, "Subtotal", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
-                PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, primary);
+                PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, Color.FromHex(primary));
                 PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Colors.Green.Darken2);
                 totals.Item().Background(primary).PaddingVertical(3).PaddingHorizontal(7).Row(row =>
                 {
@@ -494,7 +499,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         });
     }
 
-    private static void PirnavMetaRow(ColumnDescriptor column, string label, string value, string? valueColor = null)
+    private static void PirnavMetaRow(ColumnDescriptor column, string label, string value, Color? valueColor = null)
     {
         column.Item().PaddingBottom(1).Row(row =>
         {
@@ -503,14 +508,14 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         });
     }
 
-    private static void PirnavTotalRow(ColumnDescriptor column, string label, string value, bool bold = false, string? color = null)
+    private static void PirnavTotalRow(ColumnDescriptor column, string label, string value, bool bold = false, Color? color = null)
     {
         column.Item().PaddingVertical(3).PaddingHorizontal(7).BorderBottom(0.5f).BorderColor("#D8B9A8").Row(row =>
         {
             var left = row.RelativeItem().Text(label).FontSize(bold ? 10 : 9);
             var right = row.ConstantItem(100).AlignRight().Text(value).FontSize(bold ? 10 : 9);
             if (bold) { left.Bold(); right.Bold(); }
-            if (color != null) { left.FontColor(color); right.FontColor(color); }
+            if (color.HasValue) { left.FontColor(color.Value); right.FontColor(color.Value); }
         });
     }
 

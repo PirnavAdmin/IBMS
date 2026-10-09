@@ -790,5 +790,154 @@ public class ProductBackendTests
         Assert.Contains("not found", response.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    #region IBMSBE-014: Resolved Financial Fields (Discount, Tax, Final Price)
+
+    [Fact]
+    public void MapToDto_TaxableProductWithDiscount_ResolvesFinancialFieldsCorrectly()
+    {
+        var product = new Product
+        {
+            Id = 42,
+            TenantId = 1,
+            ProductCode = "TBL-01",
+            Name = "Table",
+            Price = 500.00m,
+            Currency = "INR",
+            TaxCategory = "GST 18%",
+            DiscountAllowed = true,
+            DiscountPercent = 10.00m,
+            Status = "Active"
+        };
+
+        var dto = _service.MapToDto(product);
+
+        Assert.Equal(500.00m, dto.UnitPrice);
+        Assert.Equal(500.00m, dto.Price);
+        Assert.Equal("INR", dto.Currency);
+        Assert.Equal("Percentage", dto.DiscountType);
+        Assert.Equal(10.00m, dto.DiscountValue);
+        Assert.Equal(50.00m, dto.DiscountAmount);
+        Assert.Equal(18.00m, dto.TaxRate);
+        Assert.Equal(81.00m, dto.TaxAmount);
+        Assert.False(dto.IsTaxExempt);
+        Assert.False(dto.IsTaxInclusive);
+        Assert.Equal(531.00m, dto.FinalUnitPrice);
+    }
+
+    [Fact]
+    public void MapToDto_CornFlour_ResolvesFinancialFieldsCorrectly()
+    {
+        var product = new Product
+        {
+            Id = 43,
+            TenantId = 1,
+            ProductCode = "CRN-01",
+            Name = "Corn flour",
+            Price = 120.00m,
+            Currency = "INR",
+            TaxCategory = "GST 5%",
+            DiscountAllowed = true,
+            DiscountPercent = 3.00m,
+            Status = "Active"
+        };
+
+        var dto = _service.MapToDto(product);
+
+        Assert.Equal(120.00m, dto.UnitPrice);
+        Assert.Equal("Percentage", dto.DiscountType);
+        Assert.Equal(3.00m, dto.DiscountValue);
+        Assert.Equal(3.60m, dto.DiscountAmount);
+        Assert.Equal(5.00m, dto.TaxRate);
+        Assert.Equal(5.82m, dto.TaxAmount);
+        Assert.False(dto.IsTaxExempt);
+        Assert.Equal(122.22m, dto.FinalUnitPrice);
+    }
+
+    [Fact]
+    public void MapToDto_ExemptService_ResolvesFinancialFieldsCorrectly()
+    {
+        var product = new Product
+        {
+            Id = 45,
+            TenantId = 1,
+            ProductCode = "EMS-01",
+            Name = "Honeywell E-Commerce",
+            Type = "Service",
+            Price = 40000.00m,
+            Currency = "INR",
+            TaxCategory = "Exempt",
+            DiscountAllowed = false,
+            DiscountPercent = 0.00m,
+            Status = "Active"
+        };
+
+        var dto = _service.MapToDto(product);
+
+        Assert.Equal(40000.00m, dto.UnitPrice);
+        Assert.Equal("None", dto.DiscountType);
+        Assert.Equal(0.00m, dto.DiscountAmount);
+        Assert.Equal(0.00m, dto.TaxRate);
+        Assert.Equal(0.00m, dto.TaxAmount);
+        Assert.True(dto.IsTaxExempt);
+        Assert.Equal(40000.00m, dto.FinalUnitPrice);
+    }
+
+    [Fact]
+    public void MapToDto_NullTaxCategory_ExplicitlyExemptAndAccurateFinalPrice()
+    {
+        var product = new Product
+        {
+            Id = 46,
+            TenantId = 1,
+            ProductCode = "HR-02",
+            Name = "HR 2",
+            Type = "Service",
+            Price = 50000.00m,
+            Currency = "INR",
+            TaxCategory = null,
+            DiscountAllowed = false,
+            DiscountPercent = 0.00m,
+            Status = "Active"
+        };
+
+        var dto = _service.MapToDto(product);
+
+        Assert.Equal(50000.00m, dto.UnitPrice);
+        Assert.Equal("None", dto.DiscountType);
+        Assert.Equal(0.00m, dto.DiscountAmount);
+        Assert.Equal(0.00m, dto.TaxRate);
+        Assert.Equal(0.00m, dto.TaxAmount);
+        Assert.True(dto.IsTaxExempt);
+        Assert.Equal(50000.00m, dto.FinalUnitPrice);
+    }
+
+    [Fact]
+    public async Task GetProductsAsync_ReturnsResolvedFinancialFields()
+    {
+        await _repository.AddAsync(new Product
+        {
+            TenantId = 1,
+            ProductCode = "PRD-FIN1",
+            Name = "Item 1",
+            Price = 200.00m,
+            TaxCategory = "GST 18%",
+            DiscountAllowed = true,
+            DiscountPercent = 5.00m,
+            Status = "Active"
+        });
+
+        var res = await _service.GetProductsAsync(new ProductQueryParameters { Search = "PRD-FIN1" }, 1);
+
+        Assert.True(res.Success);
+        var item = Assert.Single(res.Data!.Items);
+        Assert.Equal(200.00m, item.UnitPrice);
+        Assert.Equal(10.00m, item.DiscountAmount);
+        Assert.Equal(18.00m, item.TaxRate);
+        Assert.Equal(34.20m, item.TaxAmount); // (200 - 10) * 0.18 = 190 * 0.18 = 34.20
+        Assert.Equal(224.20m, item.FinalUnitPrice); // 190 + 34.20 = 224.20
+    }
+
+    #endregion
+
     #endregion
 }

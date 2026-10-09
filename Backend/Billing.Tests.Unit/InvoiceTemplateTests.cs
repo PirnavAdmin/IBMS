@@ -513,4 +513,96 @@ public class InvoiceTemplateTests
         template.Versions.Remove(template.Versions.Single(v => v.VersionNumber == 10));
         Assert.Equal(9, (await _service.GetTemplateByIdAsync(5, 1)).CurrentVersionNumber);
     }
+
+    [Fact]
+    public void DebugPirnavPreviewPdfException()
+    {
+        var request = new TemplatePreviewRequest
+        {
+            Style = ContractStyle.Professional,
+            Branding = new BrandingConfigDto
+            {
+                LogoUrl = "/template-assets/pirnav.png",
+                LogoName = "pirnav.png",
+                LogoPosition = "right",
+                LogoWidth = 132,
+                PrimaryColor = "#70472f",
+                SecondaryColor = "#a46a43",
+                AccentColor = "#f1e6dc",
+                FontFamily = "Segoe UI"
+            },
+            CompanyDetails = new CompanyDetailsConfigDto
+            {
+                CompanyName = "Pirnav Software Solutions Pvt. Ltd.",
+                AddressLine1 = "",
+                Country = "India"
+            },
+            Layout = new LayoutConfigDto
+            {
+                UsePirnavStandardLayout = true,
+                ShowLogo = true,
+                ShowHeader = true,
+                ShowFooter = true,
+                ShowTaxBreakdown = true,
+                ShowPaymentInstructions = true,
+                ShowTermsAndConditions = true,
+                CurrencyCode = "INR",
+                CurrencySymbol = "₹",
+                MarginTopMm = 12,
+                MarginBottomMm = 12,
+                MarginLeftMm = 14,
+                MarginRightMm = 14
+            },
+            PaymentInstructions = new PaymentInstructionsConfigDto(),
+            Terms = new TermsConfigDto
+            {
+                TermsAndConditions = "1. Payment terms.",
+                FooterNote = "Thank you for choosing us! This is a system-generated invoice and does not require a physical signature."
+            },
+            CustomSampleData = new InvoiceSnapshotDto
+            {
+                InvoiceId = 49,
+                InvoiceNumber = "INV-2026-10-000100",
+                IssueDate = new DateTime(2026, 10, 7),
+                DueDate = new DateTime(2026, 11, 7),
+                Status = "Paid",
+                Currency = "INR",
+                CurrencySymbol = "₹",
+                Customer = new CustomerSnapshotDto
+                {
+                    CustomerId = 31,
+                    CustomerName = "Pratap",
+                    CustomerCode = "CUST-027",
+                    BillingAddress = "HITECH COLONY"
+                },
+                Items = new List<InvoiceItemSnapshotDto>
+                {
+                    new()
+                    {
+                        ItemId = 53,
+                        ItemName = "sun Flower oil",
+                        Description = "sun Flower oil",
+                        Quantity = 1,
+                        Unit = "Box",
+                        UnitPrice = 5400,
+                        DiscountAmount = 648,
+                        TaxRatePercent = 22,
+                        TaxAmount = 1045.44m,
+                        LineTotal = 5797.44m
+                    }
+                },
+                Subtotal = 5400,
+                TotalDiscount = 648,
+                TotalTax = 1045.44m,
+                TotalAdditionalCharges = 0,
+                GrandTotal = 5797,
+                AmountPaid = 5797,
+                BalanceDue = 0
+            }
+        };
+
+        var bytes = _pdfEngine.GeneratePreviewPdf(request);
+        Assert.NotNull(bytes);
+        Assert.NotEmpty(bytes);
+    }
 }

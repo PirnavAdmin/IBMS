@@ -12,10 +12,17 @@ public class ProductService : IProductService
         RegexOptions.Compiled);
 
     private readonly IProductRepository _productRepository;
+    private readonly ITaxRepository? _taxRepository;
+    private readonly ITaxCalculationService? _taxCalculationService;
 
-    public ProductService(IProductRepository productRepository)
+    public ProductService(
+        IProductRepository productRepository,
+        ITaxRepository? taxRepository = null,
+        ITaxCalculationService? taxCalculationService = null)
     {
         _productRepository = productRepository;
+        _taxRepository = taxRepository;
+        _taxCalculationService = taxCalculationService;
     }
 
     public async Task<ApiResponse<ProductDto>> CreateProductAsync(CreateProductRequest request, int tenantId)
@@ -89,7 +96,7 @@ public class ProductService : IProductService
             created.ProductCategory = resolvedCategory;
         }
 
-        return ApiResponse<ProductDto>.Ok(MapToDto(created), "Product created successfully.");
+        return ApiResponse<ProductDto>.Ok(await MapToDtoAsync(created, tenantId), "Product created successfully.");
     }
 
     public async Task<ApiResponse<PagedResult<ProductDto>>> GetProductsAsync(ProductQueryParameters query, int? tenantId)
@@ -97,7 +104,7 @@ public class ProductService : IProductService
         query ??= new ProductQueryParameters();
 
         var (items, totalCount) = await _productRepository.GetPagedListAsync(tenantId, query);
-        var dtos = items.Select(MapToDto).ToList();
+        var dtos = await MapToDtosAsync(items, tenantId);
 
         var pagedResult = new PagedResult<ProductDto>(dtos, totalCount, query.PageNumber, query.PageSize);
         return ApiResponse<PagedResult<ProductDto>>.Ok(pagedResult, "Products retrieved successfully.");
@@ -116,7 +123,7 @@ public class ProductService : IProductService
             return ApiResponse<ProductDto>.Fail("Product not found", $"Product with ID {id} was not found.");
         }
 
-        return ApiResponse<ProductDto>.Ok(MapToDto(product), "Product retrieved successfully.");
+        return ApiResponse<ProductDto>.Ok(await MapToDtoAsync(product, tenantId ?? (product.TenantId > 0 ? product.TenantId : 1)), "Product retrieved successfully.");
     }
 
     public async Task<ApiResponse<ProductDto>> UpdateProductAsync(int id, UpdateProductRequest request, int? tenantId)
@@ -195,7 +202,7 @@ public class ProductService : IProductService
             updated.ProductCategory = resolvedCategory;
         }
 
-        return ApiResponse<ProductDto>.Ok(MapToDto(updated), "Product updated successfully.");
+        return ApiResponse<ProductDto>.Ok(await MapToDtoAsync(updated, tenantId ?? (updated.TenantId > 0 ? updated.TenantId : 1)), "Product updated successfully.");
     }
 
     /// <summary>
@@ -220,7 +227,7 @@ public class ProductService : IProductService
         product.RowVersion = DateTime.UtcNow;
 
         var updated = await _productRepository.UpdateAsync(product);
-        return ApiResponse<ProductDto>.Ok(MapToDto(updated), "Product deactivated successfully. Historical invoice references are preserved.");
+        return ApiResponse<ProductDto>.Ok(await MapToDtoAsync(updated, tenantId ?? (updated.TenantId > 0 ? updated.TenantId : 1)), "Product deactivated successfully. Historical invoice references are preserved.");
     }
 
     /// <summary>
@@ -252,7 +259,7 @@ public class ProductService : IProductService
                 $"Product '{product.Name}' ({product.ProductCode}) is inactive and cannot be selected for new invoices.");
         }
 
-        return ApiResponse<ProductDto>.Ok(MapToDto(product), "Product is active and eligible for invoice line item selection.");
+        return ApiResponse<ProductDto>.Ok(await MapToDtoAsync(product, tenantId), "Product is active and eligible for invoice line item selection.");
     }
 
     /// <summary>
@@ -441,8 +448,182 @@ public class ProductService : IProductService
         return errors;
     }
 
-    private static ProductDto MapToDto(Product p)
+    private async Task<ProductDto> MapToDtoAsync(Product p, int? tenantId)
     {
+        TaxSetting? settings = null;
+        List<TaxRate>? rates = null;
+        var effectiveTenantId = tenantId.HasValue && tenantId.Value > 0 ? tenantId.Value : (p.TenantId > 0 ? p.TenantId : 1);
+        if (_taxRepository != null && effectiveTenantId > 0)
+        {
+            settings = await _taxRepository.GetSettingsAsync(effectiveTenantId);
+            rates = await _taxRepository.GetRatesAsync(effectiveTenantId, status: "Active");
+        }
+        return MapToDto(p, settings, rates);
+    }
+
+    private async Task<List<ProductDto>> MapToDtosAsync(IEnumerable<Product> products, int? tenantId)
+    {
+        var list = products.ToList();
+        if (list.Count == 0) return new List<ProductDto>();
+
+        TaxSetting? settings = null;
+        List<TaxRate>? rates = null;
+        var effectiveTenantId = tenantId.HasValue && tenantId.Value > 0 ? tenantId.Value : (list.FirstOrDefault(p => p.TenantId > 0)?.TenantId ?? 1);
+        if (_taxRepository != null && effectiveTenantId > 0)
+        {
+            settings = await _taxRepository.GetSettingsAsync(effectiveTenantId);
+            rates = await _taxRepository.GetRatesAsync(effectiveTenantId, status: "Active");
+        }
+
+        return list.Select(p => MapToDto(p, settings, rates)).ToList();
+    }
+
+    public ProductDto MapToDto(Product p) => MapToDto(p, null, null);
+
+    public ProductDto MapToDto(Product p, TaxSetting? settings, List<TaxRate>? rates)
+    {
+        decimal unitPrice = p.Price;
+        string currency = string.IsNullOrWhiteSpace(p.Currency) ? "INR" : p.Currency.Trim().ToUpperInvariant();
+
+        // 1. Discount calculation
+        bool discountEligible = p.DiscountAllowed && p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0;
+        string discountType = discountEligible ? "Percentage" : "None";
+        decimal discountValue = discountEligible ? p.DiscountPercent!.Value : 0.00m;
+        decimal discountAmount = discountEligible
+            ? Math.Round(unitPrice * (discountValue / 100m), 2, MidpointRounding.AwayFromZero)
+            : 0.00m;
+        decimal netUnitPrice = unitPrice - discountAmount;
+
+        // 2. Tax calculation
+        bool isTaxEnabled = settings?.IsTaxEnabled ?? true;
+        bool isDefaultInclusive = settings?.PricesIncludeTax ?? string.Equals(settings?.DefaultTaxCalculation, "Inclusive", StringComparison.OrdinalIgnoreCase);
+
+        bool isTaxExempt;
+        bool isTaxInclusive = false;
+        decimal taxRate = 0.00m;
+        decimal taxAmount = 0.00m;
+        decimal finalUnitPrice;
+
+        var categoryTrimmed = p.TaxCategory?.Trim();
+        bool isExplicitlyExempt = string.IsNullOrWhiteSpace(categoryTrimmed)
+            || categoryTrimmed.Equals("Exempt", StringComparison.OrdinalIgnoreCase)
+            || categoryTrimmed.Equals("GST 0%", StringComparison.OrdinalIgnoreCase)
+            || categoryTrimmed.Equals("0%", StringComparison.OrdinalIgnoreCase)
+            || categoryTrimmed.Equals("None", StringComparison.OrdinalIgnoreCase);
+
+        if (!isTaxEnabled || isExplicitlyExempt)
+        {
+            isTaxExempt = true;
+            isTaxInclusive = false;
+            taxRate = 0.00m;
+            taxAmount = 0.00m;
+            finalUnitPrice = netUnitPrice;
+        }
+        else
+        {
+            var safeCat = categoryTrimmed ?? string.Empty;
+            TaxRate? matchedRate = null;
+            decimal parsedPercent = -1m;
+            var match = Regex.Match(safeCat, @"(\d+(?:\.\d+)?)");
+            if (match.Success && decimal.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+            {
+                parsedPercent = parsed;
+            }
+
+            if (rates != null && rates.Count > 0)
+            {
+                // Prefer exact match by rate percentage if category contains a numeric rate like "18%" or "5%"
+                if (parsedPercent >= 0)
+                {
+                    matchedRate = rates.FirstOrDefault(r => r.Rate == parsedPercent)
+                               ?? rates.FirstOrDefault(r => string.Equals(r.Name, safeCat, StringComparison.OrdinalIgnoreCase) || string.Equals(r.Code, safeCat, StringComparison.OrdinalIgnoreCase));
+                }
+                else
+                {
+                    matchedRate = rates.FirstOrDefault(r =>
+                        string.Equals(r.Name, safeCat, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(r.Code, safeCat, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (matchedRate == null)
+                {
+                    var cleanCat = new string(safeCat.Where(char.IsLetterOrDigit).ToArray());
+                    matchedRate = rates.FirstOrDefault(r =>
+                        string.Equals(new string(r.Name.Where(char.IsLetterOrDigit).ToArray()), cleanCat, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(new string(r.Code.Where(char.IsLetterOrDigit).ToArray()), cleanCat, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+
+            if (matchedRate != null)
+            {
+                taxRate = matchedRate.Rate;
+                isTaxInclusive = matchedRate.IsInclusive || isDefaultInclusive;
+            }
+            else if (parsedPercent >= 0)
+            {
+                taxRate = parsedPercent;
+                isTaxInclusive = isDefaultInclusive;
+            }
+            else
+            {
+                taxRate = 0.00m;
+                isTaxInclusive = isDefaultInclusive;
+            }
+
+            if (taxRate <= 0.00m)
+            {
+                isTaxExempt = true;
+                taxAmount = 0.00m;
+                finalUnitPrice = netUnitPrice;
+            }
+            else
+            {
+                isTaxExempt = false;
+                if (_taxCalculationService != null)
+                {
+                    var itemRequest = new Billing.Contracts.Tax.TaxCalculationItemRequest
+                    {
+                        UnitPrice = unitPrice,
+                        DiscountPercent = discountValue,
+                        Quantity = 1,
+                        IsInclusive = isTaxInclusive
+                    };
+                    var rateObj = new TaxRate
+                    {
+                        Id = matchedRate?.Id ?? 0,
+                        Name = matchedRate?.Name ?? safeCat,
+                        Code = matchedRate?.Code ?? safeCat,
+                        TaxType = matchedRate?.TaxType ?? "GST",
+                        Rate = taxRate,
+                        IsInclusive = isTaxInclusive,
+                        IsCompound = matchedRate?.IsCompound ?? false,
+                        Priority = matchedRate?.Priority ?? 1,
+                        ApplicationLevel = matchedRate?.ApplicationLevel ?? "Item",
+                        Status = "Active",
+                        EffectiveFrom = null,
+                        EffectiveTo = null
+                    };
+                    var calc = _taxCalculationService.CalculateLineItem(itemRequest, new[] { rateObj }, isTaxInclusive, DateTime.UtcNow);
+                    taxAmount = calc.TotalTaxAmount;
+                    finalUnitPrice = calc.GrossAmount;
+                }
+                else
+                {
+                    if (isTaxInclusive)
+                    {
+                        decimal taxableBase = Math.Round(netUnitPrice / (1m + (taxRate / 100m)), 4, MidpointRounding.AwayFromZero);
+                        taxAmount = Math.Round(netUnitPrice - taxableBase, 2, MidpointRounding.AwayFromZero);
+                        finalUnitPrice = netUnitPrice;
+                    }
+                    else
+                    {
+                        taxAmount = Math.Round(netUnitPrice * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
+                        finalUnitPrice = Math.Round(netUnitPrice + taxAmount, 2, MidpointRounding.AwayFromZero);
+                    }
+                }
+            }
+        }
+
         return new ProductDto
         {
             Id = p.Id,
@@ -454,12 +635,21 @@ public class ProductService : IProductService
             CategoryId = p.CategoryId,
             CategoryName = p.Category ?? p.ProductCategory?.Name,
             Unit = p.Unit,
-            Price = p.Price,
-            Currency = p.Currency,
+            Price = unitPrice,
+            UnitPrice = unitPrice,
+            Currency = currency,
             TaxCategory = p.TaxCategory,
             HsnSacCode = p.HsnSacCode,
             DiscountAllowed = p.DiscountAllowed,
             DiscountPercent = p.DiscountPercent ?? 0.00m,
+            DiscountType = discountType,
+            DiscountValue = discountValue,
+            DiscountAmount = discountAmount,
+            TaxRate = taxRate,
+            TaxAmount = taxAmount,
+            IsTaxExempt = isTaxExempt,
+            IsTaxInclusive = isTaxInclusive,
+            FinalUnitPrice = finalUnitPrice,
             Status = p.Status,
             IsActive = p.IsActive,
             CreatedAtUtc = p.CreatedAtUtc,
