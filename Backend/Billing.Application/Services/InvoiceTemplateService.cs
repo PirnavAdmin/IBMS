@@ -146,13 +146,13 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         template.UpdatedAtUtc = DateTime.UtcNow;
         template.UpdatedBy = user;
 
-        var activeVersion = template.Versions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
-            ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var activeVersion = ResolveActiveVersion(template)
+            ?? template.Versions.Where(v => v.Status == DomainStatus.Draft).OrderByDescending(v => v.VersionNumber).FirstOrDefault();
 
         if (activeVersion != null && activeVersion.Status == DomainStatus.Active)
         {
             // Create a new draft version to preserve active version immutability
-            var nextVersionNumber = template.CurrentVersionNumber + 1;
+            var nextVersionNumber = template.Versions.Max(v => v.VersionNumber) + 1;
             var newVersion = new TemplateVersion
             {
                 TenantId = tenantId,
@@ -169,7 +169,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 CreatedAtUtc = DateTime.UtcNow
             };
 
-            template.CurrentVersionNumber = nextVersionNumber;
+            template.CurrentVersionNumber = activeVersion.VersionNumber;
+            template.ActiveVersionId = activeVersion.Id;
             template.Versions.Add(newVersion);
             await _templateRepository.AddVersionAsync(newVersion);
         }
@@ -186,7 +187,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         await _templateRepository.UpdateAsync(template);
 
-        await RecordAuditAsync(tenantId, "Template Updated", "InvoiceTemplate", template.Id.ToString(), user, request.ChangeDescription ?? $"Updated template '{template.Name}' (version v{template.CurrentVersionNumber})", ct);
+        await RecordAuditAsync(tenantId, "Template Updated", "InvoiceTemplate", template.Id.ToString(), user, request.ChangeDescription ?? $"Updated template '{template.Name}' (version v{template.Versions.Max(v => v.VersionNumber)})", ct);
 
         return MapToDto(template);
     }
@@ -200,7 +201,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (await _templateRepository.ExistsByNameAsync(request.NewTemplateName, tenantId))
             throw new InvalidOperationException($"An invoice template with the name '{request.NewTemplateName}' already exists.");
 
-        var sourceVersion = source.Versions.FirstOrDefault(v => v.Id == source.ActiveVersionId)
+        var sourceVersion = ResolveActiveVersion(source)
             ?? source.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
 
         var duplicate = new InvoiceTemplate
@@ -262,6 +263,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             targetVersion.Status = DomainStatus.Active;
             await _templateRepository.UpdateVersionAsync(targetVersion);
             template.ActiveVersionId = targetVersion.Id;
+            template.CurrentVersionNumber = targetVersion.VersionNumber;
         }
 
         template.Status = DomainStatus.Active;
@@ -281,7 +283,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (template == null)
             throw new KeyNotFoundException($"Invoice template with ID {id} not found.");
 
-        var version = template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var version = ResolveActiveVersion(template)
+            ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
         if (version == null)
             throw new InvalidOperationException("A template version is required before it can be set as default.");
 
@@ -296,6 +299,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         template.IsDefault = true;
         template.Status = DomainStatus.Active;
         template.ActiveVersionId = version.Id;
+        template.CurrentVersionNumber = version.VersionNumber;
         template.UpdatedAtUtc = DateTime.UtcNow;
         template.UpdatedBy = user;
         await _templateRepository.UpdateAsync(template);
@@ -329,9 +333,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (template == null)
             throw new KeyNotFoundException($"Invoice template with ID {templateId} not found.");
 
+        var activeVersion = ResolveActiveVersion(template);
         return template.Versions
             .OrderByDescending(v => v.VersionNumber)
-            .Select(MapVersionToDto)
+            .Select(v => MapVersionToDto(v, v == activeVersion))
             .ToList();
     }
 
@@ -401,8 +406,9 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         TemplateVersion? version = null;
         if (template != null)
         {
-            version = template.Versions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
-                      ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+            version = ResolveActiveVersion(template);
+            if (version == null)
+                throw new InvalidOperationException("Publish an active template version before generating an invoice PDF.");
         }
 
         // Resolve or create immutable invoice snapshot
@@ -700,10 +706,18 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         };
     }
 
+    // The publication pointer takes precedence. Resolve legacy stale numbers without rewriting history.
+    private static TemplateVersion? ResolveActiveVersion(InvoiceTemplate template)
+    {
+        var activeVersions = template.Versions.Where(v => v.Status == DomainStatus.Active).ToList();
+        return activeVersions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
+            ?? activeVersions.FirstOrDefault(v => v.VersionNumber == template.CurrentVersionNumber)
+            ?? activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+    }
+
     private static InvoiceTemplateDto MapToDto(InvoiceTemplate t)
     {
-        var activeVersion = t.Versions.FirstOrDefault(v => v.Id == t.ActiveVersionId)
-                            ?? t.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var activeVersion = ResolveActiveVersion(t);
 
         return new InvoiceTemplateDto
         {
@@ -714,10 +728,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             Style = (ContractStyle)t.Style,
             Status = (ContractStatus)t.Status,
             IsDefault = t.IsDefault,
-            CurrentVersionNumber = t.CurrentVersionNumber,
-            ActiveVersionId = t.ActiveVersionId,
-            ActiveVersion = activeVersion != null ? MapVersionToDto(activeVersion) : null,
-            Versions = t.Versions.OrderByDescending(v => v.VersionNumber).Select(MapVersionToDto).ToList(),
+            CurrentVersionNumber = activeVersion?.VersionNumber ?? t.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault()?.VersionNumber ?? t.CurrentVersionNumber,
+            ActiveVersionId = activeVersion?.Id,
+            ActiveVersion = activeVersion != null ? MapVersionToDto(activeVersion, true) : null,
+            Versions = t.Versions.OrderByDescending(v => v.VersionNumber).Select(v => MapVersionToDto(v, v == activeVersion)).ToList(),
             CreatedAtUtc = t.CreatedAtUtc,
             UpdatedAtUtc = t.UpdatedAtUtc,
             CreatedBy = t.CreatedBy,
@@ -725,12 +739,13 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         };
     }
 
-    private static TemplateVersionDto MapVersionToDto(TemplateVersion v)
+    private static TemplateVersionDto MapVersionToDto(TemplateVersion v, bool isCurrent = false)
     {
         return new TemplateVersionDto
         {
             Id = v.Id,
             TemplateId = v.TemplateId,
+            IsCurrent = isCurrent,
             VersionNumber = v.VersionNumber,
             Status = (ContractStatus)v.Status,
             VersionDescription = v.VersionDescription,

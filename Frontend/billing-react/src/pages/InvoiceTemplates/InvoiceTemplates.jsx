@@ -746,9 +746,8 @@ export function TemplateVersionHistory() {
     if (selectedTemplateId) load(selectedTemplateId);
   };
   const selectedTemplate = templates.find((template) => String(template.id || template.Id) === String(templateId));
-  const latestVersion = versions.reduce((latest, version) => Number(version.versionNumber ?? version.VersionNumber ?? 0) > Number(latest?.versionNumber ?? latest?.VersionNumber ?? -1) ? version : latest, null);
-  const currentVersionId = selectedTemplate?.activeVersionId ?? selectedTemplate?.ActiveVersionId ?? latestVersion?.id ?? latestVersion?.Id;
-  const isCurrentVersion = (version) => String(version.id || version.Id) === String(currentVersionId);
+  const currentVersionId = selectedTemplate?.activeVersionId ?? selectedTemplate?.ActiveVersionId;
+  const isCurrentVersion = (version) => (version.isCurrent ?? version.IsCurrent) ?? ((version.status === 2 || version.status === 'Active') && currentVersionId != null && String(version.id || version.Id) === String(currentVersionId));
   const openVersionPreview = (version) => {
     if (!selectedTemplate) return;
     const config = configFromTemplate({ ...selectedTemplate, activeVersion: version, versions: [version] }, true);

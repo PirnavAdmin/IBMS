@@ -130,6 +130,7 @@ public class TemplateVersionDto
 {
     public int Id { get; set; }
     public int TemplateId { get; set; }
+    public bool IsCurrent { get; set; }
     public int VersionNumber { get; set; }
     public string Version => $"v{VersionNumber}";
     public TemplateStatus Status { get; set; }
