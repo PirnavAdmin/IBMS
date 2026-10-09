@@ -292,6 +292,11 @@ export const invoiceService = {
   async issue(id) {
     return requireInvoice(await invoiceApi.issueInvoice(id));
   },
+  async send(id) {
+    const sent = await invoiceApi.sendInvoice(id);
+    if (sent !== true) throw new Error("The invoice email was not sent.");
+    return sent;
+  },
   async cancel(id, reason) {
     return requireInvoice(await invoiceApi.cancelInvoice(id, reason));
   },
