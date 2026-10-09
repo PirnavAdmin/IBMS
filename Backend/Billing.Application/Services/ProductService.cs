@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
@@ -441,8 +441,26 @@ public class ProductService : IProductService
         return errors;
     }
 
-    private static ProductDto MapToDto(Product p)
+        private static ProductDto MapToDto(Product p)
     {
+        decimal taxRate = 0m;
+        if (!string.IsNullOrWhiteSpace(p.TaxCategory) && 
+            !p.TaxCategory.Equals("Exempt", StringComparison.OrdinalIgnoreCase) && 
+            !p.TaxCategory.Equals("Not Applicable", StringComparison.OrdinalIgnoreCase))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(p.TaxCategory, @"\d+(\.\d+)?");
+            if (match.Success)
+            {
+                decimal.TryParse(match.Value, out taxRate);
+            }
+        }
+
+        decimal discountPercent = p.DiscountAllowed && p.DiscountPercent.HasValue ? p.DiscountPercent.Value : 0m;
+        decimal discountAmount = Math.Round(p.Price * (discountPercent / 100m), 2, MidpointRounding.AwayFromZero);
+        decimal netPrice = Math.Max(0m, p.Price - discountAmount);
+        decimal taxAmount = Math.Round(netPrice * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
+        decimal finalPrice = netPrice + taxAmount;
+
         return new ProductDto
         {
             Id = p.Id,
@@ -464,7 +482,9 @@ public class ProductService : IProductService
             IsActive = p.IsActive,
             CreatedAtUtc = p.CreatedAtUtc,
             UpdatedAtUtc = p.UpdatedAtUtc,
-            RowVersion = Convert.ToBase64String(BitConverter.GetBytes(p.RowVersion.Ticks))
+            RowVersion = Convert.ToBase64String(BitConverter.GetBytes(p.RowVersion.Ticks)),
+            DefaultTaxAmount = taxAmount,
+            DefaultFinalPrice = finalPrice
         };
     }
 }

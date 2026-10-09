@@ -24,4 +24,7 @@ public class ProductDto
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public string? RowVersion { get; set; }
+    public decimal? DefaultTaxAmount { get; set; }
+    public decimal? DefaultFinalPrice { get; set; }
 }
+
