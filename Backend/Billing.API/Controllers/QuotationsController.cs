@@ -73,8 +73,8 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var userId = GetUserId();
-        var result = await _quotationService.CreateDraftAsync(request, tenantId.Value, userId);
+        var userName = GetUserName();
+        var result = await _quotationService.CreateDraftAsync(request, tenantId.Value, userName);
 
         if (!result.Success) return BadRequest(result);
 
@@ -94,7 +94,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, GetUserId());
+        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, GetUserName());
 
         if (!result.Success)
         {
@@ -112,7 +112,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.SendQuotationAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.SendQuotationAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -123,7 +123,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -135,7 +135,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.CancelQuotationAsync(id, tenantId.Value, request?.Reason ?? string.Empty, GetUserId());
+        var result = await _actionService.CancelQuotationAsync(id, tenantId.Value, request?.Reason ?? string.Empty, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -146,7 +146,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.ConvertToInvoiceAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.ConvertToInvoiceAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -195,9 +195,16 @@ public class QuotationsController : ControllerBase
         return null;
     }
 
-    private string GetUserId()
+    private string GetUserName()
     {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? "system";
+        // These service arguments are stored in audit UserName and communication SentBy.
+        return User.FindFirst(ClaimTypes.Name)?.Value
+            ?? User.FindFirst("name")?.Value
+            ?? User.FindFirst(ClaimTypes.Email)?.Value
+            ?? User.FindFirst("email")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? "system";
     }
 }
 
