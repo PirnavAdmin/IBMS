@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
     BASE: '/api/v1/invoices',
     BY_ID: (id) => `/api/v1/invoices/${encodeURIComponent(id)}`,
     ISSUE: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/issue`,
+    SEND: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/send`,
     CANCEL: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/cancel`,
     VOID: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/void`,
     PDF: (id) => `/api/v1/invoices/${encodeURIComponent(id)}/pdf`,
