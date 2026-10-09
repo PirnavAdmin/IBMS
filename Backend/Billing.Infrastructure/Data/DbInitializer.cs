@@ -502,6 +502,52 @@ public static class DbInitializer
 
                 logger?.LogInformation("Seeded default invoice templates (Standard, Professional, Compact) for tenant 1");
             }
+
+            // Add the reusable Pirnav layout independently of the original seed block.
+            // Existing installations already have templates, so the template must not be
+            // hidden behind the "no templates" condition above.
+            foreach (var pirnavTenantId in new[] { 1, 2 })
+            {
+                var pirnavTemplate = await context.InvoiceTemplates
+                    .FirstOrDefaultAsync(t => t.TenantId == pirnavTenantId && t.Name == "Pirnav Standard Invoice");
+                if (pirnavTemplate != null) continue;
+
+                pirnavTemplate = new InvoiceTemplate
+                {
+                    TenantId = pirnavTenantId,
+                    Name = "Pirnav Standard Invoice",
+                    Description = "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.",
+                    Style = Domain.Enums.TemplateStyle.Professional,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var pirnavVersion = new TemplateVersion
+                {
+                    TenantId = pirnavTenantId,
+                    VersionNumber = 1,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    VersionDescription = "Initial reusable Pirnav standard invoice layout",
+                    // The same supplied logo is served by the frontend and embedded in
+                    // the PDF engine, so previews and final PDFs keep the same aspect ratio.
+                    BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"\",\"Phone\":\"\",\"Website\":\"\",\"AddressLine1\":\"\",\"Country\":\"India\"}",
+                    LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
+                    PaymentInstructionsJson = "{}",
+                    TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                pirnavTemplate.Versions.Add(pirnavVersion);
+                await context.InvoiceTemplates.AddAsync(pirnavTemplate);
+                await context.SaveChangesAsync();
+                pirnavTemplate.ActiveVersionId = pirnavVersion.Id;
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded reusable Pirnav Standard Invoice template for tenant {TenantId}", pirnavTenantId);
+            }
         }
         catch (Exception ex)
         {

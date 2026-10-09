@@ -58,6 +58,12 @@ public class CompanyDetailsConfigDto
 
 public class LayoutConfigDto
 {
+    /// <summary>
+    /// Enables the Pirnav branded invoice layout. This is configuration stored with a
+    /// template version, so the renderer can apply the layout without depending on a
+    /// template name or invoice-specific data.
+    /// </summary>
+    public bool UsePirnavStandardLayout { get; set; }
     public bool ShowLogo { get; set; } = true;
     public bool ShowHeader { get; set; } = true;
     public bool ShowFooter { get; set; } = true;
