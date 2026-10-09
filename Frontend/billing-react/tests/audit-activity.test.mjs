@@ -7,6 +7,33 @@ import { auditQuery, readAuditPage, auditDate, auditSnapshot, emptyAuditFilters,
 const record = { id: 7, action: 'PDF Generated', userName: 'Admin', entityName: 'InvoiceDocument', entityId: '52', timestamp: '2026-10-09T04:52:23.454293Z', changes: 'Saved invoice PDF', oldValues: null, newValues: '{"Status":"Generated"}' };
 const response = { success: true, data: { items: [record], totalCount: 41, pageNumber: 2, pageSize: 20, totalPages: 3 } };
 
+test('filter options use the authenticated endpoint and preserve backend values', async () => {
+  const original = apiClient.get;
+  const signal = new AbortController().signal;
+  const data = { entityNames: ['Quotation', 'Invoice', 'Invoice'], actions: ['Cancelled'], userNames: ['Acme Admin'] };
+  try {
+    apiClient.get = async (url, config) => {
+      assert.equal(url, '/api/Audit/filter-options');
+      assert.deepEqual(config, { signal });
+      return { success: true, data };
+    };
+    const options = await getAuditFilterOptions(signal);
+    assert.deepEqual(options.entityNames, ['Quotation', 'Invoice']);
+    assert.deepEqual(options.actions, data.actions);
+    assert.deepEqual(options.userNames, data.userNames);
+    apiClient.get = async () => ({ success: true, data: { entityNames: [], actions: [], userNames: [] } });
+    const empty = await getAuditFilterOptions();
+    assert.deepEqual([empty.entityNames, empty.actions, empty.userNames], [[], [], []]);
+    apiClient.get = async () => ({ success: true, data: { entityNames: [] } });
+    await assert.rejects(getAuditFilterOptions(), /invalid filter options/);
+    apiClient.get = async () => ({ success: false, message: 'Options failed' });
+    await assert.rejects(getAuditFilterOptions(), /Options failed/);
+    const forbidden = Object.assign(new Error('Access denied'), { response: { status: 403 } });
+    apiClient.get = async () => { throw forbidden; };
+    await assert.rejects(getAuditFilterOptions(), error => error === forbidden);
+  } finally { apiClient.get = original; }
+});
+
 test('audit filters use only supported exact-match parameters and complete IST date boundaries', () => {
   const query = auditQuery({ ...emptyAuditFilters, entityName: ' Invoice ', userName: ' Admin ', action: ' UPDATE ', startDate: '2026-10-09', endDate: '2026-10-09' }, 2, 20);
   assert.deepEqual(query, { Page: 2, PageSize: 20, EntityName: 'Invoice', UserName: 'Admin', Action: 'UPDATE', StartDate: '2026-10-08T18:30:00.000Z', EndDate: '2026-10-09T18:29:59.9999999Z' });

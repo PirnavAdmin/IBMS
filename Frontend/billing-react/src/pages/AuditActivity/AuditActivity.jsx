@@ -4,7 +4,7 @@ import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   Pagination, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
 import { FilterAltOutlined, HistoryOutlined, Refresh, VisibilityOutlined } from '@mui/icons-material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
-import { getAuditActivity } from './auditApi.js';
+import { getAuditActivity, getAuditFilterOptions } from './auditApi.js';
 import { auditDate, auditQuery, auditSnapshot, emptyAuditFilters, searchAuditPage } from './auditModel.js';
 import './audit-activity.css';
 
@@ -20,6 +20,21 @@ export function AuditActivity() {
   const [validation, setValidation] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [selected, setSelected] = useState(null);
+  const [options, setOptions] = useState({ entityNames: [], actions: [], userNames: [] });
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setOptionsLoading(true); setOptionsError(null);
+    getAuditFilterOptions(controller.signal).then(result => {
+      if (active) setOptions(result);
+    }).catch(requestError => {
+      if (active && !controller.signal.aborted) setOptionsError(requestError);
+    }).finally(() => { if (active) setOptionsLoading(false); });
+    return () => { active = false; controller.abort(); };
+  }, [refresh]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -59,13 +74,26 @@ export function AuditActivity() {
       <div className="audit-section-heading"><FilterAltOutlined /><h2 id="audit-filters-title">Filter activity</h2></div>
       <form onSubmit={apply}>
         <div className="audit-filter-grid">
-          <TextField size="small" label="Module / entity" helperText="Exact entity name, such as Invoice" {...field('entityName')} />
-          <TextField size="small" label="Event name" helperText="Exact action recorded by the backend" {...field('action')} />
-          <TextField size="small" label="Performed by" helperText="Exact user or system actor name" {...field('userName')} />
+          {[
+            ['entityName', 'Module / entity', 'entityNames', 'All modules'],
+            ['action', 'Event name', 'actions', 'All events'],
+            ['userName', 'Performed by', 'userNames', 'All actors'],
+          ].map(([key, label, optionKey, allLabel]) => <TextField key={key} select size="small" label={label}
+            disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}
+            helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : 'From your tenant audit history'} {...field(key)}>
+            <MenuItem value="">{allLabel}</MenuItem>
+            {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{draft[key]}</MenuItem>}
+            {options[optionKey].map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+          </TextField>)}
           <TextField size="small" type="date" label="From date" helperText="Start of day (IST)" InputLabelProps={{ shrink: true }} {...field('startDate')} />
           <TextField size="small" type="date" label="To date" helperText="End of day (IST)" InputLabelProps={{ shrink: true }} inputProps={{ min: draft.startDate || undefined }} {...field('endDate')} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
+        {optionsError && <Alert severity="error" action={![401, 403].includes(optionsError.response?.status)
+          ? <Button color="inherit" size="small" onClick={() => setRefresh(value => value + 1)}>Retry</Button> : undefined}>
+          {optionsError.response?.status === 403 ? 'Access denied to audit filter options.' : optionsError.response?.status === 401
+            ? 'Please sign in again to load audit filter options.' : optionsError.userMessage || optionsError.message}
+        </Alert>}
         <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
       </form>
     </section>
