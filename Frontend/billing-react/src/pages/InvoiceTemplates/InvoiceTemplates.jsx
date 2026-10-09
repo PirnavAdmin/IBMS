@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, TextField, Tooltip } from '@mui/material';
+import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, Snackbar, TextField, Tooltip } from '@mui/material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 
 import { Add, ArrowBack, EditOutlined, ImageOutlined, MoreVert, StarOutline, ToggleOff, ToggleOn, VisibilityOutlined } from '@mui/icons-material';
@@ -84,6 +84,14 @@ function TemplateCreationSteps({ step }) {
     <span className="template-creation-arrow" aria-hidden="true">→</span>
     <div className={step === 2 ? 'template-creation-step is-current' : 'template-creation-step'}><span>Step 2</span><strong>Branding Settings</strong></div>
   </div>;
+}
+
+function TemplateSuccessNotice({ message, onClose }) {
+  return <Snackbar key={message} open={Boolean(message)} autoHideDuration={5000}
+    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+    onClose={(_, reason) => { if (reason !== 'clickaway') onClose(); }}>
+    <Alert severity="success" onClose={onClose}>{message}</Alert>
+  </Snackbar>;
 }
 
 function TemplatePage({ title, description, children, notice, actions, hideNavigation = false }) {
@@ -201,7 +209,7 @@ export function InvoiceTemplates() {
     }
   };
   return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button>}>
-    {notice && <Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert>}{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+    <TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     <section className="template-list-card" aria-labelledby="template-list-heading">
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
       <div className="template-list-filters">
@@ -521,7 +529,7 @@ export function BrandingSettings() {
   return <TemplatePage title="Branding settings" description={creationFlow ? 'Complete the branding details for this template.' : 'Configure company identity and brand defaults for the sample preview.'} hideNavigation={creationFlow}>
     <div className="template-form-card">{creationFlow && <TemplateCreationSteps step={2} />}<div className="template-section-title"><div><h2>{creationFlow ? 'Step 2 – Branding Settings' : 'Organization branding'}</h2></div><Chip label="Unsaved sample" size="small" /></div>
       <BrandingFields value={config} onChange={update} onBlur={validateField} errors={fieldErrors} onLogoChange={onLogoChange} onLogoError={onLogoError} />
-      {logoBusy && <Alert severity="info">Uploading logo…</Alert>}{apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}{notice && <Alert severity="success">{notice}</Alert>}
+      {logoBusy && <Alert severity="info">Uploading logo…</Alert>}{apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}<TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />
       {logoError && <Alert severity="error" role="alert">{logoError}</Alert>}
       <div className="template-actions">{creationFlow && <Button variant="outlined" onClick={backToDetails} disabled={saving || logoBusy}>Back</Button>}{creationFlow && <Button variant="outlined" disabled={saving || logoBusy} onClick={() => save({ saveAsDraft: true })}>{saving ? 'Saving…' : 'Save as Draft'}</Button>}<Button variant="outlined" startIcon={<VisibilityOutlined />} onClick={() => setPreviewOpen(true)} disabled={logoBusy}>Preview</Button><Button variant="contained" disabled={saving || logoBusy} onClick={() => save(creationFlow ? { activate: true } : {})}>{saving ? 'Saving…' : creationFlow ? 'Save & Activate' : 'Save branding'}</Button></div>
     </div>

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem,
   Pagination, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip } from '@mui/material';
-import { FilterAltOutlined, HistoryOutlined, Refresh, VisibilityOutlined } from '@mui/icons-material';
+import { HistoryOutlined, Refresh, VisibilityOutlined } from '@mui/icons-material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { getAuditActivity, getAuditFilterOptions } from './auditApi.js';
-import { auditDate, auditQuery, auditSnapshot, emptyAuditFilters, searchAuditPage } from './auditModel.js';
+import { auditEventLabel, auditDate, auditQuery, auditSnapshot, emptyAuditFilters, searchAuditPage } from './auditModel.js';
 import './audit-activity.css';
 
 export function AuditActivity() {
@@ -66,13 +66,17 @@ export function AuditActivity() {
   const last = data ? Math.min(data.pageNumber * data.pageSize, data.totalCount) : 0;
 
   return <main className="audit-page">
-    <header className="audit-heading"><div><p className="audit-eyebrow">Activity & accountability</p><h1>Audit Activity</h1>
-      <p>Review activity across your organization. Audit records are read-only.</p></div>
-      <Button variant="outlined" startIcon={<Refresh />} disabled={loading} onClick={() => setRefresh(value => value + 1)}>Refresh</Button>
-    </header>
-    <section className="audit-card" aria-labelledby="audit-filters-title">
-      <div className="audit-section-heading"><FilterAltOutlined /><h2 id="audit-filters-title">Filter activity</h2></div>
-      <form onSubmit={apply}>
+    <section className="audit-card" aria-labelledby="audit-page-title">
+      <header className="audit-heading">
+        <div className="audit-heading-title"><span className="audit-heading-icon"><HistoryOutlined /></span><div>
+          <h1 id="audit-page-title">Audit Activity</h1><p>Review organization activity. Dates and times are shown in IST.</p>
+        </div></div>
+        <div className="audit-heading-actions">{data && <Chip label={`${data.totalCount.toLocaleString('en-IN')} ${filtered ? 'matching' : 'total'} records`} variant="outlined" />}
+          <Button variant="outlined" startIcon={<Refresh />} disabled={loading} onClick={() => setRefresh(value => value + 1)}>Refresh</Button>
+        </div>
+      </header>
+      <form className="audit-filters" aria-label="Filter audit activity" onSubmit={apply}>
+
         <div className="audit-filter-grid">
           {[
             ['entityName', 'Module / entity', 'entityNames', 'All modules'],
@@ -80,13 +84,13 @@ export function AuditActivity() {
             ['userName', 'Performed by', 'userNames', 'All actors'],
           ].map(([key, label, optionKey, allLabel]) => <TextField key={key} select size="small" label={label}
             disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}
-            helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : 'From your tenant audit history'} {...field(key)}>
+            helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : undefined} {...field(key)}>
             <MenuItem value="">{allLabel}</MenuItem>
-            {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{draft[key]}</MenuItem>}
-            {options[optionKey].map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+            {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{key === 'action' ? auditEventLabel(draft[key]) : draft[key]}</MenuItem>}
+            {options[optionKey].map(value => <MenuItem key={value} value={value}>{key === 'action' ? auditEventLabel(value) : value}</MenuItem>)}
           </TextField>)}
-          <TextField size="small" type="date" label="From date" helperText="Start of day (IST)" InputLabelProps={{ shrink: true }} {...field('startDate')} />
-          <TextField size="small" type="date" label="To date" helperText="End of day (IST)" InputLabelProps={{ shrink: true }} inputProps={{ min: draft.startDate || undefined }} {...field('endDate')} />
+          <TextField size="small" type="date" label="From date (IST)" InputLabelProps={{ shrink: true }} {...field('startDate')} />
+          <TextField size="small" type="date" label="To date (IST)" InputLabelProps={{ shrink: true }} inputProps={{ min: draft.startDate || undefined }} {...field('endDate')} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
         {optionsError && <Alert severity="error" action={![401, 403].includes(optionsError.response?.status)
@@ -96,11 +100,7 @@ export function AuditActivity() {
         </Alert>}
         <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
       </form>
-    </section>
-    <section className="audit-card audit-results" aria-labelledby="audit-results-title" aria-busy={loading}>
-      <div className="audit-results-heading"><div><h2 id="audit-results-title">Activity history</h2><p>Date and time shown in Indian Standard Time (IST).</p></div>
-        <div className="audit-result-badges">{data && <Chip label={`${data.totalCount.toLocaleString('en-IN')} ${filtered ? 'matching' : 'total'} records`} variant="outlined" />}<Chip size="small" label="Newest first" /></div>
-      </div>
+      <div className="audit-results" aria-label="Activity history" aria-busy={loading}>
       {searchQuery.trim() && <Alert severity="info">Header search shows matches on the current page only. Use the filters above to search the full history.</Alert>}
       {error ? <DashboardErrorState title={forbidden ? 'Access denied' : unauthorized ? 'Sign-in required' : 'Unable to load audit activity'}
         message={forbidden ? 'Your account does not have access to this tenant’s audit history.' : unauthorized ? 'Please sign in again to view audit activity.' : error.userMessage || error.message}
@@ -108,7 +108,7 @@ export function AuditActivity() {
         <TableContainer><Table aria-label="Audit activity history">
           <TableHead><TableRow>{['Event', 'Date and time (IST)', 'Performed by', 'Module / entity', 'Changes / result', 'Details'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{loading ? Array.from({ length: 6 }, (_, index) => <TableRow key={index}>{Array.from({ length: 6 }, (_, cell) => <TableCell key={cell}><Skeleton /></TableCell>)}</TableRow>)
-            : rows.map(row => <TableRow key={row.id} hover><TableCell><Chip size="small" label={row.action || '—'} className="audit-event" /></TableCell>
+            : rows.map(row => <TableRow key={row.id} hover><TableCell><Chip size="small" label={auditEventLabel(row.action)} className="audit-event" /></TableCell>
               <TableCell className="audit-date">{auditDate(row.timestamp)}</TableCell><TableCell>{row.userName || '—'}</TableCell>
               <TableCell><strong>{row.entityName || '—'}</strong>{row.entityId && <span className="audit-entity-id">Record #{row.entityId}</span>}</TableCell>
               <TableCell><span className="audit-changes">{row.changes || 'No description recorded'}</span></TableCell>
@@ -123,11 +123,12 @@ export function AuditActivity() {
         </footer>}
         {loading && <span className="sr-only" role="status">Loading audit activity…</span>}
       </>}
+      </div>
     </section>
     <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} maxWidth="md" fullWidth PaperProps={{ className: 'audit-detail-dialog' }}>
       <DialogTitle>Audit event details{selected && <span className="audit-detail-number">#{selected.id}</span>}</DialogTitle>
       <DialogContent dividers>{selected && <><dl className="audit-detail-fields">{[
-        ['Event', selected.action], ['Date and time (IST)', auditDate(selected.timestamp)], ['Performed by', selected.userName],
+        ['Event', auditEventLabel(selected.action)], ['Date and time (IST)', auditDate(selected.timestamp)], ['Performed by', selected.userName],
         ['Module / entity', selected.entityName], ['Record ID', selected.entityId], ['Changes / result', selected.changes],
       ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
         <div className="audit-snapshots"><section><h3>Previous values</h3><pre>{auditSnapshot(selected.oldValues)}</pre></section><section><h3>New values</h3><pre>{auditSnapshot(selected.newValues)}</pre></section></div>
