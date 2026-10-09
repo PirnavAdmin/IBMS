@@ -193,4 +193,10 @@ public class AuditService : IAuditService
         var (items, totalCount) = await _auditLogRepository.GetFilteredPagedAsync(tenantId, filter, cancellationToken);
         return new Billing.Contracts.PagedResult<AuditLog>(items, totalCount, filter.Page, filter.PageSize);
     }
+
+    public async Task<Billing.Contracts.AuditFilterOptionsResponse> GetTenantFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
+    {
+        var resolvedTenantId = tenantId <= 0 ? 1 : tenantId;
+        return await _auditLogRepository.GetFilterOptionsAsync(resolvedTenantId, cancellationToken);
+    }
 }

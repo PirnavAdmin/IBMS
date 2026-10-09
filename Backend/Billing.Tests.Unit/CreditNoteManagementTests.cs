@@ -182,9 +182,9 @@ public class CreditNoteManagementTests
         var ctx = new TestContext();
         await ctx.SeedCustomerAsync();
         var invoice = await ctx.SeedInvoiceAsync(subtotal: 900m, tax: 162m);
-        invoice.Items[0].DiscountAmount = 100m;
-        invoice.Items[0].TaxAmount = 162m;
-        invoice.Items[0].TotalAmount = 1062m;
+        invoice.Items.First().DiscountAmount = 100m;
+        invoice.Items.First().TaxAmount = 162m;
+        invoice.Items.First().TotalAmount = 1062m;
         invoice.DiscountAmount = 100m;
         invoice.Subtotal = 900m;
         invoice.TaxAmount = 162m;
@@ -201,7 +201,7 @@ public class CreditNoteManagementTests
                 Reason = "Return one discounted unit",
                 Items = new List<CreateCreditNoteItemRequest>
                 {
-                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                    new() { InvoiceItemId = invoice.Items.First().Id, Quantity = 1m }
                 }
             },
             "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
@@ -228,7 +228,7 @@ public class CreditNoteManagementTests
                 Reason = "Return one unit",
                 Items = new List<CreateCreditNoteItemRequest>
                 {
-                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                    new() { InvoiceItemId = invoice.Items.First().Id, Quantity = 1m }
                 }
             },
             "Staff", new List<string> { "Staff" }, new List<string>());
@@ -246,7 +246,7 @@ public class CreditNoteManagementTests
                 Reason = "Credit remaining invoice amount",
                 Items = new List<CreateCreditNoteItemRequest>
                 {
-                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                    new() { InvoiceItemId = invoice.Items.First().Id, Quantity = 1m }
                 }
             },
             "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
@@ -276,7 +276,7 @@ public class CreditNoteManagementTests
                 Reason = "Credit selected unit",
                 Items = new List<CreateCreditNoteItemRequest>
                 {
-                    new() { InvoiceItemId = invoice.Items[0].Id, Quantity = 1m }
+                    new() { InvoiceItemId = invoice.Items.First().Id, Quantity = 1m }
                 }
             },
             "FinanceUser", new List<string> { "Finance" }, new List<string> { "billing.admin" });
