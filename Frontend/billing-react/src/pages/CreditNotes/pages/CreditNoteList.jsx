@@ -81,7 +81,6 @@ export function CreditNoteList() {
         <div className="cn-heading-actions"><Button variant="outlined" startIcon={<DownloadOutlined />} onClick={exportCsv} disabled={!items.length}>{exported ? 'Exported' : 'Export this page'}</Button><Button className="cn-list-print-button" variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button></div>
       </header>
 
-      <div className="cn-demo-banner cn-api-banner"><span className="cn-demo-dot" /><div><strong>Billing API records</strong><span>Credit notes and balances come from the authenticated billing API. No demo records are loaded.</span></div><span className="cn-demo-tag">LIVE API</span></div>
 
       <section className="cn-summary-grid" aria-label="Credit note summary">
         <button className="cn-summary-card cn-summary-all" onClick={() => clearFilters()}><span className="cn-summary-icon"><ReceiptLongOutlined /></span><span className="cn-summary-label">Credit notes</span><strong>{query.isPending ? '—' : totalCount}</strong><small>Matches current filters</small></button>
@@ -94,7 +93,7 @@ export function CreditNoteList() {
         <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div><span className="cn-result-count">{query.isPending ? 'Loading…' : `${totalCount} ${totalCount === 1 ? 'record' : 'records'}`}</span></div>
         <div className="cn-filter-bar">
           <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
-          <TextField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value=""><FilterAltOutlined fontSize="small" /> All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value=""><FilterAltOutlined fontSize="small" /> All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</TextField>
           <TextField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></TextField>
           <TextField className="cn-date-filter" size="small" type="date" label="From date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
           <TextField className="cn-date-filter" size="small" type="date" label="To date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
@@ -104,7 +103,7 @@ export function CreditNoteList() {
         <TableContainer className="cn-table-wrap">
           <Table stickyHeader aria-label="Credit note register">
             <TableHead><TableRow>
-              {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key} align={['total', 'refunded', 'remainingRefundable'].includes(key) ? 'right' : 'left'}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
+              {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
               <TableCell align="right">Actions</TableCell>
             </TableRow></TableHead>
             <TableBody>
@@ -114,9 +113,9 @@ export function CreditNoteList() {
                 <TableCell><span className="cn-number-cell">{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
                 <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell">{note.invoiceNumber}</span></TableCell>
                 <TableCell><span className={`cn-type-pill ${String(note.type).toLowerCase()}`}>{note.type}</span></TableCell>
-                <TableCell align="right"><strong className="cn-money-cell">{money(note.total, note.currency)}</strong></TableCell>
-                <TableCell align="right"><span className="cn-refunded-cell">{money(note.refunded, note.currency)}</span></TableCell>
-                <TableCell align="right"><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
+                <TableCell><strong className="cn-money-cell">{money(note.total, note.currency)}</strong></TableCell>
+                <TableCell><span className="cn-refunded-cell">{money(note.refunded, note.currency)}</span></TableCell>
+                <TableCell><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
                 <TableCell><CreditNoteStatusBadge status={note.status} /></TableCell>
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
                 <TableCell align="right"><Tooltip title="More actions"><IconButton size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreHoriz /></IconButton></Tooltip></TableCell>
