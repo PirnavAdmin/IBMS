@@ -654,7 +654,9 @@ public class ProductService : IProductService
             IsActive = p.IsActive,
             CreatedAtUtc = p.CreatedAtUtc,
             UpdatedAtUtc = p.UpdatedAtUtc,
-            RowVersion = Convert.ToBase64String(BitConverter.GetBytes(p.RowVersion.Ticks))
+            RowVersion = Convert.ToBase64String(BitConverter.GetBytes(p.RowVersion.Ticks)),
+            DefaultTaxAmount = taxAmount,
+            DefaultFinalPrice = finalUnitPrice
         };
     }
 }

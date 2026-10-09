@@ -40,8 +40,8 @@ export function ProductTable({ items, loading, error, params, onSort, filtered, 
           <TableCell align="left"><Tooltip title={product.category}><span className="product-category">{product.category}</span></Tooltip></TableCell>
           <TableCell align="left">{product.unit || '-'}</TableCell><TableCell align="left" className="product-price">{formatProductPrice(product.price, product.currency)}</TableCell>
           <TableCell align="left"><Tooltip title="Saved product discount; transaction discounts may differ."><span>{discountLabel(product)}</span></Tooltip></TableCell>
-          <TableCell align="left"><Tooltip title="Tax amount is unavailable for this product."><span>{unresolvedTaxLabel(product)}</span></Tooltip></TableCell>
-          <TableCell align="left"><Tooltip title="Final unit price is unavailable for this product."><span>Unavailable</span></Tooltip></TableCell>
+          <TableCell align="left" className="product-price">{['exempt', 'not applicable'].includes((product.taxCategory || '').trim().toLowerCase()) ? <span>{unresolvedTaxLabel(product)}</span> : product.defaultTaxAmount != null ? formatProductPrice(product.defaultTaxAmount, product.currency) : <Tooltip title="Tax amount is unavailable for this product."><span>{unresolvedTaxLabel(product)}</span></Tooltip>}</TableCell>
+          <TableCell align="left" className="product-price">{product.defaultFinalPrice != null ? <strong style={{ fontWeight: 600 }}>{formatProductPrice(product.defaultFinalPrice, product.currency)}</strong> : <Tooltip title="Final unit price is unavailable for this product."><span>Unavailable</span></Tooltip>}</TableCell>
           <TableCell align="left">{product.taxCategory}</TableCell><TableCell align="left"><span className={`product-badge ${product.status.toLowerCase()}`}>{product.status}</span></TableCell>
           <TableCell align="left"><ProductActionsMenu product={product} /></TableCell>
         </TableRow>)}
