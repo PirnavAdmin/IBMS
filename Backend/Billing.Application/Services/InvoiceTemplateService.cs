@@ -515,10 +515,21 @@ public class InvoiceTemplateService : IInvoiceTemplateService
     public async Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, CancellationToken ct = default)
     {
         var existingDoc = await _documentRepository.GetByInvoiceIdAsync(invoiceId, tenantId);
-        if (existingDoc != null && await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+        if (existingDoc != null)
         {
-            var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
-            return (bytes, existingDoc.FileName, existingDoc.ContentType);
+            try
+            {
+                if (await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+                {
+                    var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
+                    return (bytes, existingDoc.FileName, existingDoc.ContentType);
+                }
+            }
+            catch (IOException)
+            {
+                // The file may disappear after the existence check or be unavailable.
+                // Reproduce once below. Authorization and cancellation errors still propagate.
+            }
         }
 
         // If not cached physically, reproduce on-the-fly via snapshot
