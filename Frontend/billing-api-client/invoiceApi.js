@@ -68,6 +68,8 @@ export const invoiceApi = {
       .then(unwrapInvoice),
   issueInvoice: (id) =>
     apiClient.post(API_ENDPOINTS.INVOICES.ISSUE(id)).then(unwrapInvoice),
+  sendInvoice: (id) =>
+    apiClient.post(API_ENDPOINTS.INVOICES.SEND(id)).then(unwrapInvoice),
   cancelInvoice: (id, reason) =>
     apiClient
       .post(API_ENDPOINTS.INVOICES.CANCEL(id), { reason })

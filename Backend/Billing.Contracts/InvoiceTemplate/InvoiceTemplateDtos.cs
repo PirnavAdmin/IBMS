@@ -58,6 +58,12 @@ public class CompanyDetailsConfigDto
 
 public class LayoutConfigDto
 {
+    /// <summary>
+    /// Enables the Pirnav branded invoice layout. This is configuration stored with a
+    /// template version, so the renderer can apply the layout without depending on a
+    /// template name or invoice-specific data.
+    /// </summary>
+    public bool UsePirnavStandardLayout { get; set; }
     public bool ShowLogo { get; set; } = true;
     public bool ShowHeader { get; set; } = true;
     public bool ShowFooter { get; set; } = true;
@@ -124,6 +130,7 @@ public class TemplateVersionDto
 {
     public int Id { get; set; }
     public int TemplateId { get; set; }
+    public bool IsCurrent { get; set; }
     public int VersionNumber { get; set; }
     public string Version => $"v{VersionNumber}";
     public TemplateStatus Status { get; set; }
@@ -179,15 +186,25 @@ public class CreateTemplateRequest
 
     public bool SetAsDefault { get; set; }
 
-    public BrandingConfigDto Branding { get; set; } = new();
+    public BrandingConfigDto Branding { get; set; } = new()
+    {
+        PrimaryColor = "#6B2E0C",
+        SecondaryColor = "#F7EDE5",
+        LogoPosition = "right",
+        LogoWidth = 132
+    };
 
     public CompanyDetailsConfigDto CompanyDetails { get; set; } = new();
 
-    public LayoutConfigDto Layout { get; set; } = new();
+    public LayoutConfigDto Layout { get; set; } = new() { UsePirnavStandardLayout = true };
 
     public PaymentInstructionsConfigDto PaymentInstructions { get; set; } = new();
 
-    public TermsConfigDto Terms { get; set; } = new();
+    public TermsConfigDto Terms { get; set; } = new()
+    {
+        TermsAndConditions = "1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.",
+        FooterNote = "Thank you for choosing us! This is a system-generated invoice and does not require a physical signature."
+    };
 
     // Direct section toggles from Screen 2
     public Dictionary<string, bool>? Sections { get => Layout.Sections; set { if (value != null) Layout.Sections = value; } }

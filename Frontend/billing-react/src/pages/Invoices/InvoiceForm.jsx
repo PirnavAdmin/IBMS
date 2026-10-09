@@ -52,6 +52,7 @@ import {
   money,
 } from "./components/InvoiceShared";
 import { numberingService } from "../NumberingSettings/services/numberingService";
+import { useRegionalSettings } from "../../services/regionalSettingsService";
 function ProductSelect({ item, onSelect, error, disabled }) {
   const [search, setSearch] = useState("");
   const term = useDebounced(search);
@@ -106,7 +107,9 @@ export function InvoiceForm() {
   const navigate = useNavigate();
   const client = useQueryClient();
   const user = useInvoiceUser();
-  const [form, setForm] = useState(blankInvoice);
+  const { selectedCurrencies = [] } = useRegionalSettings();
+  const defaultCurrency = selectedCurrencies.length === 1 ? selectedCurrencies[0] : "";
+  const [form, setForm] = useState(() => blankInvoice(defaultCurrency));
   const [loaded, setLoaded] = useState(!id);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -123,11 +126,11 @@ export function InvoiceForm() {
     staleTime: 0,
   });
   useEffect(() => {
-    setForm(blankInvoice());
+    setForm(blankInvoice(defaultCurrency));
     setLoaded(!id);
     setErrors({});
     setError("");
-  }, [id]);
+  }, [id, defaultCurrency]);
   useEffect(() => {
     if (persisted.data && !loaded) {
       setForm(formFromInvoice(persisted.data));
@@ -258,6 +261,8 @@ export function InvoiceForm() {
     change("customerId", value ? String(value.id) : "");
     if (value?.currency && !id) {
       change("currency", value.currency.toUpperCase());
+    } else if (!id && !form.currency && defaultCurrency) {
+      change("currency", defaultCurrency);
     }
   };
   const moveItem = (index, direction) => {
@@ -347,7 +352,7 @@ export function InvoiceForm() {
       }
       await invoiceService.validateProduct(option.id);
       const product = await invoiceService.product(option.id);
-      const targetCurrency = form.currency || product.currency || "INR";
+      const targetCurrency = form.currency || product.currency || defaultCurrency || "";
       if (!form.currency && targetCurrency) {
         change("currency", targetCurrency.toUpperCase());
       }
@@ -624,7 +629,7 @@ export function InvoiceForm() {
                   </div>
                   <div className="invoice-customer-detail-group">
                     <span className="invoice-detail-label">Commercial Currency</span>
-                    <p>{customer.data.currency || form.currency || "INR"}</p>
+                    <p>{customer.data.currency || form.currency || defaultCurrency || "—"}</p>
                   </div>
                 </div>
               </div>
@@ -663,14 +668,41 @@ export function InvoiceForm() {
                 helperText={errors.dueDate}
                 disabled={busy || !editable}
               />
-              {field("currency", "Currency", "text", {
-                required: true,
-                inputProps: { maxLength: 3 },
-                InputProps: { readOnly: Boolean(id) },
-                helperText: id
-                  ? "Currency locked on existing draft."
-                  : errors.currency,
-              })}
+              {selectedCurrencies.length > 0 ? (
+                <TextField
+                  select
+                  size="small"
+                  required
+                  label="Currency"
+                  disabled={busy || !editable}
+                  value={form.currency || ""}
+                  onChange={(event) => change("currency", event.target.value)}
+                  error={Boolean(errors.currency)}
+                  helperText={id ? "Currency locked on existing draft." : errors.currency}
+                  InputProps={{ readOnly: Boolean(id) }}
+                >
+                  {!form.currency && (
+                    <MenuItem value="">
+                      <em>Select Currency</em>
+                    </MenuItem>
+                  )}
+                  {selectedCurrencies.map((c) => (
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ) : (
+                field("currency", "Currency", "text", {
+                  required: true,
+                  placeholder: "e.g. USD, EUR, INR",
+                  inputProps: { maxLength: 3 },
+                  InputProps: { readOnly: Boolean(id) },
+                  helperText: id
+                    ? "Currency locked on existing draft."
+                    : errors.currency,
+                })
+              )}
               {field("reference", "Customer PO / Reference", "text", {
                 placeholder: "e.g. PO-2026-001",
                 InputProps: {

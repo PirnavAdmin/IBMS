@@ -13,23 +13,27 @@ import { RecordPayment } from '../src/pages/Payments/RecordPayment';
 import { PaymentDetails } from '../src/pages/Payments/PaymentDetails';
 import { PaymentReversalContent } from '../src/pages/Payments/PaymentReversal';
 import { PaymentState } from '../src/pages/Payments/PaymentShared';
-import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions } from '../src/pages/Payments/paymentService';
+import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money } from '../src/pages/Payments/paymentService';
 import { paymentSchema, reversalSchema } from '../src/pages/Payments/paymentValidation';
+import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from '../src/pages/Payments/paymentReports';
 
 // Test fixtures only; never imported by application runtime.
 const invoice = { invoiceId: 7, customerId: 3, invoiceNumber: 'QA-7', customerName: 'QA Customer', currency: 'INR', invoiceTotal: 100, previouslyPaid: 20, currentOutstanding: 80, isEligibleForPayment: true };
 const payment = { id: 9, paymentNumber: 'QA-PAY-9', invoiceNumber: 'QA-7', invoiceNumbers: ['QA-7'], customerName: 'QA Customer', amount: 20, allocatedAmount: 20, currency: 'INR', method: 'Cash', status: 'Completed', isReversible: true, allocations: [{ id: 1, invoiceId: 7, invoiceNumber: 'QA-7', allocatedAmount: 20, invoicePaidAmount: 20, invoiceBalanceAmount: 80 }], auditHistory: [{id:1,action:'PaymentCreated',userName:'QA',timestamp:'2026-09-30'}] };
 const form = { invoice:'7', date:'2026-09-30', amount:'20', method:'Cash', notes:'' };
 const envelope = data => ({success:true,data});
-const params = { search:'',status:'',method:'',from:'',to:'',pageSize:10,pageNumber:1,sortBy:'paymentDate',sortOrder:'desc' };
+const params = { search:'',status:'',method:'',from:'',to:'',pageSize:10,pageNumber:1,sortBy:'createdAtUtc',sortOrder:'desc' };
 const cache = () => { const c=new QueryClient({defaultOptions:{queries:{retry:false,retryOnMount:false,staleTime:Infinity,gcTime:Infinity}}});c.setQueryData(['payment-user'],{roles:['TenantAdmin']});return c; };
 const render = (path,c=cache()) => renderToStaticMarkup(<StaticRouter location={path}><QueryClientProvider client={c}><Routes><Route path="/payments" element={<Payments />} /><Route path="/payments/new" element={<RecordPayment />} /><Route path="/payments/:id" element={<PaymentDetails />} /></Routes></QueryClientProvider></StaticRouter>);
 
 test('Payments list: real mapped row, controls, actions and server page totals',()=>{
  const c=cache();c.setQueryData(['payments','list',params],{items:[mapPayment(payment)],totalCount:21,pageNumber:1,pageSize:10});
  const html=render('/payments',c);
- for(const value of ['Payment Management','Search payments','From Date','To Date','Rows per page','QA-PAY-9','QA Customer','View','Reverse','21 payments']) assert.ok(html.includes(value),value);
- assert.match(html,/href="\/payments\/9"/);
+ for(const value of ['Payment Management','Search payments','From Date','To Date','Rows per page','QA-PAY-9','QA Customer','Actions for payment QA-PAY-9','21 payments']) assert.ok(html.includes(value),value);
+ assert.match(html,/href="\/payments\/new"/);
+ assert.doesNotMatch(html,/MuiTableCell-alignRight|MuiTableCell-alignCenter/);
+ const headings = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[\s\S]*?<\/style>|<svg\b[\s\S]*?<\/svg>|<[^>]*>/g, '').trim());
+ assert.deepEqual(headings, ['Payment Number / ID','Date','Customer','Invoice','Method','Amount','Allocated','Status','Actions']);
 });
 test('Payments list and details: empty, loading and API failure states',()=>{
  const c=cache();c.setQueryData(['payments','list',params],{items:[],totalCount:0,pageNumber:1,pageSize:10});assert.match(render('/payments',c),/No payments found/);
@@ -48,7 +52,82 @@ test('Payment details maps actual allocations, balance, audit and reversal state
  c.setQueryData(['payments','detail','9'],mapPayment({...payment,status:'Reversed',isReversible:false,reversalReason:'QA reversal'}));const reversed=render('/payments/9',c);assert.match(reversed,/QA reversal/);assert.doesNotMatch(reversed,/>Reverse Payment</);
 });
 test('Payment query preserves filters, server pagination and sorting',()=>{
+ assert.equal(paymentQuery(params).sortBy, 'createdAtUtc');
+ assert.equal(paymentQuery(params).sortOrder, 'desc');
  assert.deepEqual(paymentQuery({...params,search:' Q ',status:'Completed',method:'Cash',from:'2026-09-01',to:'2026-09-30',pageNumber:3,sortBy:'amount',sortOrder:'asc'}),{search:'Q',status:'Completed',method:'Cash',fromDate:'2026-09-01',toDate:'2026-09-30',pageNumber:3,pageSize:10,sortBy:'amount',sortOrder:'asc'});
+});
+
+test('Newest-first list respects server creation order even for backdated payments', () => {
+ const c = cache();
+ const latest = mapPayment({ ...payment, id: 10, paymentNumber: 'NEW-BACKDATED', paymentDate: '2026-08-01', createdAtUtc: '2026-10-09T09:00:00Z' });
+ const earlier = mapPayment({ ...payment, paymentNumber: 'EARLIER-RECORD', paymentDate: '2026-10-08', createdAtUtc: '2026-10-08T09:00:00Z' });
+ c.setQueryData(['payments','list',params], {items:[latest,earlier], totalCount:2, pageNumber:1, pageSize:10});
+ const html = render('/payments', c);
+ assert.ok(html.indexOf('NEW-BACKDATED') < html.indexOf('EARLIER-RECORD'));
+});
+
+test('Payment money preserves backend fractional amounts and zero', () => {
+ assert.match(money(2253.75, 'INR'), /2,253\.75/);
+ assert.match(money(0, 'INR'), /0\.00/);
+ assert.equal(money(null, 'INR'), '\u2014');
+});
+
+test('Payment list print contains plain escaped rows without application controls or circles', () => {
+ const rows = Array.from({length:205}, (_, id) => mapPayment({...payment, id, customerName:'<script>unsafe</script>', amount:2253.75}));
+ const html = buildPaymentListReport(rows);
+ assert.match(html, /<h1>Payments<\/h1>/);
+ assert.match(html, /12px Arial,sans-serif/);
+ assert.match(html, /INR 2,253\.75/);
+ assert.match(html, /&lt;script&gt;unsafe&lt;\/script&gt;/);
+ assert.equal((html.match(/<tr>/g) || []).length, 206);
+ assert.doesNotMatch(html, /<button|<svg|<script|border-radius|payment-status|Actions|INVOICE.BILLING/);
+ assert.match(html, /text-align:left/);
+ assert.match(html, /display:table-header-group/);
+});
+
+test('Receipt prints authoritative allocation amounts, notes and reversal without badges', () => {
+ const html = buildPaymentReceiptReport(mapPayment({...payment, amount:20.75, notes:'<b>Customer note</b>', status:'Reversed', reversalReason:'Duplicate receipt'}));
+ for (const value of ['Payment Receipt','Payment Summary','Invoice Allocation','QA-7','INR 20.75','INR 80.00','Duplicate receipt','&lt;b&gt;Customer note&lt;/b&gt;']) assert.ok(html.includes(value), value);
+ assert.doesNotMatch(html, /<button|<svg|border-radius|payment-status|Audit Timeline/);
+});
+
+test('Print export requests all filtered pages with the same server sort', async () => {
+ const original = paymentService.getPayments; const calls = [];
+ paymentService.getPayments = async filters => {
+  calls.push(filters);
+  return {items:filters.pageNumber === 1 ? [{id:1},{id:2}] : [{id:3}], totalCount:3, pageNumber:filters.pageNumber, pageSize:2};
+ };
+ try {
+  const rows = await getPaymentReportRows({...params, search:'customer', status:'Completed', pageNumber:4});
+  assert.deepEqual(rows.map(row=>row.id), [1,2,3]);
+  assert.deepEqual(calls.map(p=>p.pageNumber), [1,2]);
+  assert.ok(calls.every(p=>p.search==='customer' && p.status==='Completed' && p.sortBy==='createdAtUtc' && p.sortOrder==='desc'));
+ } finally { paymentService.getPayments = original; }
+});
+
+test('Print refuses incomplete or duplicate results instead of silently dropping payments', async () => {
+ const original = paymentService.getPayments;
+ try {
+  paymentService.getPayments = async () => ({items:[{id:1}],totalCount:2,pageNumber:1,pageSize:100});
+  await assert.rejects(getPaymentReportRows(params), /complete filtered payments/);
+  paymentService.getPayments = async () => ({items:[{id:1},{id:1}],totalCount:2,pageNumber:1,pageSize:100});
+  await assert.rejects(getPaymentReportRows(params), /complete filtered payments/);
+ } finally { paymentService.getPayments = original; }
+});
+
+test('Print opens only the isolated document and cleans up after printing', () => {
+ const original = global.window;
+ const calls = []; let cleanup; let frame;
+ global.window = {document:{
+  getElementById:()=>null,
+  createElement:()=> (frame = {style:{},setAttribute:()=>{},remove:()=>calls.push('removed'),contentWindow:{
+   addEventListener:(event,callback)=>{assert.equal(event,'afterprint');cleanup=callback;},
+   focus:()=>calls.push('focus'),print:()=>calls.push('print'),
+  }}),
+  body:{appendChild:element=>{assert.equal(element.srcdoc,'<h1>Report</h1>');element.onload();}},
+ }};
+ try { printPaymentDocument('<h1>Report</h1>'); assert.deepEqual(calls,['focus','print']); cleanup(); assert.deepEqual(calls,['focus','print','removed']); }
+ finally { if (original === undefined) delete global.window; else global.window=original; }
 });
 test('Payment GET adapters use confirmed paths, signals and DTO mapping',async()=>{
  const original=apiClient.get;const calls=[];const signal=new AbortController().signal;
@@ -103,7 +182,10 @@ test('Reversal content uses actual payment amounts and warning',()=>{
 });
 test('Fresh balance, exact retry and duplicate guard are wired before mutations',()=>{
  const dir=join(__dirname,'../src/pages/Payments');const record=readFileSync(join(dir,'RecordPayment.jsx'),'utf8');
- assert.ok(record.indexOf('const fresh=await balance.refetch()')<record.indexOf('setConfirmation({values:'));assert.match(record,/form.amount\)>fresh.data.currentOutstanding/);
+ const compact=record.replace(/\s+/g,'');
+ const refreshIndex=compact.indexOf('constfresh=awaitbalance.refetch()');
+ assert.ok(refreshIndex>=0 && refreshIndex<compact.indexOf('setConfirmation({values:'));
+ assert.match(compact,/Number\(form.amount\)>Math.trunc\(fresh.data.currentOutstanding\)/);
  assert.match(record,/confirmation.retryDto \|\| createPaymentDto/);assert.match(record,/if\(!dto.idempotencyKey\)/);assert.match(record,/Retry Same Payment/);assert.match(record,/lock.current.acquire\(\)/);
  const reverse=readFileSync(join(dir,'PaymentReversal.jsx'),'utf8');assert.match(reverse,/query.data\?\.isReversible/);assert.match(reverse,/user.permissions.reverse/);assert.match(reverse,/lock.current.acquire\(\)/);assert.match(reverse,/invalidatePaymentData\(client\)/);
 });

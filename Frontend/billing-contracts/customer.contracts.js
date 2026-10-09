@@ -32,7 +32,7 @@ export const createCustomerRequest = (data = {}) => {
       city: billing.city?.trim() || '',
       state: billing.state?.trim() || null,
       postalCode: billing.postalCode?.trim() || null,
-      country: billing.country === undefined ? 'India' : billing.country?.trim() || null,
+      country: billing.country?.trim() || null,
       isDefault: billing.isDefault ?? true,
     },
     {
@@ -43,7 +43,7 @@ export const createCustomerRequest = (data = {}) => {
       city: shipping.city?.trim() || '',
       state: shipping.state?.trim() || null,
       postalCode: shipping.postalCode?.trim() || null,
-      country: shipping.country === undefined ? 'India' : shipping.country?.trim() || null,
+      country: shipping.country?.trim() || null,
       isDefault: shipping.isDefault ?? false,
     },
   ];
@@ -59,8 +59,8 @@ export const createCustomerRequest = (data = {}) => {
     email: data.email?.trim() || '',
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
-    taxId: (data.taxId || data.gstin)?.trim() || null,
-    currency: (data.currency?.trim() || data.Currency?.trim() || 'INR').toUpperCase(),
+    taxId: (data.taxId || data.gstin || data.pan)?.trim() || null,
+    currency: (data.currency?.trim() || data.Currency?.trim() || '').toUpperCase() || null,
     notes: data.notes?.trim() || null,
     website: formattedWebsite,
     paymentTerms: data.paymentTerms?.trim() || data.PaymentTerms?.trim() || null,
@@ -68,7 +68,7 @@ export const createCustomerRequest = (data = {}) => {
     city: billing.city?.trim() || null,
     state: billing.state?.trim() || null,
     postalCode: billing.postalCode?.trim() || null,
-    country: billing.country?.trim() || 'India',
+    country: billing.country?.trim() || null,
     addresses,
   };
 };
@@ -298,6 +298,7 @@ export const parseCustomerResponse = (response) => {
     OpeningBalance: openingBalance,
     taxId,
     gstin: taxId,
+    pan: (/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(taxId) ? taxId.substring(2, 12) : (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(taxId) ? taxId : '')),
     currency,
     Currency: currency,
     status,

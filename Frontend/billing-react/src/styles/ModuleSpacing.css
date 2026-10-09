@@ -25,6 +25,7 @@
   .app-layout > .app-layout-main > .app-layout-content > :is(.bd-shell, .tax-module) > main,
   .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {
     box-sizing: border-box;
+    background: var(--workspace-surface, var(--bg-main));
     width: 100%;
     min-width: 0;
     max-width: none;

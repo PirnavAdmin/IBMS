@@ -1,0 +1,196 @@
+/* Shared authenticated shell palette. Module cards keep their own surfaces. */
+.app-layout {
+  --bg-main: #F9F5EF;
+  /* A warmer, deeper canvas separates the existing light cards from the page. */
+  --workspace-secondary: #E4DBCF;
+  --workspace-surface: #E4DBCF;
+  --surface: #FFFFFF;
+  --text-primary: #35271F;
+  --text-secondary: #756354;
+  --border: #D5C6B5;
+  --shadow-card: 0 3px 12px #35231C12;
+  --primary: #674730;
+  --secondary: #8A6548;
+  --shell-espresso: #35231C;
+  --shell-hover: #4A342A;
+  --shell-active: #F0E2D0;
+  --action-primary: #633D28;
+  --action-hover: #462919;
+  --shell-icon: #513B2F;
+  --shell-motion: 480ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shell-taupe: #D4C2B2;
+  --shell-ivory: #FFF8EF;
+  background: var(--workspace-surface);
+}
+.app-layout .bd-sidebar {
+  background: var(--shell-espresso);
+  color: var(--shell-ivory);
+  border-right-color: #4C382E;
+}
+.app-layout .bd-sidebar-brand {
+  background: var(--shell-espresso);
+  color: var(--shell-ivory);
+  border-bottom-color: #584135;
+}
+.app-layout .bd-sidebar-brand strong span { color: #E4BC8E; }
+.app-layout .bd-sidebar-brand > span { background: #674730; color: #FFF8EF; }
+.app-layout .bd-nav-section > small { color: #C4AA96; }
+.app-layout .bd-nav-item {
+  color: #F0E2D4;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+.app-layout .bd-nav-item > svg:not(.bd-nav-arrow),
+.app-layout .bd-sidebar-footer button > svg {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--shell-icon);
+  color: #E8CCAD;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+.app-layout .bd-nav-item:hover { background: var(--shell-hover); color: #FFF8EF; transform: none; }
+.app-layout .bd-nav-item:hover > svg:not(.bd-nav-arrow),
+.app-layout .bd-sidebar-footer button:hover > svg { background: #674C3A; color: #FFF8EF; }
+.app-layout .bd-nav-item.active,
+.app-layout .bd-nav-item.active:is(:hover, :active) {
+  background: var(--shell-active);
+  color: #4B2E1E;
+  box-shadow: inset 3px 0 0 #BC8657, 0 2px 6px #170E0926;
+}
+.app-layout .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #795137; color: #FFFFFF; }
+.app-layout .bd-nav-item.active .bd-nav-arrow { color: #4B2E1E; opacity: 1; }
+.app-layout .bd-sidebar-footer { background: #402D24; border-color: #604637; color: #F0E2D4; }
+.app-layout .bd-sidebar-footer button { color: #F0E2D4; }
+.app-layout .bd-sidebar-footer button:hover { color: #F3CCA0; }
+.app-layout .bd-sidebar-footer p { color: #C4AA96; }
+.app-layout .bd-sidebar-scroll { scrollbar-color: #86664F #35231C; }
+.app-layout .bd-sidebar-scroll::-webkit-scrollbar-track { background: #35231C; }
+.app-layout .bd-sidebar-scroll::-webkit-scrollbar-thumb { background: #86664F; }
+.app-layout .bd-sidebar :is(.bd-nav-item, .bd-sidebar-brand, .bd-sidebar-footer button):focus-visible {
+  outline-color: #F3CCA0;
+}
+.app-layout .app-layout-main .bd-header {
+  background: var(--shell-taupe);
+  color: #35271F;
+  border-bottom-color: #BAA28D;
+  box-shadow: 0 2px 8px #35231C0D;
+}
+.app-layout .bd-search { background: #F9F5EF; border-color: #BCA48D; color: #35271F; }
+.app-layout .bd-search input::placeholder { color: #746355; }
+.app-layout .bd-search:focus-within { border-color: #76543D; box-shadow: 0 0 0 3px #76543D24; }
+.app-layout .bd-user-copy span { color: #59483A; }
+.app-layout .bd-avatar { background: #674730; color: #FFF8EF; }
+.app-layout .bd-icon-button { background: #EADAC8; color: #483123; }
+.app-layout .bd-icon-button:hover { background: #F2E6D7; }
+.app-layout .bd-profile-menu { background: #FFFDF9; color: #35271F; border-color: #CFBCA9; }
+.app-layout .app-layout-menu, .app-layout .bd-mobile-menu { background: #F1E4D4; color: #483123; border-color: #BCA48D; }
+.app-layout .app-layout-menu:hover { background: #FFF8EF; }
+.app-layout .app-layout-menu:focus-visible { outline: 2px solid #674730; outline-offset: 3px; }
+.app-layout .app-layout-content { background: var(--workspace-surface); }
+.app-layout .app-layout-content > :is(.bd-shell, .tax-module) { background: var(--workspace-surface); }
+
+/* Distinct action colors across the shared workspace; keep destructive colors. */
+@media screen {
+  .app-layout .premium-dashboard {
+    --dashboard-surface: var(--surface);
+    --dashboard-border: var(--border);
+  }
+  .app-layout .premium-dashboard :is(.premium-stat, .premium-actions a, .premium-panel, .premium-filters),
+  .app-layout .app-layout-content :is(.product-panel, .payment-panel, .quote-card, .quote-summary) {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow-card);
+  }
+  .app-layout .app-layout-content .MuiButton-containedPrimary:not(.Mui-disabled),
+  .app-layout .app-layout-content .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous),
+  .app-layout .premium-filters button.primary:not(:disabled) {
+    background: var(--action-primary);
+    color: #FFFFFF;
+    border-color: var(--action-primary);
+    box-shadow: 0 2px 5px #46291926;
+  }
+  .app-layout .app-layout-content .MuiButton-containedPrimary:not(.Mui-disabled):hover,
+  .app-layout .app-layout-content .ant-btn-primary:not(:disabled):not(.ant-btn-dangerous):hover,
+  .app-layout .premium-filters button.primary:not(:disabled):hover {
+    background: var(--action-hover);
+    border-color: var(--action-hover);
+  }
+  .app-layout .app-layout-content .MuiButton-outlinedPrimary:not(.Mui-disabled),
+  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous),
+  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(:disabled) {
+    background: #FFFFFF;
+    color: var(--action-primary);
+    border-color: #9B7759;
+    box-shadow: none;
+  }
+  .app-layout .app-layout-content .MuiButton-outlinedPrimary:not(.Mui-disabled):hover,
+  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous):hover,
+  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(:disabled):hover {
+    background: #F5EADD;
+    border-color: var(--action-primary);
+  }
+  .app-layout .app-layout-content .MuiButton-textPrimary:not(.Mui-disabled) { color: var(--action-primary); }
+  .app-layout .app-layout-content :is(.MuiButton-root, .ant-btn):focus-visible {
+    outline: 2px solid #795137;
+    outline-offset: 3px;
+  }
+}
+
+/* Keep the mobile drawer and desktop icon rail on the same gentle timing. */
+@media screen and (max-width: 1179px) {
+  .app-layout > .bd-sidebar { transition: transform var(--shell-motion); }
+}
+
+/* Desktop navigation can shrink to an icon rail; mobile retains its drawer. */
+@media screen and (min-width: 1180px) {
+  .app-layout { --sidebar-width: 238px; }
+  .app-layout.sidebar-collapsed { --sidebar-width: 72px; }
+  .app-layout > .bd-sidebar {
+    width: var(--sidebar-width);
+    flex-basis: var(--sidebar-width);
+    transition: width var(--shell-motion), flex-basis var(--shell-motion);
+  }
+  .app-layout .app-layout-menu {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    top: 14px;
+    left: calc(var(--sidebar-width) + 14px);
+    width: 42px;
+    height: 42px;
+    border: 1px solid #BCA48D;
+    border-radius: 10px;
+    cursor: pointer;
+    /* Above the sticky header (100), below the mobile backdrop/drawer (120/130). */
+    z-index: 110;
+    transition: left var(--shell-motion), background-color 180ms ease;
+  }
+  .app-layout .app-layout-main .bd-header { padding-left: 68px; }
+  .app-layout .bd-sidebar-brand { overflow: hidden; }
+  .app-layout .bd-sidebar-brand > span { flex-shrink: 0; }
+  .app-layout .bd-sidebar-brand strong { white-space: nowrap; }
+  .app-layout .bd-sidebar-nav { transition: padding-inline var(--shell-motion); }
+  .app-layout .bd-nav-item { transition: padding-inline var(--shell-motion), background-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+  .app-layout.sidebar-collapsed .bd-sidebar-brand { padding-inline: 17px; }
+  .app-layout.sidebar-collapsed .bd-sidebar-brand strong,
+  .app-layout.sidebar-collapsed .bd-nav-section > small,
+  .app-layout.sidebar-collapsed .bd-nav-item > span,
+  .app-layout.sidebar-collapsed .bd-nav-arrow,
+  .app-layout.sidebar-collapsed .bd-sidebar-footer :is(p, strong, button > span) { display: none; }
+  .app-layout.sidebar-collapsed .bd-sidebar-nav { padding-inline: 8px; }
+  .app-layout.sidebar-collapsed .bd-nav-item { padding-inline: 11px; gap: 0; }
+  .app-layout.sidebar-collapsed .bd-sidebar-footer { margin-inline: 8px; padding: 6px; }
+  .app-layout.sidebar-collapsed .bd-sidebar-footer button { justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-layout > .bd-sidebar,
+  .app-layout .app-layout-menu,
+  .app-layout .bd-sidebar-nav,
+  .app-layout .bd-nav-item,
+  .app-layout .bd-nav-item > svg,
+  .app-layout .bd-sidebar-footer button > svg { transition: none; }
+}

@@ -20,6 +20,7 @@ public class InvoiceRepository : IInvoiceRepository
         var invoice = await _dbContext.Invoices
             .Include(i => i.Customer)
             .Include(i => i.Items)
+                .ThenInclude(item => item.Product)
             .Include(i => i.PaymentAllocations)
             .Include(i => i.CreditNotes)
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, cancellationToken);
@@ -37,6 +38,7 @@ public class InvoiceRepository : IInvoiceRepository
         return await _dbContext.Invoices
             .Include(i => i.Customer)
             .Include(i => i.Items)
+                .ThenInclude(item => item.Product)
             .Include(i => i.PaymentAllocations)
             .Include(i => i.CreditNotes)
             .Include(i => i.CreditNotes)
@@ -51,6 +53,7 @@ public class InvoiceRepository : IInvoiceRepository
             .AsNoTracking()
             .Include(i => i.Customer)
             .Include(i => i.Items)
+                .ThenInclude(item => item.Product)
             .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.InvoiceNumber.ToUpper() == norm);
     }
 

@@ -48,6 +48,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
     public async Task<PagedResult<InvoiceTemplateDto>> GetTemplatesAsync(TemplateFilterRequest filter, int tenantId, CancellationToken ct = default)
     {
+        if (tenantId > 0 && !await _templateRepository.ExistsByNameAsync("Pirnav Standard Invoice", tenantId))
+        {
+            await EnsurePirnavStandardTemplateAsync(tenantId, ct);
+        }
+
         DomainStyle? domainStyle = null;
         if (!string.IsNullOrWhiteSpace(filter.Style) && !filter.Style.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
@@ -72,6 +77,48 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         var dtos = items.Select(MapToDto).ToList();
         return new PagedResult<InvoiceTemplateDto>(dtos, totalCount, filter.PageNumber, filter.PageSize);
+    }
+
+    private async Task EnsurePirnavStandardTemplateAsync(int tenantId, CancellationToken ct)
+    {
+        try
+        {
+            var pirnavTemplate = new InvoiceTemplate
+            {
+                TenantId = tenantId,
+                Name = "Pirnav Standard Invoice",
+                Description = "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.",
+                Style = DomainStyle.Professional,
+                Status = DomainStatus.Active,
+                CurrentVersionNumber = 1,
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            var pirnavVersion = new TemplateVersion
+            {
+                TenantId = tenantId,
+                VersionNumber = 1,
+                Status = DomainStatus.Active,
+                VersionDescription = "Initial reusable Pirnav standard invoice layout",
+                BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
+                CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"\",\"Phone\":\"\",\"Website\":\"\",\"AddressLine1\":\"\",\"Country\":\"India\"}",
+                LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
+                PaymentInstructionsJson = "{}",
+                TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}",
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            pirnavTemplate.Versions.Add(pirnavVersion);
+            await _templateRepository.AddAsync(pirnavTemplate);
+            pirnavTemplate.ActiveVersionId = pirnavVersion.Id;
+            await _templateRepository.UpdateAsync(pirnavTemplate);
+        }
+        catch
+        {
+            // Ignore concurrent creation
+        }
     }
 
     public async Task<InvoiceTemplateDto> GetTemplateByIdAsync(int id, int tenantId, CancellationToken ct = default)
@@ -146,13 +193,13 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         template.UpdatedAtUtc = DateTime.UtcNow;
         template.UpdatedBy = user;
 
-        var activeVersion = template.Versions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
-            ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var activeVersion = ResolveActiveVersion(template)
+            ?? template.Versions.Where(v => v.Status == DomainStatus.Draft).OrderByDescending(v => v.VersionNumber).FirstOrDefault();
 
         if (activeVersion != null && activeVersion.Status == DomainStatus.Active)
         {
             // Create a new draft version to preserve active version immutability
-            var nextVersionNumber = template.CurrentVersionNumber + 1;
+            var nextVersionNumber = template.Versions.Max(v => v.VersionNumber) + 1;
             var newVersion = new TemplateVersion
             {
                 TenantId = tenantId,
@@ -169,7 +216,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 CreatedAtUtc = DateTime.UtcNow
             };
 
-            template.CurrentVersionNumber = nextVersionNumber;
+            template.CurrentVersionNumber = activeVersion.VersionNumber;
+            template.ActiveVersionId = activeVersion.Id;
             template.Versions.Add(newVersion);
             await _templateRepository.AddVersionAsync(newVersion);
         }
@@ -186,7 +234,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         await _templateRepository.UpdateAsync(template);
 
-        await RecordAuditAsync(tenantId, "Template Updated", "InvoiceTemplate", template.Id.ToString(), user, request.ChangeDescription ?? $"Updated template '{template.Name}' (version v{template.CurrentVersionNumber})", ct);
+        await RecordAuditAsync(tenantId, "Template Updated", "InvoiceTemplate", template.Id.ToString(), user, request.ChangeDescription ?? $"Updated template '{template.Name}' (version v{template.Versions.Max(v => v.VersionNumber)})", ct);
 
         return MapToDto(template);
     }
@@ -200,7 +248,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (await _templateRepository.ExistsByNameAsync(request.NewTemplateName, tenantId))
             throw new InvalidOperationException($"An invoice template with the name '{request.NewTemplateName}' already exists.");
 
-        var sourceVersion = source.Versions.FirstOrDefault(v => v.Id == source.ActiveVersionId)
+        var sourceVersion = ResolveActiveVersion(source)
             ?? source.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
 
         var duplicate = new InvoiceTemplate
@@ -262,6 +310,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             targetVersion.Status = DomainStatus.Active;
             await _templateRepository.UpdateVersionAsync(targetVersion);
             template.ActiveVersionId = targetVersion.Id;
+            template.CurrentVersionNumber = targetVersion.VersionNumber;
         }
 
         template.Status = DomainStatus.Active;
@@ -281,7 +330,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (template == null)
             throw new KeyNotFoundException($"Invoice template with ID {id} not found.");
 
-        var version = template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var version = ResolveActiveVersion(template)
+            ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
         if (version == null)
             throw new InvalidOperationException("A template version is required before it can be set as default.");
 
@@ -296,6 +346,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         template.IsDefault = true;
         template.Status = DomainStatus.Active;
         template.ActiveVersionId = version.Id;
+        template.CurrentVersionNumber = version.VersionNumber;
         template.UpdatedAtUtc = DateTime.UtcNow;
         template.UpdatedBy = user;
         await _templateRepository.UpdateAsync(template);
@@ -329,9 +380,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         if (template == null)
             throw new KeyNotFoundException($"Invoice template with ID {templateId} not found.");
 
+        var activeVersion = ResolveActiveVersion(template);
         return template.Versions
             .OrderByDescending(v => v.VersionNumber)
-            .Select(MapVersionToDto)
+            .Select(v => MapVersionToDto(v, v == activeVersion))
             .ToList();
     }
 
@@ -401,14 +453,16 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         TemplateVersion? version = null;
         if (template != null)
         {
-            version = template.Versions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
-                      ?? template.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+            version = ResolveActiveVersion(template);
+            if (version == null)
+                throw new InvalidOperationException("Publish an active template version before generating an invoice PDF.");
         }
 
         // Resolve or create immutable invoice snapshot
         var snapshot = await _snapshotRepository.GetByInvoiceIdAsync(invoice.Id, tenantId);
         InvoiceSnapshotDto snapshotDto;
         TemplateVersionDto versionDto;
+        var refreshSnapshotTemplate = false;
 
         if (snapshot != null)
         {
@@ -417,6 +471,9 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             if ((request.ForceRegenerate || request.OverrideTemplateId.HasValue) && version != null)
             {
                 versionDto = MapVersionToDto(version);
+                snapshot.TemplateVersionId = version.Id;
+                snapshot.TemplateConfigJson = JsonSerializer.Serialize(versionDto, JsonOpts);
+                refreshSnapshotTemplate = true;
             }
             else
             {
@@ -442,6 +499,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             };
 
             await _snapshotRepository.AddAsync(snapshot);
+        }
+
+        if (refreshSnapshotTemplate && snapshot != null)
+        {
+            await _snapshotRepository.UpdateAsync(snapshot);
         }
 
         // Generate PDF using immutable snapshot and template configuration
@@ -500,10 +562,21 @@ public class InvoiceTemplateService : IInvoiceTemplateService
     public async Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, CancellationToken ct = default)
     {
         var existingDoc = await _documentRepository.GetByInvoiceIdAsync(invoiceId, tenantId);
-        if (existingDoc != null && await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+        if (existingDoc != null)
         {
-            var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
-            return (bytes, existingDoc.FileName, existingDoc.ContentType);
+            try
+            {
+                if (await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+                {
+                    var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
+                    return (bytes, existingDoc.FileName, existingDoc.ContentType);
+                }
+            }
+            catch (IOException)
+            {
+                // The file may disappear after the existence check or be unavailable.
+                // Reproduce once below. Authorization and cancellation errors still propagate.
+            }
         }
 
         // If not cached physically, reproduce on-the-fly via snapshot
@@ -527,11 +600,24 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         if (_auditLogRepo != null)
         {
-            var templateLogs = await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceTemplate", templateId?.ToString() ?? string.Empty, ct);
-            var documentLogs = await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceDocument", string.Empty, ct);
+            var templateLogs = templateId.HasValue
+                ? await _auditLogRepo.GetByEntityAsync(tenantId, "InvoiceTemplate", templateId.Value.ToString(), ct)
+                : (await _auditLogRepo.GetFilteredPagedAsync(tenantId, new AuditLogFilterRequest
+                {
+                    EntityName = "InvoiceTemplate",
+                    Page = 1,
+                    PageSize = 500
+                }, ct)).Items;
+            var documentLogs = (await _auditLogRepo.GetFilteredPagedAsync(tenantId, new AuditLogFilterRequest
+            {
+                EntityName = "InvoiceDocument",
+                Page = 1,
+                PageSize = 500
+            }, ct)).Items;
 
             var combined = (templateLogs ?? new List<AuditLog>())
                 .Concat(documentLogs ?? new List<AuditLog>())
+                .Where(log => !string.Equals(log.Changes, "Automated data mutation log", StringComparison.Ordinal))
                 .OrderByDescending(l => l.Timestamp)
                 .ToList();
 
@@ -547,49 +633,6 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                     TemplateVersionOrDocument = log.EntityName == "InvoiceDocument" ? $"Invoice #{log.EntityId} PDF" : $"Template #{log.EntityId}"
                 });
             }
-        }
-
-        if (result.Count == 0)
-        {
-            result.AddRange(new[]
-            {
-                new TemplateAuditLogDto
-                {
-                    Id = 1,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-24),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Standard Professional' default template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 2,
-                    Event = "Version Activated",
-                    DateAndTime = DateTime.UtcNow.AddHours(-20),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Published version v1 as active live billing layout",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 3,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-18),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Modern Minimalist' template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                },
-                new TemplateAuditLogDto
-                {
-                    Id = 4,
-                    Event = "Template Created",
-                    DateAndTime = DateTime.UtcNow.AddHours(-16),
-                    PerformedBy = "Admin",
-                    ChangesOrResult = "Created 'Executive Compact' template with initial version v1",
-                    TemplateVersionOrDocument = "v1"
-                }
-            });
         }
 
         return result;
@@ -630,8 +673,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             IssueDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30),
             Status = invoice.Status,
-            Currency = customer?.Currency ?? "INR",
-            CurrencySymbol = (customer?.Currency ?? "INR") == "USD" ? "$" : "₹",
+            Currency = invoice.GetCurrency(),
+            CurrencySymbol = invoice.GetCurrency() == "USD" ? "$" : "₹",
             Customer = new CustomerSnapshotDto
             {
                 CustomerId = invoice.CustomerId,
@@ -646,11 +689,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             Items = invoice.Items.Select(i => new InvoiceItemSnapshotDto
             {
                 ItemId = i.Id,
-                ItemName = !string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item",
-                Description = i.Description,
+                ItemName = !string.IsNullOrWhiteSpace(i.Product?.Name) ? i.Product.Name : (!string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item"),
+                Description = i.Description ?? i.Product?.Description,
                 HsnSacCode = i.HSNSAC,
                 Quantity = i.Quantity,
-                Unit = "Unit",
+                Unit = i.Product?.Unit ?? "Unit",
                 UnitPrice = i.UnitPrice,
                 DiscountAmount = i.DiscountAmount,
                 TaxRatePercent = i.TaxRate ?? 0,
@@ -721,10 +764,18 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         };
     }
 
+    // The publication pointer takes precedence. Resolve legacy stale numbers without rewriting history.
+    private static TemplateVersion? ResolveActiveVersion(InvoiceTemplate template)
+    {
+        var activeVersions = template.Versions.Where(v => v.Status == DomainStatus.Active).ToList();
+        return activeVersions.FirstOrDefault(v => v.Id == template.ActiveVersionId)
+            ?? activeVersions.FirstOrDefault(v => v.VersionNumber == template.CurrentVersionNumber)
+            ?? activeVersions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+    }
+
     private static InvoiceTemplateDto MapToDto(InvoiceTemplate t)
     {
-        var activeVersion = t.Versions.FirstOrDefault(v => v.Id == t.ActiveVersionId)
-                            ?? t.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        var activeVersion = ResolveActiveVersion(t);
 
         return new InvoiceTemplateDto
         {
@@ -735,10 +786,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             Style = (ContractStyle)t.Style,
             Status = (ContractStatus)t.Status,
             IsDefault = t.IsDefault,
-            CurrentVersionNumber = t.CurrentVersionNumber,
-            ActiveVersionId = t.ActiveVersionId,
-            ActiveVersion = activeVersion != null ? MapVersionToDto(activeVersion) : null,
-            Versions = t.Versions.OrderByDescending(v => v.VersionNumber).Select(MapVersionToDto).ToList(),
+            CurrentVersionNumber = activeVersion?.VersionNumber ?? t.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault()?.VersionNumber ?? t.CurrentVersionNumber,
+            ActiveVersionId = activeVersion?.Id,
+            ActiveVersion = activeVersion != null ? MapVersionToDto(activeVersion, true) : null,
+            Versions = t.Versions.OrderByDescending(v => v.VersionNumber).Select(v => MapVersionToDto(v, v == activeVersion)).ToList(),
             CreatedAtUtc = t.CreatedAtUtc,
             UpdatedAtUtc = t.UpdatedAtUtc,
             CreatedBy = t.CreatedBy,
@@ -746,12 +797,13 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         };
     }
 
-    private static TemplateVersionDto MapVersionToDto(TemplateVersion v)
+    private static TemplateVersionDto MapVersionToDto(TemplateVersion v, bool isCurrent = false)
     {
         return new TemplateVersionDto
         {
             Id = v.Id,
             TemplateId = v.TemplateId,
+            IsCurrent = isCurrent,
             VersionNumber = v.VersionNumber,
             Status = (ContractStatus)v.Status,
             VersionDescription = v.VersionDescription,

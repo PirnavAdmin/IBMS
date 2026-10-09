@@ -36,6 +36,12 @@ public class InvoiceSnapshotRepository : IInvoiceSnapshotRepository
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task UpdateAsync(InvoiceSnapshot snapshot)
+    {
+        _dbContext.InvoiceSnapshots.Update(snapshot);
+        await _dbContext.SaveChangesAsync();
+    }
+
     public async Task<bool> ExistsForInvoiceAsync(int invoiceId, int tenantId)
     {
         return await _dbContext.InvoiceSnapshots

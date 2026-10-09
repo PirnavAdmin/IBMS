@@ -65,12 +65,13 @@ export const paymentService = {
 export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers'].map(key => client.invalidateQueries({ queryKey: [key] })));
 export const money = (amount, currency) => {
   if (amount == null) return '\u2014';
-  const val = Math.trunc(Number(amount) || 0);
+  const val = Number(amount);
+  if (!Number.isFinite(val)) return '\u2014';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: currency || 'INR',
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
   }).format(val);
 };
 export const displayDate = value => {

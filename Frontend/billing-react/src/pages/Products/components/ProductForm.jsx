@@ -13,29 +13,19 @@ import {
   productValidationSchema,
   DEFAULT_PRODUCT_VALUES,
   PRODUCT_TYPES,
-  CURRENCIES,
   TAX_CATEGORIES,
   STANDARD_UNITS,
   resolveProductUnit,
+  resolveProductTax,
+  getProductTaxValues,
 } from '../validation/productValidation';
 import '../styles/product-form.css';
 import { useCategories } from '../services/categoryService';
 import { productService } from '../services/productService';
 import { ProductSelectField } from './ProductSelect';
+import { ProductEditableSelect } from './ProductEditableSelect';
+import { getCurrencyOptions, filterCurrencyOption, getCurrencySymbol } from '../../../utils/currencies.js';
 
-const getCurrencySymbol = (currency) => {
-  switch (currency) {
-    case 'USD':
-      return '$';
-    case 'EUR':
-      return '€';
-    case 'GBP':
-      return '£';
-    case 'INR':
-    default:
-      return '₹';
-  }
-};
 
 export const getProductInitialValues = (values) => {
   if (!values) return DEFAULT_PRODUCT_VALUES;
@@ -49,7 +39,7 @@ export const getProductInitialValues = (values) => {
     customUnit: values.unit && !STANDARD_UNITS.includes(values.unit) ? values.unit : '',
     price: values.price !== undefined && values.price !== null ? values.price : '',
     currency: values.currency || 'INR',
-    taxCategory: values.taxCategory ?? '',
+    ...getProductTaxValues(values.taxCategory),
     hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
     discountPercentage: values.discountPercentage !== undefined && values.discountPercentage !== null && values.discountPercentage !== ''
       ? values.discountPercentage
@@ -91,6 +81,7 @@ export function ProductForm({
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
+    context: { existingCurrency: initialValues?.currency },
     defaultValues: getProductInitialValues(initialValues),
     mode: 'onTouched',
   });
@@ -159,7 +150,7 @@ export function ProductForm({
       setError('categoryId', { message: 'Select an active category.' });
       return;
     }
-    const { customUnit, ...fields } = data;
+    const { customUnit, customTaxPercentage, ...fields } = data;
     const payload = {
       ...fields,
       ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
@@ -171,7 +162,7 @@ export function ProductForm({
       unit: resolveProductUnit(data),
       price: Number(data.price) || 0,
       currency: data.currency || 'INR',
-      taxCategory: data.taxCategory ?? '',
+      taxCategory: resolveProductTax(data),
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
       discountPercentage: data.discountAllowed ? Number(data.discountPercentage) : 0,
@@ -379,19 +370,10 @@ export function ProductForm({
               <label htmlFor="productCurrency" className="product-field-label">
                 Billing Currency
               </label>
-              <div className="product-input-group">
-                <span className="product-input-prefix" aria-hidden="true">₹</span>
-                <input
-                  id="productCurrency"
-                  type="text"
-                  readOnly
-                  tabIndex={-1}
-                  value="INR (₹) - Indian Rupee"
-                  className="product-input has-prefix"
-                  style={{ backgroundColor: '#f8f6f3', cursor: 'not-allowed', color: '#5c534a', paddingLeft: '38px' }}
-                />
-                <input type="hidden" value="INR" {...register('currency')} />
-              </div>
+              <ProductEditableSelect control={control} name="currency" id="productCurrency" label="Billing Currency"
+                options={getCurrencyOptions(selectedCurrency)} filterOption={filterCurrencyOption}
+                error={errors.currency} disabled={isSubmitting} placeholder="Search country, currency or code" />
+              {errors.currency && <span id="productCurrency-err" className="product-field-error" role="alert">{errors.currency.message}</span>}
             </div>
 
             {/* Tax Category */}
@@ -399,13 +381,10 @@ export function ProductForm({
               <label htmlFor="productTaxCategory" className="product-field-label">
                 Tax Category
               </label>
-              <ProductSelectField control={control} name="taxCategory" id="productTaxCategory" ariaLabel="Tax Category"
-                error={Boolean(errors.taxCategory)} options={[{ value: '', label: 'Not set' }, ...TAX_CATEGORIES.map(value => ({ value, label: value }))]} />
-              {errors.taxCategory && (
-                <span className="product-field-error" role="alert">
-                  {errors.taxCategory.message}
-                </span>
-              )}
+              <ProductEditableSelect control={control} name="taxCategory" id="productTaxCategory" label="Tax Category" editable
+                options={TAX_CATEGORIES.map(value => ({ value, label: value === 'Other' ? 'Other / type custom tax' : value }))}
+                error={errors.taxCategory} disabled={isSubmitting} placeholder="Select or type a category, e.g. GST 7.5%" />
+              {errors.taxCategory && <span id="productTaxCategory-err" className="product-field-error" role="alert">{errors.taxCategory.message}</span>}
             </div>
 
             {/* HSN/SAC */}

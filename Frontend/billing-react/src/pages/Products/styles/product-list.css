@@ -1,4 +1,4 @@
-﻿/* Product List presentation only; shared Product forms retain their own layout. */
+/* Product List presentation only; shared Product forms retain their own layout. */
 .product-list-page {
   padding: 24px clamp(16px, 2vw, 28px) 32px;
   color: var(--text-primary, #2f2523);
@@ -122,10 +122,7 @@
   font-size: 0.75rem;
 }
 .product-list-page .product-filters {
-  grid-template-columns: minmax(240px, 1fr) minmax(150px, 190px) minmax(
-      130px,
-      150px
-    ) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) minmax(120px, 145px) minmax(170px, 210px) auto;
   align-items: center;
   padding: 16px;
   gap: 16px 12px;
@@ -148,11 +145,16 @@
 }
 .product-list-page .product-table {
   overscroll-behavior-x: contain;
+  overflow-x: auto;
+}
+.product-list-page .product-table table {
+  min-width: 1400px;
 }
 .product-list-page .product-table .MuiTableCell-root {
   font-size: 0.8125rem;
   vertical-align: middle;
   padding: 8px 10px;
+  text-align: left;
 }
 .product-list-page .product-table .MuiTableCell-head {
   padding: 10px;
@@ -168,6 +170,7 @@
 .product-list-page .product-table .product-row-actions {
   gap: 4px;
   flex-wrap: nowrap;
+  justify-content: flex-start;
 }
 .product-list-page .product-pagination {
   padding: 16px;
@@ -186,6 +189,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .product-list-page .product-search {
+    grid-column: 1 / -1;
+  }
+  .product-list-page .product-sort-select {
     grid-column: 1 / -1;
   }
   .product-list-page .product-filters > .MuiButton-root {
@@ -237,12 +243,17 @@
 .product-list-page .product-heading > *,
 .product-list-page .product-heading .product-row-actions { min-width: 0; }
 
-/* Keep Price and its trailing sort arrow together above right-aligned amounts. */
+/* Keep the unit price and financial columns readable within the scrollable table. */
 .product-list-page .product-table th:nth-child(6),
-.product-list-page .product-table td:nth-child(6) {
+.product-list-page .product-table td:nth-child(6),
+.product-list-page .product-table th:nth-child(7),
+.product-list-page .product-table td:nth-child(7),
+.product-list-page .product-table th:nth-child(8),
+.product-list-page .product-table td:nth-child(8),
+.product-list-page .product-table th:nth-child(9),
+.product-list-page .product-table td:nth-child(9) {
   width: 132px;
   min-width: 132px;
-  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

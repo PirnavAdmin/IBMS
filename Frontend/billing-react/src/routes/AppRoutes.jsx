@@ -10,9 +10,11 @@ import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
 import { Dashboard } from '../pages/Dashboard/Dashboard';
 import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
+import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
 import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
 import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
+import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
 
 import { Payments } from '../pages/Payments/Payments';
 import { RecordPayment } from '../pages/Payments/RecordPayment';
@@ -129,7 +131,7 @@ export const AppRoutes = () => (
       <Route path="/expenses" element={<ModulePlaceholder />} />
       <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
       <Route path="/reports" element={<ModulePlaceholder />} />
-      <Route path="/audit-activity" element={<ModulePlaceholder />} />
+      <Route path="/audit-activity" element={<AuditActivity />} />
       <Route path="/templates-branding" element={<InvoiceTemplates />} />
       <Route path="/templates-branding/new" element={<CreateTemplate />} />
       <Route path="/templates-branding/branding" element={<BrandingSettings />} />
@@ -141,6 +143,8 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/countries" element={<CountryConfiguration />} />
+      <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />
       <Route path="/settings/discounts" element={<DiscountConfiguration />} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />

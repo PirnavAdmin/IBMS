@@ -292,6 +292,11 @@ export const invoiceService = {
   async issue(id) {
     return requireInvoice(await invoiceApi.issueInvoice(id));
   },
+  async send(id) {
+    const sent = await invoiceApi.sendInvoice(id);
+    if (sent !== true) throw new Error("The invoice email was not sent.");
+    return sent;
+  },
   async cancel(id, reason) {
     return requireInvoice(await invoiceApi.cancelInvoice(id, reason));
   },
@@ -364,11 +369,11 @@ export const invoiceService = {
       items: data.items.filter((row) => String(row.entityId) === String(id)),
     };
   },
-  async downloadPdf(invoice, selectedTemplateId = null) {
+  async downloadPdf(invoice, selectedTemplateId = null, forceRegenerate = false) {
     await templateApi.generateInvoicePdf(invoice.id, {
       invoiceId: invoice.id,
       overrideTemplateId: selectedTemplateId == null ? null : Number(selectedTemplateId),
-      forceRegenerate: false,
+      forceRegenerate,
     });
     const blob = await templateApi.downloadInvoicePdf(invoice.id, false);
     if (!(blob instanceof Blob) || !blob.size || !blob.type.includes("pdf"))

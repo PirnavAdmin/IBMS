@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Alert,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -58,7 +57,14 @@ export function InvoiceDetails() {
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState("");
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sendSuccessOpen, setSendSuccessOpen] = useState(false);
+  const [invoiceEmailSent, setInvoiceEmailSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const user = useInvoiceUser();
 
   const invoice = useQuery({
@@ -122,12 +128,32 @@ export function InvoiceDetails() {
     Number(row?.creditedAmount || 0) < Number(row?.totalAmount) &&
     user.permissions.manage;
   const canDownloadPdf = row?.status !== "Draft";
+  const canSendInvoice =
+    !invoiceEmailSent &&
+    ["Issued", "Overdue", "Partially Paid", "Paid"].includes(
+      row?.status,
+    ) && user.permissions.manage;
 
   const handleCopyEmail = (email) => {
     if (!email) return;
     navigator.clipboard?.writeText(email);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const regeneratePdf = async () => {
+    if (!row || pdfBusy) return;
+    setPdfBusy(true);
+    setPdfError("");
+    try {
+      await invoiceService.downloadPdf(row, null, true);
+      setNotice("Invoice PDF regenerated using the current default template.");
+      await Promise.all([invoice.refetch(), audit.refetch()]);
+    } catch (error) {
+      setPdfError(invoiceError(error));
+    } finally {
+      setPdfBusy(false);
+    }
   };
 
   return (
@@ -188,6 +214,17 @@ export function InvoiceDetails() {
             </Button>
           )}
 
+          {canDownloadPdf && (
+            <Button
+              variant="outlined"
+              startIcon={<Refresh />}
+              disabled={pdfBusy}
+              onClick={regeneratePdf}
+            >
+              {pdfBusy ? "Regenerating PDF..." : "Regenerate PDF"}
+            </Button>
+          )}
+
           {row && (
             <InvoiceActions invoice={row} permissions={user.permissions} />
           )}
@@ -201,6 +238,11 @@ export function InvoiceDetails() {
       )}
       {location.state?.invoiceNotice && !notice && (
         <Alert severity="success">{location.state.invoiceNotice}</Alert>
+      )}
+      {pdfError && (
+        <Alert severity="error" onClose={() => setPdfError("")} sx={{ mb: 2 }}>
+          {pdfError}
+        </Alert>
       )}
 
       <InvoiceState
@@ -507,6 +549,20 @@ export function InvoiceDetails() {
                           }
                         >
                           Record Payment
+                        </Button>
+                      )}
+                      {canSendInvoice && (
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          startIcon={<EmailOutlined />}
+                          disabled={sending || !customerData?.email}
+                          onClick={() => {
+                            setSendError("");
+                            setSendDialogOpen(true);
+                          }}
+                        >
+                          Send Invoice
                         </Button>
                       )}
                       {canIssue && (
@@ -1015,18 +1071,25 @@ export function InvoiceDetails() {
                         </p>
                       </div>
                     </div>
-                    <Chip
-                      label="Backend Dependency"
-                      size="small"
-                      className="invoice-dependency-chip"
-                    />
+                    {canSendInvoice && (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<EmailOutlined />}
+                        disabled={sending || !customerData?.email}
+                        onClick={() => {
+                          setSendError("");
+                          setSendDialogOpen(true);
+                        }}
+                      >
+                        Send Invoice
+                      </Button>
+                    )}
                   </div>
 
                   <Alert severity="info" className="invoice-comm-alert">
-                    Automated email dispatch and communication history APIs are
-                    unavailable on the current billing server. Invoices can be
-                    manually dispatched to customer contacts via the generated
-                    enterprise PDF.
+                    Send the issued invoice to the customer email address with
+                    its generated PDF attached.
                   </Alert>
 
                   <div
@@ -1239,6 +1302,79 @@ export function InvoiceDetails() {
           )}
         </>
       )}
+
+      {/* Invoice Email Confirmation Dialog */}
+      <Dialog
+        open={sendSuccessOpen}
+        onClose={() => setSendSuccessOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Email Sent Successfully</DialogTitle>
+        <DialogContent>
+          <Alert severity="success">
+            Invoice {row ? identifier(row) : ""} was emailed successfully to{" "}
+            <strong>{customerData?.email}</strong>.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={() => setSendSuccessOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={sendDialogOpen}
+        onClose={sending ? undefined : () => setSendDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Send Invoice</DialogTitle>
+        <DialogContent>
+          <p style={{ margin: "0 0 12px", color: "var(--text-primary)" }}>
+            Send <strong>{row ? identifier(row) : "this invoice"}</strong> to{" "}
+            <strong> {customerData?.email || "the customer"}</strong>?
+          </p>
+          <p style={{ margin: 0, color: "var(--text-secondary)" }}>
+            The generated invoice PDF will be attached to the email.
+          </p>
+          {sendError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {sendError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={sending} onClick={() => setSendDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={sending || !customerData?.email}
+            startIcon={<EmailOutlined />}
+            onClick={async () => {
+              if (!row || sending) return;
+              setSending(true);
+              setSendError("");
+              try {
+                await invoiceService.send(row.id);
+                setInvoiceEmailSent(true);
+                setSendDialogOpen(false);
+                setSendSuccessOpen(true);
+                void invalidateInvoices(client).catch(() => {});
+                void invoice.refetch().catch(() => {});
+              } catch (err) {
+                setSendError(invoiceError(err));
+              } finally {
+                setSending(false);
+              }
+            }}
+          >
+            {sending ? "Sending..." : "Send Email"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Issue Invoice Confirmation Dialog */}
       <Dialog

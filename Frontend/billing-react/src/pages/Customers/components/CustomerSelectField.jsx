@@ -22,6 +22,7 @@ export function CustomerSelectField({
           className={`cust-themed-select ${className}`.trim()}
           size="small"
           fullWidth
+          displayEmpty
           disabled={disabled}
           aria-invalid={invalid}
           value={field.value ?? ''}
@@ -33,10 +34,37 @@ export function CustomerSelectField({
             field.onChange(event);
             onValueChange?.(event.target.value);
           }}
+          renderValue={(selectedVal) => {
+            if (!selectedVal) {
+              const emptyOpt = options.find((o) => o.value === '');
+              return emptyOpt ? (
+                <span style={{ color: '#8c7d71' }}>{emptyOpt.label}</span>
+              ) : '';
+            }
+            const match = options.find((o) => o.value === selectedVal);
+            if (match?.icon) {
+              return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  {match.icon}
+                  <span>{match.label}</span>
+                </span>
+              );
+            }
+            return match ? match.label : selectedVal;
+          }}
           MenuProps={{ classes: { paper: 'customer-dropdown-menu' } }}
         >
-          {options.map(({ value, label }) => (
-            <MenuItem key={value} value={value}>{label}</MenuItem>
+          {options.map(({ value, label, icon }) => (
+            <MenuItem key={value} value={value}>
+              {icon ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  {icon}
+                  <span>{label}</span>
+                </span>
+              ) : (
+                label
+              )}
+            </MenuItem>
           ))}
         </Select>
       )}

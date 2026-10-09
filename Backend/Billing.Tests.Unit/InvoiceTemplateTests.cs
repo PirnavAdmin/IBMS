@@ -17,6 +17,52 @@ namespace Billing.Tests.Unit;
 
 public class InvoiceTemplateTests
 {
+    [Fact]
+    public async Task CreateTemplate_NewCompany_UsesReferenceLayoutAndColorsWithItsOwnBranding()
+    {
+        var request = new CreateTemplateRequest
+        {
+            Name = "Other Company Invoice",
+            CompanyDetails = new CompanyDetailsConfigDto { CompanyName = "Other Company Ltd", Email = "billing@other.example" }
+        };
+        request.Branding.LogoUrl = "data:image/png;base64,other-company-logo";
+
+        var result = await _service.CreateTemplateAsync(request, 2, "Admin");
+
+        var version = Assert.Single(result.Versions);
+        Assert.True(version.Layout.UsePirnavStandardLayout);
+        Assert.Equal("#6B2E0C", version.Branding.PrimaryColor);
+        Assert.Equal("#F7EDE5", version.Branding.SecondaryColor);
+        Assert.Equal("right", version.Branding.LogoPosition);
+        Assert.Equal("Other Company Ltd", version.CompanyDetails.CompanyName);
+        Assert.Equal("billing@other.example", version.CompanyDetails.Email);
+        Assert.Equal(request.Branding.LogoUrl, version.Branding.LogoUrl);
+        Assert.Equal(request.Terms.TermsAndConditions, version.Terms.TermsAndConditions);
+        Assert.Equal(request.Terms.FooterNote, version.Terms.FooterNote);
+        Assert.False(result.IsDefault);
+        Assert.Equal(ContractStatus.Draft, version.Status);
+    }
+
+    [Fact]
+    public async Task CreateTemplate_ExplicitLegacyLayout_PreservesRequestedConfiguration()
+    {
+        var request = new CreateTemplateRequest
+        {
+            Name = "Custom Legacy Layout",
+            Layout = new LayoutConfigDto { UsePirnavStandardLayout = false },
+            Branding = new BrandingConfigDto { PrimaryColor = "#123456", SecondaryColor = "#abcdef" },
+            Terms = new TermsConfigDto { TermsAndConditions = "Custom terms", FooterNote = "Custom footer" }
+        };
+
+        var result = await _service.CreateTemplateAsync(request, 2, "Admin");
+
+        var version = Assert.Single(result.Versions);
+        Assert.False(version.Layout.UsePirnavStandardLayout);
+        Assert.Equal("#123456", version.Branding.PrimaryColor);
+        Assert.Equal("Custom terms", version.Terms.TermsAndConditions);
+        Assert.Equal("Custom footer", version.Terms.FooterNote);
+    }
+
     private readonly Mock<IInvoiceTemplateRepository> _mockTemplateRepo;
     private readonly Mock<IInvoiceSnapshotRepository> _mockSnapshotRepo;
     private readonly Mock<IGeneratedDocumentRepository> _mockDocumentRepo;
@@ -204,7 +250,8 @@ public class InvoiceTemplateTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(2, existingTemplate.CurrentVersionNumber);
+        Assert.Equal(1, existingTemplate.CurrentVersionNumber);
+        Assert.Equal(1, result.CurrentVersionNumber);
         _mockTemplateRepo.Verify(r => r.AddVersionAsync(It.Is<TemplateVersion>(v => v.VersionNumber == 2 && v.Status == DomainStatus.Draft)), Times.Once);
     }
 
@@ -306,7 +353,7 @@ public class InvoiceTemplateTests
             Style = DomainStyle.Standard,
             Status = DomainStatus.Active,
             IsDefault = true,
-            ActiveVersionId = 1,
+            ActiveVersionId = 2,
             Versions = new List<TemplateVersion>
             {
                 new()
@@ -318,7 +365,8 @@ public class InvoiceTemplateTests
                     CompanyDetailsJson = "{\"CompanyName\":\"IBMS Tech\"}",
                     LayoutJson = "{\"ShowHeader\":true,\"ShowFooter\":true}",
                     TermsJson = "{\"TermsAndConditions\":\"Standard Terms\"}"
-                }
+                },
+                new() { Id = 2, VersionNumber = 2, Status = DomainStatus.Draft }
             }
         };
 
@@ -351,7 +399,7 @@ public class InvoiceTemplateTests
         Assert.Equal("INV-2026-0001", response.InvoiceNumber);
         Assert.Equal("INV-2026-0001.pdf", response.FileName);
         Assert.False(response.IsHistoricalReproduction);
-        _mockSnapshotRepo.Verify(r => r.AddAsync(It.Is<InvoiceSnapshot>(s => s.InvoiceId == 101)), Times.Once);
+        _mockSnapshotRepo.Verify(r => r.AddAsync(It.Is<InvoiceSnapshot>(s => s.InvoiceId == 101 && s.TemplateVersionId == 1)), Times.Once);
         _mockStorage.Verify(s => s.SaveDocumentAsync(It.IsAny<byte[]>(), "INV-2026-0001.pdf", "application/pdf", 1, default), Times.Once);
     }
 
@@ -421,5 +469,186 @@ public class InvoiceTemplateTests
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _service.SetDefaultTemplateAsync(999, 1, "Acme Admin"));
+    }
+
+    private InvoiceTemplate PublishedTemplateWithDraft(int? pointer = 90)
+    {
+        var template = new InvoiceTemplate
+        {
+            Id = 5, TenantId = 1, Name = "Published", Status = DomainStatus.Active,
+            IsDefault = true, CurrentVersionNumber = 10, ActiveVersionId = pointer,
+            Versions = new List<TemplateVersion>
+            {
+                new() { Id = 90, VersionNumber = 9, Status = DomainStatus.Active },
+                new() { Id = 100, VersionNumber = 10, Status = DomainStatus.Draft }
+            }
+        };
+        _mockTemplateRepo.Setup(r => r.GetByIdAsync(5, 1, true)).ReturnsAsync(template);
+        _mockTemplateRepo.Setup(r => r.GetPagedListAsync(1, null, null, null, 1, 10))
+            .ReturnsAsync((new List<InvoiceTemplate> { template }, 1));
+        return template;
+    }
+
+    [Theory]
+    [InlineData(90)]
+    [InlineData(100)]
+    [InlineData(null)]
+    public async Task ListAndHistory_ResolvePublishedVersionWithoutChangingLegacyRecords(int? pointer)
+    {
+        var template = PublishedTemplateWithDraft(pointer);
+        var list = await _service.GetTemplatesAsync(new TemplateFilterRequest { PageNumber = 1, PageSize = 10 }, 1);
+        var detail = await _service.GetTemplateByIdAsync(5, 1);
+        var history = await _service.GetTemplateVersionsAsync(5, 1);
+        Assert.Equal(9, list.Items.Single().CurrentVersionNumber);
+        Assert.Equal(9, detail.ActiveVersion!.VersionNumber);
+        Assert.Equal(ContractStatus.Active, detail.Status);
+        Assert.True(detail.IsDefault);
+        Assert.True(history.Single(v => v.VersionNumber == 9).IsCurrent);
+        Assert.False(history.Single(v => v.VersionNumber == 10).IsCurrent);
+        Assert.Equal(ContractStatus.Draft, history.Single(v => v.VersionNumber == 10).Status);
+        Assert.Equal(pointer, template.ActiveVersionId);
+        Assert.Equal(10, template.CurrentVersionNumber);
+    }
+
+    [Fact]
+    public async Task PublishThenCreateDraft_KeepsPublishedVersionCurrentAndPreservesHistory()
+    {
+        var template = PublishedTemplateWithDraft();
+        var activated = await _service.ActivateTemplateAsync(5, 10, 1, "editor");
+        Assert.Equal(10, activated.CurrentVersionNumber);
+        Assert.Equal(100, activated.ActiveVersionId);
+        Assert.False(activated.Versions.Single(v => v.VersionNumber == 9).IsCurrent);
+        var updated = await _service.UpdateTemplateAsync(5, new UpdateTemplateRequest { Name = "Published" }, 1, "editor");
+        Assert.Equal(10, updated.CurrentVersionNumber);
+        Assert.Equal(10, template.CurrentVersionNumber);
+        Assert.Equal(3, updated.Versions.Count);
+        Assert.True(updated.Versions.Single(v => v.VersionNumber == 10).IsCurrent);
+        Assert.Equal(ContractStatus.Draft, updated.Versions.Single(v => v.VersionNumber == 11).Status);
+        Assert.False(updated.Versions.Single(v => v.VersionNumber == 11).IsCurrent);
+    }
+
+    [Fact]
+    public async Task SetDefault_WithPublishedVersion_DoesNotPublishNewerDraft()
+    {
+        var template = PublishedTemplateWithDraft();
+        var result = await _service.SetDefaultTemplateAsync(5, 1, "editor");
+        Assert.True(result.IsDefault);
+        Assert.Equal(9, result.CurrentVersionNumber);
+        Assert.Equal(DomainStatus.Draft, template.Versions.Single(v => v.VersionNumber == 10).Status);
+    }
+
+    [Fact]
+    public async Task CreateDraft_WithExistingDraft_UsesNextHistoryNumberAndKeepsActiveVersion()
+    {
+        var template = PublishedTemplateWithDraft();
+        var result = await _service.UpdateTemplateAsync(5, new UpdateTemplateRequest { Name = "Published" }, 1, "editor");
+        Assert.Equal(9, result.CurrentVersionNumber);
+        Assert.Equal(90, result.ActiveVersionId);
+        Assert.Equal(ContractStatus.Draft, result.Versions.Single(v => v.VersionNumber == 11).Status);
+        Assert.Equal(DomainStatus.Draft, template.Versions.Single(v => v.VersionNumber == 10).Status);
+    }
+
+    [Fact]
+    public async Task PublishedPointer_TakesPrecedenceOverHigherHistoricalActiveVersion()
+    {
+        var template = PublishedTemplateWithDraft();
+        template.Versions.Single(v => v.VersionNumber == 10).Status = DomainStatus.Active;
+        var result = await _service.GetTemplateByIdAsync(5, 1);
+        Assert.Equal(9, result.CurrentVersionNumber);
+        Assert.Single(result.Versions.Where(v => v.IsCurrent));
+        template.Versions.Remove(template.Versions.Single(v => v.VersionNumber == 10));
+        Assert.Equal(9, (await _service.GetTemplateByIdAsync(5, 1)).CurrentVersionNumber);
+    }
+
+    [Fact]
+    public void DebugPirnavPreviewPdfException()
+    {
+        var request = new TemplatePreviewRequest
+        {
+            Style = ContractStyle.Professional,
+            Branding = new BrandingConfigDto
+            {
+                LogoUrl = "/template-assets/pirnav.png",
+                LogoName = "pirnav.png",
+                LogoPosition = "right",
+                LogoWidth = 132,
+                PrimaryColor = "#70472f",
+                SecondaryColor = "#a46a43",
+                AccentColor = "#f1e6dc",
+                FontFamily = "Segoe UI"
+            },
+            CompanyDetails = new CompanyDetailsConfigDto
+            {
+                CompanyName = "Pirnav Software Solutions Pvt. Ltd.",
+                AddressLine1 = "",
+                Country = "India"
+            },
+            Layout = new LayoutConfigDto
+            {
+                UsePirnavStandardLayout = true,
+                ShowLogo = true,
+                ShowHeader = true,
+                ShowFooter = true,
+                ShowTaxBreakdown = true,
+                ShowPaymentInstructions = true,
+                ShowTermsAndConditions = true,
+                CurrencyCode = "INR",
+                CurrencySymbol = "₹",
+                MarginTopMm = 12,
+                MarginBottomMm = 12,
+                MarginLeftMm = 14,
+                MarginRightMm = 14
+            },
+            PaymentInstructions = new PaymentInstructionsConfigDto(),
+            Terms = new TermsConfigDto
+            {
+                TermsAndConditions = "1. Payment terms.",
+                FooterNote = "Thank you for choosing us! This is a system-generated invoice and does not require a physical signature."
+            },
+            CustomSampleData = new InvoiceSnapshotDto
+            {
+                InvoiceId = 49,
+                InvoiceNumber = "INV-2026-10-000100",
+                IssueDate = new DateTime(2026, 10, 7),
+                DueDate = new DateTime(2026, 11, 7),
+                Status = "Paid",
+                Currency = "INR",
+                CurrencySymbol = "₹",
+                Customer = new CustomerSnapshotDto
+                {
+                    CustomerId = 31,
+                    CustomerName = "Pratap",
+                    CustomerCode = "CUST-027",
+                    BillingAddress = "HITECH COLONY"
+                },
+                Items = new List<InvoiceItemSnapshotDto>
+                {
+                    new()
+                    {
+                        ItemId = 53,
+                        ItemName = "sun Flower oil",
+                        Description = "sun Flower oil",
+                        Quantity = 1,
+                        Unit = "Box",
+                        UnitPrice = 5400,
+                        DiscountAmount = 648,
+                        TaxRatePercent = 22,
+                        TaxAmount = 1045.44m,
+                        LineTotal = 5797.44m
+                    }
+                },
+                Subtotal = 5400,
+                TotalDiscount = 648,
+                TotalTax = 1045.44m,
+                TotalAdditionalCharges = 0,
+                GrandTotal = 5797,
+                AmountPaid = 5797,
+                BalanceDue = 0
+            }
+        };
+
+        var bytes = _pdfEngine.GeneratePreviewPdf(request);
+        Assert.NotNull(bytes);
+        Assert.NotEmpty(bytes);
     }
 }

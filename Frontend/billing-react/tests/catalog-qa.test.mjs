@@ -138,7 +138,7 @@ test('PQA currency: INR, USD, EUR, zero, large and missing amounts are not relab
   assert.match(formatProductPrice(999999999.99, 'INR'), /₹99,99,99,999\.99/);
   assert.equal(formatProductPrice(null), '-'); assert.equal(formatProductPrice('bad'), '-');
   assert.match(formatProductPrice(12, 'invalid'), /invalid 12\.00/);
-  assert.equal(productValidationSchema.validateSync({ ...valid, taxCategory: '' }).taxCategory, '');
+  assert.equal(productValidationSchema.validateSync({ ...valid, taxCategory: 'Not Applicable' }).taxCategory, 'Not Applicable');
 });
 
 test('PQA product errors: preserve validation but never expose server exception details', async () => {
