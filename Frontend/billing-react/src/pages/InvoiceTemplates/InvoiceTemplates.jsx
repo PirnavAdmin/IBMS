@@ -554,9 +554,6 @@ export function TemplatePreview() {
   const [pdf, setPdf] = useState(null);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [previewError, setPreviewError] = useState('');
-  const [officialPdfBusy, setOfficialPdfBusy] = useState(false);
-  const [officialPdfError, setOfficialPdfError] = useState('');
-  const [officialPdfNotice, setOfficialPdfNotice] = useState('');
   const [submitBusy, setSubmitBusy] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [invoices, setInvoices] = useState([]);
@@ -658,27 +655,6 @@ export function TemplatePreview() {
     } catch (error) { setPreviewError(asError(error)); }
     finally { setPreviewBusy(false); }
   };
-  const generateOfficialPdf = async () => {
-    if (!selectedInvoice || !selectedTemplateId) {
-      setOfficialPdfError('Select an invoice and a saved template before generating the official PDF.');
-      return;
-    }
-    setOfficialPdfBusy(true);
-    setOfficialPdfError('');
-    setOfficialPdfNotice('');
-    try {
-      await templateApi.generateInvoicePdf(selectedInvoice.id, {
-        invoiceId: selectedInvoice.id,
-        overrideTemplateId: Number(selectedTemplateId),
-        forceRegenerate: true,
-      });
-      const blob = await templateApi.downloadInvoicePdf(selectedInvoice.id, true);
-      if (!blob?.size || !blob.type?.includes('pdf')) throw new Error('The server did not return an invoice PDF.');
-      setPdf(blob);
-      setOfficialPdfNotice('Official PDF generated using ' + (selectedTemplate.name || selectedTemplate.Name) + '.');
-    } catch (error) { setOfficialPdfError(asError(error)); }
-    finally { setOfficialPdfBusy(false); }
-  };
   const backToBranding = () => navigate('/templates-branding/branding', { state: { config: { ...config, style }, templateId: brandingTemplateId } });
   const submit = async () => {
     if (!config) { setSubmitError('Open the review screen from Branding Settings before submitting a template.'); return; }
@@ -696,8 +672,8 @@ export function TemplatePreview() {
   };
   return <TemplatePage title="Template preview" description="Select an invoice and saved template to generate the server PDF preview.">
     <section className="template-preview-card"><div className="template-section-title"><div><h2>Invoice PDF preview</h2></div></div>
-      <div className="template-preview-controls"><TextField label="Select Invoice" select value={selectedInvoiceId} onChange={(event) => setSelectedInvoiceId(event.target.value)} size="small" disabled={invoicesLoading} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}><MenuItem value="">{invoicesLoading ? 'Loading invoices…' : 'Select an invoice'}</MenuItem>{invoices.map((invoice) => <MenuItem key={invoice.id} value={String(invoice.id)}>{(invoice.invoiceNumber || 'Draft #' + invoice.id) + ' - ' + (invoice.customer?.name || 'Customer')}</MenuItem>)}</TextField><TextField label="Select Template" select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} size="small" disabled={templatesLoading} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}><MenuItem value="">{templatesLoading ? 'Loading templates…' : 'Select a template'}</MenuItem>{templateOptions.map((template) => <MenuItem key={template.id || template.Id} value={String(template.id || template.Id)}>{template.name || template.Name}</MenuItem>)}</TextField><Button variant="contained" disabled={!selectedInvoice || !selectedTemplate || previewBusy || invoiceLoading || selectedTemplateLoading} onClick={renderPdf}>{previewBusy ? 'Rendering PDF…' : 'Generate server PDF preview'}</Button>{selectedInvoice?.status !== 'Draft' && <Button variant="outlined" disabled={!selectedTemplate || officialPdfBusy || invoiceLoading || selectedTemplateLoading} onClick={generateOfficialPdf}>{officialPdfBusy ? 'Generating official PDF…' : 'Generate official PDF'}</Button>}{pdf && <Button variant="outlined" onClick={() => setPdf(null)}>Back to Preview Settings</Button>}</div>
-      {invoicesError && <Alert severity="error">Unable to load invoices: {invoicesError}</Alert>}{templatesError && <Alert severity="error">Unable to load templates: {templatesError}</Alert>}{selectedTemplateError && <Alert severity="error">Unable to load the selected template: {selectedTemplateError}</Alert>}{!invoicesLoading && !invoicesError && !invoices.length && <div className="template-empty"><strong>No invoices available.</strong><span>Create an invoice to preview it with this template.</span></div>}{!templatesLoading && !templatesError && !templateOptions.length && <div className="template-empty"><strong>No templates available.</strong><span>Create a template before generating a PDF preview.</span></div>}{invoiceError && <Alert severity="error">Unable to load the selected invoice: {invoiceError}</Alert>}{invoiceLoading && <div className="template-inline-loading"><CircularProgress size={20} /><span>Loading selected invoice…</span></div>}{selectedTemplateLoading && <div className="template-inline-loading"><CircularProgress size={20} /><span>Loading selected template…</span></div>}{previewError && <Alert severity="error">{previewError}</Alert>}{officialPdfError && <Alert severity="error">{officialPdfError}</Alert>}{officialPdfNotice && <Alert severity="success">{officialPdfNotice}</Alert>}{submitError && <Alert severity="error" role="alert">{submitError}</Alert>}{pdf && <div className="template-live-preview"><PdfPreview blob={pdf} /></div>}
+      <div className="template-preview-controls"><TextField label="Select Invoice" select value={selectedInvoiceId} onChange={(event) => setSelectedInvoiceId(event.target.value)} size="small" disabled={invoicesLoading} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}><MenuItem value="">{invoicesLoading ? 'Loading invoices…' : 'Select an invoice'}</MenuItem>{invoices.map((invoice) => <MenuItem key={invoice.id} value={String(invoice.id)}>{(invoice.invoiceNumber || 'Draft #' + invoice.id) + ' - ' + (invoice.customer?.name || 'Customer')}</MenuItem>)}</TextField><TextField label="Select Template" select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} size="small" disabled={templatesLoading} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}><MenuItem value="">{templatesLoading ? 'Loading templates…' : 'Select a template'}</MenuItem>{templateOptions.map((template) => <MenuItem key={template.id || template.Id} value={String(template.id || template.Id)}>{template.name || template.Name}</MenuItem>)}</TextField><Button variant="contained" disabled={!selectedInvoice || !selectedTemplate || previewBusy || invoiceLoading || selectedTemplateLoading} onClick={renderPdf}>{previewBusy ? 'Rendering PDF…' : 'Generate server PDF preview'}</Button>{pdf && <Button variant="outlined" onClick={() => setPdf(null)}>Back to Preview Settings</Button>}</div>
+      {invoicesError && <Alert severity="error">Unable to load invoices: {invoicesError}</Alert>}{templatesError && <Alert severity="error">Unable to load templates: {templatesError}</Alert>}{selectedTemplateError && <Alert severity="error">Unable to load the selected template: {selectedTemplateError}</Alert>}{!invoicesLoading && !invoicesError && !invoices.length && <div className="template-empty"><strong>No invoices available.</strong><span>Create an invoice to preview it with this template.</span></div>}{!templatesLoading && !templatesError && !templateOptions.length && <div className="template-empty"><strong>No templates available.</strong><span>Create a template before generating a PDF preview.</span></div>}{invoiceError && <Alert severity="error">Unable to load the selected invoice: {invoiceError}</Alert>}{invoiceLoading && <div className="template-inline-loading"><CircularProgress size={20} /><span>Loading selected invoice…</span></div>}{selectedTemplateLoading && <div className="template-inline-loading"><CircularProgress size={20} /><span>Loading selected template…</span></div>}{previewError && <Alert severity="error">{previewError}</Alert>}{submitError && <Alert severity="error" role="alert">{submitError}</Alert>}{pdf && <div className="template-live-preview"><PdfPreview blob={pdf} /></div>}
       {config && <div className="template-actions"><Button variant="outlined" onClick={backToBranding} disabled={submitBusy}>Back to Branding Settings</Button><Button variant="contained" onClick={submit} disabled={submitBusy}>{submitBusy ? 'Submitting…' : 'Submit Template'}</Button></div>}
     </section>
   </TemplatePage>;
@@ -782,7 +758,7 @@ export function TemplateAuditHistory() {
   return <TemplatePage title="Audit & traceability" description="">
     <section className="template-list-card" aria-labelledby="template-audit-heading">
       <div className="template-section-title"><div><h2 id="template-audit-heading">Template and document activity</h2></div></div>
-      {error && <DashboardErrorState title="Unable to load template activity" message={error} onRetry={() => setLoadAttempt(attempt => attempt + 1)} />}<div className="template-table-wrap"><table className="template-table"><caption className="sr-only">Template and invoice document audit history</caption><thead><tr><th scope="col">Event</th><th scope="col">Date and time</th><th scope="col">Performed by</th><th scope="col">Changes / result</th><th scope="col">Template version / document</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id || log.Id}><td>{log.event}</td><td>{log.dateAndTime}</td><td>{log.performedBy}</td><td>{log.changesOrResult}</td><td>{log.templateVersionOrDocument}</td></tr>)}{!logs.length && !loading && !error && <tr><td colSpan="5"><div className="template-empty"><strong>No template activity available</strong></div></td></tr>}{loading && <tr><td colSpan="5"><div className="template-empty"><CircularProgress size={24} /></div></td></tr>}</tbody></table></div>
+      {error && <DashboardErrorState title="Unable to load template activity" message={error} onRetry={() => setLoadAttempt(attempt => attempt + 1)} />}<div className="template-table-wrap"><table className="template-table"><caption className="sr-only">Template and invoice document audit history</caption><thead><tr><th scope="col">Event</th><th scope="col">Date and time</th><th scope="col">Performed by</th><th scope="col">Changes / result</th><th scope="col">Template version / document</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id || log.Id}><td>{log.event}</td><td>{formatDateTime(log.dateAndTime || log.DateAndTime)}</td><td>{log.performedBy}</td><td>{log.changesOrResult}</td><td>{log.templateVersionOrDocument}</td></tr>)}{!logs.length && !loading && !error && <tr><td colSpan="5"><div className="template-empty"><strong>No template activity available</strong></div></td></tr>}{loading && <tr><td colSpan="5"><div className="template-empty"><CircularProgress size={24} /></div></td></tr>}</tbody></table></div>
     </section>
   </TemplatePage>;
 }
