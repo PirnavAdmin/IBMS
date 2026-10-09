@@ -17,7 +17,10 @@ public class GeneratedDocumentRepository : IGeneratedDocumentRepository
     public async Task<GeneratedDocument?> GetByInvoiceIdAsync(int invoiceId, int tenantId)
     {
         return await _dbContext.GeneratedDocuments
-            .Where(d => d.InvoiceId == invoiceId && d.TenantId == tenantId && d.Status == "Stored")
+            // Generation persists the file before recording "Generated". Keep "Stored"
+            // compatible with existing records; both represent retrievable documents.
+            .Where(d => d.InvoiceId == invoiceId && d.TenantId == tenantId
+                && (d.Status == "Generated" || d.Status == "Stored"))
             .OrderByDescending(d => d.CreatedAtUtc)
             .FirstOrDefaultAsync();
     }

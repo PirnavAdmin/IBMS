@@ -18,7 +18,7 @@ import { useSearchCommit } from '../../hooks/useSearchDebounce';
 import { searchParams } from '../../utils/search';
 import { getProductPageSize, saveProductPageSize } from './utils/productPageSize';
 
-const initialParams = { search: '', category: '', status: '', type: '', pageNumber: 1, pageSize: 10, sortBy: 'productCode', sortOrder: 'asc' };
+const initialParams = { search: '', category: '', status: '', type: '', pageNumber: 1, pageSize: 10, sortBy: '', sortOrder: '' };
 
 export function ProductList() {
   const location = useLocation();
@@ -42,10 +42,10 @@ export function ProductList() {
   const catalog = useQuery({ queryKey: ['products', 'metadata'], queryFn: ({ signal }) => productService.getCatalogMetadata({ signal }), staleTime: 60000 });
   const query = useQuery({ queryKey: ['products', 'list', params], queryFn: ({ signal }) => productService.getProducts(params, { signal }), placeholderData: keepPreviousData });
   const change = patch => setParams(previous => ({ ...previous, ...patch, pageNumber: 1 }));
-  const clear = () => { setSearch(''); setParams(previous => ({ ...previous, search: '', category: '', status: '', type: '', pageNumber: 1 })); };
+  const clear = () => { setSearch(''); setParams(previous => ({ ...initialParams, pageSize: previous.pageSize })); };
   const selectedCard = params.type === 'Service' ? 'services' : params.status === 'Active' && !params.type ? 'active' : params.status === 'Inactive' && !params.type ? 'inactive' : !params.status && !params.type ? 'total' : '';
   const selectCard = key => setParams(previous => ({ ...previous, status: key === 'active' ? 'Active' : key === 'inactive' ? 'Inactive' : '', type: key === 'services' ? 'Service' : '', pageNumber: 1 }));
-  const active = Boolean(search || params.search || params.category || params.status || params.type);
+  const active = Boolean(search || params.search || params.category || params.status || params.type || params.sortBy || params.sortOrder);
   const loading = query.isPending || catalog.isPending;
   const updating = search.trim() !== params.search || query.isFetching;
   const error = query.error || catalog.error || categoriesQuery.error;

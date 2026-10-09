@@ -10,5 +10,7 @@ public interface IInvoiceSnapshotRepository
 
     Task AddAsync(InvoiceSnapshot snapshot);
 
+    Task UpdateAsync(InvoiceSnapshot snapshot);
+
     Task<bool> ExistsForInvoiceAsync(int invoiceId, int tenantId);
 }

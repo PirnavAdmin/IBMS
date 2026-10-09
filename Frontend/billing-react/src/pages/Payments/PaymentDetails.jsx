@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { PaymentShell, PaymentState, PaymentValues, PaymentStatus, usePaymentUser } from './PaymentShared';
 import { paymentService, money, displayDate, formatIndianDateTime } from './paymentService';
 import { PaymentReversal } from './PaymentReversal';
+import { buildPaymentReceiptReport, printPaymentDocument } from './paymentReports';
 
 function parseAuditChanges(raw) {
   if (!raw) return null;
@@ -222,61 +223,59 @@ export function PaymentDetails() {
   const user = usePaymentUser();
   const query = useQuery({ queryKey: ['payments', 'detail', id], queryFn: ({ signal }) => paymentService.getPaymentById(id, { signal }), retry: false });
   const p = query.data;
+  const printedReceipt = useRef(null);
 
   useEffect(() => {
-    if (p && new URLSearchParams(location.search).get('print') === 'true') {
-      const timer = setTimeout(() => {
-        window.print();
-      }, 500);
-      return () => clearTimeout(timer);
+    if (p && new URLSearchParams(location.search).get('print') === 'true' && printedReceipt.current !== id) {
+      printedReceipt.current = id;
+      printPaymentDocument(buildPaymentReceiptReport(p));
     }
-  }, [p, location.search]);
+  }, [p, id, location.search]);
 
   return <PaymentShell title="Payment Details" subtitle="Review payment information, allocations and print receipt." actions={<>
     <Button component={Link} to="/payments">Back to Payments</Button>
     <Button disabled={query.isFetching} onClick={() => query.refetch()}>Refresh</Button>
-    <Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()} disabled={!p}>Print Receipt</Button>
+    <Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => printPaymentDocument(buildPaymentReceiptReport(p))} disabled={!p || query.isFetching}>Print Receipt</Button>
     {p?.isReversible && p.status !== 'Reversed' && user.permissions.reverse && <Button onClick={() => setReversal(true)}>Reverse Payment</Button>}
   </>}>
     <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
     <PaymentState loading={query.isPending} error={query.error || user.error} empty={!query.isPending && !p ? 'No payment details available.' : ''} onRetry={() => { query.refetch(); user.refetch(); }} />
     {p && <>
-      <section className="payment-panel">
-        <h2>Payment Summary</h2>
-        <PaymentValues values={[
-          ['Payment Number / ID', p.paymentNumber || p.id],
-          ['Payment Date', displayDate(p.paymentDate)],
-          ['Customer', p.customerName],
-          ['Method', p.methodDisplay],
-          ['Amount', money(p.amount, p.currency)],
-          ['Allocated Amount', money(p.allocatedAmount, p.currency)],
-          ['Status', <PaymentStatus status={p.status} />],
-          ['Reference', p.reference || p.providerTransactionId || p.chequeNumber],
-          ['Notes', p.notes],
-          ['Created By', p.createdBy],
-          ['Created At', formatIndianDateTime(p.createdAtUtc)],
-          ['Bank', p.bankName],
-          ['Provider', p.providerName],
-          ['Cheque Status', p.clearingStatus],
-        ]} />
+      <section className="payment-panel payment-summary-card" aria-labelledby="payment-summary-title">
+        <header className="payment-detail-heading"><div><h2 id="payment-summary-title">Payment Summary</h2><p>{p.paymentNumber || p.id}</p></div><PaymentStatus status={p.status} /></header>
+        <div className="payment-summary-content">
+          <dl className="payment-summary-totals">
+            <div><dt>Payment Amount</dt><dd>{money(p.amount, p.currency)}</dd></div>
+            <div><dt>Allocated Amount</dt><dd>{money(p.allocatedAmount, p.currency)}</dd></div>
+          </dl>
+          <PaymentValues values={[
+            ['Customer', p.customerName],
+            ['Payment Date', displayDate(p.paymentDate)],
+            ['Method', p.methodDisplay],
+            ['Reference', p.reference || p.providerTransactionId || p.chequeNumber],
+            ['Created By', p.createdBy],
+            ['Created At', formatIndianDateTime(p.createdAtUtc)],
+            ...[
+              ['Bank', p.bankName],
+              ['Provider', p.providerName],
+              ['Cheque Status', p.clearingStatus],
+            ].filter(([, value]) => value != null && value !== ''),
+          ]} />
+        </div>
+        <div className="payment-summary-notes"><h3>Notes</h3><p>{p.notes || '\u2014'}</p></div>
       </section>
-      <section className="payment-panel">
-        <h2>Invoice Allocation</h2>
-        {p.allocations.map(a => (
-          <div className="payment-allocation" key={a.id}>
-            <div className="payment-allocation-title" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <strong className="payment-allocation-inv">Invoice #{a.invoiceNumber}</strong>
-              <Button size="small" variant="outlined" className="payment-view-invoice-btn" onClick={() => setInvoiceId(a.invoiceId)}>View Invoice</Button>
-            </div>
-            <PaymentValues values={[
-              ['Allocated Amount', money(a.allocatedAmount, p.currency)],
-              ['Paid Total', money(a.invoicePaidAmount, p.currency)],
-              ['Outstanding', money(a.invoiceBalanceAmount, p.currency)],
-              ['Invoice Status', a.invoiceStatus],
-            ]} />
-          </div>
-        ))}
-        {!p.allocations.length && <p>No invoice allocations available.</p>}
+      <section className="payment-panel payment-allocation-card" aria-labelledby="payment-allocation-title">
+        <header className="payment-detail-heading"><div><h2 id="payment-allocation-title">Invoice Allocation</h2><p>Payment allocation and current invoice balances</p></div></header>
+        {p.allocations.length ? <div className="payment-allocation-scroll" role="region" aria-label="Invoice allocations" tabIndex={0}>
+          <table className="payment-allocation-table"><thead><tr>{['Invoice', 'Allocated Amount', 'Paid Total', 'Outstanding', 'Invoice Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+            <tbody>{p.allocations.map(a => <tr key={a.id}>
+              <td><strong>{a.invoiceNumber || a.invoiceId}</strong></td>
+              <td>{money(a.allocatedAmount, p.currency)}</td><td>{money(a.invoicePaidAmount, p.currency)}</td><td>{money(a.invoiceBalanceAmount, p.currency)}</td>
+              <td>{a.invoiceStatus || '\u2014'}</td>
+              <td><Button size="small" variant="outlined" className="payment-view-invoice-btn" onClick={() => setInvoiceId(a.invoiceId)}>View Invoice</Button></td>
+            </tr>)}</tbody>
+          </table>
+        </div> : <p className="payment-allocation-empty">No invoice allocations available.</p>}
       </section>
       {p.status === 'Reversed' && (
         <section className="payment-panel">

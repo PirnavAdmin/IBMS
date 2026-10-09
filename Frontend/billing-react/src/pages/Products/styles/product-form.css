@@ -18,6 +18,13 @@
 
 /* Product details presentation */
 .product-details-card { background: #fffefd; border: 1px solid #eee2d2; border-radius: 16px; box-shadow: 0 8px 28px #6951390b; overflow: hidden; }
+
+.product-form-field .product-editable-select { width: 100%; min-width: 0; min-height: 42px; font: inherit; }
+.product-form-field .product-editable-select.ant-select { --ant-color-primary: #795940; --ant-color-primary-hover: #987353; --ant-color-bg-container: #F9F5EF; --ant-color-border: #DCD1C6; --ant-border-radius: 8px; }
+.product-form-field .product-editable-select .ant-select-selector { background: #F9F5EF; border-color: #DCD1C6; border-radius: 8px; }
+.product-form-field .product-editable-select input { font: inherit; }
+.product-editable-select-popup { --ant-color-bg-elevated: #FFFDF9; --ant-select-option-selected-bg: #ECDAC6; --ant-color-text: #35271F; }
+.product-editable-select-popup .ant-select-item-option-content { white-space: normal; overflow-wrap: anywhere; }
 .product-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; margin: 0; padding: 4px 16px; }
 .product-details-field { min-width: 0; padding: 10px 0; border-bottom: 1px solid #f0e9e4; }
 .product-details-field dt { display: flex; align-items: center; gap: 9px; color: #806e63; font-size: 12px; font-weight: 600; }
