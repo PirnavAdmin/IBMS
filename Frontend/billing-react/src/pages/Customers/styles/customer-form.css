@@ -1,28 +1,147 @@
 @import './customer-base.css';
 
 /* ==========================================================================
-   Customer Form - Multi-Step Stepper Wizard & Layout
+   INVOICE.BILLING Enterprise Customer Creation System
+   Palette Source of Truth:
+     Primary:    #5A2508
+     Secondary:  #8B451F
+     Background: #F8F1E7
+     Surface:    #FFFFFF
+     Borders:    #EADFD2
    ========================================================================== */
 
+:root {
+  --cust-primary: #5A2508;
+  --cust-primary-hover: #421B06;
+  --cust-secondary: #8B451F;
+  --cust-secondary-hover: #733919;
+  --cust-bg-main: #F8F1E7;
+  --cust-surface: #FFFFFF;
+  --cust-surface-subtle: #FAF6F0;
+  --cust-border: #EADFD2;
+  --cust-border-focus: #5A2508;
+  --cust-text-primary: #2C1A10;
+  --cust-text-secondary: #523C30;
+  --cust-text-muted: #7C695C;
+  --cust-placeholder: #9A8478;
+  --cust-error: #C62828;
+  --cust-error-bg: #FDEDED;
+  --cust-success: #2E7D32;
+  --cust-success-bg: #EDF7ED;
+  --cust-shadow-card: 0 4px 20px rgba(90, 37, 8, 0.05);
+  --cust-shadow-stepper: 0 2px 10px rgba(90, 37, 8, 0.04);
+  --cust-focus-ring: 0 0 0 3px rgba(90, 37, 8, 0.12);
+}
+
+.cust-page {
+  min-height: calc(100vh - 72px);
+  padding: clamp(24px, 2.5vw, 40px);
+  background: var(--cust-bg-main);
+  color: var(--cust-text-primary);
+  font-family: inherit;
+}
+
+.cust-page * {
+  box-sizing: border-box;
+}
+
+/* Breadcrumbs */
+.cust-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--cust-text-muted);
+  margin-bottom: 16px;
+}
+
+.cust-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--cust-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  transition: color 0.15s ease;
+}
+
+.cust-breadcrumb-link:hover {
+  text-decoration: underline;
+  color: var(--cust-primary);
+}
+
+.cust-breadcrumb-sep {
+  color: #BFAEA2;
+  font-size: 0.8rem;
+  user-select: none;
+}
+
+.cust-breadcrumb-current {
+  color: var(--cust-text-primary);
+  font-weight: 600;
+}
+
+/* Page Header */
+.cust-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.cust-page-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.2vw, 2rem);
+  font-weight: 750;
+  color: var(--cust-text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.cust-page-subtitle {
+  margin: 6px 0 0;
+  color: var(--cust-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* Master Container */
 .cust-wizard-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* Stepper Header Bar */
+/* ==========================================================================
+   Enterprise Stepper Header (Inside Master Form)
+   ========================================================================== */
 .cust-wizard-stepper {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border: 1px solid #eae3db;
-  border-radius: 12px;
-  padding: 20px 24px;
-  box-shadow: 0 2px 8px rgba(83, 58, 36, 0.04);
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0 4px 20px 4px;
+  box-shadow: none;
   overflow-x: auto;
   gap: 8px;
+  width: 100%;
+}
+
+.cust-stepper-divider {
+  height: 1px;
+  background: var(--cust-border);
+  margin: 0 -32px 24px -32px;
 }
 
 .cust-step-item {
@@ -43,9 +162,9 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid #d6cdc4;
-  background: #ffffff;
-  color: #8c7d71;
+  border: 2px solid var(--cust-border);
+  background: var(--cust-surface);
+  color: var(--cust-placeholder);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,7 +179,7 @@
 
 .cust-step-label {
   font-size: 0.82rem;
-  color: #8c7d71;
+  color: var(--cust-placeholder);
   font-weight: 500;
   white-space: nowrap;
   transition: color 0.2s ease;
@@ -68,112 +187,87 @@
 
 /* Active Step */
 .cust-step-item.active .cust-step-circle {
-  background: #754d34;
-  border-color: #754d34;
-  color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(117, 77, 52, 0.16);
+  background: var(--cust-primary);
+  border-color: var(--cust-primary);
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(90, 37, 8, 0.16);
 }
 
 .cust-step-item.active .cust-step-label {
-  color: #302a26;
+  color: var(--cust-primary);
   font-weight: 700;
 }
 
 /* Completed Step */
 .cust-step-item.completed .cust-step-circle {
-  background: #754d34;
-  border-color: #754d34;
-  color: #ffffff;
+  background: var(--cust-secondary);
+  border-color: var(--cust-secondary);
+  color: #FFFFFF;
 }
 
 .cust-step-item.completed .cust-step-label {
-  color: #302a26;
+  color: var(--cust-text-secondary);
   font-weight: 600;
 }
 
 /* Connecting Line */
 .cust-step-line {
-  flex: 1 1 40px;
-  min-width: 24px;
-  max-width: 80px;
+  flex: 1 1 30px;
+  min-width: 16px;
+  max-width: 70px;
   height: 2px;
-  background: #e0dcd7;
+  background: var(--cust-border);
   margin: 0 4px;
-  margin-bottom: 22px; /* Centers vertically with circle */
+  margin-bottom: 22px;
   transition: background-color 0.2s ease;
 }
 
 .cust-step-line.completed {
-  background: #754d34;
+  background: var(--cust-secondary);
 }
 
 /* ==========================================================================
-   2-Column Wizard Layout: Form Card + Assistant Side Panel
+   2-Column Master Layout (72% Form Card + 28% Quick Tips)
+   Strictly Stretched to Identical Height on Desktop
    ========================================================================== */
-
 .cust-wizard-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 72fr) minmax(280px, 28fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
+  width: 100%;
 }
 
 .cust-wizard-main {
   min-width: 0;
-}
-
-/* Main Form Card */
-.cust-wizard-card {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
 }
 
-.cust-form-section {
-  min-width: 0;
-  padding: 0 0 8px;
-  background: #ffffff;
-  border: 1px solid #eae3db;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
-  scroll-margin-top: 24px;
+/* Master Form Card - ONE unified surface across all 5 states */
+.cust-wizard-card {
+  background: var(--cust-surface);
+  border: 1px solid var(--cust-border);
+  border-radius: 16px;
+  box-shadow: var(--cust-shadow-card);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
 }
 
-.cust-form-section-title {
-  margin: 0;
-  padding: 20px 24px 14px;
-  color: #4c3023;
-  font-size: 1.05rem;
-  font-weight: 750;
-  border-bottom: 1px solid #eee5dc;
-}
-
-.cust-review-section {
-  border-bottom: 0;
-}
-
-.cust-review-section > .cust-form-section-title {
-  margin-bottom: 0;
-}
-
-/* Header inside the Step Card */
+/* Form Card Header */
 .cust-wizard-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #eae3db;
-  background: #ffffff;
-  border: 1px solid #eae3db;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
+  gap: 16px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--cust-border);
+  margin-bottom: 28px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
 .cust-wizard-header-left {
@@ -186,8 +280,9 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #f5ede6;
-  color: #754d34;
+  background: var(--cust-surface-subtle);
+  border: 1px solid var(--cust-border);
+  color: var(--cust-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,16 +295,16 @@
 
 .cust-step-title {
   margin: 0;
-  font-size: 1.22rem;
+  font-size: 1.25rem;
   font-weight: 750;
-  color: #302a26;
+  color: var(--cust-text-primary);
   letter-spacing: -0.01em;
 }
 
 .cust-step-subtitle {
   margin: 3px 0 0;
-  font-size: 0.85rem;
-  color: #776b61;
+  font-size: 0.86rem;
+  color: var(--cust-text-muted);
 }
 
 .cust-required-pill {
@@ -218,15 +313,111 @@
   gap: 6px;
   padding: 6px 14px;
   border-radius: 20px;
-  background: #fbf8f5;
-  border: 1px solid #eadfd2;
-  font-size: 0.8rem;
-  color: #776b61;
+  background: var(--cust-surface-subtle);
+  border: 1px solid var(--cust-border);
+  font-size: 0.78rem;
+  color: var(--cust-text-muted);
+  font-weight: 500;
 }
 
 .cust-required-pill svg {
   font-size: 1rem;
-  color: #855a3b;
+  color: var(--cust-secondary);
+}
+
+.cust-required {
+  color: var(--cust-error);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Smooth Step Content Transitions
+   ========================================================================== */
+.cust-step-panel {
+  width: 100%;
+  animation: custFadeSlide 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  min-height: 280px;
+}
+
+@keyframes custFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Form Grid & Field Styling (Enterprise 42px Standards)
+   ========================================================================== */
+.cust-grid {
+  display: grid;
+  gap: 20px 22px;
+}
+
+.cust-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cust-col-span-2 {
+  grid-column: span 2 / span 2;
+}
+
+.cust-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.cust-field label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--cust-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cust-field input,
+.cust-field textarea,
+.cust-field select {
+  width: 100%;
+  border: 1px solid var(--cust-border);
+  border-radius: 8px;
+  background: var(--cust-surface);
+  color: var(--cust-text-primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cust-field input {
+  height: 42px;
+  padding: 0 14px;
+}
+
+.cust-field textarea {
+  padding: 12px 14px;
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+}
+
+.cust-field input::placeholder,
+.cust-field textarea::placeholder {
+  color: var(--cust-placeholder);
+}
+
+.cust-field input:focus,
+.cust-field textarea:focus,
+.cust-field select:focus {
+  border-color: var(--cust-primary) !important;
+  outline: none !important;
+  box-shadow: var(--cust-focus-ring) !important;
 }
 
 /* Input With Prefix Icon */
@@ -243,25 +434,89 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #9b8f84;
+  color: var(--cust-placeholder);
   pointer-events: none;
   z-index: 1;
+  transition: color 0.18s ease;
 }
 
 .cust-input-with-icon .cust-input-icon svg {
   font-size: 1.15rem;
 }
 
-.cust-input-with-icon input,
-.cust-input-with-icon select {
+.cust-input-with-icon input {
   padding-left: 38px !important;
 }
 
-/* Account Status Wrap with Indicator */
-.cust-status-select-wrap {
-  position: relative;
-  display: flex;
+.cust-input-with-icon:focus-within .cust-input-icon {
+  color: var(--cust-primary);
+}
+
+/* Readonly Customer Code Field */
+.cust-input-readonly {
+  background: var(--cust-surface-subtle) !important;
+  border-color: var(--cust-border) !important;
+  color: var(--cust-text-secondary) !important;
+  cursor: not-allowed;
+  font-weight: 600;
+}
+
+/* Disabled Input & Textarea Fields */
+.cust-field input:disabled,
+.cust-field textarea:disabled {
+  background: var(--cust-surface-subtle) !important;
+  border-color: var(--cust-border) !important;
+  color: var(--cust-text-primary) !important;
+  cursor: not-allowed;
+  opacity: 0.95;
+}
+
+.cust-field-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cust-secondary);
+  background: var(--cust-surface-subtle);
+  border: 1px solid var(--cust-border);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Error State */
+.cust-field input[aria-invalid="true"],
+.cust-field textarea[aria-invalid="true"],
+.cust-field .has-error {
+  border-color: var(--cust-error) !important;
+}
+
+.cust-field-error {
+  font-size: 0.76rem;
+  color: var(--cust-error);
+  font-weight: 500;
+  margin-top: 2px;
+  display: block;
+}
+
+.cust-field-hint {
+  font-size: 0.74rem;
+  color: var(--cust-text-secondary);
+  font-weight: 400;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Account Status Static Display & Selector */
+.cust-status-badge-static {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--cust-border);
+  border-radius: 8px;
+  background: var(--cust-surface-subtle);
+  color: var(--cust-text-primary);
+  font-weight: 600;
+  font-size: 0.88rem;
   width: 100%;
 }
 
@@ -269,278 +524,155 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  position: absolute;
-  left: 14px;
-  z-index: 1;
-  pointer-events: none;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .cust-status-dot.active {
-  background: #2e7d32;
-  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+  background: var(--cust-success);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
 }
 
 .cust-status-dot.inactive {
-  background: #b33927;
-  box-shadow: 0 0 0 2px rgba(179, 57, 39, 0.2);
+  background: var(--cust-error);
+  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.2);
 }
 
-.cust-status-select-wrap select {
+.cust-hint-inline {
+  color: var(--cust-text-muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.cust-status-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cust-status-select-wrap .cust-status-dot {
+  position: absolute;
+  left: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cust-status-select-wrap .cust-themed-select .MuiSelect-select {
   padding-left: 32px !important;
 }
 
+/* Themed Select Fields (MUI Overrides) */
 .cust-field .cust-themed-select.MuiOutlinedInput-root {
+  height: 42px;
   min-height: 42px;
-  background: #ffffff;
-  border-radius: 7px;
-  color: #302a26;
+  background: var(--cust-surface);
+  border-radius: 8px;
+  color: var(--cust-text-primary);
   font-family: inherit;
   font-size: 0.88rem;
 }
 
 .cust-field .cust-themed-select .MuiOutlinedInput-notchedOutline {
-  border-color: #e0dcd7;
+  border-color: var(--cust-border);
+  transition: border-color 0.18s ease;
+}
+
+.cust-field .cust-themed-select:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cust-secondary);
 }
 
 .cust-field .cust-themed-select.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #9a6c49;
-  border-width: 1px;
+  border-color: var(--cust-primary) !important;
+  border-width: 1px !important;
 }
 
-.cust-status-select-wrap .cust-themed-select .MuiSelect-select {
-  padding-left: 32px;
+.cust-field .cust-themed-select.Mui-focused {
+  box-shadow: var(--cust-focus-ring) !important;
 }
 
-.cust-phone-group .cust-themed-select.cust-phone-code-select {
-  width: 96px;
-  min-width: 88px;
-  max-width: 105px;
-  flex: 0 0 96px;
-  font-size: 0.84rem;
+.customer-dropdown-menu .MuiPaper-root {
+  border: 1px solid var(--cust-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(90, 37, 8, 0.08) !important;
+  background: var(--cust-surface) !important;
 }
 
-.cust-filters-right .cust-themed-select.MuiOutlinedInput-root {
-  min-width: 150px;
-  background: #ffffff;
-  border-radius: 8px;
-  color: #302a26;
-}
-
-.cust-filters-right .cust-themed-select .MuiOutlinedInput-notchedOutline {
-  border-color: #e0dcd7;
-}
-
-.customer-dropdown-menu .MuiMenuItem-root.Mui-selected {
-  background-color: transparent;
-  color: inherit;
+.customer-dropdown-menu .MuiMenuItem-root {
+  font-size: 0.86rem;
+  color: var(--cust-text-primary);
+  padding: 10px 14px;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
 }
 
 .customer-dropdown-menu .MuiMenuItem-root:hover,
 .customer-dropdown-menu .MuiMenuItem-root.Mui-focusVisible {
-  background-color: #d8b795;
-  color: #4d301d;
+  background-color: var(--cust-surface-subtle) !important;
+  color: var(--cust-primary) !important;
 }
 
-/* Bottom Actions in Form Card */
-.cust-wizard-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-top: 1px solid #eae3db;
-  background: #ffffff;
-  border: 1px solid #eae3db;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
-  gap: 16px;
+.customer-dropdown-menu .MuiMenuItem-root.Mui-selected {
+  background-color: var(--cust-bg-main) !important;
+  color: var(--cust-primary) !important;
+  font-weight: 700 !important;
 }
 
-.cust-actions-left,
-.cust-actions-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Phone Group */
+.cust-phone-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
 }
 
-/* ==========================================================================
-   Right-Side Assistant Panel
-   ========================================================================== */
-
-.cust-wizard-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.cust-phone-group .cust-themed-select.cust-phone-code-select,
+.cust-phone-group .country-calling-code-container {
+  flex: 0 0 auto !important;
 }
 
-.cust-side-card {
-  background: #ffffff;
-  border: 1px solid #eae3db;
-  border-radius: 12px;
-  padding: 22px;
-  box-shadow: 0 2px 8px rgba(83, 58, 36, 0.04);
+.cust-phone-group .country-calling-code-trigger {
+  height: 42px !important;
+  font-size: 0.875rem !important;
 }
 
-.cust-guide-card {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.cust-guide-illustration {
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cust-guide-title {
-  margin: 0 0 6px;
-  font-size: 1.05rem;
-  font-weight: 750;
-  color: #302a26;
-}
-
-.cust-guide-text {
-  margin: 0;
-  font-size: 0.84rem;
-  color: #776b61;
-  line-height: 1.5;
-}
-
-.cust-tip-card {
-  background: #fdfaf6;
-  border: 1px solid #eae0d5;
-}
-
-.cust-tip-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.cust-tip-icon {
-  color: #855a3b;
-  display: flex;
-  align-items: center;
-}
-
-.cust-tip-icon svg {
-  font-size: 1.25rem;
-}
-
-.cust-tip-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 750;
-  color: #302a26;
-}
-
-.cust-tip-text {
-  margin: 0;
-  font-size: 0.84rem;
-  color: #665b52;
-  line-height: 1.5;
+.cust-phone-input {
+  flex: 1 1 auto;
+  height: 42px;
 }
 
 /* ==========================================================================
-   Review Step Styles
+   Step 3: Address Section Styling (Flat Unified Surface)
    ========================================================================== */
-
-.cust-review-sections {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.cust-review-card {
-  background: #faf7f3;
-  border: 1px solid #eae3db;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.cust-review-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #e8e0d7;
-  padding-bottom: 8px;
-}
-
-.cust-review-card-header h4 {
-  margin: 0;
-  font-size: 0.92rem;
-  font-weight: 750;
-  color: #302a26;
-}
-
-.cust-review-edit-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: #855a3b;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background-color 0.15s;
-}
-
-.cust-review-edit-btn:hover {
-  background: #f0e6dc;
-}
-
-.cust-review-edit-btn svg {
-  font-size: 0.95rem;
-}
-
-.cust-review-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px 16px;
-}
-
-.cust-review-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.cust-review-label {
-  font-size: 0.78rem;
-  color: #776b61;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.cust-review-value {
-  font-size: 0.88rem;
-  color: #302a26;
-  font-weight: 500;
-  word-break: break-word;
-}
-
 .cust-step-address-content {
-  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* Same-as-billing checkbox wrapper in Address Step */
+.cust-address-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.cust-address-group .cust-section-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--cust-primary);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .cust-checkbox-field {
-  padding: 12px 16px;
-  background: #faf7f3;
-  border: 1px solid #eae3db;
-  border-radius: 8px;
+  padding: 14px 18px;
+  background: var(--cust-surface-subtle);
+  border: 1px solid var(--cust-border);
+  border-radius: 10px;
+  margin: 4px 0 8px;
 }
 
 .cust-checkbox-label {
@@ -550,77 +682,358 @@
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 600;
-  color: #3f3934;
+  color: var(--cust-text-primary);
   user-select: none;
 }
 
 .cust-checkbox-label input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
-  accent-color: #754d34;
+  accent-color: var(--cust-primary);
 }
 
-/* Phone input layout */
-.cust-phone-group {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 8px !important;
-  width: 100% !important;
+/* ==========================================================================
+   Step 4: Review & Confirm Styling (Flat Sections with Subtle Dividers)
+   ========================================================================== */
+.cust-review-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.cust-field .cust-phone-group select.cust-phone-code-select,
-.cust-field select.cust-phone-code-select,
-.cust-phone-group select.cust-phone-code-select,
-.cust-phone-code-select {
-  width: 96px !important;
-  min-width: 88px !important;
-  max-width: 105px !important;
-  flex: 0 0 96px !important;
-  padding: 9px 6px !important;
-  font-size: 0.84rem !important;
-  color: #302a26 !important;
-  background-color: #ffffff !important;
-  border: 1px solid #e0dcd7 !important;
-  border-radius: 7px !important;
-  outline: none !important;
-  cursor: pointer !important;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cust-review-section {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--cust-border);
 }
 
-.cust-field .cust-phone-group select.cust-phone-code-select:focus-visible,
-.cust-phone-code-select:focus-visible {
-  border-color: #ab805e !important;
-  box-shadow: 0 0 0 2px rgba(171, 128, 94, 0.2) !important;
+.cust-review-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
-.cust-field .cust-phone-group input.cust-phone-input,
-.cust-field .cust-phone-group input[type="tel"],
-.cust-phone-group input {
-  flex: 1 1 auto !important;
-  width: auto !important;
-  min-width: 0 !important;
+.cust-review-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
+.cust-review-title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--cust-primary);
+}
+
+.cust-review-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--cust-border);
+  color: var(--cust-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.cust-review-edit-btn:hover {
+  background: var(--cust-bg-main);
+  border-color: var(--cust-secondary);
+  color: var(--cust-primary);
+}
+
+.cust-review-edit-btn svg {
+  font-size: 0.95rem;
+}
+
+.cust-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+
+.cust-review-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cust-review-label {
+  font-size: 0.74rem;
+  color: var(--cust-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cust-review-value {
+  font-size: 0.9rem;
+  color: var(--cust-text-primary);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* ==========================================================================
+   Bottom Actions Bar (Consistently Anchored at Bottom)
+   ========================================================================== */
+.cust-wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--cust-border);
+  margin-top: auto;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cust-actions-left,
+.cust-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cust-submit-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cust-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 22px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.cust-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cust-btn-primary {
+  background: var(--cust-primary);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 2px 8px rgba(90, 37, 8, 0.18);
+}
+
+.cust-btn-primary:hover:not(:disabled) {
+  background: var(--cust-primary-hover);
+  box-shadow: 0 4px 14px rgba(90, 37, 8, 0.28);
+  transform: translateY(-1px);
+}
+
+.cust-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cust-btn-secondary {
+  background: var(--cust-surface);
+  border: 1px solid var(--cust-border);
+  color: var(--cust-primary);
+}
+
+.cust-btn-secondary:hover:not(:disabled) {
+  background: var(--cust-bg-main);
+  border-color: var(--cust-secondary);
+  color: var(--cust-primary-hover);
+}
+
+/* ==========================================================================
+   Right-Side Quick Tips Card (Clean Enterprise SaaS Standard)
+   Strictly Stretches to Match Main Form Outer Height on Desktop
+   ========================================================================== */
+.cust-wizard-aside {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cust-quick-tips-card {
+  background: var(--cust-surface);
+  border: 1px solid var(--cust-border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--cust-shadow-card);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: static;
+}
+
+.cust-quick-tips-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--cust-border);
+  margin-bottom: 18px;
+}
+
+.cust-quick-tips-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--cust-surface-subtle);
+  border: 1px solid var(--cust-border);
+  color: var(--cust-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cust-quick-tips-icon-badge svg {
+  font-size: 1.25rem;
+}
+
+.cust-quick-tips-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--cust-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.cust-quick-tips-badge {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--cust-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.cust-quick-tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cust-quick-tips-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--cust-text-secondary);
+}
+
+.cust-quick-tips-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cust-secondary);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+/* Flexible vertical spacer to guarantee equal height on every step */
+.cust-quick-tips-spacer {
+  flex: 1 1 auto;
+  min-height: 24px;
+}
+
+.cust-quick-tips-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px dashed var(--cust-border);
+}
+
+.cust-quick-tips-footer-text {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--cust-text-muted);
+  line-height: 1.45;
+}
+
+/* Alert Banner */
+.cust-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  margin-bottom: 20px;
+}
+
+.cust-alert-error {
+  background: var(--cust-error-bg);
+  border: 1px solid #F5C2C7;
+  color: var(--cust-error);
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 1080px) {
   .cust-wizard-layout {
     grid-template-columns: 1fr;
   }
+  .cust-wizard-aside {
+    height: auto;
+  }
+  .cust-quick-tips-card {
+    height: auto;
+    position: static;
+  }
+  .cust-quick-tips-spacer {
+    display: none;
+  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .cust-page {
+    padding: 16px;
+  }
+  .cust-stepper-divider {
+    margin: 0 -16px 20px -16px;
+  }
   .cust-wizard-stepper {
+    padding: 0 4px 16px 4px;
     justify-content: flex-start;
   }
   .cust-step-item {
-    min-width: 70px;
+    min-width: 76px;
+    padding: 2px 4px;
+  }
+  .cust-step-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  .cust-step-label {
+    font-size: 0.74rem;
   }
   .cust-step-line {
     min-width: 16px;
-    max-width: 32px;
+    max-width: 36px;
+    margin-bottom: 18px;
+  }
+  .cust-wizard-card {
+    padding: 20px 16px;
+    border-radius: 12px;
   }
   .cust-grid-2 {
     grid-template-columns: 1fr;
@@ -630,6 +1043,21 @@
   }
   .cust-review-grid {
     grid-template-columns: 1fr;
+  }
+  .cust-wizard-actions {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+  .cust-actions-left,
+  .cust-actions-right,
+  .cust-submit-group {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .cust-actions-left .cust-btn,
+  .cust-actions-right .cust-btn,
+  .cust-submit-group .cust-btn {
+    flex: 1;
   }
 }
 
@@ -794,7 +1222,9 @@
 .cust-page:not(.cust-edit-page) .cust-field select:not(:disabled):focus,
 .cust-page:not(.cust-edit-page) .cust-field textarea:focus {
   background-color: #ffffff;
-  border-color: #a87952;
+  border-color: var(--cust-primary) !important;
+  box-shadow: var(--cust-focus-ring) !important;
+  outline: none !important;
 }
 
 .cust-page:not(.cust-edit-page) .cust-themed-select.MuiOutlinedInput-root:not(.Mui-disabled) {
@@ -807,6 +1237,12 @@
 
 .cust-page:not(.cust-edit-page) .cust-themed-select.Mui-focused:not(.Mui-disabled) {
   background-color: #ffffff;
+  box-shadow: var(--cust-focus-ring) !important;
+}
+
+.cust-page:not(.cust-edit-page) .cust-themed-select.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cust-primary) !important;
+  border-width: 1px !important;
 }
 
 @media (max-width: 640px) {

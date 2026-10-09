@@ -166,3 +166,89 @@
   .settings-landing .settings-card-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
   .settings-landing .settings-nav-card { min-height: 220px; }
 }
+
+/* 5th Settings Card: Country Configuration */
+.settings-landing .settings-country-card {
+  grid-template-rows: auto auto 1fr;
+}
+.settings-country-card .settings-country-body {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 0;
+  margin-top: 6px;
+}
+.settings-country-card .settings-country-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-country-card .settings-country-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #4b413b;
+}
+.settings-country-card .MuiAutocomplete-root {
+  background: #fff;
+}
+.settings-country-card .MuiOutlinedInput-root {
+  border-radius: 9px;
+  background: #fff;
+  font-size: 0.95rem;
+}
+.settings-country-card .settings-country-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-country-card .settings-country-actions .MuiButton-root {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 9px;
+  background: var(--primary, #582407);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+.settings-country-card .settings-country-actions .MuiButton-root:hover {
+  background: #401c0b;
+}
+.settings-country-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  font-size: 0.92rem !important;
+}
+.settings-country-flag {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.settings-country-name {
+  color: #171513;
+  font-weight: 500;
+}
+.settings-country-card .settings-country-chip {
+  background: #f7eee4;
+  border: 1px solid #ebd8c8;
+  color: #3b1b0b;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: 6px;
+}
+.settings-country-card .settings-country-chip .MuiChip-deleteIcon {
+  color: #8b451f;
+}
+.settings-country-card .settings-country-chip .MuiChip-deleteIcon:hover {
+  color: #5a2508;
+}
+.settings-country-card .MuiAutocomplete-inputRoot {
+  min-height: 48px;
+  align-items: center;
+  gap: 4px;
+}
+

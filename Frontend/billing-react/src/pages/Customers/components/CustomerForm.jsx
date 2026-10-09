@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
 import { CustomerSelectField } from './CustomerSelectField';
+import { CountryCallingCodeSelector } from '../../../components/CountryCallingCodeSelector';
 import { shippingFromBilling } from 'billing-contracts';
 import { customerApi } from 'billing-api-client';
 import {
@@ -12,6 +13,7 @@ import {
   getNextCustomerCode,
   COUNTRY_PHONE_CONFIG,
 } from '../validation/customerValidation';
+import { useRegionalSettings } from '../../../services/regionalSettingsService';
 import {
   PersonOutline,
   LocalOfferOutlined,
@@ -29,6 +31,8 @@ import {
   Check,
   EditOutlined,
   DescriptionOutlined,
+  CategoryOutlined,
+  AccountBalanceWalletOutlined,
 } from '@mui/icons-material';
 import '../styles/customer-form.css';
 
@@ -37,21 +41,21 @@ const STEPS = [
     id: 0,
     label: 'Basic Info',
     title: 'Basic Information',
-    subtitle: 'Enter the main details about your customer',
+    subtitle: 'Enter core identification, category, and currency settings',
     icon: BusinessOutlined,
   },
   {
     id: 1,
     label: 'Contact Info',
     title: 'Contact Information',
-    subtitle: 'Provide communication and web contacts',
+    subtitle: 'Provide communication details and web contacts',
     icon: EmailOutlined,
   },
   {
     id: 2,
     label: 'Billing & Tax',
-    title: 'Billing & Tax Information',
-    subtitle: 'Configure tax registration, billing currency, and payment terms',
+    title: 'Billing & Tax',
+    subtitle: 'Configure tax registration, payment terms, and credit limits',
     icon: ReceiptLongOutlined,
   },
   {
@@ -63,19 +67,46 @@ const STEPS = [
   },
   {
     id: 4,
-    label: 'Review',
+    label: 'Review & Confirm',
     title: 'Review & Confirm',
-    subtitle: 'Review all information before finalizing customer record',
+    subtitle: 'Verify all customer details before saving',
     icon: CheckCircleOutlined,
   },
 ];
 
 const QUICK_TIPS = {
-  0: 'Customer code is a unique sequential identifier (e.g. CUST-001, CUST-002). It is automatically assigned in sequence order and locked from editing.',
-  1: 'Ensure email and phone number are accurate. The phone number must contain the exact digit count required for the selected country.',
-  2: 'Choose GST Registered to automatically validate 15-character GST numbers and ensure seamless tax compliance.',
-  3: 'You can check "Shipping address is identical" to quickly mirror billing details into shipping.',
-  4: 'Review all customer details before final submission. Click any "Edit" link to quickly jump back to a section.',
+  0: [
+    'Customer code will be auto-generated.',
+    'Select the correct customer type for tax handling.',
+    'Currency will be used for invoice transactions.',
+    'Keep customer name and company name as per official records.',
+    'You can update these details later.',
+  ],
+  1: [
+    'Primary email receives automated invoices and receipts.',
+    'Ensure valid 10-digit mobile number for SMS / WhatsApp alerts.',
+    'Adding website URL helps in automated merchant verification.',
+    'Contact information can be updated anytime after creation.',
+  ],
+  2: [
+    'PAN (10 characters) is mandatory for billing and tax compliance.',
+    'GSTIN is required for GST-registered businesses.',
+    'Entering GSTIN auto-fills the PAN number.',
+    'Set default payment terms to reflect on newly generated invoices.',
+    'Credit limit restricts unpaid invoice balances.',
+  ],
+  3: [
+    'Enter 6-digit PIN code to auto-populate city, state, and locality.',
+    'Enable identical shipping address if office and dispatch coincide.',
+    'Disabling identical address allows entering separate warehouse details.',
+    'Accurate billing address is required for GST tax invoices.',
+  ],
+  4: [
+    'Review all customer details carefully before creating the record.',
+    'Click Edit on any section to make quick adjustments.',
+    'Active customers are immediately eligible for invoice creation.',
+    'All customer details can be edited later from the directory.',
+  ],
 };
 
 export const CustomerForm = ({
@@ -86,14 +117,31 @@ export const CustomerForm = ({
   onCancel,
   mode = 'create',
 }) => {
+  const {
+    selectedCountries,
+    availableCountries,
+    defaultCountry,
+    defaultCallingCode,
+  } = useRegionalSettings();
   const [currentStep, setCurrentStep] = useState(0);
   const [slideDirection, setSlideDirection] = useState('forward');
   const [loadingNextCode, setLoadingNextCode] = useState(false);
 
   const getInitialValues = (values) => {
-    const rawTax = values?.taxId || values?.gstin || '';
+    const rawTax = String(values?.taxId || values?.gstin || values?.pan || '').trim();
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
-    const taxType = values?.taxRegistrationType || (isGst ? 'gst' : rawTax ? 'pan' : 'gst');
+    const taxType = values?.taxRegistrationType === 'non-gst' ? 'non-gst' : 'gst';
+
+    let initialPan = values?.pan || '';
+    if (!initialPan) {
+      if (isGst && rawTax.length === 15) {
+        initialPan = rawTax.substring(2, 12);
+      } else if (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(rawTax)) {
+        initialPan = rawTax;
+      }
+    }
+
+    const initialGstin = values?.gstin || (isGst ? rawTax : '');
 
     const rawStatus = values?.status ?? values?.Status;
     let initialStatus = 'Active';
@@ -105,8 +153,13 @@ export const CustomerForm = ({
       initialStatus = String(rawStatus).trim().toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
     }
 
-    const KNOWN_CODES = ['+971', '+966', '+91', '+44', '+65', '+61', '+49', '+33', '+81', '+1'];
-    let phoneCountryCode = values?.phoneCountryCode || '+91';
+    const KNOWN_CODES = [
+      '+971', '+966', '+91', '+44', '+65', '+61', '+49', '+33', '+81', '+1',
+      '+64', '+27', '+353', '+39', '+34', '+31', '+41', '+46', '+47', '+45',
+      '+60', '+62', '+63', '+66', '+55', '+52', '+974', '+965', '+86', '+82'
+    ];
+    const defaultCallingCodeFromSettings = defaultCallingCode || '+91';
+    let phoneCountryCode = values?.phoneCountryCode || (mode === 'create' ? defaultCallingCodeFromSettings : '');
     let phoneNumber = values?.phone || '';
     if (typeof phoneNumber === 'string' && phoneNumber.trim().startsWith('+')) {
       const trimmed = phoneNumber.trim();
@@ -136,9 +189,9 @@ export const CustomerForm = ({
       values?.financialSummary?.currency ??
       values?.financialSummary?.Currency ??
       values?.raw?.currency ??
-      'INR'
+      ''
     ).trim().toUpperCase();
-    const currency = ['INR', 'USD', 'EUR', 'GBP'].includes(rawCurrency) ? rawCurrency : 'INR';
+    const currency = rawCurrency || '';
 
     const rawPaymentTerms = String(
       values?.paymentTerms ??
@@ -148,27 +201,22 @@ export const CustomerForm = ({
       values?.raw?.paymentTerms ??
       ''
     ).trim();
-    let paymentTerms = rawPaymentTerms;
-    const ptClean = rawPaymentTerms.toLowerCase().replace(/[\s_-]+/g, '');
-    if (ptClean === 'net15') paymentTerms = 'Net 15';
-    else if (ptClean === 'net30') paymentTerms = 'Net 30';
-    else if (ptClean === 'net45') paymentTerms = 'Net 45';
-    else if (ptClean === 'net60') paymentTerms = 'Net 60';
-    else if (ptClean === 'dueonreceipt') paymentTerms = 'Due on Receipt';
-    else if (!paymentTerms) paymentTerms = 'Net 30';
+    const paymentTerms = rawPaymentTerms || 'Net 30';
 
     return {
       ...DEFAULT_CUSTOMER_VALUES,
       ...(values || {}),
       customerCode: values?.customerCode || '',
       customerType,
+      customerCategory: values?.customerCategory || 'Enterprise',
       status: initialStatus,
       isActive: initialStatus === 'Active',
       phoneCountryCode,
       phone: phoneNumber,
       taxRegistrationType: taxType,
+      pan: initialPan,
+      gstin: initialGstin,
       taxId: rawTax,
-      gstin: rawTax,
       currency,
       paymentTerms,
       creditLimit: values?.creditLimit ?? '',
@@ -194,6 +242,7 @@ export const CustomerForm = ({
     getValues,
     reset,
     trigger,
+    clearErrors,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(customerValidationSchema),
@@ -261,8 +310,10 @@ export const CustomerForm = ({
   const billingAddress = watch('billingAddress');
   const taxRegistrationType = watch('taxRegistrationType');
   const watchedValues = watch();
-  const watchedPhoneCode = watch('phoneCountryCode') || '+91';
-  const currentPhoneConfig = COUNTRY_PHONE_CONFIG[watchedPhoneCode] || COUNTRY_PHONE_CONFIG['+91'];
+  const watchedPhoneCode = watch('phoneCountryCode') || '';
+  const currentPhoneConfig = watchedPhoneCode && COUNTRY_PHONE_CONFIG[watchedPhoneCode]
+    ? COUNTRY_PHONE_CONFIG[watchedPhoneCode]
+    : { country: 'International', code: 'INTL', min: 7, max: 15, example: '98490 12345', label: '7-15 digits' };
 
   // Trigger phone re-validation when country dialing code changes
   useEffect(() => {
@@ -272,15 +323,95 @@ export const CustomerForm = ({
     }
   }, [watchedPhoneCode, trigger, getValues]);
 
-  // Synchronize shipping address whenever billing changes while "Same as Billing" is active
-  useEffect(() => {
-    if (isShippingSameAsBilling && billingAddress) {
-      setValue(
-        'shippingAddress',
-        shippingFromBilling(billingAddress, getValues('shippingAddress')),
-        { shouldValidate: false }
-      );
+  const copyBillingToShipping = useCallback(() => {
+    const billing = getValues('billingAddress') || {};
+    setValue('shippingAddress.street', billing.street || '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.addressLine2', billing.addressLine2 || '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.city', billing.city || '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.state', billing.state || '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.postalCode', billing.postalCode || '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.country', billing.country || '', { shouldValidate: false, shouldDirty: true });
+    clearErrors([
+      'shippingAddress.street',
+      'shippingAddress.addressLine2',
+      'shippingAddress.city',
+      'shippingAddress.state',
+      'shippingAddress.postalCode',
+      'shippingAddress.country',
+    ]);
+  }, [getValues, setValue, clearErrors]);
+
+  const clearShippingAddress = useCallback(() => {
+    setValue('shippingAddress.street', '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.addressLine2', '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.city', '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.state', '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.postalCode', '', { shouldValidate: false, shouldDirty: true });
+    setValue('shippingAddress.country', '', { shouldValidate: false, shouldDirty: true });
+    clearErrors([
+      'shippingAddress.street',
+      'shippingAddress.addressLine2',
+      'shippingAddress.city',
+      'shippingAddress.state',
+      'shippingAddress.postalCode',
+      'shippingAddress.country',
+    ]);
+  }, [setValue, clearErrors]);
+
+  // Derive options based on countries selected in Settings:
+  // "For which countries I have selected, those countries should be visible."
+  const activeCountriesList = selectedCountries.length > 0 ? selectedCountries : availableCountries;
+
+  // Currency options (from selected countries)
+  const activeCurrenciesList = [];
+  const seenCurrencies = new Set();
+  for (const c of activeCountriesList) {
+    if (c.currency && !seenCurrencies.has(c.currency)) {
+      seenCurrencies.add(c.currency);
+      activeCurrenciesList.push({
+        value: c.currency,
+        label: `${c.currency} (${c.currencySymbol || c.currency})`,
+      });
     }
+  }
+  const activeFormCurrency = watch('currency');
+  const hasActiveCurrency = !activeFormCurrency || activeCurrenciesList.some((c) => c.value === activeFormCurrency);
+  const currencyOptions = [
+    { value: '', label: 'Select Currency' },
+    ...activeCurrenciesList,
+    ...(!hasActiveCurrency && activeFormCurrency ? [{ value: activeFormCurrency, label: activeFormCurrency }] : []),
+  ];
+
+  // Phone Country Code options (from selected countries)
+  const seenPhoneCodes = new Set();
+  const activePhoneCodeList = [];
+  for (const c of activeCountriesList) {
+    if (c.phoneCode && !seenPhoneCodes.has(c.phoneCode)) {
+      seenPhoneCodes.add(c.phoneCode);
+      activePhoneCodeList.push({
+        value: c.phoneCode,
+        label: `${c.phoneCode} (${c.code})`,
+      });
+    }
+  }
+  const hasActivePhoneCode = !watchedPhoneCode || activePhoneCodeList.some((p) => p.value === watchedPhoneCode);
+  const phoneCodeOptions = [
+    { value: '', label: 'Select Code' },
+    ...activePhoneCodeList,
+    ...(!hasActivePhoneCode && watchedPhoneCode ? [{ value: watchedPhoneCode, label: watchedPhoneCode }] : []),
+  ];
+
+  const prevIsShippingSameRef = useRef(isShippingSameAsBilling);
+
+  // Synchronize shipping address whenever billing changes while "Same as Billing" is active
+  // If user disables "Same as Billing", clear all shipping address fields so they can enter manually
+  useEffect(() => {
+    if (isShippingSameAsBilling) {
+      copyBillingToShipping();
+    } else if (prevIsShippingSameRef.current && !isShippingSameAsBilling) {
+      clearShippingAddress();
+    }
+    prevIsShippingSameRef.current = isShippingSameAsBilling;
   }, [
     isShippingSameAsBilling,
     billingAddress?.street,
@@ -289,8 +420,8 @@ export const CustomerForm = ({
     billingAddress?.state,
     billingAddress?.postalCode,
     billingAddress?.country,
-    setValue,
-    getValues,
+    copyBillingToShipping,
+    clearShippingAddress,
   ]);
 
   const getStepValidationFields = (stepIndex) => {
@@ -357,10 +488,12 @@ export const CustomerForm = ({
       ? shippingFromBilling(data.billingAddress, data.shippingAddress)
       : { ...data.shippingAddress };
 
-    const effectiveTaxId =
-      data.taxRegistrationType === 'non-gst'
-        ? null
-        : (data.taxId || data.gstin)?.trim() || null;
+    const cleanedPan = data.pan?.trim()?.toUpperCase() || null;
+    const cleanedGstin =
+      data.taxRegistrationType === 'gst'
+        ? data.gstin?.trim()?.toUpperCase() || null
+        : null;
+    const effectiveTaxId = cleanedGstin || cleanedPan || null;
 
     const isStatusActive = String(data.status).trim().toLowerCase() !== 'inactive';
     const normalizedStatus = isStatusActive ? 'Active' : 'Inactive';
@@ -371,8 +504,8 @@ export const CustomerForm = ({
       if (cleanedPhone.startsWith('+')) {
         fullPhone = cleanedPhone;
       } else {
-        const code = data.phoneCountryCode || '+91';
-        fullPhone = `${code} ${cleanedPhone}`;
+        const code = data.phoneCountryCode?.trim();
+        fullPhone = code ? `${code} ${cleanedPhone}` : cleanedPhone;
       }
     }
 
@@ -392,15 +525,17 @@ export const CustomerForm = ({
       customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
       customerType: normalizedCustomerType,
+      customerCategory: data.customerCategory?.trim() || 'Enterprise',
       status: normalizedStatus,
       isActive: isStatusActive,
       email: data.email?.trim(),
       phone: fullPhone,
-      phoneCountryCode: data.phoneCountryCode || '+91',
+      phoneCountryCode: data.phoneCountryCode || '',
       taxRegistrationType: data.taxRegistrationType || 'gst',
+      pan: cleanedPan,
+      gstin: cleanedGstin,
       taxId: effectiveTaxId,
-      gstin: effectiveTaxId,
-      currency: data.currency?.trim() || 'INR',
+      currency: data.currency?.trim() || '',
       paymentTerms: data.paymentTerms?.trim() || null,
       website: fullWebsite,
       notes: data.notes?.trim() || null,
@@ -453,38 +588,7 @@ export const CustomerForm = ({
 
   return (
     <div className="cust-wizard-container">
-      {/* 5-Step Stepper Header */}
-      <nav className="cust-wizard-stepper" aria-label="Customer Registration Progress">
-        {STEPS.map((step, index) => {
-          const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
-          return (
-            <React.Fragment key={step.id}>
-              <button
-                type="button"
-                className={`cust-step-item ${isActive ? 'active' : ''} ${
-                  isCompleted ? 'completed' : ''
-                }`}
-                onClick={() => handleStepClick(step.id)}
-                aria-current={isActive ? 'step' : undefined}
-              >
-                <div className="cust-step-circle">
-                  {isCompleted ? <Check fontSize="small" /> : step.id + 1}
-                </div>
-                <span className="cust-step-label">{step.label}</span>
-              </button>
-              {index < STEPS.length - 1 && (
-                <div
-                  className={`cust-step-line ${isCompleted ? 'completed' : ''}`}
-                  aria-hidden="true"
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </nav>
-
-      {/* 2-Column Layout */}
+      {/* 2-Column Master Layout (72% Unified Form + 28% Quick Tips) */}
       <div className="cust-wizard-layout">
         {/* Main Form Card */}
         <div className="cust-wizard-main">
@@ -494,8 +598,41 @@ export const CustomerForm = ({
             className="cust-form cust-wizard-card"
             noValidate
           >
+            {/* 5-Step Stepper inside the Unified Form Card */}
+            <nav className="cust-wizard-stepper" aria-label="Customer Registration Progress">
+              {STEPS.map((step, index) => {
+                const isActive = step.id === currentStep;
+                const isCompleted = step.id < currentStep;
+                return (
+                  <React.Fragment key={step.id}>
+                    <button
+                      type="button"
+                      className={`cust-step-item ${isActive ? 'active' : ''} ${
+                        isCompleted ? 'completed' : ''
+                      }`}
+                      onClick={() => handleStepClick(step.id)}
+                      aria-current={isActive ? 'step' : undefined}
+                    >
+                      <div className="cust-step-circle">
+                        {isCompleted ? <Check fontSize="small" /> : step.id + 1}
+                      </div>
+                      <span className="cust-step-label">{step.label}</span>
+                    </button>
+                    {index < STEPS.length - 1 && (
+                      <div
+                        className={`cust-step-line ${isCompleted ? 'completed' : ''}`}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </nav>
+
+            <div className="cust-stepper-divider" />
+
             {submitError && (
-              <div className="cust-alert cust-alert-error" role="alert" style={{ margin: '16px 20px 0' }}>
+              <div className="cust-alert cust-alert-error" role="alert" style={{ margin: '0 0 20px 0' }}>
                 <span className="cust-alert-icon" aria-hidden="true">⚠️</span>
                 <span>{submitError}</span>
               </div>
@@ -526,7 +663,7 @@ export const CustomerForm = ({
                 <div className="cust-grid cust-grid-2">
                   <div className="cust-field">
                     <label htmlFor="customer-name">
-                      Contact / Customer Name <span className="cust-required">*</span>
+                      Customer Name <span className="cust-required">*</span>
                     </label>
                     <div className="cust-input-with-icon">
                       <span className="cust-input-icon" aria-hidden="true">
@@ -542,95 +679,140 @@ export const CustomerForm = ({
                         {...register('name')}
                       />
                     </div>
-                  {errors.name && (
-                    <span id="customer-name-err" className="cust-field-error" role="alert">
-                      {errors.name.message}
-                    </span>
-                  )}
-                </div>
-
-                <div className="cust-field">
-                  <label htmlFor="customer-code">
-                    Customer Code <span className="cust-required">*</span>
-                    <span className="cust-field-badge">
-                      {loadingNextCode ? 'Generating…' : (mode === 'create' ? 'Auto-assigned' : 'Locked')}
-                    </span>
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <LocalOfferOutlined />
-                    </span>
-                    <input
-                      id="customer-code"
-                      type="text"
-                      readOnly={true}
-                      tabIndex={-1}
-                      placeholder={loadingNextCode ? 'Generating code…' : 'e.g. CUST-016'}
-                      className={`cust-input-readonly ${errors.customerCode ? 'has-error' : ''}`}
-                      aria-invalid={Boolean(errors.customerCode)}
-                      aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
-                      {...register('customerCode')}
-                    />
+                    {errors.name && (
+                      <span id="customer-name-err" className="cust-field-error" role="alert">
+                        {errors.name.message}
+                      </span>
+                    )}
                   </div>
-                  {errors.customerCode && (
-                    <span id="customer-code-err" className="cust-field-error" role="alert">
-                      {errors.customerCode.message}
-                    </span>
-                  )}
-                </div>
 
-                <div className="cust-field">
-                  <label htmlFor="customer-company">Company / Business Name</label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <BusinessOutlined />
-                    </span>
-                    <input
-                      id="customer-company"
-                      type="text"
-                      placeholder="e.g. Deccan Tech Solutions"
-                      aria-invalid={Boolean(errors.companyName)}
-                      aria-describedby={errors.companyName ? 'customer-company-err' : undefined}
-                      {...register('companyName')}
-                    />
+                  <div className="cust-field">
+                    <label htmlFor="customer-code">
+                      Customer Code <span className="cust-required">*</span>
+                      <span className="cust-field-badge">
+                        {loadingNextCode ? 'Generating…' : (mode === 'create' ? 'Auto-assigned' : 'Locked')}
+                      </span>
+                    </label>
+                    <div className="cust-input-with-icon">
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <LocalOfferOutlined />
+                      </span>
+                      <input
+                        id="customer-code"
+                        type="text"
+                        readOnly={true}
+                        tabIndex={-1}
+                        placeholder={loadingNextCode ? 'Generating code…' : 'e.g. CUST-016'}
+                        className={`cust-input-readonly ${errors.customerCode ? 'has-error' : ''}`}
+                        aria-invalid={Boolean(errors.customerCode)}
+                        aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
+                        {...register('customerCode')}
+                      />
+                    </div>
+                    {errors.customerCode && (
+                      <span id="customer-code-err" className="cust-field-error" role="alert">
+                        {errors.customerCode.message}
+                      </span>
+                    )}
                   </div>
-                  {errors.companyName && (
-                    <span id="customer-company-err" className="cust-field-error" role="alert">
-                      {errors.companyName.message}
-                    </span>
-                  )}
-                </div>
 
-                <div className="cust-field cust-col-span-2">
-                  <label htmlFor="customer-status">Account Status</label>
-                  {mode === 'create' ? <p className="cust-hint">New customers are active when created.</p> : <div className="cust-status-select-wrap">
-                    <span
-                      className={`cust-status-dot ${
-                        watch('status') === 'Active' ? 'active' : 'inactive'
-                      }`}
-                      aria-hidden="true"
-                    />
+                  <div className="cust-field">
+                    <label htmlFor="customer-company">Company Name</label>
+                    <div className="cust-input-with-icon">
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <BusinessOutlined />
+                      </span>
+                      <input
+                        id="customer-company"
+                        type="text"
+                        placeholder="e.g. Deccan Tech Solutions"
+                        aria-invalid={Boolean(errors.companyName)}
+                        aria-describedby={errors.companyName ? 'customer-company-err' : undefined}
+                        {...register('companyName')}
+                      />
+                    </div>
+                    {errors.companyName && (
+                      <span id="customer-company-err" className="cust-field-error" role="alert">
+                        {errors.companyName.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="cust-field">
+                    <label htmlFor="customer-type">Customer Type</label>
                     <CustomerSelectField
                       control={control}
-                      name="status"
-                      id="customer-status"
-                      ariaLabel="Account status"
-                      invalid={Boolean(errors.status)}
+                      name="customerType"
+                      id="customer-type"
+                      ariaLabel="Customer Type"
+                      invalid={Boolean(errors.customerType)}
                       options={[
-                        { value: 'Active', label: 'Active' },
-                        { value: 'Inactive', label: 'Inactive' },
+                        { value: 'business', label: 'Business (B2B)' },
+                        { value: 'individual', label: 'Individual (B2C)' },
+                        { value: 'organization', label: 'Organization / Non-Profit' },
                       ]}
                     />
-                  </div>}
+                    {errors.customerType && (
+                      <span className="cust-field-error" role="alert">
+                        {errors.customerType.message}
+                      </span>
+                    )}
+                  </div>
 
-                  {errors.status && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.status.message}
-                    </span>
-                  )}
+                  <div className="cust-field">
+                    <label htmlFor="customer-status">Status</label>
+                    {mode === 'create' ? (
+                      <div className="cust-status-badge-static">
+                        <span className="cust-status-dot active" aria-hidden="true" />
+                        <span>Active</span>
+                        <small className="cust-hint-inline">— New customer records default to active status.</small>
+                      </div>
+                    ) : (
+                      <div className="cust-status-select-wrap">
+                        <span
+                          className={`cust-status-dot ${
+                            watch('status') === 'Active' ? 'active' : 'inactive'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <CustomerSelectField
+                          control={control}
+                          name="status"
+                          id="customer-status"
+                          ariaLabel="Account status"
+                          invalid={Boolean(errors.status)}
+                          options={[
+                            { value: 'Active', label: 'Active' },
+                            { value: 'Inactive', label: 'Inactive' },
+                          ]}
+                        />
+                      </div>
+                    )}
+                    {errors.status && (
+                      <span className="cust-field-error" role="alert">
+                        {errors.status.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="cust-field">
+                    <label htmlFor="customer-currency">Currency</label>
+                    <CustomerSelectField
+                      control={control}
+                      name="currency"
+                      id="customer-currency"
+                      ariaLabel="Currency"
+                      invalid={Boolean(errors.currency)}
+                      options={currencyOptions}
+                    />
+                    {errors.currency && (
+                      <span className="cust-field-error" role="alert">
+                        {errors.currency.message}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* STEP 1: Contact Information */}
             {currentStep === 1 && (
@@ -664,16 +846,16 @@ export const CustomerForm = ({
                     Mobile / Phone Number <span className="cust-required">*</span>
                   </label>
                   <div className="cust-phone-group">
-                    <CustomerSelectField
-                      control={control}
-                      name="phoneCountryCode"
+                    <CountryCallingCodeSelector
                       id="customer-phone-code"
-                      className="cust-phone-code-select"
-                      ariaLabel="Country Dialing Code"
-                      invalid={Boolean(errors.phoneCountryCode)}
-                      onValueChange={(newCode) => {
-                        const newCfg = COUNTRY_PHONE_CONFIG[newCode] || COUNTRY_PHONE_CONFIG['+91'];
-                        const maxLen = newCfg.max || 10;
+                      name="phoneCountryCode"
+                      value={watchedPhoneCode || defaultCallingCode || '+91'}
+                      error={Boolean(errors.phoneCountryCode)}
+                      disabled={false}
+                      onChange={(newCode) => {
+                        setValue('phoneCountryCode', newCode, { shouldValidate: true, shouldDirty: true });
+                        const newCfg = newCode && COUNTRY_PHONE_CONFIG[newCode] ? COUNTRY_PHONE_CONFIG[newCode] : null;
+                        const maxLen = newCfg?.max || 15;
                         const currentVal = getValues('phone') || '';
                         if (currentVal.length > maxLen) {
                           setValue('phone', currentVal.slice(0, maxLen), { shouldValidate: true, shouldDirty: true });
@@ -681,10 +863,6 @@ export const CustomerForm = ({
                           trigger('phone');
                         }
                       }}
-                      options={Object.entries(COUNTRY_PHONE_CONFIG).map(([code, cfg]) => ({
-                        value: code,
-                        label: `${code} (${cfg.code})`,
-                      }))}
                     />
                     <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
                       <span className="cust-input-icon" aria-hidden="true">
@@ -694,15 +872,15 @@ export const CustomerForm = ({
                         id="customer-phone"
                         type="tel"
                         inputMode="numeric"
-                        maxLength={currentPhoneConfig.max || 10}
+                        maxLength={currentPhoneConfig.max || 15}
                         aria-required="true"
                         className="cust-phone-input"
-                        placeholder={`e.g. ${currentPhoneConfig.example} (${currentPhoneConfig.label})`}
+                        placeholder="Enter mobile number"
                         aria-invalid={Boolean(errors.phone)}
                         aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
                         {...register('phone', {
                           onChange: (e) => {
-                            const maxLen = currentPhoneConfig.max || 10;
+                            const maxLen = currentPhoneConfig.max || 15;
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxLen);
                             setValue('phone', digitsOnly, { shouldValidate: true, shouldDirty: true });
                           },
@@ -727,7 +905,7 @@ export const CustomerForm = ({
                             e.preventDefault();
                             return;
                           }
-                          const maxLen = currentPhoneConfig.max || 10;
+                          const maxLen = currentPhoneConfig.max || 15;
                           const input = e.currentTarget;
                           const selectedLength = (input.selectionEnd || 0) - (input.selectionStart || 0);
                           if (input.value.length >= maxLen && selectedLength === 0) {
@@ -739,7 +917,7 @@ export const CustomerForm = ({
                           const pasteText = e.clipboardData?.getData('text') || '';
                           const digitsOnly = pasteText.replace(/\D/g, '');
                           if (!digitsOnly) return;
-                          const maxLen = currentPhoneConfig.max || 10;
+                          const maxLen = currentPhoneConfig.max || 15;
                           const currentVal = getValues('phone') || '';
                           const input = e.currentTarget;
                           const start = input.selectionStart || 0;
@@ -756,9 +934,13 @@ export const CustomerForm = ({
                     <span id="customer-phone-err" className="cust-field-error" role="alert">
                       {errors.phone.message}
                     </span>
-                  ) : (
+                  ) : watchedPhoneCode ? (
                     <span id="customer-phone-hint" className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
                       Requires {currentPhoneConfig.label} for {currentPhoneConfig.country}
+                    </span>
+                  ) : (
+                    <span id="customer-phone-hint" className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
+                      Enter mobile number
                     </span>
                   )}
                 </div>
@@ -800,9 +982,15 @@ export const CustomerForm = ({
                     id="customer-tax-type"
                     ariaLabel="Tax Registration Status"
                     invalid={Boolean(errors.taxRegistrationType)}
+                    onValueChange={(val) => {
+                      if (val === 'non-gst') {
+                        setValue('gstin', '', { shouldValidate: true, shouldDirty: true });
+                      } else {
+                        trigger('gstin');
+                      }
+                    }}
                     options={[
                       { value: 'gst', label: 'GST Registered' },
-                      { value: 'pan', label: 'PAN Available' },
                       { value: 'non-gst', label: 'Non-GST / Unregistered' },
                     ]}
                   />
@@ -814,17 +1002,47 @@ export const CustomerForm = ({
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-taxid">
+                  <label htmlFor="customer-pan">
+                    PAN (10 characters) <span className="cust-required">*</span>
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <DescriptionOutlined />
+                    </span>
+                    <input
+                      id="customer-pan"
+                      type="text"
+                      placeholder="e.g. ABCDE1234F"
+                      maxLength={10}
+                      aria-invalid={Boolean(errors.pan)}
+                      aria-describedby={errors.pan ? 'customer-pan-err' : 'customer-pan-hint'}
+                      {...register('pan', {
+                        onChange: (e) => {
+                          const upper = (e.target.value || '').toUpperCase();
+                          setValue('pan', upper, { shouldValidate: true, shouldDirty: true });
+                        },
+                      })}
+                    />
+                  </div>
+                  {errors.pan ? (
+                    <span id="customer-pan-err" className="cust-field-error" role="alert">
+                      {errors.pan.message}
+                    </span>
+                  ) : (
+                    <span id="customer-pan-hint" className="cust-field-hint">
+                      Permanent Account Number (10 alphanumeric characters)
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-gstin">
                     {taxRegistrationType === 'gst' ? (
                       <>
                         GSTIN (15-Character GST Number) <span className="cust-required">*</span>
                       </>
-                    ) : taxRegistrationType === 'pan' ? (
-                      <>
-                        PAN (10 characters) <span className="cust-required">*</span>
-                      </>
                     ) : (
-                      'Tax ID (Optional)'
+                      'GSTIN (Not Applicable)'
                     )}
                   </label>
                   <div className="cust-input-with-icon">
@@ -832,72 +1050,87 @@ export const CustomerForm = ({
                       <DescriptionOutlined />
                     </span>
                     <input
-                      id="customer-taxid"
+                      id="customer-gstin"
                       type="text"
                       disabled={taxRegistrationType === 'non-gst'}
                       placeholder={
                         taxRegistrationType === 'gst'
                           ? 'e.g. 36AAACD1234F1Z8'
-                          : taxRegistrationType === 'pan'
-                          ? 'e.g. ABCDE1234F'
-                          : 'Not applicable for non-GST'
+                          : 'Not required for Non-GST customers'
                       }
-                      maxLength={taxRegistrationType === 'gst' ? 15 : taxRegistrationType === 'pan' ? 10 : 64}
-                      aria-invalid={Boolean(errors.taxId)}
-                      aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
-                      {...register('taxId', {
+                      maxLength={15}
+                      className={taxRegistrationType === 'non-gst' ? 'cust-input-readonly' : ''}
+                      aria-invalid={Boolean(errors.gstin)}
+                      aria-describedby={errors.gstin ? 'customer-gstin-err' : undefined}
+                      {...register('gstin', {
                         onChange: (e) => {
                           const upper = (e.target.value || '').toUpperCase();
-                          setValue('taxId', upper, { shouldValidate: true, shouldDirty: true });
+                          setValue('gstin', upper, { shouldValidate: true, shouldDirty: true });
+                          if (upper.length >= 12) {
+                            const extractedPan = upper.slice(2, 12);
+                            if (/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(extractedPan)) {
+                              const curPan = getValues('pan');
+                              if (!curPan || curPan.trim() === '') {
+                                setValue('pan', extractedPan, { shouldValidate: true, shouldDirty: true });
+                              }
+                            }
+                          }
                         },
                       })}
                     />
                   </div>
-                  {errors.taxId && (
-                    <span id="customer-taxid-err" className="cust-field-error" role="alert">
-                      {errors.taxId.message}
+                  {errors.gstin && (
+                    <span id="customer-gstin-err" className="cust-field-error" role="alert">
+                      {errors.gstin.message}
                     </span>
                   )}
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-currency">Billing Currency</label>
-                  <CustomerSelectField
-                    control={control}
-                    name="currency"
-                    id="customer-currency"
-                    ariaLabel="Billing currency"
-                    invalid={Boolean(errors.currency)}
-                    options={[
-                      { value: 'INR', label: 'INR (₹)' },
-                      { value: 'USD', label: 'USD ($)' },
-                      { value: 'EUR', label: 'EUR (€)' },
-                      { value: 'GBP', label: 'GBP (£)' },
-                    ]}
-                  />
-                  {errors.currency && <span className="cust-field-error" role="alert">{errors.currency.message}</span>}
+                  <label htmlFor="customer-payment-terms">Payment Terms</label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <ReceiptLongOutlined />
+                    </span>
+                    <input
+                      id="customer-payment-terms"
+                      type="text"
+                      maxLength={64}
+                      placeholder="e.g. Net 30, Due on Receipt"
+                      aria-invalid={Boolean(errors.paymentTerms)}
+                      aria-describedby={errors.paymentTerms ? 'customer-payment-terms-err' : undefined}
+                      {...register('paymentTerms')}
+                    />
+                  </div>
+                  {errors.paymentTerms && (
+                    <span id="customer-payment-terms-err" className="cust-field-error" role="alert">
+                      {errors.paymentTerms.message}
+                    </span>
+                  )}
                 </div>
 
                 <div className="cust-field">
-                  <label htmlFor="customer-payment-terms">Payment Terms</label>
-                  <CustomerSelectField
-                    control={control}
-                    name="paymentTerms"
-                    id="customer-payment-terms"
-                    ariaLabel="Payment terms"
-                    invalid={Boolean(errors.paymentTerms)}
-                    options={[
-                      { value: '', label: 'Select Payment Terms' },
-                      { value: 'Due on Receipt', label: 'Due on Receipt' },
-                      { value: 'Net 15', label: 'Net 15' },
-                      { value: 'Net 30', label: 'Net 30' },
-                      { value: 'Net 45', label: 'Net 45' },
-                      { value: 'Net 60', label: 'Net 60' },
-                    ]}
-                  />
-                  {errors.paymentTerms && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.paymentTerms.message}
+                  <label htmlFor="customer-credit-limit">
+                    Credit Limit {watchedValues.currency ? `(${watchedValues.currency})` : ''}
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <AccountBalanceWalletOutlined />
+                    </span>
+                    <input
+                      id="customer-credit-limit"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      placeholder="e.g. 50000"
+                      aria-invalid={Boolean(errors.creditLimit)}
+                      aria-describedby={errors.creditLimit ? 'customer-credit-limit-err' : undefined}
+                      {...register('creditLimit')}
+                    />
+                  </div>
+                  {errors.creditLimit && (
+                    <span id="customer-credit-limit-err" className="cust-field-error" role="alert">
+                      {errors.creditLimit.message}
                     </span>
                   )}
                 </div>
@@ -908,7 +1141,7 @@ export const CustomerForm = ({
             {/* STEP 3: Address Information */}
             {currentStep === 3 && (
               <div className="cust-step-address-content">
-                <div className="cust-subcard">
+                <div className="cust-address-group">
                   <AddressSection
                     prefix="billingAddress"
                     title="Billing Address Details"
@@ -928,14 +1161,24 @@ export const CustomerForm = ({
                     <input
                       id="same-as-billing"
                       type="checkbox"
-                      {...register('isShippingSameAsBilling')}
+                      {...register('isShippingSameAsBilling', {
+                        onChange: (e) => {
+                          const isChecked = e.target.checked;
+                          if (isChecked) {
+                            copyBillingToShipping();
+                          } else {
+                            clearShippingAddress();
+                          }
+                        },
+                      })}
                     />
                     <span>Shipping address is identical to billing address</span>
                   </label>
                 </div>
 
-                <div className="cust-subcard">
+                <div className="cust-address-group">
                   <AddressSection
+                    key={isShippingSameAsBilling ? 'shipping-same-as-billing' : 'shipping-manual-custom'}
                     prefix="shippingAddress"
                     title="Shipping Address Details"
                     register={register}
@@ -956,9 +1199,9 @@ export const CustomerForm = ({
             {currentStep === 4 && (
               <div className="cust-review-sections">
                 {/* 1. Basic Info Review */}
-                <div className="cust-review-card">
-                  <div className="cust-review-card-header">
-                    <h4>Basic Information</h4>
+                <div className="cust-review-section">
+                  <div className="cust-review-section-header">
+                    <h4 className="cust-review-title">Basic Information</h4>
                     <button
                       type="button"
                       className="cust-review-edit-btn"
@@ -981,16 +1224,26 @@ export const CustomerForm = ({
                       <span className="cust-review-value">{watchedValues.companyName || '—'}</span>
                     </div>
                     <div className="cust-review-row">
+                      <span className="cust-review-label">Customer Type</span>
+                      <span className="cust-review-value" style={{ textTransform: 'capitalize' }}>
+                        {watchedValues.customerType || 'Business'}
+                      </span>
+                    </div>
+                    <div className="cust-review-row">
                       <span className="cust-review-label">Account Status</span>
                       <span className="cust-review-value">{watchedValues.status || 'Active'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Currency</span>
+                      <span className="cust-review-value">{watchedValues.currency || '—'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Contact Info Review */}
-                <div className="cust-review-card">
-                  <div className="cust-review-card-header">
-                    <h4>Contact Information</h4>
+                <div className="cust-review-section">
+                  <div className="cust-review-section-header">
+                    <h4 className="cust-review-title">Contact Information</h4>
                     <button
                       type="button"
                       className="cust-review-edit-btn"
@@ -1008,7 +1261,7 @@ export const CustomerForm = ({
                       <span className="cust-review-label">Phone Number</span>
                       <span className="cust-review-value">
                         {watchedValues.phone
-                          ? `${watchedValues.phoneCountryCode || '+91'} ${watchedValues.phone}`
+                          ? `${watchedValues.phoneCountryCode ? watchedValues.phoneCountryCode + ' ' : ''}${watchedValues.phone}`
                           : '—'}
                       </span>
                     </div>
@@ -1020,9 +1273,9 @@ export const CustomerForm = ({
                 </div>
 
                 {/* 3. Billing & Tax Review */}
-                <div className="cust-review-card">
-                  <div className="cust-review-card-header">
-                    <h4>Billing & Tax Information</h4>
+                <div className="cust-review-section">
+                  <div className="cust-review-section-header">
+                    <h4 className="cust-review-title">Billing &amp; Tax</h4>
                     <button
                       type="button"
                       className="cust-review-edit-btn"
@@ -1037,30 +1290,38 @@ export const CustomerForm = ({
                       <span className="cust-review-value">
                         {watchedValues.taxRegistrationType === 'gst'
                           ? 'GST Registered'
-                          : watchedValues.taxRegistrationType === 'pan'
-                          ? 'PAN Available'
                           : 'Non-GST / Unregistered'}
                       </span>
                     </div>
                     <div className="cust-review-row">
-                      <span className="cust-review-label">Tax ID / GSTIN</span>
-                      <span className="cust-review-value">{watchedValues.taxId || '—'}</span>
+                      <span className="cust-review-label">PAN</span>
+                      <span className="cust-review-value">{watchedValues.pan || '—'}</span>
                     </div>
                     <div className="cust-review-row">
-                      <span className="cust-review-label">Currency</span>
-                        <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
+                      <span className="cust-review-label">GSTIN</span>
+                      <span className="cust-review-value">
+                        {watchedValues.taxRegistrationType === 'gst'
+                          ? (watchedValues.gstin || '—')
+                          : 'Not Applicable'}
+                      </span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>
                       <span className="cust-review-value">{watchedValues.paymentTerms || '—'}</span>
                     </div>
+                    <div className="cust-review-row cust-col-span-2">
+                      <span className="cust-review-label">Credit Limit</span>
+                      <span className="cust-review-value">
+                        {watchedValues.creditLimit ? `₹ ${Number(watchedValues.creditLimit).toLocaleString('en-IN')}` : '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* 4. Address Review */}
-                <div className="cust-review-card">
-                  <div className="cust-review-card-header">
-                    <h4>Address Information</h4>
+                <div className="cust-review-section">
+                  <div className="cust-review-section-header">
+                    <h4 className="cust-review-title">Address Information</h4>
                     <button
                       type="button"
                       className="cust-review-edit-btn"
@@ -1106,7 +1367,7 @@ export const CustomerForm = ({
                 </div>
 
                 {/* Internal Notes */}
-                <div className="cust-field" style={{ marginTop: '8px' }}>
+                <div className="cust-field" style={{ marginTop: '12px' }}>
                   <label htmlFor="customer-notes">Internal Notes (Optional)</label>
                   <textarea
                     id="customer-notes"
@@ -1167,21 +1428,31 @@ export const CustomerForm = ({
                     Next: {STEPS[currentStep + 1].label} <ArrowForward />
                   </button>
                 ) : (
-                  <button
-                    key="customer-submit"
-                    type="submit"
-                    data-customer-action="submit"
-                    className="cust-btn cust-btn-primary"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting
-                      ? mode === 'edit'
-                        ? 'Saving...'
-                        : 'Creating...'
-                      : mode === 'edit'
-                      ? 'Save Changes'
-                      : 'Create Customer'}
-                  </button>
+                  <div className="cust-submit-group">
+                    <button
+                      type="button"
+                      className="cust-btn cust-btn-secondary"
+                      onClick={onCancel}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      key="customer-submit"
+                      type="submit"
+                      data-customer-action="submit"
+                      className="cust-btn cust-btn-primary"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting
+                        ? mode === 'edit'
+                          ? 'Saving...'
+                          : 'Creating...'
+                        : mode === 'edit'
+                        ? 'Save Changes'
+                        : 'Create Customer'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1190,64 +1461,30 @@ export const CustomerForm = ({
 
         {/* Right Assistant Panel */}
         <aside className="cust-wizard-aside">
-          {/* Card 1: Add a New Customer Info Card */}
-          <div className="cust-side-card cust-guide-card">
-            <div className="cust-guide-illustration" aria-hidden="true">
-              <svg
-                width="72"
-                height="72"
-                viewBox="0 0 72 72"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  x="12"
-                  y="10"
-                  width="48"
-                  height="52"
-                  rx="8"
-                  fill="#f5ede6"
-                  stroke="#e0d4c8"
-                  strokeWidth="1.5"
-                />
-                <rect x="20" y="18" width="14" height="14" rx="4" fill="#855a3b" />
-                <circle cx="27" cy="23" r="3" fill="#ffffff" />
-                <path
-                  d="M22 30C22 28.5 24 27.5 27 27.5C30 27.5 32 28.5 32 30"
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-                <rect x="38" y="20" width="16" height="3" rx="1.5" fill="#c4b5a5" />
-                <rect x="38" y="27" width="12" height="3" rx="1.5" fill="#c4b5a5" />
-                <rect x="20" y="38" width="32" height="3" rx="1.5" fill="#d9cdbf" />
-                <rect x="20" y="45" width="24" height="3" rx="1.5" fill="#d9cdbf" />
-                <circle cx="52" cy="52" r="10" fill="#754d34" />
-                <path
-                  d="M52 47V57M47 52H57"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <h3 className="cust-guide-title">
-              {mode === 'edit' ? 'Edit Customer' : 'Add a New Customer'}
-            </h3>
-            <p className="cust-guide-text">
-              Fill in the details step by step. You can review all information before saving.
-            </p>
-          </div>
-
-          {/* Card 2: Contextual Quick Tip Card */}
-          <div className="cust-side-card cust-tip-card">
-            <div className="cust-tip-header">
-              <span className="cust-tip-icon" aria-hidden="true">
+          <div className="cust-quick-tips-card">
+            <div className="cust-quick-tips-header">
+              <div className="cust-quick-tips-icon-badge" aria-hidden="true">
                 <LightbulbOutlined />
-              </span>
-              <h4 className="cust-tip-title">Quick Tip</h4>
+              </div>
+              <div className="cust-quick-tips-header-text">
+                <h3 className="cust-quick-tips-title">Quick Tips</h3>
+                <span className="cust-quick-tips-badge">Step {currentStep + 1} Guidance</span>
+              </div>
             </div>
-            <p className="cust-tip-text">{QUICK_TIPS[currentStep]}</p>
+            <ul className="cust-quick-tips-list">
+              {(QUICK_TIPS[currentStep] || []).map((tip, idx) => (
+                <li key={idx} className="cust-quick-tips-item">
+                  <span className="cust-quick-tips-bullet" aria-hidden="true" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="cust-quick-tips-spacer" />
+            <div className="cust-quick-tips-footer">
+              <p className="cust-quick-tips-footer-text">
+                All details can be updated anytime after customer creation from the Customers directory.
+              </p>
+            </div>
           </div>
         </aside>
       </div>

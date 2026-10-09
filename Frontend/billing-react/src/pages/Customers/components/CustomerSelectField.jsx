@@ -22,6 +22,7 @@ export function CustomerSelectField({
           className={`cust-themed-select ${className}`.trim()}
           size="small"
           fullWidth
+          displayEmpty
           disabled={disabled}
           aria-invalid={invalid}
           value={field.value ?? ''}

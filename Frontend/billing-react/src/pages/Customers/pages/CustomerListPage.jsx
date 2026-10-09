@@ -57,11 +57,10 @@ import "../styles/customer-list.css";
 export const money = (value) =>
   value == null
     ? "—"
-    : new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
+    : Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(value);
+      });
 export const StatusChip = ({ status }) =>
   !["active", "inactive"].includes(status) ? (
     <span>—</span>

@@ -26,6 +26,12 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       open: true,
       proxy: {
+        '/api/pincode': {
+          target: 'https://api.postalpincode.in',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/pincode/, '/pincode'),
+          secure: false,
+        },
         '/api': {
           target: apiTarget,
           changeOrigin: true,

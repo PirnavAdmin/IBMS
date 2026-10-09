@@ -116,6 +116,7 @@ export function mapCustomer(response) {
   const tax = string(row.taxId);
   const gst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(tax);
   const status = string(row.status).toLowerCase();
+  const pan = gst && tax.length === 15 ? tax.substring(2, 12) : (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(tax) ? tax : (tax.length >= 10 ? tax.substring(0, 10) : ""));
   return {
     id: String(id),
     customerCode: string(row.customerCode),
@@ -123,8 +124,9 @@ export function mapCustomer(response) {
     companyName: string(row.companyName),
     email: string(row.email),
     mobile: string(row.phone),
-    taxId: gst ? "" : tax,
+    taxId: tax,
     gstin: gst ? tax : "",
+    pan: pan,
     customerType: ["individual", "business", "organization"].includes(
       string(row.customerType).toLowerCase()
     )
@@ -196,10 +198,6 @@ const preserved = [
   "isActive",
 ];
 export function customerPayload(values, existing) {
-  if (values.gstin && values.taxId && values.gstin !== values.taxId)
-    throw new Error(
-      "The backend supports one Tax ID. Enter either GSTIN or PAN / Registration ID, not both."
-    );
   const payload = {};
   if (existing)
     preserved.forEach((key) => {
@@ -219,8 +217,8 @@ export function customerPayload(values, existing) {
   }
   if (values.mobile !== undefined) payload.phone = values.mobile;
   else if (existing) payload.phone = existing.mobile;
-  if (values.gstin !== undefined || values.taxId !== undefined)
-    payload.taxId = values.gstin || values.taxId || null;
-  else if (existing) payload.taxId = existing.gstin || existing.taxId || null;
+  if (values.gstin !== undefined || values.pan !== undefined || values.taxId !== undefined)
+    payload.taxId = (values.gstin || values.pan || values.taxId || null)?.trim() || null;
+  else if (existing) payload.taxId = (existing.gstin || existing.pan || existing.taxId || null)?.trim() || null;
   return payload;
 }

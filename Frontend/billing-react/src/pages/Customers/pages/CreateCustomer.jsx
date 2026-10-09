@@ -39,18 +39,17 @@ export const CreateCustomer = () => {
           className="cust-breadcrumb-link"
           onClick={() => navigate('/customers')}
         >
-          <ArrowBack /> Customers
+          Customers
         </button>
-        <span className="cust-breadcrumb-sep">/</span>
-        <span className="cust-breadcrumb-current">New Customer</span>
+        <span className="cust-breadcrumb-sep">&gt;</span>
+        <span className="cust-breadcrumb-current">Create Customer</span>
       </nav>
 
       {/* Header */}
       <header className="cust-header">
         <div>
-          <span className="cust-eyebrow">Customer Registration</span>
-          <h1>Add New Customer</h1>
-          <p>Create a customer record with billing details and tax identification.</p>
+          <h1 className="cust-page-title">Create New Customer</h1>
+          <p className="cust-page-subtitle">Add customer details for billing and tax purposes.</p>
         </div>
       </header>
 

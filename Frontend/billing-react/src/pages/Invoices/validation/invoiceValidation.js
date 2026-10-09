@@ -52,13 +52,13 @@ export const getOneMonthLaterIso = (baseIso) => {
   return `${yStr}-${mStr}-${dStr}`;
 };
 
-export const blankInvoice = () => {
+export const blankInvoice = (defaultCurrency = "") => {
   const today = getTodayIso();
   return {
     customerId: "",
     invoiceDate: today,
     dueDate: getOneMonthLaterIso(today),
-    currency: "",
+    currency: defaultCurrency || "",
     reference: "",
     notes: "",
     termsAndConditions: "",
