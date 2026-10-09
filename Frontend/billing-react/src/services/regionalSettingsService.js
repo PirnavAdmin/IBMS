@@ -1,39 +1,9 @@
 import { useState, useEffect } from 'react';
 import { authApi, apiClient } from 'billing-api-client';
 
-export const COUNTRIES_LIST = [
-  { name: 'India', code: 'IN', phoneCode: '+91', currency: 'INR', currencySymbol: '₹', flag: '🇮🇳' },
-  { name: 'United States', code: 'US', phoneCode: '+1', currency: 'USD', currencySymbol: '$', flag: '🇺🇸' },
-  { name: 'United Kingdom', code: 'GB', phoneCode: '+44', currency: 'GBP', currencySymbol: '£', flag: '🇬🇧' },
-  { name: 'Australia', code: 'AU', phoneCode: '+61', currency: 'AUD', currencySymbol: 'A$', flag: '🇦🇺' },
-  { name: 'Singapore', code: 'SG', phoneCode: '+65', currency: 'SGD', currencySymbol: 'S$', flag: '🇸🇬' },
-  { name: 'United Arab Emirates', code: 'AE', phoneCode: '+971', currency: 'AED', currencySymbol: 'AED', flag: '🇦🇪' },
-  { name: 'Canada', code: 'CA', phoneCode: '+1', currency: 'CAD', currencySymbol: 'CA$', flag: '🇨🇦' },
-  { name: 'Germany', code: 'DE', phoneCode: '+49', currency: 'EUR', currencySymbol: '€', flag: '🇩🇪' },
-  { name: 'France', code: 'FR', phoneCode: '+33', currency: 'EUR', currencySymbol: '€', flag: '🇫🇷' },
-  { name: 'Japan', code: 'JP', phoneCode: '+81', currency: 'JPY', currencySymbol: '¥', flag: '🇯🇵' },
-  { name: 'Saudi Arabia', code: 'SA', phoneCode: '+966', currency: 'SAR', currencySymbol: 'SAR', flag: '🇸🇦' },
-  { name: 'New Zealand', code: 'NZ', phoneCode: '+64', currency: 'NZD', currencySymbol: 'NZ$', flag: '🇳🇿' },
-  { name: 'South Africa', code: 'ZA', phoneCode: '+27', currency: 'ZAR', currencySymbol: 'R', flag: '🇿🇦' },
-  { name: 'Ireland', code: 'IE', phoneCode: '+353', currency: 'EUR', currencySymbol: '€', flag: '🇮🇪' },
-  { name: 'Italy', code: 'IT', phoneCode: '+39', currency: 'EUR', currencySymbol: '€', flag: '🇮🇹' },
-  { name: 'Spain', code: 'ES', phoneCode: '+34', currency: 'EUR', currencySymbol: '€', flag: '🇪🇸' },
-  { name: 'Netherlands', code: 'NL', phoneCode: '+31', currency: 'EUR', currencySymbol: '€', flag: '🇳🇱' },
-  { name: 'Switzerland', code: 'CH', phoneCode: '+41', currency: 'CHF', currencySymbol: 'CHF', flag: '🇨🇭' },
-  { name: 'Sweden', code: 'SE', phoneCode: '+46', currency: 'SEK', currencySymbol: 'kr', flag: '🇸🇪' },
-  { name: 'Norway', code: 'NO', phoneCode: '+47', currency: 'NOK', currencySymbol: 'kr', flag: '🇳🇴' },
-  { name: 'Denmark', code: 'DK', phoneCode: '+45', currency: 'DKK', currencySymbol: 'kr', flag: '🇩🇰' },
-  { name: 'Malaysia', code: 'MY', phoneCode: '+60', currency: 'MYR', currencySymbol: 'RM', flag: '🇲🇾' },
-  { name: 'Indonesia', code: 'ID', phoneCode: '+62', currency: 'IDR', currencySymbol: 'Rp', flag: '🇮🇩' },
-  { name: 'Philippines', code: 'PH', phoneCode: '+63', currency: 'PHP', currencySymbol: '₱', flag: '🇵🇭' },
-  { name: 'Thailand', code: 'TH', phoneCode: '+66', currency: 'THB', currencySymbol: '฿', flag: '🇹🇭' },
-  { name: 'Brazil', code: 'BR', phoneCode: '+55', currency: 'BRL', currencySymbol: 'R$', flag: '🇧🇷' },
-  { name: 'Mexico', code: 'MX', phoneCode: '+52', currency: 'MXN', currencySymbol: 'Mex$', flag: '🇲🇽' },
-  { name: 'Qatar', code: 'QA', phoneCode: '+974', currency: 'QAR', currencySymbol: 'QR', flag: '🇶🇦' },
-  { name: 'Kuwait', code: 'KW', phoneCode: '+965', currency: 'KWD', currencySymbol: 'KD', flag: '🇰🇼' },
-  { name: 'China', code: 'CN', phoneCode: '+86', currency: 'CNY', currencySymbol: '¥', flag: '🇨🇳' },
-  { name: 'South Korea', code: 'KR', phoneCode: '+82', currency: 'KRW', currencySymbol: '₩', flag: '🇰🇷' },
-];
+import countries195Data from '../data/countries195.json';
+
+export const COUNTRIES_LIST = countries195Data;
 
 export function findCountry(countryOrCode) {
   if (!countryOrCode) return null;

@@ -1,5 +1,6 @@
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
+import { useProductSelectProps } from '../../Products/components/ProductSelect';
 import { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -123,22 +124,57 @@ const columns = [
   ["status", "Status"],
   ["", "Actions"],
 ];
+
+const SORT_OPTIONS = [
+  { label: "Recently Added", sortBy: "createdAt", sortOrder: "desc" },
+  { label: "Alphabetical (A – Z)", sortBy: "name", sortOrder: "asc" },
+  { label: "Alphabetical (Z – A)", sortBy: "name", sortOrder: "desc" },
+  { label: "Price: Low to High", sortBy: "price", sortOrder: "asc" },
+  { label: "Price: High to Low", sortBy: "price", sortOrder: "desc" },
+  { label: "First Added", sortBy: "id", sortOrder: "asc" },
+  { label: "Last Added", sortBy: "id", sortOrder: "desc" },
+];
+
+const ALLOWED_SORT_FIELDS = [
+  "customerCode",
+  "name",
+  "createdAt",
+  "price",
+  "id",
+  "email",
+  "companyName",
+  "code",
+  "updatedAt",
+];
+
+function getSortValue(sortBy, sortOrder) {
+  const match = SORT_OPTIONS.find(
+    (o) => o.sortBy === sortBy && o.sortOrder === sortOrder
+  );
+  return match ? `${match.sortBy}:${match.sortOrder}` : "";
+}
+
 export function CustomerListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const summaryQuery = useCustomerSummary();
   const [url, setUrl] = useSearchParams();
+  const sortSelectProps = useProductSelectProps();
   const params = {
     page: Math.max(1, Number(url.get("page")) || 1),
     pageSize: [10, 25, 50, 100].includes(Number(url.get("pageSize")))
       ? Number(url.get("pageSize"))
       : 10,
-    taxId: url.get("taxId") || "",
     search: url.get("search") || "",
-    sortBy: ["customerCode", "name"].includes(url.get("sortBy"))
+    sortBy: ALLOWED_SORT_FIELDS.includes(url.get("sortBy"))
       ? url.get("sortBy")
-      : "customerCode",
-    sortOrder: url.get("sortOrder") === "desc" ? "desc" : "asc",
+      : "",
+    sortOrder:
+      url.get("sortOrder") === "desc"
+        ? "desc"
+        : url.get("sortOrder") === "asc"
+        ? "asc"
+        : "",
     ...Object.fromEntries(
       Object.entries(filterOptions).map(([key, option]) => [
         key,
@@ -148,8 +184,20 @@ export function CustomerListPage() {
       ])
     ),
   };
+  const sortValue = getSortValue(params.sortBy, params.sortOrder);
+  const handleSortChange = (value) => {
+    if (!value) {
+      change({ sortBy: "", sortOrder: "", page: 1 });
+      return;
+    }
+    const option = SORT_OPTIONS.find(
+      (o) => `${o.sortBy}:${o.sortOrder}` === value
+    );
+    if (option) {
+      change({ sortBy: option.sortBy, sortOrder: option.sortOrder, page: 1 });
+    }
+  };
   const [search, setSearch] = useState(params.search);
-  const [taxId, setTaxId] = useState(params.taxId);
   const change = (values) =>
     setUrl(
       (previous) => {
@@ -164,13 +212,9 @@ export function CustomerListPage() {
   useEffect(() => {
     setSearch(params.search);
   }, [params.search]);
-  useEffect(() => {
-    setTaxId(params.taxId);
-  }, [params.taxId]);
-  useSearchCommit(JSON.stringify([search.trim(), taxId.trim()]), (value) => {
-    const [nextSearch, nextTaxId] = JSON.parse(value);
-    if (nextSearch !== params.search || nextTaxId !== params.taxId) {
-      change({ search: nextSearch, taxId: nextTaxId, page: 1 });
+  useSearchCommit(search.trim(), (nextSearch) => {
+    if (nextSearch !== params.search) {
+      change({ search: nextSearch, page: 1 });
     }
   });
   const query = useCustomers(params);
@@ -181,7 +225,7 @@ export function CustomerListPage() {
   const [reason, setReason] = useState("");
   const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
   const selectCard = (view) => {
-    setSearch(""); setTaxId("");
+    setSearch("");
     setUrl(view === "total" ? {} : view === "outstanding" ? { outstanding: "Has Outstanding" } : { status: view });
   };
   const [notice, setNotice] = useState(location.state?.customerNotice || "");
@@ -196,13 +240,10 @@ export function CustomerListPage() {
   const visibleCustomers = data?.items || [];
   const reset = () => {
     setSearch("");
-    setTaxId("");
     setUrl({});
   };
   const filtered =
-    !!params.taxId ||
-    params.sortBy !== "customerCode" ||
-    params.sortOrder !== "asc" ||
+    !!params.sortBy ||
     !!params.search ||
     Object.keys(filterOptions).some((key) => !!params[key]);
   return (
@@ -347,55 +388,45 @@ export function CustomerListPage() {
               </TextField>
             ))}
             <TextField
+              select
+              SelectProps={sortSelectProps}
+              label="Sort By"
               size="small"
-              label="Tax ID / GST / VAT ID"
-              value={taxId}
-              onChange={(event) => setTaxId(event.target.value)}
-            />
+              value={sortValue}
+              onChange={(event) => handleSortChange(event.target.value)}
+              className="customer-sort-select"
+            >
+              <MenuItem value="">Sort By</MenuItem>
+              {SORT_OPTIONS.map((o) => (
+                <MenuItem
+                  key={`${o.sortBy}:${o.sortOrder}`}
+                  value={`${o.sortBy}:${o.sortOrder}`}
+                >
+                  {o.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <Button
               onClick={reset}
-              disabled={!filtered && !search && !taxId && !url.toString()}
+              disabled={!filtered && !search && !url.toString()}
             >
               Reset filters
             </Button>
           </div>
-          <div className="customer-compact-sort" aria-label="Customer sorting">
-            <TextField
-              select
-              size="small"
-              label="Sort customers by"
-              value={params.sortBy}
-              onChange={(event) =>
-                change({ sortBy: event.target.value, page: 1 })
-              }
-              disabled={!customerCapabilities.sorting}
-            >
-              <MenuItem value="customerCode">Customer code</MenuItem>
-              <MenuItem value="name">Customer name</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label="Sort order"
-              value={params.sortOrder}
-              onChange={(event) =>
-                change({ sortOrder: event.target.value, page: 1 })
-              }
-              disabled={!customerCapabilities.sorting}
-            >
-              <MenuItem value="asc">Ascending</MenuItem>
-              <MenuItem value="desc">Descending</MenuItem>
-            </TextField>
-          </div>
           {filtered && (
             <div className="customer-filter-chips">
-              {params.taxId && (
+              {params.sortBy && (
                 <Chip
                   size="small"
-                  label={`Tax ID: ${params.taxId}`}
+                  label={`Sort: ${
+                    SORT_OPTIONS.find(
+                      (o) =>
+                        o.sortBy === params.sortBy &&
+                        o.sortOrder === params.sortOrder
+                    )?.label || `${params.sortBy} (${params.sortOrder || "asc"})`
+                  }`}
                   onDelete={() => {
-                    setTaxId("");
-                    change({ taxId: "", page: 1 });
+                    change({ sortBy: "", sortOrder: "", page: 1 });
                   }}
                 />
               )}

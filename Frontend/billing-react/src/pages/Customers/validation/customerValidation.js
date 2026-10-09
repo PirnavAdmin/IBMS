@@ -336,7 +336,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   gstin: '',
   taxId: '',
   currency: '',
-  paymentTerms: 'Net 30',
+  paymentTerms: '',
   creditLimit: '',
   openingBalance: '',
   notes: '',
@@ -362,8 +362,8 @@ export const DEFAULT_CUSTOMER_VALUES = {
 export const STEP_FIELDS = {
   0: ['name', 'customerCode', 'companyName', 'customerType', 'status', 'currency'],
   1: ['email', 'phoneCountryCode', 'phone', 'website'],
-  2: ['taxRegistrationType', 'pan', 'gstin', 'paymentTerms', 'creditLimit', 'openingBalance'],
-  3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling', 'shippingAddress.street', 'shippingAddress.city', 'shippingAddress.state', 'shippingAddress.postalCode', 'shippingAddress.country'],
+  2: ['taxRegistrationType', 'pan', 'gstin', 'paymentTerms', 'openingBalance'],
+  3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling'],
   4: ['notes'],
 };
 

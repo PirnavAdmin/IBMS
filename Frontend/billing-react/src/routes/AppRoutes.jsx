@@ -14,6 +14,7 @@ import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
 import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
 import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
+import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
 
 import { Payments } from '../pages/Payments/Payments';
 import { RecordPayment } from '../pages/Payments/RecordPayment';
@@ -142,7 +143,8 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
-      <Route path="/settings/country" element={<Navigate to="/settings" replace />} />
+      <Route path="/settings/countries" element={<CountryConfiguration />} />
+      <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />
       <Route path="/settings/discounts" element={<DiscountConfiguration />} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />

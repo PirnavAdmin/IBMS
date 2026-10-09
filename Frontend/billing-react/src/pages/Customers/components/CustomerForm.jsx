@@ -32,7 +32,6 @@ import {
   EditOutlined,
   DescriptionOutlined,
   CategoryOutlined,
-  AccountBalanceWalletOutlined,
 } from '@mui/icons-material';
 import '../styles/customer-form.css';
 
@@ -55,7 +54,7 @@ const STEPS = [
     id: 2,
     label: 'Billing & Tax',
     title: 'Billing & Tax',
-    subtitle: 'Configure tax registration, payment terms, and credit limits',
+    subtitle: 'Configure tax registration and payment terms',
     icon: ReceiptLongOutlined,
   },
   {
@@ -93,7 +92,6 @@ const QUICK_TIPS = {
     'GSTIN is required for GST-registered businesses.',
     'Entering GSTIN auto-fills the PAN number.',
     'Set default payment terms to reflect on newly generated invoices.',
-    'Credit limit restricts unpaid invoice balances.',
   ],
   3: [
     'Enter 6-digit PIN code to auto-populate city, state, and locality.',
@@ -201,7 +199,7 @@ export const CustomerForm = ({
       values?.raw?.paymentTerms ??
       ''
     ).trim();
-    const paymentTerms = rawPaymentTerms || 'Net 30';
+    const paymentTerms = rawPaymentTerms || '';
 
     return {
       ...DEFAULT_CUSTOMER_VALUES,
@@ -1109,32 +1107,6 @@ export const CustomerForm = ({
                   )}
                 </div>
 
-                <div className="cust-field">
-                  <label htmlFor="customer-credit-limit">
-                    Credit Limit {watchedValues.currency ? `(${watchedValues.currency})` : ''}
-                  </label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <AccountBalanceWalletOutlined />
-                    </span>
-                    <input
-                      id="customer-credit-limit"
-                      type="number"
-                      min={0}
-                      step={1000}
-                      placeholder="e.g. 50000"
-                      aria-invalid={Boolean(errors.creditLimit)}
-                      aria-describedby={errors.creditLimit ? 'customer-credit-limit-err' : undefined}
-                      {...register('creditLimit')}
-                    />
-                  </div>
-                  {errors.creditLimit && (
-                    <span id="customer-credit-limit-err" className="cust-field-error" role="alert">
-                      {errors.creditLimit.message}
-                    </span>
-                  )}
-                </div>
-
               </div>
             )}
 
@@ -1176,22 +1148,24 @@ export const CustomerForm = ({
                   </label>
                 </div>
 
-                <div className="cust-address-group">
-                  <AddressSection
-                    key={isShippingSameAsBilling ? 'shipping-same-as-billing' : 'shipping-manual-custom'}
-                    prefix="shippingAddress"
-                    title="Shipping Address Details"
-                    register={register}
-                    control={control}
-                    setValue={setValue}
-                    trigger={trigger}
-                    getValues={getValues}
-                    watch={watch}
-                    errors={errors}
-                    disabled={isShippingSameAsBilling}
-                    country={watchedValues.shippingAddress?.country}
-                  />
-                </div>
+                {!isShippingSameAsBilling && (
+                  <div className="cust-address-group">
+                    <AddressSection
+                      key="shipping-manual-custom"
+                      prefix="shippingAddress"
+                      title="Shipping Address Details"
+                      register={register}
+                      control={control}
+                      setValue={setValue}
+                      trigger={trigger}
+                      getValues={getValues}
+                      watch={watch}
+                      errors={errors}
+                      disabled={false}
+                      country={watchedValues.shippingAddress?.country}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1308,12 +1282,6 @@ export const CustomerForm = ({
                     <div className="cust-review-row">
                       <span className="cust-review-label">Payment Terms</span>
                       <span className="cust-review-value">{watchedValues.paymentTerms || '—'}</span>
-                    </div>
-                    <div className="cust-review-row cust-col-span-2">
-                      <span className="cust-review-label">Credit Limit</span>
-                      <span className="cust-review-value">
-                        {watchedValues.creditLimit ? `₹ ${Number(watchedValues.creditLimit).toLocaleString('en-IN')}` : '—'}
-                      </span>
                     </div>
                   </div>
                 </div>
