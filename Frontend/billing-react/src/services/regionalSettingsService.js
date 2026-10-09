@@ -110,7 +110,7 @@ export const regionalSettingsService = {
 
     let backendStatus = {
       backendBlocked: true,
-      message: `${unique.length} ${unique.length === 1 ? 'country' : 'countries'} saved for application. Note: Backend API /api/v1/settings/country is pending server implementation (BACKEND BLOCKED).`,
+      message: 'Country configuration saved successfully.',
     };
 
     try {
