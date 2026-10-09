@@ -17,6 +17,52 @@ namespace Billing.Tests.Unit;
 
 public class InvoiceTemplateTests
 {
+    [Fact]
+    public async Task CreateTemplate_NewCompany_UsesReferenceLayoutAndColorsWithItsOwnBranding()
+    {
+        var request = new CreateTemplateRequest
+        {
+            Name = "Other Company Invoice",
+            CompanyDetails = new CompanyDetailsConfigDto { CompanyName = "Other Company Ltd", Email = "billing@other.example" }
+        };
+        request.Branding.LogoUrl = "data:image/png;base64,other-company-logo";
+
+        var result = await _service.CreateTemplateAsync(request, 2, "Admin");
+
+        var version = Assert.Single(result.Versions);
+        Assert.True(version.Layout.UsePirnavStandardLayout);
+        Assert.Equal("#6B2E0C", version.Branding.PrimaryColor);
+        Assert.Equal("#F7EDE5", version.Branding.SecondaryColor);
+        Assert.Equal("right", version.Branding.LogoPosition);
+        Assert.Equal("Other Company Ltd", version.CompanyDetails.CompanyName);
+        Assert.Equal("billing@other.example", version.CompanyDetails.Email);
+        Assert.Equal(request.Branding.LogoUrl, version.Branding.LogoUrl);
+        Assert.Equal(request.Terms.TermsAndConditions, version.Terms.TermsAndConditions);
+        Assert.Equal(request.Terms.FooterNote, version.Terms.FooterNote);
+        Assert.False(result.IsDefault);
+        Assert.Equal(ContractStatus.Draft, version.Status);
+    }
+
+    [Fact]
+    public async Task CreateTemplate_ExplicitLegacyLayout_PreservesRequestedConfiguration()
+    {
+        var request = new CreateTemplateRequest
+        {
+            Name = "Custom Legacy Layout",
+            Layout = new LayoutConfigDto { UsePirnavStandardLayout = false },
+            Branding = new BrandingConfigDto { PrimaryColor = "#123456", SecondaryColor = "#abcdef" },
+            Terms = new TermsConfigDto { TermsAndConditions = "Custom terms", FooterNote = "Custom footer" }
+        };
+
+        var result = await _service.CreateTemplateAsync(request, 2, "Admin");
+
+        var version = Assert.Single(result.Versions);
+        Assert.False(version.Layout.UsePirnavStandardLayout);
+        Assert.Equal("#123456", version.Branding.PrimaryColor);
+        Assert.Equal("Custom terms", version.Terms.TermsAndConditions);
+        Assert.Equal("Custom footer", version.Terms.FooterNote);
+    }
+
     private readonly Mock<IInvoiceTemplateRepository> _mockTemplateRepo;
     private readonly Mock<IInvoiceSnapshotRepository> _mockSnapshotRepo;
     private readonly Mock<IGeneratedDocumentRepository> _mockDocumentRepo;
