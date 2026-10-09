@@ -19,9 +19,13 @@ const client = () => new QueryClient({ defaultOptions: { queries: { retry: false
 const render = (element, cache = client(), location = '/products') => renderToStaticMarkup(<StaticRouter location={location}><QueryClientProvider client={cache}>{element}</QueryClientProvider></StaticRouter>);
 const table = props => <ProductTable items={[product]} loading={false} error={null} params={{ sortBy: 'price', sortOrder: 'desc' }} onSort={() => {}} onRetry={() => {}} onClear={() => {}} {...props} />;
 
-test('PQA table: nine columns, actual currency, long names, inactive badge and numeric action URLs', () => {
+test('PQA table: twelve columns, actual currency, long names, inactive badge and numeric action URLs', () => {
   const html = render(table());
-  for (const label of ['Product Code', 'Product Name', 'Type', 'Category', 'Unit', 'Price', 'Tax Category', 'Status', 'Actions']) assert.ok(html.includes(label));
+  const labels = ['Product Code', 'Product Name', 'Type', 'Category', 'Unit', 'Unit Price', 'Discount', 'Tax', 'Final Price', 'Tax Category', 'Status', 'Actions'];
+  const headers = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, '').replace(/<[^>]*>/g, ''));
+  assert.deepEqual(headers, labels);
+  assert.equal((html.match(/<td\b/g) || []).length, 12);
+  assert.doesNotMatch(html, /MuiTableCell-alignRight|MuiTableCell-alignCenter/);
   assert.match(html, /\$1,234\.50/); assert.doesNotMatch(html, /₹1,234/);
   assert.match(html, /href="\/products\/7"/); assert.doesNotMatch(html, /href="\/products\/7\/edit"/);
   assert.match(html, /aria-haspopup="menu"/); assert.match(html, /aria-expanded="false"/);
@@ -37,6 +41,37 @@ test('PQA table states: skeleton, real empty, filtered empty and API failure nev
   assert.match(render(table({ items: [], filtered: true })), /No matching products/);
   const failed = render(table({ error: new Error('Access denied') }));
   assert.match(failed, /Unable to load products/); assert.doesNotMatch(failed, /PRD-7/);
+});
+
+test('PQA pricing columns show saved percentages and explicit unavailable financial results', () => {
+  const cells = item => [...render(table({ items: [item] })).matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)]
+    .map(match => match[1].replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, '').replace(/<[^>]*>/g, ''));
+  const discounted = cells({ ...product, currency: 'INR', price: 40000, discountAllowed: true, discountPercent: 7.5, taxCategory: 'GST 18%' });
+  assert.equal(discounted[5], '₹40,000.00');
+  assert.equal(discounted[6], '7.5%');
+  assert.equal(discounted[7], 'Unavailable');
+  assert.equal(discounted[8], 'Unavailable');
+  assert.equal(discounted[9], 'GST 18%');
+  for (const taxCategory of ['Exempt', 'Not Applicable']) {
+    const untaxed = cells({ ...product, discountPercent: 50, taxCategory });
+    assert.equal(untaxed[6], 'Not Applicable');
+    assert.equal(untaxed[7], taxCategory);
+    assert.equal(untaxed[8], 'Unavailable');
+  }
+  for (const discountPercent of [null, '', 'invalid']) {
+    assert.equal(cells({ ...product, discountAllowed: true, discountPercentage: '', discountPercent })[6], 'Unavailable');
+  }
+  assert.equal(cells({ ...product, discountAllowed: true, discountPercent: 0 })[6], '0%');
+  for (const price of [2253, 120]) {
+    assert.equal(cells({ ...product, currency: 'INR', price })[5], price === 2253 ? '₹2,253.00' : '₹120.00');
+  }
+});
+
+test('PQA expanded table states span all twelve columns', () => {
+  for (const state of [{ items: [] }, { items: [], filtered: true }, { error: new Error('Unavailable') }]) {
+    assert.match(render(table(state)), /colspan="12"/i);
+  }
+  assert.equal((render(table({ loading: true })).match(/<td\b/g) || []).length, 7 * 12);
 });
 
 test('PQA pagination: first, middle, last and empty bounds', () => {
@@ -59,16 +94,29 @@ test('PQA product form: create excludes inactive category; edit retains its disa
   assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).unit, 'Others');
   assert.equal(getProductInitialValues({ ...product, unit: 'Hour' }).customUnit, 'Hour');
   assert.match(edit, /name="customUnit"/);
-  assert.match(edit, /Not set/);
+  assert.match(edit, /Not Applicable/);
 });
 
 test('PQA edit initialization never adds tax to an untaxed product and preserves optional values', () => {
-  assert.equal(getProductInitialValues(null).taxCategory, 'GST 18%');
+  assert.equal(getProductInitialValues(null).taxCategory, 'Not Applicable');
   for (const taxCategory of [null, undefined, '']) {
     const values = getProductInitialValues({ ...product, taxCategory, description: null, hsnSacCode: '001234', discountPercent: 0 });
-    assert.equal(values.taxCategory, ''); assert.equal(values.description, '');
+    assert.equal(values.taxCategory, 'Not Applicable'); assert.equal(values.description, '');
     assert.equal(values.hsnSac, '001234'); assert.equal(values.discountPercentage, 0);
     assert.equal(values.categoryId, '1');
+  }
+});
+
+test('PQA custom tax stays in one editable category control for Product and Service', () => {
+  const cache = client(); cache.setQueryData(['categories', 'list'], categories);
+  const standard = render(<ProductForm mode="edit" initialValues={{ ...product, taxCategory: 'GST 18%' }} onSubmit={() => {}} />, cache);
+  assert.doesNotMatch(standard, /name="customTaxPercentage"/);
+  for (const type of ['Product', 'Service']) {
+    const custom = render(<ProductForm mode="edit" initialValues={{ ...product, type, currency: 'JPY', taxCategory: 'GST 7.5%' }} onSubmit={() => {}} />, cache);
+    assert.doesNotMatch(custom, /name="customTaxPercentage"|id="productCustomTax"/);
+    assert.match(custom, /value="GST 7.5%"/);
+    assert.match(custom, /JPY/);
+    assert.equal(getProductInitialValues({ ...product, taxCategory: 'GST 7.5%' }).taxCategory, 'GST 7.5%');
   }
 });
 
@@ -141,16 +189,17 @@ test('PQA pagination: five-row pages retain correct next/previous ranges', () =>
 });
 
 
-test('PQA Price sorting: trailing arrow and right-aligned cells in both directions', () => {
+test('PQA Unit Price sorting keeps the price field and left alignment in both directions', () => {
   for (const sortOrder of ['asc', 'desc']) {
     const html = render(table({ params: { sortBy: 'price', sortOrder } }));
-    const header = html.match(/<th\b[^>]*>(?:(?!<\/th>).)*>Price<(?:(?!<\/th>).)*<\/th>/s)?.[0];
+    const header = html.match(/<th\b[^>]*>(?:(?!<\/th>).)*>Unit Price<(?:(?!<\/th>).)*<\/th>/s)?.[0];
     assert.ok(header);
-    assert.match(header, /MuiTableCell-alignRight/);
+    assert.match(header, /MuiTableCell-alignLeft/);
+    assert.match(header, new RegExp(`aria-sort="${sortOrder === 'asc' ? 'ascending' : 'descending'}"`));
     assert.match(header, /flex-direction:row;/);
     assert.doesNotMatch(header, /flex-direction:row-reverse/);
-    assert.match(header.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ''), /Price<svg/);
-    assert.match(html, /<td[^>]*MuiTableCell-alignRight[^>]*product-price/);
+    assert.match(header.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ''), /Unit Price<svg/);
+    assert.match(html, /<td[^>]*MuiTableCell-alignLeft[^>]*product-price/);
     assert.match(html, /class="product-identity"><span class="product-row-icon product"[^>]*>.*?<\/span><a[^>]*class="product-name"/s);
   }
 });
