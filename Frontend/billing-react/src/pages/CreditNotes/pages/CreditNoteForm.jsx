@@ -15,6 +15,7 @@ const displayedLineTotal = (item, selectedItems, totals, isFull) => {
   const lineTotal = creditLineAmounts(item).total;
   const lastSelected = selectedItems[selectedItems.length - 1];
   return isFull && lastSelected?.id === item.id ? lineTotal + Number(totals.rounding || 0) : lineTotal;
+};
 
 export function CreditNoteForm() {
   const { id } = useParams();

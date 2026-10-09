@@ -141,6 +141,7 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/country" element={<Navigate to="/settings" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />
       <Route path="/settings/discounts" element={<DiscountConfiguration />} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />

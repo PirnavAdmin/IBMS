@@ -1,0 +1,279 @@
+/* ==========================================================================
+   CountryCallingCodeSelector.css
+   INVOICE.BILLING Enterprise Design System
+   Source of Truth Palette:
+   - Primary: #5A2508
+   - Secondary: #8B451F
+   - Background: #F8F1E7
+   - Surface: #FFFFFF
+   - Border: #EADFD2
+   ========================================================================== */
+
+.country-calling-code-container {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* 1. Closed State Trigger Button */
+.country-calling-code-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  height: 42px;
+  min-width: 92px;
+  max-width: 120px;
+  padding: 0 10px;
+  background-color: #ffffff;
+  border: 1.5px solid #eadfd2;
+  border-radius: 8px;
+  color: #2c2520;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  outline: none;
+}
+
+.country-calling-code-trigger:hover:not(:disabled) {
+  border-color: #8b451f;
+  background-color: #fffefd;
+}
+
+.country-calling-code-trigger:focus-visible,
+.country-calling-code-trigger.open {
+  border-color: #5a2508;
+  box-shadow: 0 0 0 3px rgba(90, 37, 8, 0.12);
+  background-color: #ffffff;
+}
+
+.country-calling-code-trigger.has-error {
+  border-color: #b3261e !important;
+}
+
+.country-calling-code-trigger:disabled {
+  background-color: #f8f1e7;
+  color: #a09388;
+  border-color: #eadfd2;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Closed state items: flag, calling code, arrow */
+.calling-code-flag {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.calling-code-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #2c2520;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.calling-code-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #8c7d71;
+  line-height: 1;
+  margin-left: 1px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.country-calling-code-trigger.open .calling-code-arrow {
+  transform: rotate(180deg);
+  color: #5a2508;
+}
+
+/* 2. Dropdown Popup */
+.calling-code-dropdown {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 1050;
+  width: 290px;
+  background: #ffffff;
+  border: 1.5px solid #eadfd2;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px -6px rgba(90, 37, 8, 0.16), 0 4px 10px -2px rgba(90, 37, 8, 0.06);
+  padding: 6px;
+  box-sizing: border-box;
+  animation: callingCodeDropdownFade 0.15s ease-out;
+}
+
+@keyframes callingCodeDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search input inside dropdown */
+.calling-code-search-wrap {
+  position: relative;
+  margin-bottom: 6px;
+  padding: 2px;
+}
+
+.calling-code-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 28px 0 30px;
+  border: 1px solid #eadfd2;
+  border-radius: 6px;
+  background: #fdfbf7;
+  color: #2c2520;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.calling-code-search-input:focus {
+  border-color: #5a2508;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(90, 37, 8, 0.08);
+}
+
+.calling-code-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem !important;
+  color: #8c7d71;
+  pointer-events: none;
+}
+
+.calling-code-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #8c7d71;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 0.95rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.calling-code-clear-btn:hover {
+  color: #5a2508;
+  background: #f8f1e7;
+}
+
+/* Options List */
+.calling-code-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 230px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Custom warm scrollbar */
+.calling-code-list::-webkit-scrollbar {
+  width: 5px;
+}
+.calling-code-list::-webkit-scrollbar-track {
+  background: #f8f1e7;
+  border-radius: 3px;
+}
+.calling-code-list::-webkit-scrollbar-thumb {
+  background: #d4c2b0;
+  border-radius: 3px;
+}
+.calling-code-list::-webkit-scrollbar-thumb:hover {
+  background: #8b451f;
+}
+
+/* Each Option: Flag | Country Name | Calling Code */
+.calling-code-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  font-size: 0.84rem;
+  color: #2c2520;
+}
+
+.calling-code-option:hover,
+.calling-code-option.highlighted {
+  background-color: #faf5ee;
+}
+
+.calling-code-option.selected {
+  background-color: #f4eae0;
+  font-weight: 600;
+}
+
+.calling-code-option-flag {
+  font-size: 1.15rem;
+  line-height: 1;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.calling-code-option-name {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #2c2520;
+}
+
+.calling-code-option.selected .calling-code-option-name {
+  color: #5a2508;
+}
+
+.calling-code-option-code {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #5a2508;
+  background: #f8f1e7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #eadfd2;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.calling-code-option.selected .calling-code-option-code {
+  background: #5a2508;
+  color: #ffffff;
+  border-color: #5a2508;
+}
+
+.calling-code-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #8c7d71;
+}

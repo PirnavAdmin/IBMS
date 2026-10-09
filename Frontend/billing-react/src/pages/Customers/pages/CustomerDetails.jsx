@@ -188,7 +188,7 @@ export const CustomerDetails = () => {
             </div>
             <div className="cust-dl-row">
               <dt>Billing Currency</dt>
-              <dd>{currency || 'INR'}</dd>
+              <dd>{currency || '—'}</dd>
             </div>
           </dl>
         </section>
