@@ -289,7 +289,7 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
     window.print();
   };
   const actions = <div className="quote-header-actions">
-    <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? <><ArrowBack /> Back to details</> : <><VisibilityOutlined /> View</>}</button>
+    <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? <><ArrowBack /> Back to details</> : <><VisibilityOutlined /> View quotation</>}</button>
     {quotation.status === 'Draft' && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
     {quotation.status === 'Sent' && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
     {quotation.status === 'Approved' && <button className="quote-btn primary" onClick={() => onAction('convert', quotation)}>Convert to Invoice</button>}
@@ -376,7 +376,7 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
               <th>Qty</th>
               <th>Unit Price (₹)</th>
               <th>Discount (₹)</th>
-              <th>GST (%)</th>
+              <th>Tax (%)</th>
               <th>Amount (₹)</th>
             </tr>
           </thead>
@@ -424,11 +424,13 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
           <ol className="invoice-terms-copy">{invoiceTerms.map(term => <li key={term}>{term}</li>)}</ol>
         </div>
         <div className="invoice-sign-box">
-          <h2><EditOutlined aria-hidden="true" /> For {sellerBrandName}</h2>
+          <h2>For {sellerBrandName}</h2>
           {signature && <div className="invoice-signature has-saved-signature">
             <img className="invoice-saved-signature" src={signature} alt="Saved authorized signature" />
           </div>}
-          <div className="invoice-signature-editor">
+          {signature ? <div className="invoice-signature-controls">
+            <button className="quote-btn secondary small" type="button" onClick={clearSignature}><DeleteOutline /> Clear</button>
+          </div> : <div className="invoice-signature-editor">
             <canvas
               ref={signatureCanvasRef}
               aria-label="Draw authorized signature"
@@ -441,10 +443,10 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
             <div className="invoice-signature-controls">
               <button className="quote-btn primary small" type="button" onClick={saveSignature} disabled={!signatureStrokes.length}><SaveOutlined /> Save</button>
               <button className="quote-btn secondary small" type="button" onClick={undoSignatureStroke} disabled={!signatureStrokes.length}><UndoOutlined /> Undo</button>
-              <button className="quote-btn secondary small" type="button" onClick={clearSignature} disabled={!signatureStrokes.length && !signature}><DeleteOutline /> Clear</button>
+              <button className="quote-btn secondary small" type="button" onClick={clearSignature} disabled={!signatureStrokes.length}><DeleteOutline /> Clear</button>
             </div>
-            {signatureError && <p className="quote-error" role="alert">{signatureError}</p>}
-          </div>
+          </div>}
+          {signatureError && <p className="quote-error" role="alert">{signatureError}</p>}
           <div className="invoice-signature-caption">Authorized Signatory</div>
         </div>
       </div>

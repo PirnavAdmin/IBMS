@@ -11,7 +11,6 @@ export function validateQuotation(form) {
   form.items?.forEach((item, index) => {
     const key = `item-${index}`;
     if (!normalizeId(item.productId)) errors[key] = 'Select a valid product.';
-    if (!item.description?.trim() || item.description.length > 500) errors[key] = 'Enter a description (maximum 500 characters).';
     if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 0) errors[key] = 'Quantity must be a whole number of 0 or more.';
     if (item.unitPrice === '' || !Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0 || Number(item.unitPrice) > 1000000000) errors[key] = 'Enter a valid non-negative unit price.';
     const discount = Number(item.discountType === 'percentage' ? item.discountRate || 0 : item.discountAmount || 0);

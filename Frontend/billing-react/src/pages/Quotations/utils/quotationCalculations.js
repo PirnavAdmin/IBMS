@@ -37,19 +37,33 @@ export function applyAdditionalDiscounts(items = [], additionalDiscounts = []) {
 }
 
 export function applyAdditionalTaxes(items = [], additionalTaxes = []) {
+  const selectedTaxByItem = new Map();
   const taxByItem = new Map();
   for (const tax of additionalTaxes) {
     const itemKey = String(tax.itemId ?? '');
     if (!itemKey) continue;
-    taxByItem.set(itemKey, (taxByItem.get(itemKey) || 0) + Math.max(0, Number(tax.taxAmount) || 0));
+    if (tax.taxRate !== undefined && tax.taxRate !== '') {
+      const selected = selectedTaxByItem.get(itemKey) || { taxTypes: [], taxRate: 0 };
+      if (tax.taxType && !selected.taxTypes.includes(tax.taxType)) selected.taxTypes.push(tax.taxType);
+      selected.taxRate += Math.max(0, Number(tax.taxRate) || 0);
+      selectedTaxByItem.set(itemKey, selected);
+    } else {
+      taxByItem.set(itemKey, (taxByItem.get(itemKey) || 0) + Math.max(0, Number(tax.taxAmount) || 0));
+    }
   }
 
   return items.map(item => {
-    const additionalTax = taxByItem.get(String(item.id)) || 0;
+    const selectedTax = selectedTaxByItem.get(String(item.id));
+    const additionalTaxAmount = taxByItem.get(String(item.id)) || 0;
     const taxable = lineTotals(item).taxable;
-    if (!additionalTax || taxable <= 0) return item;
-    const additionalRate = additionalTax / taxable * 100;
-    return { ...item, taxRate: Math.max(0, Number(item.taxRate) || 0) + additionalRate };
+    const additionalRate = (selectedTax?.taxRate || 0) + (additionalTaxAmount && taxable > 0 ? additionalTaxAmount / taxable * 100 : 0);
+    if (!additionalRate) return item;
+    const taxTypes = [...new Set([item.taxType, ...(selectedTax?.taxTypes || [])].filter(Boolean))];
+    return {
+      ...item,
+      taxType: taxTypes.join(' + ') || item.taxType,
+      taxRate: Math.max(0, Number(item.taxRate) || 0) + additionalRate,
+    };
   });
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { CalendarMonth } from '@mui/icons-material';
 
 const pad = value => String(value).padStart(2, '0');
 const toDateValue = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -10,11 +11,10 @@ const fromDateValue = value => {
 
 function calendarPosition(anchor) {
   const rect = anchor.getBoundingClientRect();
-  const height = 360;
-  const top = window.innerHeight - rect.bottom >= height + 8 || window.innerHeight - rect.bottom >= rect.top
-    ? rect.bottom + 4 : rect.top - height - 4;
+  const top = rect.bottom + 4;
+  const maxHeight = Math.max(0, window.innerHeight - top - 8);
   const width = Math.min(280, window.innerWidth - 16);
-  return { top: Math.max(8, Math.min(top, window.innerHeight - height - 8)), left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), width };
+  return { top, left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), width, maxHeight };
 }
 
 export function ThemedDatePicker({ label, value, onChange, disabled = false }) {
@@ -69,7 +69,7 @@ export function ThemedDatePicker({ label, value, onChange, disabled = false }) {
 
   return <div className="quote-date-picker" ref={rootRef}>
     <button type="button" className="quote-date-trigger" aria-label={label} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => { if (!open) { const date = fromDateValue(value) || new Date(); setMonth(new Date(date.getFullYear(), date.getMonth(), 1)); } setOpen(current => !current); }} onKeyDown={event => { if (event.key === 'Escape') setOpen(false); }}>
-      <span className={display ? '' : 'placeholder'}>{display || 'Select date'}</span><span aria-hidden="true" className="quote-date-icon">▦</span>
+      <span className={display ? '' : 'placeholder'}>{display || 'Select date'}</span><CalendarMonth aria-hidden="true" className="quote-date-icon" />
     </button>
     {open && position && createPortal(<div ref={calendarRef} className="quote-calendar" role="dialog" aria-label={`${label} calendar`} style={position}>
       <header className="quote-calendar-header"><button type="button" aria-label="Previous month" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() - 1, 1))}>‹</button><strong>{monthLabel}</strong><button type="button" aria-label="Next month" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() + 1, 1))}>›</button></header>
