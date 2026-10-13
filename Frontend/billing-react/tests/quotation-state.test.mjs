@@ -10,7 +10,7 @@ import vm from 'node:vm';
 async function harness(loadFailure = null) {
   const slots = []; let cursor = 0; const effects = []; const calls = [];
   let record = { id: 1, customerId: '1', customer: {}, status: 'Draft', items: [], communications: [], auditLogs: [], rowVersion: 'v1' };
-  let failGet = false, failAudit = false, failSave = false, saveGate;
+  let failGet = false, failAudit = false, failSave = false, saveGate, chargeLoads = 0;
   const api = {
     list: async () => { if (loadFailure) throw loadFailure; return {items:[record],totalCount:1}; },
     get: async () => { calls.push('get'); if (failGet) throw new Error('Refresh failed'); return { ...record }; },
@@ -46,6 +46,14 @@ async function harness(loadFailure = null) {
         return Array.isArray(page) ? page : page.items;
       },
     };
+    if (id.includes('phase5Api')) return { phase5Api: { getCharges: async () => {
+      chargeLoads += 1;
+      return [
+        { id: 12, name: 'Delivery Fee', code: 'DELIVERY', value: 25, calculationType: 'Fixed', status: 'Active' },
+        { id: 13, name: 'Inactive Fee', code: 'INACTIVE', value: 50, calculationType: 'Fixed', status: 'Inactive' },
+      ];
+    } } };
+    if (id.includes('templateApi')) return { templateApi: { list: async () => [] } };
     if (id.includes('apiClient')) return { apiClient: { get: async () => { if (loadFailure) throw loadFailure; return []; } } };
     if (id.includes('customer.contracts')) return { parseCustomerResponse: q => q };
     if (id.includes('quotationErrors')) return { quotationErrorMessage: e => e.message };
@@ -60,17 +68,19 @@ async function harness(loadFailure = null) {
   const props = type => find(render(), type);
   render(); effects.forEach(fn => fn());
   await new Promise(resolve => setImmediate(resolve));
-  return { props, calls, api, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
+  return { props, calls, api, get chargeLoads() { return chargeLoads; }, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
 }
 
 test('create and edit refresh details/history and update the list without reloading', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate();
+  const h = await harness(); await h.props('QuotationList').onCreate();
+  assert.deepEqual(h.props('QuotationForm').configuredCharges, [{ id: 12, name: 'Delivery Fee', code: 'DELIVERY', value: 25, calculationType: 'Fixed', status: 'Active' }]);
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Created' });
   assert.equal(h.props('QuotationDetails').quotation.id, 2);
   assert.equal(h.props('QuotationDetails').quotation.auditLogs.length, 1);
   assert.deepEqual(h.calls, ['save', 'clearDraft', 'get', 'communication', 'audit']);
   await h.props('QuotationDetails').onEdit({ id: 2 });
   assert.equal(h.props('QuotationForm').initial.rowVersion, 'v2');
+  assert.equal(h.chargeLoads, 3);
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Edited' });
   h.props('QuotationDetails').onBack();
   await new Promise(resolve=>setImmediate(resolve));
@@ -100,7 +110,7 @@ for (const action of ['send', 'approve', 'cancel', 'convert']) {
 }
 
 test('successful save survives refresh failure and retry loads history', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate(); h.setFailGet(true);
+  const h = await harness(); await h.props('QuotationList').onCreate(); h.setFailGet(true);
   await h.props('QuotationForm').onSave({ id: 2 });
   assert.equal(h.props('QuotationDetails').quotation.id, 2);
   assert.match(h.props('Alert').children.join(''), /Quotation saved, but details/);
@@ -117,7 +127,7 @@ test('history failure reports an error and can be retried', async () => {
 });
 
 test('failed save keeps form open; concurrent saves only submit once', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate(); h.setFailSave(true);
+  const h = await harness(); await h.props('QuotationList').onCreate(); h.setFailSave(true);
   await h.props('QuotationForm').onSave({ reference: 'Keep input' });
   assert.ok(h.props('QuotationForm'));
   assert.equal(h.calls.includes('clearDraft'), false);

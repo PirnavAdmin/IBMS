@@ -14,11 +14,10 @@ const fromDateValue = value => {
 
 function calendarPosition(anchor) {
   const rect = anchor.getBoundingClientRect();
-  const height = 360;
-  const top = window.innerHeight - rect.bottom >= height + 8 || window.innerHeight - rect.bottom >= rect.top
-    ? rect.bottom + 4 : rect.top - height - 4;
+  const top = rect.bottom + 4;
+  const maxHeight = Math.max(0, window.innerHeight - top - 8);
   const width = Math.min(280, window.innerWidth - 16);
-  return { top: Math.max(8, Math.min(top, window.innerHeight - height - 8)), left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), width };
+  return { top, left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), width, maxHeight };
 }
 
 export function ThemedDatePicker({ label, value, onChange, disabled = false, min, max, required = false, className = "", renderTrigger }) {

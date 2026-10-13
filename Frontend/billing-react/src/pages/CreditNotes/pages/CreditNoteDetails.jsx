@@ -6,12 +6,13 @@ import {
   PaymentsOutlined, ReceiptLongOutlined, SendOutlined, TaskAltOutlined,
 } from '@mui/icons-material';
 import {
-  Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Snackbar, Table,
+  Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Table,
   TableBody, TableCell, TableHead, TableRow, TextField,
 } from '@mui/material';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { formatDate, formatDateTime, money, refundableBalance } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
@@ -97,8 +98,6 @@ export function CreditNoteDetails() {
       {!isPreview && <><div className="cn-detail-toolbar"><Button component={Link} to="/credit-notes" startIcon={<ArrowBack />}>Credit Notes</Button><div><Button variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => navigate(`/credit-notes/${id}/preview`)}>Preview / Print</Button>{canSubmit && <Button component={Link} to={`/credit-notes/${id}/edit`} variant="outlined" startIcon={<EditOutlined />}>Edit draft</Button>}</div></div></>}
       {isPreview && <div className="cn-preview-toolbar"><Button onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
-      {location.state?.notice && !isPreview && <Alert className="cn-inline-alert" severity="success">{location.state.notice}</Alert>}
-      <div className="cn-demo-banner cn-api-banner"><span className="cn-demo-dot" /><div><strong>Billing API record</strong><span>This credit note and its lifecycle information are loaded from the billing API.</span></div><span className="cn-demo-tag">LIVE API</span></div>
       <header className="cn-document-header">
         <div className="cn-document-brand"><span className="cn-brand-mark"><ReceiptLongOutlined /></span><div><small>INVOICE.BILLING</small><strong>Credit note</strong></div></div>
         <div className="cn-document-title"><div><span className="cn-eyebrow">CUSTOMER CREDIT</span><h1>{note.number}</h1><p>Credit note for invoice <span>{note.invoiceNumber}</span></p></div><CreditNoteStatusBadge status={note.status} /></div>
@@ -149,7 +148,7 @@ export function CreditNoteDetails() {
         </DialogContent>
         <DialogActions><Button onClick={() => setAction('')} disabled={mutation.isPending}>Keep as is</Button><Button variant="contained" onClick={confirmAction} disabled={mutation.isPending}>{mutation.isPending ? 'Processing…' : action === 'refund' ? 'Record refund' : 'Confirm'}</Button></DialogActions>
       </Dialog>
-      <Snackbar open={Boolean(notice)} autoHideDuration={3500} onClose={() => setNotice('')}><Alert severity="success" onClose={() => setNotice('')} variant="filled">{notice}</Alert></Snackbar>
+      {!isPreview && <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />}
     </main>
   );
 }

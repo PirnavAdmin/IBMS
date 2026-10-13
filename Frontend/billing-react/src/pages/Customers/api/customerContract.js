@@ -58,7 +58,10 @@ export function customerQuery(params) {
     !["Has Outstanding", "No Outstanding"].includes(params.outstanding)
   )
     throw new Error("Invalid outstanding filter.");
-  const sortBy = params.sortBy === "customerCode" ? "code" : params.sortBy;
+  let sortBy = params.sortBy === "customerCode" ? "code" : params.sortBy;
+  if (sortBy === "id" || sortBy === "price") {
+    sortBy = sortBy === "price" ? "code" : "createdAt";
+  }
   if (
     sortBy &&
     ![

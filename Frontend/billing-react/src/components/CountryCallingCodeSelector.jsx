@@ -5,18 +5,20 @@ import {
   COUNTRIES_LIST,
   findCountryByCallingCode,
 } from '../services/regionalSettingsService';
+import { CountryFlag } from './CountryFlag';
 import './CountryCallingCodeSelector.css';
 
 /**
  * CountryCallingCodeSelector
  *
- * A reusable Country Calling Code Selector component matching the INVOICE.BILLING design system.
+ * A reusable Country Calling Code Selector component for all 195 countries.
  *
  * Requirements:
  * 1. Closed state displays ONLY: [ 🇮🇳  +91  ▾ ] (no country name in closed state).
- * 2. Dropdown displays: [ Flag | Country Name | Calling Code ] (e.g. 🇮🇳 India +91, 🇺🇸 United States +1).
+ * 2. Dropdown displays: [ Flag | Country Name | Calling Code ] across all 195 countries.
  * 3. Default selection is supplied by the Country configured in INVOICE.BILLING Settings.
  * 4. Separate from phone number input; preserves existing form validation & entered number.
+ * 5. Handles shared calling codes (e.g. US/Canada +1, Italy/Holy See +39).
  */
 export function CountryCallingCodeSelector({
   value,
@@ -34,12 +36,12 @@ export function CountryCallingCodeSelector({
   const {
     defaultCountry: settingsDefaultCountry,
     selectedCountries,
-    availableCountries = COUNTRIES_LIST,
   } = useRegionalSettings();
 
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [selectedCountryObj, setSelectedCountryObj] = useState(null);
 
   const containerRef = useRef(null);
   const triggerRef = useRef(null);
@@ -58,33 +60,23 @@ export function CountryCallingCodeSelector({
     if (selectedCountries && selectedCountries.length > 0) {
       return selectedCountries[0];
     }
-    // Fallback to first available country in metadata
-    return COUNTRIES_LIST[0];
+    // Default to India if available, else first country
+    return COUNTRIES_LIST.find((c) => c.code === 'IN') || COUNTRIES_LIST[0];
   }, [defaultCountryCode, settingsDefaultCountry, selectedCountries]);
 
-  // 2. Determine active list of countries
+  // 2. Active list of countries: Complete 195 countries unless specific list is provided
   const countryList = useMemo(() => {
-    let list = [];
     if (Array.isArray(countries) && countries.length > 0) {
-      list = [...countries];
-    } else if (selectedCountries && selectedCountries.length > 0) {
-      list = [...selectedCountries];
-    } else {
-      list = availableCountries && availableCountries.length > 0 ? [...availableCountries] : [...COUNTRIES_LIST];
+      return countries;
     }
+    return COUNTRIES_LIST;
+  }, [countries]);
 
-    // If active country code is not in the list, include it so existing records remain intact
-    if (value) {
-      const match = findCountryByCallingCode(value, defaultCountry?.code);
-      if (match && !list.some((c) => c.phoneCode === match.phoneCode && c.code === match.code)) {
-        list.push(match);
-      }
-    }
-    return list;
-  }, [countries, selectedCountries, availableCountries, value, defaultCountry]);
-
-  // 3. Resolve the currently active country object based on value
+  // 3. Resolve the currently active country object based on value & state (handles shared calling codes)
   const currentCountry = useMemo(() => {
+    if (selectedCountryObj && (selectedCountryObj.phoneCode === value || !value)) {
+      return selectedCountryObj;
+    }
     if (value) {
       const matched = findCountryByCallingCode(value, defaultCountry?.code);
       if (matched) return matched;
@@ -96,11 +88,12 @@ export function CountryCallingCodeSelector({
       };
     }
     return defaultCountry;
-  }, [value, defaultCountry]);
+  }, [value, selectedCountryObj, defaultCountry]);
 
   // Sync default country calling code with parent form when empty
   useEffect(() => {
     if (!value && defaultCountry?.phoneCode && autoSelectDefault && onChange) {
+      setSelectedCountryObj(defaultCountry);
       onChange(defaultCountry.phoneCode, defaultCountry);
     }
   }, [value, defaultCountry, autoSelectDefault, onChange]);
@@ -148,6 +141,7 @@ export function CountryCallingCodeSelector({
 
   const handleSelect = (country) => {
     if (disabled) return;
+    setSelectedCountryObj(country);
     setIsOpen(false);
     triggerRef.current?.focus();
     if (onChange) {
@@ -214,7 +208,12 @@ export function CountryCallingCodeSelector({
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
       >
         <span className="calling-code-flag" aria-hidden="true">
-          {currentCountry?.flag || '🌐'}
+          <CountryFlag
+            code={currentCountry?.code}
+            name={currentCountry?.name}
+            width={20}
+            height={15}
+          />
         </span>
         <span className="calling-code-text">
           {currentCountry?.phoneCode || value || '+91'}
@@ -275,7 +274,12 @@ export function CountryCallingCodeSelector({
                     onMouseEnter={() => setHighlightedIndex(index)}
                   >
                     <span className="calling-code-option-flag" aria-hidden="true">
-                      {c.flag}
+                      <CountryFlag
+                        code={c.code}
+                        name={c.name}
+                        width={20}
+                        height={15}
+                      />
                     </span>
                     <span className="calling-code-option-name">{c.name}</span>
                     <span className="calling-code-option-code">

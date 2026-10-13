@@ -3,6 +3,7 @@ import { lookupIndiaPincode } from '../../../services/postalService';
 import { CheckCircleOutline, SyncOutlined } from '@mui/icons-material';
 import { CustomerSelectField } from './CustomerSelectField';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
+import { CountryFlag } from '../../../components/CountryFlag';
 
 export const AddressSection = ({
   prefix,
@@ -55,7 +56,8 @@ export const AddressSection = ({
     { value: '', label: 'Select Country' },
     ...baseCountries.map((c) => ({
       value: c.name,
-      label: `${c.flag ? c.flag + ' ' : ''}${c.name}`,
+      label: c.name,
+      icon: <CountryFlag code={c.code} name={c.name} width={18} height={13} />,
     })),
     ...(!currentCountryExists && currentCountry ? [{ value: currentCountry, label: currentCountry }] : []),
   ];

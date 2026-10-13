@@ -207,10 +207,6 @@ function Preview() {
           )}
         </div>
       </div>
-      <p className="tax-preview-note">
-        Preview only. Final invoice and billing amounts are calculated by the
-        backend.
-      </p>
     </section>
   );
 }

@@ -1,5 +1,16 @@
 export const emptyAuditFilters = { entityName: '', userName: '', action: '', startDate: '', endDate: '' };
 
+export function auditEventLabel(value) {
+  if (!value) return '—';
+  return String(value)
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim().split(/\s+/)
+    .map(word => /^(PDF|SMS|API|GST|OTP)$/i.test(word) ? word.toUpperCase()
+      : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+}
+
 export function auditQuery(filters, page, pageSize) {
   if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
     throw new Error('The end date must be on or after the start date.');

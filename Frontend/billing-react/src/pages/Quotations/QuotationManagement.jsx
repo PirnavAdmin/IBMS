@@ -6,6 +6,7 @@ import { authApi } from 'billing-api-client/authApi.js';
 import { templateApi } from 'billing-api-client/templateApi.js';
 import { quotationApi, normalizeQuotation, normalizeQuotationProduct, normalizeCommunication, unwrap, fetchAllPages } from 'billing-api-client/quotationApi.js';
 import { parseCustomerResponse } from 'billing-contracts/customer.contracts.js';
+import { phase5Api } from '../Settings/services/phase5Api';
 import { QuotationList } from './pages/QuotationList';
 import { QuotationForm, newQuotation } from './components/QuotationForm';
 import { QuotationDetails } from './pages/QuotationDetails';
@@ -63,7 +64,7 @@ const message = e => e.response?.status === 401 ? 'Please sign in to load quotat
 export function QuotationManagement() {
   const location=useLocation();
   const [tenantProfile,setTenantProfile]=useState(()=>tenantProfileFrom(authApi.getCurrentUser()||{}));
-  const [quotes,setQuotes]=useState([]), [customers,setCustomers]=useState([]), [products,setProducts]=useState([]);
+  const [quotes,setQuotes]=useState([]), [customers,setCustomers]=useState([]), [products,setProducts]=useState([]), [configuredCharges,setConfiguredCharges]=useState([]);
   const [screen,setScreen]=useState('list'), [current,setCurrent]=useState(null), [dialog,setDialog]=useState(null);
   const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
   const [listFailed,setListFailed]=useState(false);
@@ -79,14 +80,16 @@ export function QuotationManagement() {
       fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/customers',{params}))),
       fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/products',{params}))),
       loadTenantProfile(),
+      phase5Api.getCharges(),
     ]);
     if(version!==generation.current)return;
     try {
-      const [q,c,p,profile]=results; setListFailed(q.status==='rejected');
+      const [q,c,p,profile,charges]=results; setListFailed(q.status==='rejected');
       if(q.status==='fulfilled')setQuotes(q.value.map(normalizeQuotation));
       if(c.status==='fulfilled')setCustomers(c.value.map(parseCustomerResponse).filter(Boolean).map(row=>({...row,id:String(row.id),code:row.customerCode,mobile:row.phone,billingAddress:address(row.billingAddress),shippingAddress:address(row.shippingAddress),taxInfo:row.taxId||''})));
       if(p.status==='fulfilled')setProducts(p.value.filter(row=>row.isActive!==false&&row.status!=='Inactive').map(normalizeQuotationProduct));
       if(profile.status==='fulfilled')setTenantProfile(profile.value);
+      if(charges.status==='fulfilled')setConfiguredCharges(charges.value.filter(charge=>charge.status==='Active'));
       const failures=[...new Set(results.filter(r=>r.status==='rejected').map(r=>message(r.reason)))];
       setError(failures.join(' '));
     }catch(e){setListFailed(true);setError(message(e));}finally{setLoading(false);}
@@ -111,7 +114,16 @@ export function QuotationManagement() {
     if(locked.current)return;locked.current=true;setBusy(true);setError('');
     try{await task();}catch(e){setError(message(e));}finally{locked.current=false;setBusy(false);}
   };
+  const refreshConfiguredCharges=async()=>{
+    try{
+      const charges=await phase5Api.getCharges();
+      setConfiguredCharges(charges.filter(charge=>String(charge.status).toLowerCase()==='active'));
+    }catch(e){
+      setError(`Configured charges could not be loaded. ${message(e)}`);
+    }
+  };
   const open=(mode,q)=>run(async()=>{
+    if(mode==='edit')await refreshConfiguredCharges();
     const detail=await quotationApi.get(q.id);
     if(mode==='edit'&&detail.status!=='Draft')throw new Error('Only Draft quotations can be edited.');
     setCurrent(detail);setScreen(mode);
@@ -136,7 +148,7 @@ export function QuotationManagement() {
   });
   const transition=reason=>run(async()=>{
     await quotationApi.action(current.id,dialog,reason);const completed=dialog;setDialog(null);
-    setNotice({send:'Quotation marked as sent.',approve:'Quotation approved.',cancel:'Quotation cancelled.',convert:'Quotation converted to invoice.'}[completed]);
+    setNotice({send:'Quotation emailed to the customer.',approve:'Quotation approved.',cancel:'Quotation cancelled.',convert:'Quotation converted to invoice.'}[completed]);
     try{await refreshDetails(current.id);}catch(e){setScreen('list');await load();setError(`Action completed, but details could not be refreshed. ${message(e)}`);}
   });
   const cancelEdit=()=>current?run(()=>refreshDetails(current.id).then(()=>setScreen('details'))):setScreen('list');
@@ -148,10 +160,10 @@ export function QuotationManagement() {
     {error&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
     <fieldset disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
       {screen==='create'||screen==='edit'
-        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>
+        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>
         :screen==='details'&&current
           ?<QuotationDetails quotation={enrich(current)} tenantProfile={tenantProfile} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
-          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>{setCurrent(null);setScreen('create');}} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
+          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>run(async()=>{await refreshConfiguredCharges();setCurrent(null);setScreen('create');})} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
       <QuotationDialog key={dialog||'closed'} type={dialog} quotation={current&&enrich(current)} error={error} onClose={()=>setDialog(null)} onConfirm={transition}/>
     </fieldset>
     <Snackbar open={!!notice} autoHideDuration={5000} onClose={()=>setNotice('')}><Alert severity="success">{notice}</Alert></Snackbar>

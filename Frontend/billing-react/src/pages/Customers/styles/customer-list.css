@@ -173,8 +173,8 @@
 .customers-page .customer-table .MuiTableCell-head { font-weight: 700; }
 .customers-page .customer-identity a { font-size: 14px; }
 .customers-page .customer-filter-row > .MuiTextField-root { min-width: 160px; }
+.customers-page .customer-filter-row > .customer-sort-select { min-width: 185px; }
 .customers-page .customer-stat { min-width: 0; }
-.customers-page .customer-stat-top { overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .customers-page .customer-filter-row > .MuiTextField-root { min-width: 0; flex-basis: 100%; }
   .customers-page .customer-identity { min-width: 0; }
@@ -458,3 +458,26 @@
 
 .customers-page .customer-result-count { border-radius: 6px; font-size: .75rem; }
 @media (max-width: 600px) { .customers-page .customer-panel-heading { flex-wrap: wrap; } }
+
+/* Sort By dropdown menu styling matching Image 1 / ProductFilters */
+.product-select-menu.MuiPaper-root {
+  background: var(--bg-main, #fffaf2);
+  color: var(--text-primary, #2f2523);
+  border-radius: 8px;
+  border: 1px solid var(--border, #dcd1c6);
+  box-shadow: var(--shadow-card, 0 6px 20px #4a2c2a22);
+}
+.product-select-menu .MuiMenuItem-root {
+  transition: background-color 180ms ease;
+  font-size: 13.5px;
+}
+.product-select-menu .MuiMenuItem-root:hover,
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible {
+  background: #eadcc9;
+}
+.product-select-menu .MuiMenuItem-root.Mui-selected,
+.product-select-menu .MuiMenuItem-root.Mui-selected:hover,
+.product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible {
+  background: var(--primary, #4a2c2a);
+  color: #fff;
+}

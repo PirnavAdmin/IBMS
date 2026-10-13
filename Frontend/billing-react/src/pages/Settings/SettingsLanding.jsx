@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Settings,
   DiscountOutlined,
@@ -8,10 +8,8 @@ import {
   ReceiptLongOutlined,
   PublicOutlined,
 } from '@mui/icons-material';
-import { Button, Autocomplete, TextField, Chip } from '@mui/material';
+import { Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { useRegionalSettings } from '../../services/regionalSettingsService';
 import './settings.css';
 
 const cards = [
@@ -105,27 +103,6 @@ function CardPattern({ variant }) {
 
 export function SettingsLanding() {
   const navigate = useNavigate();
-  const { selectedCountries: persistedCountries, availableCountries, saveCountries } = useRegionalSettings();
-  const [selectedCountries, setSelectedCountries] = useState(persistedCountries);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
-
-  // Sync selectedCountries when persisted configuration updates
-  useEffect(() => {
-    setSelectedCountries(persistedCountries);
-  }, [persistedCountries]);
-
-  const handleSaveCountry = async () => {
-    setSaving(true);
-    try {
-      const result = await saveCountries(selectedCountries);
-      setToast(result.message || 'Country selection updated.');
-    } catch (err) {
-      setToast('Country selection updated locally.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <main className="settings-page settings-landing">
@@ -158,73 +135,25 @@ export function SettingsLanding() {
           </article>
         ))}
 
-        {/* 5th Settings Card: Country Selection */}
-        <article className="settings-nav-card settings-country-card" key="country-setting">
+        {/* 5th Settings Card: Country Navigation Card */}
+        <article className="settings-nav-card" key="country-setting">
           <CardPattern variant={4} />
           <span className="settings-nav-icon" aria-hidden="true">
             <PublicOutlined />
           </span>
           <h2>Country</h2>
           <p>Select the countries for your application.</p>
-          <div className="settings-country-body">
-            <div className="settings-country-control">
-              <label htmlFor="settings-country-select" className="settings-country-label">
-                Country
-              </label>
-              <Autocomplete
-                multiple
-                id="settings-country-select"
-                options={availableCountries}
-                value={selectedCountries}
-                onChange={(_, newValues) => setSelectedCountries(newValues)}
-                getOptionLabel={(option) => `${option.flag}  ${option.name}`}
-                isOptionEqualToValue={(option, value) =>
-                  option.code === value?.code || option.name === value?.name
-                }
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={option.code}
-                      label={`${option.flag} ${option.name}`}
-                      size="small"
-                      className="settings-country-chip"
-                    />
-                  ))
-                }
-                renderOption={(props, option) => (
-                  <li {...props} key={option.code} className="settings-country-option">
-                    <span className="settings-country-flag">{option.flag}</span>
-                    <span className="settings-country-name">{option.name}</span>
-                  </li>
-                )}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    placeholder={selectedCountries.length === 0 ? "Select countries..." : "Add country..."}
-                    inputProps={{
-                      ...params.inputProps,
-                      'aria-label': 'Country',
-                    }}
-                  />
-                )}
-              />
-            </div>
-            <div className="settings-country-actions">
-              <Button
-                variant="contained"
-                disabled={saving}
-                onClick={handleSaveCountry}
-                className="settings-country-save-btn"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
+          <Button
+            variant="contained"
+            endIcon={<ArrowForward />}
+            onClick={() => navigate('/settings/countries')}
+          >
+            Configure
+          </Button>
         </article>
       </section>
-      <FeedbackSnackbar message={toast} onClose={() => setToast('')} />
     </main>
   );
 }
+
+export default SettingsLanding;

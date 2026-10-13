@@ -5,7 +5,7 @@
 .quote-date-trigger:disabled{opacity:.65;cursor:not-allowed}
 .quote-date-trigger .placeholder{color:var(--text-secondary)}
 .quote-date-icon{color:var(--primary)}
-.quote-calendar{position:fixed;z-index:2000;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-primary);box-shadow:0 10px 26px rgba(60,37,24,.2)}
+.quote-calendar{overflow-y:auto;position:fixed;z-index:2000;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-primary);box-shadow:0 10px 26px rgba(60,37,24,.2)}
 .quote-calendar-header{display:flex;align-items:center;justify-content:space-between;min-height:36px;margin-bottom:6px}
 .quote-calendar-header strong{font-size:.9rem}
 .quote-calendar-header button,.quote-calendar-footer button{padding:5px 9px;border:0;border-radius:6px;background:transparent;color:var(--primary);font:inherit;font-size:1.2rem;cursor:pointer}
