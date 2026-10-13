@@ -15,6 +15,7 @@ import { PaymentReversalContent } from '../src/pages/Payments/PaymentReversal';
 import { PaymentState } from '../src/pages/Payments/PaymentShared';
 import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money } from '../src/pages/Payments/paymentService';
 import { paymentSchema, reversalSchema } from '../src/pages/Payments/paymentValidation';
+import { localCalendarDate } from '../src/utils/localDate';
 import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from '../src/pages/Payments/paymentReports';
 
 // Test fixtures only; never imported by application runtime.
@@ -45,6 +46,12 @@ test('Record screen renders fields and read-only authoritative values',()=>{
  const c=cache();c.setQueryData(['payment-invoices'],[invoice]);const html=render('/payments/new',c);
  for(const label of ['Invoice Search / Select','Invoice Total','Previously Paid','Current Outstanding','Payment Date','Payment Amount','Payment Method','Notes','Review Payment'])assert.ok(html.includes(label),label);
  const fields=(html.match(/<input\b[^>]*>/g)||[]).filter(x=>x.includes('placeholder="Select an eligible invoice"'));assert.equal(fields.length,4);assert.ok(fields.every(x=>/readonly=""/i.test(x)));
+ assert.match(html, new RegExp(`type="date"[^>]*value="${localCalendarDate()}"`));
+});
+test('new payment default uses local calendar getters, not UTC serialization',()=>{
+ assert.equal(localCalendarDate({getFullYear:()=>2026,getMonth:()=>9,getDate:()=>9,toISOString:()=>{throw new Error('UTC conversion is not allowed');}}),'2026-10-09');
+ assert.equal(localCalendarDate(new Date(2026,0,2,0,5)),'2026-01-02');
+ assert.equal(createPaymentDto({...form,date:'2026-10-01'},invoice,'key').paymentDate,'2026-10-01T00:00:00Z');
 });
 test('Payment details maps actual allocations, balance, audit and reversal state',()=>{
  const c=cache();c.setQueryData(['payments','detail','9'],mapPayment(payment));const html=render('/payments/9',c);
@@ -83,6 +90,8 @@ test('Payment list print contains plain escaped rows without application control
  assert.doesNotMatch(html, /<button|<svg|<script|border-radius|payment-status|Actions|INVOICE.BILLING/);
  assert.match(html, /text-align:left/);
  assert.match(html, /display:table-header-group/);
+ assert.match(html, /background:#F0E2D0/);
+ assert.match(html, /border:1px solid #BBA58C/);
 });
 
 test('Receipt prints authoritative allocation amounts, notes and reversal without badges', () => {

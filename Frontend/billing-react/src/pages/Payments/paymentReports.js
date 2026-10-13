@@ -1,3 +1,4 @@
+import { printDocument } from '../../utils/printDocument';
 import { displayDate, formatIndianDateTime, paymentService } from './paymentService';
 
 const escapeHtml = value => String(value == null || value === '' ? '\u2014' : value)
@@ -13,11 +14,11 @@ const table = (columns, rows) => `<table><thead><tr>${columns.map(value => `<th>
 // Match the Products & Services report: plain Arial, title, bordered tables.
 const document = (title, body, landscape = false) => `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
   @page{size:${landscape ? 'landscape' : 'A4'};margin:12mm}
-  body{margin:0;background:white;color:#111;font:12px Arial,sans-serif}
-  h1{font-size:20px;margin:0 0 12px}h2{font-size:15px;margin:20px 0 10px}
+  body{margin:0;background:white;color:#35231C;font:12px Arial,sans-serif}
+  h1{font-size:20px;margin:0 0 12px;color:#633D28}h2{font-size:15px;margin:20px 0 10px}
   table{width:100%;border-collapse:collapse;table-layout:fixed}
-  th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}
-  th{font-weight:700}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
+  th,td{border:1px solid #BBA58C;padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere;white-space:pre-wrap}
+  th{font-weight:700;background:#F0E2D0;color:#4B2E1E}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
   h2{break-after:avoid}
   </style></head><body><h1>${escapeHtml(title)}</h1>${body}</body></html>`;
 
@@ -65,22 +66,4 @@ export async function getPaymentReportRows(filters, options) {
   return rows;
 }
 
-// An isolated document excludes application fonts, icon circles, and controls.
-// It also supports receipt links without relying on browser pop-up permission.
-export function printPaymentDocument(report) {
-  window.document.getElementById('payment-print-document')?.remove();
-  const frame = window.document.createElement('iframe');
-  frame.id = 'payment-print-document';
-  frame.title = 'Printable payment report';
-  frame.setAttribute('aria-hidden', 'true');
-  frame.tabIndex = -1;
-  frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:1100px;height:800px;border:0;';
-  frame.onload = () => {
-    const printWindow = frame.contentWindow;
-    printWindow.addEventListener('afterprint', () => frame.remove(), { once: true });
-    printWindow.focus();
-    printWindow.print();
-  };
-  frame.srcdoc = report;
-  window.document.body.appendChild(frame);
-}
+export function printPaymentDocument(report) { printDocument(report, 'payment-print-document'); }

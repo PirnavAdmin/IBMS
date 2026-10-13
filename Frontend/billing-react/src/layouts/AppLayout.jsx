@@ -7,6 +7,8 @@ import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import '../styles/Dashboard.css';
 import '../styles/ModuleSpacing.css';
 import '../styles/AppTheme.css';
+import '../styles/WorkspaceResponsive.css';
+import '../styles/DropdownTheme.css';
 
 const routeModules = {
   '/dashboard': 'dashboard',

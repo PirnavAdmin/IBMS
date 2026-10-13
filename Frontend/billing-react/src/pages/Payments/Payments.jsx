@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateField';
 import { useState } from 'react';
 import { Button, IconButton, InputAdornment, Pagination, MenuItem, Menu, ListItemIcon, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
 import { Add, Refresh, Search, VisibilityOutlined, UndoOutlined, ReceiptLongOutlined, LocalPrintshopOutlined, MoreVert } from '@mui/icons-material';
@@ -8,24 +9,33 @@ import { PaymentShell, PaymentState, PaymentStatus, usePaymentUser } from './Pay
 import { paymentService, PAYMENT_METHODS, PAYMENT_STATUSES, methodLabel, money, displayDate, paymentError } from './paymentService';
 import { PaymentReversal } from './PaymentReversal';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { buildPaymentListReport, getPaymentReportRows, printPaymentDocument } from './paymentReports';
+import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from './paymentReports';
 
 const columns = [['paymentNumber','Payment Number / ID'],['paymentDate','Date'],['','Customer'],['','Invoice'],['method','Method'],['amount','Amount'],['','Allocated'],['status','Status'],['','Actions']];
 
 const PaymentRowActions = ({ payment: p, user, onReverse }) => {
   const navigate = useNavigate();
   const [anchor, setAnchor] = useState(null);
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
+  const printReceipt = async () => {
+    if (printing) return;
+    handleClose(); setPrinting(true); setPrintError('');
+    try { printPaymentDocument(buildPaymentReceiptReport(await paymentService.getPaymentById(p.id))); }
+    catch (error) { setPrintError(paymentError(error)); }
+    finally { setPrinting(false); }
+  };
   const open = Boolean(anchor);
   const handleOpen = event => setAnchor(event.currentTarget);
   const handleClose = () => setAnchor(null);
 
   return (
-    <div className="payment-row-actions">
+    <div className="payment-row-actions"><FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity="error" />
       <IconButton
         aria-label={`Actions for payment ${p.paymentNumber || p.id}`}
         title="More actions"
         size="small"
-        onClick={handleOpen}
+        onClick={handleOpen} disabled={printing}
       >
         <MoreVert fontSize="small" />
       </IconButton>
@@ -41,7 +51,7 @@ const PaymentRowActions = ({ payment: p, user, onReverse }) => {
           <ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>
           View Details
         </MenuItem>
-        <MenuItem onClick={() => { handleClose(); navigate(`/payments/${encodeURIComponent(p.id)}?print=true`); }}>
+        <MenuItem onClick={printReceipt} disabled={printing}>
           <ListItemIcon><LocalPrintshopOutlined fontSize="small" /></ListItemIcon>
           Print Receipt
         </MenuItem>
@@ -80,8 +90,8 @@ export const Payments = () => {
       <TextField className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} label="Search payments" placeholder="Payment number, invoice or customer" value={search} onChange={event => setSearch(event.target.value)} />
       <TextField select label="Status" value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>
       <TextField select label="Payment Method" value={filters.method} onChange={event => change({ method: event.target.value })}><MenuItem value="">All methods</MenuItem>{PAYMENT_METHODS.map(method => <MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</TextField>
-      <TextField type="date" label="From Date" InputLabelProps={{ shrink: true }} value={filters.from} onChange={event => change({ from: event.target.value })} />
-      <TextField type="date" label="To Date" InputLabelProps={{ shrink: true }} value={filters.to} onChange={event => change({ to: event.target.value })} error={dateError} helperText={dateError ? 'To Date must be on or after From Date.' : ''} />
+      <DateInput label="From Date" InputLabelProps={{ shrink: true }} value={filters.from} onChange={event => change({ from: event.target.value })} />
+      <DateInput label="To Date" InputLabelProps={{ shrink: true }} value={filters.to} onChange={event => change({ to: event.target.value })} error={dateError} helperText={dateError ? 'To Date must be on or after From Date.' : ''} />
       <Button className="payment-clear" variant="outlined" onClick={() => { setSearch(''); change({ search: '', status: '', method: '', from: '', to: '', sortBy: 'createdAtUtc', sortOrder: 'desc' }); }}>Clear Filters</Button>
     </section>
     <PaymentState error={user.error && query.error ? `${paymentError(user.error)} ${paymentError(query.error)}` : user.error || query.error} onRetry={() => { user.refetch(); query.refetch(); }} />

@@ -25,6 +25,7 @@ import { productService } from '../services/productService';
 import { ProductSelectField } from './ProductSelect';
 import { ProductEditableSelect } from './ProductEditableSelect';
 import { getCurrencyOptions, filterCurrencyOption, getCurrencySymbol } from '../../../utils/currencies.js';
+import { useReactHookFormDraft } from '../../../context/FormDraftContext';
 
 
 export const getProductInitialValues = (values) => {
@@ -86,12 +87,7 @@ export function ProductForm({
     mode: 'onTouched',
   });
 
-  // Re-populate when initialValues change (edit mode async loading)
-  useEffect(() => {
-    if (initialValues) {
-      reset(getProductInitialValues(initialValues));
-    }
-  }, [initialValues, reset]);
+  const draft = useReactHookFormDraft(`product:${initialValues?.id || 'new'}`, { reset, watch }, getProductInitialValues(initialValues));
 
   // Auto-fetch next sequential product code for create mode
   useEffect(() => {
@@ -370,7 +366,7 @@ export function ProductForm({
               <label htmlFor="productCurrency" className="product-field-label">
                 Billing Currency
               </label>
-              <ProductEditableSelect control={control} name="currency" id="productCurrency" label="Billing Currency"
+              <ProductEditableSelect control={control} name="currency" id="productCurrency" label="Billing Currency" popupTitle="Select Currency"
                 options={getCurrencyOptions(selectedCurrency)} filterOption={filterCurrencyOption}
                 error={errors.currency} disabled={isSubmitting} placeholder="Search country, currency or code" />
               {errors.currency && <span id="productCurrency-err" className="product-field-error" role="alert">{errors.currency.message}</span>}
@@ -493,7 +489,7 @@ export function ProductForm({
           <Button
             type="button"
             variant="outlined"
-            onClick={onCancel}
+            onClick={() => { draft.clear(); onCancel?.(); }}
             disabled={isSubmitting}
             className="product-btn-cancel"
             startIcon={<ArrowBack />}

@@ -1,0 +1,31 @@
+.quote-date-picker{width:100%;min-width:0}
+.quote-date-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:38px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text-primary);font:inherit;font-size:.86rem;text-align:left;cursor:pointer}
+.quote-date-trigger:hover,.quote-date-trigger[aria-expanded="true"]{border-color:var(--secondary);background:var(--bg-main)}
+.quote-date-trigger:focus-visible{outline:2px solid var(--secondary);outline-offset:1px}
+.quote-date-trigger:disabled{opacity:.65;cursor:not-allowed}
+.quote-date-trigger .placeholder{color:var(--text-secondary)}
+.quote-date-icon{color:var(--primary)}
+.quote-calendar{position:fixed;z-index:2000;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text-primary);box-shadow:0 10px 26px rgba(60,37,24,.2)}
+.quote-calendar-header{display:flex;align-items:center;justify-content:space-between;min-height:36px;margin-bottom:6px}
+.quote-calendar-header strong{font-size:.9rem}
+.quote-calendar-header button,.quote-calendar-footer button{padding:5px 9px;border:0;border-radius:6px;background:transparent;color:var(--primary);font:inherit;font-size:1.2rem;cursor:pointer}
+.quote-date-icon{flex-shrink:0;color:var(--primary)}
+.quote-calendar button:disabled{opacity:.35;cursor:not-allowed}
+.quote-calendar button:focus-visible{outline:2px solid var(--secondary);outline-offset:1px}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button:disabled:hover{background:transparent;border-color:transparent}
+.quote-calendar-header button{display:grid;place-items:center}
+.quote-calendar-header button:hover,.quote-calendar-footer button:hover{background:var(--bg-main)}
+.quote-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
+.quote-calendar-weekdays{margin-bottom:3px;color:var(--text-secondary);font-size:.75rem}
+.quote-calendar-weekdays span{padding:5px 0}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button{min-width:0;aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--text-primary);font:inherit;font-size:.8rem;cursor:pointer}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button:hover{border-color:var(--secondary);background:var(--bg-main);color:var(--primary)}
+.quote-calendar-grid button.outside-month{color:var(--text-secondary);opacity:.65}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button.selected{border-color:var(--primary);background:var(--primary);color:#fff;font-weight:700}
+.quote-calendar-grid:not(.quote-calendar-weekdays) button.today:not(.selected){border-color:var(--secondary);color:var(--primary);font-weight:700}
+.quote-calendar-footer{display:flex;justify-content:space-between;margin-top:6px;padding-top:5px;border-top:1px solid var(--border)}
+.quote-calendar-footer button{font-size:.82rem}
+
+
+
+.quote-calendar-grid:not(.quote-calendar-weekdays) button:disabled:hover{background:transparent;border-color:transparent}

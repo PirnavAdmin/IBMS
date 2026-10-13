@@ -1,3 +1,4 @@
+import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -348,11 +349,12 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
 }
 
 function EditorScreen({ mode }) {
+  const { templateId } = useParams();
+  const draft = useFormDraft(`template:${templateId || 'new'}`);
   const location = useLocation();
-  const [config, setConfig] = useState(() => ({ ...emptyConfig, ...location.state?.config, sections: { ...DEFAULT_SECTIONS, ...location.state?.config?.sections } }));
+  const [config, setConfig] = useDraftState(`template:${templateId || 'new'}`, 'config', () => ({ ...emptyConfig, ...location.state?.config, sections: { ...DEFAULT_SECTIONS, ...location.state?.config?.sections } }));
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
-  const { templateId } = useParams();
   const edit = mode === 'edit';
   const [loading, setLoading] = useState(edit);
   const [saving, setSaving] = useState(false);
@@ -368,7 +370,7 @@ function EditorScreen({ mode }) {
     if (hasFlowConfig) { setLoading(false); return; }
     setLoading(true); setLoadError('');
     let active = true;
-    templateApi.get(templateId).then((template) => { if (active) { setConfig(configFromTemplate(template)); setEditDraft(template.status === 1 || template.status === 'Draft'); } }).catch((error) => { if (active) setLoadError(asError(error)); }).finally(() => { if (active) setLoading(false); });
+    templateApi.get(templateId).then((template) => { if (active) { if (!draft.has('config')) setConfig(configFromTemplate(template)); setEditDraft(template.status === 1 || template.status === 'Draft'); } }).catch((error) => { if (active) setLoadError(asError(error)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [edit, hasFlowConfig, templateId, loadAttempt]);
   const validate = () => {
@@ -385,6 +387,7 @@ function EditorScreen({ mode }) {
     setSaving(true); setApiError('');
     try {
       const result = edit ? await templateApi.update(templateId, requestFromConfig(config, { changeDescription: 'Updated from invoice template editor' })) : await templateApi.create(requestFromConfig(config));
+      draft.clear();
       setSaved(true);
       if (!edit) navigate('/templates-branding/branding', { state: { config, templateId: result?.id || result?.Id } });
     } catch (error) { setApiError(asError(error)); }
@@ -408,15 +411,16 @@ export function EditTemplate() { return <EditorScreen mode="edit" />; }
 
 export function BrandingSettings() {
   const location = useLocation();
+  const templateId = location.state?.templateId;
+  const draft = useFormDraft(`template:${templateId || 'new'}`);
   const navigate = useNavigate();
-  const [config, setConfig] = useState(() => ({ ...emptyConfig, ...location.state?.config, sections: { ...DEFAULT_SECTIONS, ...location.state?.config?.sections } }));
+  const [config, setConfig] = useDraftState(`template:${templateId || 'new'}`, 'config', () => ({ ...emptyConfig, ...location.state?.config, sections: { ...DEFAULT_SECTIONS, ...location.state?.config?.sections } }));
   const [fieldErrors, setFieldErrors] = useState({});
   const [logoError, setLogoError] = useState('');
   const [apiError, setApiError] = useState('');
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [notice, setNotice] = useState('');
-  const templateId = location.state?.templateId;
   const creationFlow = location.state?.creationFlow === true;
   const [previewOpen, setPreviewOpen] = useState(false);
   const update = (key, value) => {
@@ -513,6 +517,7 @@ export function BrandingSettings() {
       const savedTemplateId = templateId || result?.id || result?.Id;
       if (activate) await templateApi.activate(savedTemplateId);
       const successMessage = activate ? 'Template saved and activated successfully.' : saveAsDraft ? 'Template saved as draft.' : 'Template branding saved.';
+      draft.clear();
       setNotice(successMessage);
       navigate('/templates-branding', { state: { notice: successMessage } });
     } catch (error) { setApiError(asError(error)); }

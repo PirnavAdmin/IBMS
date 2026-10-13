@@ -11,6 +11,7 @@ import { QuotationForm, newQuotation } from './components/QuotationForm';
 import { QuotationDetails } from './pages/QuotationDetails';
 import { QuotationDialog } from './components/QuotationDialogs';
 import './styles/quotations.css';
+import { useFormDraft } from '../../context/FormDraftContext';
 const address = value => typeof value === 'string' ? value : Object.values(value || {}).filter(v => typeof v === 'string' && v).join(', ');
 const tenantProfileFrom = user => ({
   name:user.tenantName||user.TenantName||'',
@@ -116,8 +117,9 @@ export function QuotationManagement() {
     setCurrent(detail);setScreen(mode);
     if(mode==='details')await refreshDetails(q.id);
   });
+  const quotationDraft = useFormDraft(`quotation:${current?.id || 'new'}`);
   const save=q=>run(async()=>{
-    const saved=await quotationApi.save(q);replace(saved);setScreen('details');
+    const saved=await quotationApi.save(q);quotationDraft.clear();replace(saved);setScreen('details');
     try{await refreshDetails(saved.id);setNotice('Quotation draft saved.');}
     catch(e){setError(`Quotation saved, but details could not be refreshed. ${message(e)}`);}
   });

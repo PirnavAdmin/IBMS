@@ -17,6 +17,12 @@ test('offline currencies cover current ISO monetary entries without duplicates',
 });
 
 test('currency search matches shared countries, names, codes and accents', () => {
+  assert.equal(CURRENCY_OPTIONS.find(option=>option.value==='INR').label, 'INR (₹)');
+  assert.equal(CURRENCY_OPTIONS.find(option=>option.value==='SGD').label, 'SGD (S$)');
+  assert.equal(CURRENCY_OPTIONS.find(option=>option.value==='AUD').label, 'AUD (A$)');
+  assert.equal(CURRENCY_OPTIONS.find(option=>option.value==='AED').label, 'AED (AED)');
+  assert.deepEqual(CURRENCY_OPTIONS.slice(0, 3).map(option=>option.value), ['INR','USD','GBP']);
+  assert.doesNotMatch(CURRENCY_OPTIONS.find(option=>option.value==='GNF').label, /Guinean Franc/);
   for (const [query, code] of [['India', 'INR'], ['Japan', 'JPY'], ['yen', 'JPY'], ['AED', 'AED'], ['Germany', 'EUR'], ['Bulgaria', 'EUR'], ['Ecuador', 'USD'], ['Curacao', 'XCG']]) {
     assert.ok(CURRENCY_OPTIONS.filter(option => filterCurrencyOption(query, option)).some(option => option.value === code), query);
   }

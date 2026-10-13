@@ -1,3 +1,4 @@
+import { DateInput } from '../../../components/DateField';
 ﻿import { useEffect, useState } from 'react';
 import { useSearchDebounce } from '../../../hooks/useSearchDebounce';
 import { prioritizePrefix } from '../../../utils/search';
@@ -14,7 +15,7 @@ export function CustomerFilters({ title, filters, onChange, selects = [], dates 
   return <div className="customer-toolbar">
     <TextField size="small" label={`Search ${title.toLowerCase()}`} value={filters.search || ''} onChange={(e) => update('search', e.target.value)} />
     {selects.map(({ key, label, options }) => <TextField select size="small" label={label} key={key} SelectProps={{ displayEmpty: true, MenuProps: { classes: { paper: 'customer-dropdown-menu' } } }} InputLabelProps={{ shrink: true }} value={filters[key] || ''} onChange={(e) => update(key, e.target.value)}><MenuItem value="">All</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</TextField>)}
-    {dates && <><TextField size="small" type="date" label="From date" InputLabelProps={{ shrink: true }} value={filters.start || ''} onChange={(e) => update('start', e.target.value)} /><TextField size="small" type="date" label="To date" InputLabelProps={{ shrink: true }} value={filters.end || ''} onChange={(e) => update('end', e.target.value)} /></>}
+    {dates && <><DateInput size="small" label="From date" InputLabelProps={{ shrink: true }} value={filters.start || ''} onChange={(e) => update('start', e.target.value)} /><DateInput size="small" label="To date" InputLabelProps={{ shrink: true }} value={filters.end || ''} onChange={(e) => update('end', e.target.value)} /></>}
     <Button onClick={() => onChange({ ...emptyFilters })}>Clear Filters</Button>{extra}
   </div>;
 }

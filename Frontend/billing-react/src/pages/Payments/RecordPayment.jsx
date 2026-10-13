@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateField';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -5,6 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PaymentShell, PaymentState, PaymentValues, usePaymentUser } from './PaymentShared';
 import { paymentService, PAYMENT_METHODS, methodLabel, methodFields, money, paymentError, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData } from './paymentService';
 import { paymentSchema, validatePayment } from './paymentValidation';
+import { useDraftState, useDraftResource, useFormDraft } from '../../context/FormDraftContext';
+import { localCalendarDate } from '../../utils/localDate';
 
 const initial = {invoice:'',date:'',amount:'',method:'',reference:'',notes:'',bankName:'',accountLabel:'',transferDate:'',upiPayerMetadata:'',chequeNumber:'',chequeDate:'',clearingStatus:'',providerName:'',providerTransactionId:'',callbackStatus:'',customMethodName:''};
 const labels={reference:'Transaction Reference',bankName:'Bank',accountLabel:'Account Label',transferDate:'Transfer Date',upiPayerMetadata:'UPI Payer Metadata',chequeNumber:'Cheque Number',chequeDate:'Cheque Date',clearingStatus:'Cheque Clearing Status',providerName:'Provider',providerTransactionId:'Provider Transaction ID',callbackStatus:'Gateway Status',customMethodName:'Custom Method Name'};
@@ -12,11 +15,13 @@ export function PaymentConfirmation({open,onClose,onConfirm,busy,values,error}) 
   return <Dialog className="payment-dialog" open={open} onClose={busy?undefined:onClose} fullWidth maxWidth="sm"><DialogTitle>Confirm Payment</DialogTitle><DialogContent><PaymentValues values={values} />{error && <Alert severity="error">{error}</Alert>}</DialogContent><DialogActions><Button onClick={onClose} disabled={busy}>Cancel</Button><Button variant="contained" disabled={busy} onClick={onConfirm}>{busy?'Recording...':'Confirm Payment'}</Button></DialogActions></Dialog>;
 }
 export function RecordPayment() {
+  const draftKey = 'payment:new';
+  const draft = useFormDraft(draftKey);
   const location=useLocation();
-  const preselected=useRef(false);
-  const [form,setForm]=useState(initial);const [search,setSearch]=useState('');const [selected,setSelected]=useState(null);
-  const [retryRequest,setRetryRequest]=useState(null);const [errors,setErrors]=useState({});const [confirmation,setConfirmation]=useState(null);const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
-  const lock=useRef(createSubmissionGuard());const attempt=useRef(createAttemptManager());const client=useQueryClient();const navigate=useNavigate();const user=usePaymentUser();
+  const preselected=useRef(draft.has('form'));
+  const [form,setForm]=useDraftState(draftKey,'form',()=>({...initial,date:localCalendarDate()}));const [search,setSearch]=useDraftState(draftKey,'search','');const [selected,setSelected]=useDraftState(draftKey,'selected',null);
+  const [retryRequest,setRetryRequest]=useDraftState(draftKey,'retryRequest',null);const [errors,setErrors]=useState({});const [confirmation,setConfirmation]=useState(null);const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
+  const lock=useRef(useDraftResource(draftKey,'lock',createSubmissionGuard));const attempt=useRef(useDraftResource(draftKey,'attempt',createAttemptManager));const client=useQueryClient();const navigate=useNavigate();const user=usePaymentUser();
   const invoices=useQuery({queryKey:['payment-invoices'],queryFn:({signal})=>paymentService.getEligibleInvoices({signal}),retry:false});
   const balance=useQuery({queryKey:['payment-balance',selected?.invoiceId],queryFn:({signal})=>paymentService.getInvoiceBalance(selected.invoiceId,{signal}),enabled:Boolean(selected),retry:false,staleTime:0});
   const current=balance.error?null:balance.data;
@@ -54,7 +59,7 @@ export function RecordPayment() {
       setRetryRequest({...confirmation,retryDto:dto});
       const payment=await paymentService.createPayment(dto);
       // The confirmed request remains in memory until success; retries retain its key.
-      attempt.current.reset();setRetryRequest(null);await invalidatePaymentData(client);
+      attempt.current.reset();setRetryRequest(null);draft.clear();await invalidatePaymentData(client);
       navigate(`/payments/${encodeURIComponent(payment.id)}`,{replace:true,state:{paymentNotice:'Payment recorded successfully.'}});
     } catch(error){setMessage(paymentError(error));setConfirmation(null);if(error.response?.status && error.response.status < 500) setRetryRequest(null);await balance.refetch();}
     finally{lock.current.release();setBusy(false);}
@@ -76,14 +81,14 @@ export function RecordPayment() {
       </div><PaymentState loading={Boolean(selected)&&balance.isFetching} error={balance.error} onRetry={()=>balance.refetch()} />
       {current && !current.isEligibleForPayment && <Alert severity="warning">{current.ineligibilityReason || 'This invoice is not eligible for payment.'}</Alert>}
       <h2>Payment information</h2><div className="payment-form-grid">
-        <TextField required type="date" label="Payment Date" value={form.date} onChange={change('date')} InputLabelProps={{shrink:true}} error={Boolean(errors.date)} helperText={errors.date} />
+        <DateInput required label="Payment Date" value={form.date} onChange={change('date')} InputLabelProps={{shrink:true}} error={Boolean(errors.date)} helperText={errors.date} />
         <TextField required type="number" label="Payment Amount" value={form.amount} onChange={change('amount')} inputProps={{min:0,step:1}} error={Boolean(errors.amount)} helperText={errors.amount} />
         <TextField select required label="Payment Method" value={form.method} onChange={change('method')} error={Boolean(errors.method)} helperText={errors.method}>{PAYMENT_METHODS.map(method=><MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</TextField>
         {(methodFields[form.method] || []).map(field)}
         <TextField className="payment-full" label="Notes" multiline minRows={3} value={form.notes} onChange={change('notes')} error={Boolean(errors.notes)} helperText={errors.notes || 'Maximum 1000 characters. Never enter card numbers, CVV, PIN, OTP or secrets.'} />
       </div>{message && <Alert severity="error">{message}</Alert>}
       {!user.isPending && !user.permissions.create && <Alert severity="warning">Sign in with an authorized account to record a payment.</Alert>}
-      <div className="payment-actions"><Button component={Link} to="/payments" disabled={busy}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || balance.isFetching || invoices.isPending || !user.permissions.create}>Review Payment</Button></div>
+      <div className="payment-actions"><Button component={Link} to="/payments" onClick={() => draft.clear()} disabled={busy}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || balance.isFetching || invoices.isPending || !user.permissions.create}>Review Payment</Button></div>
     </fieldset>{retryRequest && <Alert severity="warning" action={<Button disabled={busy} onClick={()=>setConfirmation(retryRequest)}>Retry Same Payment</Button>}>The previous request may have completed. Retry the identical request before entering another payment; its idempotency key is preserved.</Alert>}</form>
     <PaymentConfirmation open={Boolean(confirmation)} busy={busy} onClose={()=>setConfirmation(null)} onConfirm={submit} values={confirmation ? [
       ['Invoice Number',confirmation.invoice.invoiceNumber],['Customer',confirmation.invoice.customerName],['Current Outstanding',money(confirmation.invoice.currentOutstanding,confirmation.invoice.currency)],['Payment Amount',money(Number(confirmation.values.amount),confirmation.invoice.currency)],['Payment Method',methodLabel(confirmation.values.method)],['Payment Date',confirmation.values.date],['Reference',confirmation.values.reference || confirmation.values.providerTransactionId || confirmation.values.chequeNumber],

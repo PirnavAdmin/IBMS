@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { Add, CategoryOutlined, PictureAsPdfOutlined } from '@mui/icons-material';
+import { Add, ArrowBack, CategoryOutlined, PrintOutlined } from '@mui/icons-material';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
 import '../styles/products.css';
@@ -53,7 +53,7 @@ export function CategoryList() {
 
   return <main className="product-page">
     <Breadcrumbs aria-label="Breadcrumb"><Link to="/products">Products &amp; Services</Link><span>Product Categories</span></Breadcrumbs>
-    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Categories</h1><p>Manage categories used to organize products and services.</p></div><div className="product-row-actions"><Button variant="outlined" startIcon={<PictureAsPdfOutlined />} disabled={query.isPending || query.isError} onClick={exportPdf}>Print / Export PDF</Button><Button component={Link} to="/products/categories/new" variant="contained" startIcon={<Add />}>Add Category</Button></div></header>
+    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Categories</h1><p>Manage categories used to organize products and services.</p></div><div className="product-row-actions"><Button component={Link} to="/products" variant="outlined" startIcon={<ArrowBack />}>Back to Products</Button><Button variant="outlined" className="billing-pdf-button" startIcon={<PrintOutlined />} disabled={query.isPending || query.isError} onClick={exportPdf}>Print</Button><Button component={Link} to="/products/categories/new" variant="contained" startIcon={<Add />}>Add Category</Button></div></header>
     {exportError && <Alert severity="error" onClose={() => setExportError('')}>{exportError}</Alert>}
     {error && !confirm && <Alert severity="error">{error}</Alert>}
     <section className="product-panel" aria-label="Category list">

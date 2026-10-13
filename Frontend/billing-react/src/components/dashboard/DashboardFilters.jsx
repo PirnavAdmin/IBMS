@@ -1,3 +1,4 @@
+import { ThemedDatePicker } from '../ThemedDatePicker';
 import { useState, useRef, useEffect } from 'react';
 import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
@@ -49,7 +50,7 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
     {['start', 'end'].map((key, index) => (
       <label key={key}>
         {index ? 'To Date' : 'From Date'}
-        <input type="date" value={values[key]} onChange={event => setDate(key, event.target.value)} />
+        <ThemedDatePicker label={index ? "To Date" : "From Date"} value={values[key]} onChange={value => setDate(key, value)} />
       </label>
     ))}
 

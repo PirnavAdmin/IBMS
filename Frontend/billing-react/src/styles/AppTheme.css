@@ -194,3 +194,12 @@
   .app-layout .bd-nav-item > svg,
   .app-layout .bd-sidebar-footer button > svg { transition: none; }
 }
+
+/* Matching list report actions for Customers and the catalog. */
+.app-layout .customers-heading-actions > .MuiButton-outlined,
+.app-layout .billing-pdf-button.MuiButton-root { padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; text-transform: none; }
+
+/* Keep the sidebar thumb and native arrows with a clear workspace track. */
+.app-layout .app-layout-main { scrollbar-color: #86664F transparent; }
+.app-layout .app-layout-main ::-webkit-scrollbar-track { background: transparent; }
+.app-layout .app-layout-main ::-webkit-scrollbar-thumb { background: #86664F; }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 import { Add, ArrowBack, DeleteOutline } from '@mui/icons-material';
 import { applyAdditionalDiscounts, applyAdditionalTaxes, currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { validateQuotation } from '../utils/quotationValidation';
@@ -12,7 +13,10 @@ const taxTypeOptions = ['GST', 'CGST', 'SGST', 'IGST', 'VAT', 'Custom Tax'].map(
 const discountTypeOptions = [{ id: 'percentage', name: '%' }, { id: 'fixed', name: 'Fixed amount' }];
 export function newQuotation() { const date = new Date().toISOString().slice(0, 10); const until = new Date(); until.setDate(until.getDate() + 30); return { customerId: '', quotationDate: date, validUntil: until.toISOString().slice(0, 10), reference: '', items: [emptyItem()], invoiceDiscount: { type: 'percentage', value: 0 }, charges: [], notes: 'Thank you for your business.', termsAndConditions: 'Goods once sold are subject to store policy.\nPlease check quantity and products before leaving the store.\nGST is applicable as per product category.\nKeep this invoice for returns and warranty claims.\nNo exchange or refund on opened products.' }; }
 export function QuotationForm({ initial, customers = [], products = [], onSave, onCancel, onBack, readOnly = false }) {
-  const [form, setForm] = useState(() => {
+  const draftKey = `quotation:${initial?.id || 'new'}`;
+  const draft = useFormDraft(draftKey);
+  const cancel = () => { draft.clear(); onCancel?.(); };
+  const [form, setForm] = useDraftState(draftKey, 'form', () => {
     const defaults = newQuotation();
     return {
       ...defaults,
@@ -24,8 +28,8 @@ export function QuotationForm({ initial, customers = [], products = [], onSave, 
       })),
     };
   }); const [errors, setErrors] = useState({});
-  const [taxRows, setTaxRows] = useState([]);
-  const [discountRows, setDiscountRows] = useState([]);
+  const [taxRows, setTaxRows] = useDraftState(draftKey, 'taxRows', []);
+  const [discountRows, setDiscountRows] = useDraftState(draftKey, 'discountRows', []);
   const selectedCustomer = customers.find(customer => String(customer.id) === String(form.customerId)); const totals = useMemo(() => quotationTotals(form.items, form.invoiceDiscount, (form.charges || []).map(charge => ({ ...charge, type: 'fixed' })), taxRows, discountRows), [form, taxRows, discountRows]);
   const patch = data => setForm(current => ({ ...current, ...data }));
   const patchItem = (index, data) => patch({ items: form.items.map((item, i) => i === index ? { ...item, ...data } : item) });
@@ -51,7 +55,7 @@ export function QuotationForm({ initial, customers = [], products = [], onSave, 
   const itemProductLabel = item => { const product = products.find(candidate => String(candidate.id) === String(item.productId)); const name = itemProductName(item); return product?.code ? `${name} (${product.code})` : name; };
   const itemProductSearchText = item => { const product = products.find(candidate => String(candidate.id) === String(item.productId)); return `${itemProductLabel(item)} ${product?.description || item.description || ''} ${product?.hsnSac || item.hsnSac || ''}`; };
   const save = () => { const next = validateQuotation(form); setErrors(next); if (Object.keys(next).length === 0 && typeof onSave === 'function') onSave({ ...form, items: applyAdditionalTaxes(applyAdditionalDiscounts(form.items, discountRows), taxRows), charges: (form.charges || []).map(charge => ({ ...charge, type: 'fixed' })), customer: selectedCustomer, ...totals }); };
-  return <main className="quotation-page quotation-form-page"><header className="quotation-header"><div><button className="quote-back-link" type="button" onClick={onBack || onCancel}><ArrowBack /> Back to quotations</button><span className="quote-eyebrow">QUOTATION WORKSPACE</span><h1>{initial?.id ? `Edit ${initial.quoteNumber}` : 'Create Quotation'}</h1><p>{readOnly ? 'This quotation is read-only because of its current status.' : 'Create a customer-ready quotation with instant preview calculations.'}</p></div><div className="quote-header-actions"><button className="quote-btn secondary" onClick={onCancel}>Cancel</button>{!readOnly && <button className="quote-btn primary" onClick={save}>Save Draft</button>}</div></header>
+  return <main className="quotation-page quotation-form-page"><header className="quotation-header"><div><button className="quote-back-link" type="button" onClick={onBack || onCancel}><ArrowBack /> Back to quotations</button><span className="quote-eyebrow">QUOTATION WORKSPACE</span><h1>{initial?.id ? `Edit ${initial.quoteNumber}` : 'Create Quotation'}</h1><p>{readOnly ? 'This quotation is read-only because of its current status.' : 'Create a customer-ready quotation with instant preview calculations.'}</p></div><div className="quote-header-actions"><button className="quote-btn secondary" onClick={cancel}>Cancel</button>{!readOnly && <button className="quote-btn primary" onClick={save}>Save Draft</button>}</div></header>
 
     {Object.entries(errors).filter(([key]) => ['reference','notes','termsAndConditions','discount'].includes(key)).map(([key,message]) => <p className="quote-error" key={key}>{message}</p>)}<div className="quote-form-layout"><div className="quote-form-main">
       <section className="quote-card"><h2>Customer information</h2><div className="quote-fields two"><label>Searchable customer<SearchablePicker disabled={readOnly} value={form.customerId} onChange={customerId => patch({ customerId })} items={customers} getLabel={customer => `${customer.name} · ${customer.code}`} getSearchText={customer => `${customer.name} ${customer.code} ${customer.email} ${customer.mobile}`} placeholder="Search name, code, email or mobile" />{errors.customerId && <small className="quote-error">{errors.customerId}</small>}</label></div>{selectedCustomer && <div className="quote-customer-preview"><strong>{selectedCustomer.name} <span>{selectedCustomer.code}</span></strong><span>{selectedCustomer.email} · {selectedCustomer.mobile}</span><span><b>Billing:</b> {selectedCustomer.billingAddress}</span><span><b>Shipping:</b> {selectedCustomer.shippingAddress}</span><span><b>Tax:</b> {selectedCustomer.taxInfo}</span></div>}</section>

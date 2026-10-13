@@ -8,6 +8,7 @@ import { calculateCredit, creditLineAmounts, eligibleCredit, money, reconcileFul
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import '../styles/credit-notes.css';
+import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 
 const steps = ['Invoice', 'Credit items', 'Reason', 'Review'];
 const reasons = ['Goods returned', 'Service cancellation', 'Incorrect quantity', 'Incorrect price', 'Duplicate billing', 'Excess billing', 'Tax correction', 'Service deficiency', 'Commercial adjustment', 'Other'];
@@ -19,19 +20,21 @@ const displayedLineTotal = (item, selectedItems, totals, isFull) => {
 
 export function CreditNoteForm() {
   const { id } = useParams();
+  const draftKey = `credit-note:${id || 'new'}`;
+  const draft = useFormDraft(draftKey);
   const location = useLocation();
   const navigate = useNavigate();
   const client = useQueryClient();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useDraftState(draftKey, 'step', 0);
   const [error, setError] = useState('');
-  const [invoiceId, setInvoiceId] = useState(() => location.state?.invoiceId ? String(location.state.invoiceId) : '');
+  const [invoiceId, setInvoiceId] = useDraftState(draftKey, 'invoiceId', () => location.state?.invoiceId ? String(location.state.invoiceId) : '');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
-  const [type, setType] = useState('Partial');
-  const [reason, setReason] = useState('');
-  const [reasonNote, setReasonNote] = useState('');
-  const [reference, setReference] = useState('');
-  const [quantities, setQuantities] = useState({});
+  const [type, setType] = useDraftState(draftKey, 'type', 'Partial');
+  const [reason, setReason] = useDraftState(draftKey, 'reason', '');
+  const [reasonNote, setReasonNote] = useDraftState(draftKey, 'reasonNote', '');
+  const [reference, setReference] = useDraftState(draftKey, 'reference', '');
+  const [quantities, setQuantities] = useDraftState(draftKey, 'quantities', {});
 
   const noteQuery = useQuery({ queryKey: ['creditNotes', id], queryFn: () => creditNoteService.get(id), enabled: Boolean(id) });
   useEffect(() => {
@@ -65,6 +68,7 @@ export function CreditNoteForm() {
       navigate(`/credit-notes/${id}`, { replace: true });
       return;
     }
+    if (draft.has('reason')) return;
     if (Number(invoiceId) !== Number(note.invoiceId)) {
       setInvoiceId(note.invoiceId);
       return;
@@ -113,6 +117,7 @@ export function CreditNoteForm() {
       submit,
     }, id),
     onSuccess: async (note) => {
+      draft.clear();
       await client.invalidateQueries({ queryKey: ['creditNotes'] });
       navigate(`/credit-notes/${note.id}`, { state: { notice: note.status === 'Pending Approval' ? 'Submitted for approval.' : 'Draft saved.' } });
     },
@@ -184,7 +189,7 @@ export function CreditNoteForm() {
 
           {error && <div className="cn-form-error" role="alert">{error}</div>}
           {mutation.isError && !error && <div className="cn-form-error" role="alert">{mutation.error.message}</div>}
-          <footer className="cn-form-actions"><Button component={Link} to={isEditing ? `/credit-notes/${id}` : '/credit-notes'} color="inherit">Cancel</Button><div>{step > 0 && <Button startIcon={<ArrowBack />} onClick={() => { setError(''); setStep((current) => current - 1); }}>Previous</Button>}{step < steps.length - 1 ? <Button variant="contained" endIcon={<ArrowForward />} onClick={continueStep}>Continue</Button> : <><Button variant="outlined" disabled={mutation.isPending} onClick={() => save(false)}>{mutation.isPending ? 'Saving…' : 'Save draft'}</Button><Button variant="contained" disabled={mutation.isPending} onClick={() => save(true)}>{mutation.isPending ? 'Submitting…' : 'Submit for approval'}</Button></>}</div></footer>
+          <footer className="cn-form-actions"><Button component={Link} to={isEditing ? `/credit-notes/${id}` : '/credit-notes'} onClick={() => draft.clear()} color="inherit">Cancel</Button><div>{step > 0 && <Button startIcon={<ArrowBack />} onClick={() => { setError(''); setStep((current) => current - 1); }}>Previous</Button>}{step < steps.length - 1 ? <Button variant="contained" endIcon={<ArrowForward />} onClick={continueStep}>Continue</Button> : <><Button variant="outlined" disabled={mutation.isPending} onClick={() => save(false)}>{mutation.isPending ? 'Saving…' : 'Save draft'}</Button><Button variant="contained" disabled={mutation.isPending} onClick={() => save(true)}>{mutation.isPending ? 'Submitting…' : 'Submit for approval'}</Button></>}</div></footer>
         </section>
 
         <aside className="cn-calculation-card"><div className="cn-calc-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Credit calculation</h2><small>Live preview · {selectedInvoice?.currency || 'INR'}</small></div></div><div className="cn-calc-row"><span>Credit subtotal</span><strong>{money(totals.subtotal)}</strong></div><div className="cn-calc-row"><span>Tax adjustment</span><strong>{money(totals.taxAmount)}</strong></div><div className="cn-calc-row cn-calc-total"><span>Total credit</span><strong>{money(totals.total)}</strong></div><div className="cn-calc-balance"><small>Eligible invoice credit</small><strong>{money(eligibleAmount)}</strong><span>{eligibleAmount ? `${Math.max(0, (eligibleAmount - totals.total) / eligibleAmount * 100).toFixed(0)}% remains after this credit` : 'Choose an invoice to see eligibility'}</span></div><div className="cn-calc-lock"><span>✓</span><p>Credit total is capped by the selected invoice’s remaining eligibility.</p></div></aside>

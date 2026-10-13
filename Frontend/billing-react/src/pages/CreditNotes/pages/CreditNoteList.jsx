@@ -1,3 +1,4 @@
+import { DateInput } from '../../../components/DateField';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -96,8 +97,8 @@ export function CreditNoteList() {
           <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
           <TextField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value=""><FilterAltOutlined fontSize="small" /> All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
           <TextField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></TextField>
-          <TextField className="cn-date-filter" size="small" type="date" label="From date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
-          <TextField className="cn-date-filter" size="small" type="date" label="To date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
+          <DateInput className="cn-date-filter" size="small" label="From date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
+          <DateInput className="cn-date-filter" size="small" label="To date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
           <Tooltip title="Refresh from billing API"><span><IconButton onClick={() => { query.refetch(); draftQuery.refetch(); pendingQuery.refetch(); }} disabled={query.isFetching}><Autorenew /></IconButton></span></Tooltip>
         </div>

@@ -1,10 +1,11 @@
+import { printDocument } from '../../utils/printDocument';
 import { buildProductListReport } from './utils/productListReport';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Breadcrumbs, Button } from '@mui/material';
-import { Add, Inventory2Outlined, PictureAsPdfOutlined } from '@mui/icons-material';
+import { Add, Inventory2Outlined, PrintOutlined } from '@mui/icons-material';
 import { productService } from './services/productService';
 import { ProductFilters } from './components/ProductFilters';
 import { ProductTable } from './components/ProductTable';
@@ -62,18 +63,14 @@ export function ProductList() {
       }
       if (all.length !== first.totalCount) throw new Error('The complete filtered result set could not be retrieved.');
       const report = buildProductListReport(all, categories);
-      const blob = new Blob([report], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      if (!win) throw new Error('Allow pop-ups to open the printable report and save it as PDF.');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      printDocument(report);
     } catch (err) { setExportError(err?.message || 'Unable to generate the filtered report.'); }
     finally { setExporting(false); }
   };
 
   return <main className="product-page product-list-page">
     <Breadcrumbs aria-label="Breadcrumb"><span>Products &amp; Services</span><span>Product List</span></Breadcrumbs>
-    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button variant="outlined" startIcon={<PictureAsPdfOutlined />} disabled={exporting || loading || Boolean(error)} onClick={exportPdf}>{exporting ? 'Generating PDF...' : 'Print / Export PDF'}</Button><Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button></div></header>
+    <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button variant="outlined" className="billing-pdf-button" startIcon={<PrintOutlined />} disabled={exporting || loading || Boolean(error)} onClick={exportPdf}>{exporting ? 'Preparing Print...' : 'Print'}</Button><Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button></div></header>
     <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
     <ProductSummaryCards summary={catalog.data?.summary} selected={selectedCard} onSelect={selectCard} />
     {exportError && <FeedbackSnackbar message={exportError} onClose={() => setExportError('')} severity="error" />}

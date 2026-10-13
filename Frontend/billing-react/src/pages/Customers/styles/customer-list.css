@@ -11,7 +11,7 @@
 .customer-record{max-width:1000px}.customer-form-grid,.customer-record-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:12px 24px 24px}.customer-form-notes{grid-column:1/-1}.customer-form-actions{display:flex;justify-content:flex-end;gap:12px;padding:20px 24px;border-top:1px solid #eee8df}.customer-record-grid dt{color:#97897b;font-size: 14px;margin-bottom:8px}.customer-record-grid dd{margin:0;font-weight:500;overflow-wrap:anywhere;white-space:pre-wrap}
 @media(max-width:1179px){.customers-page{padding-top:76px}.customer-stats{gap:12px}.customer-stat{padding:12px}}
 @media(max-width:800px){.customer-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.customers-heading{align-items:flex-start}.customers-heading h1{font-size:24px}.customer-pagination{flex-wrap:wrap}.customer-form-grid,.customer-record-grid{grid-template-columns:1fr}.customer-panel-heading>div>.MuiButton-root{margin-bottom:8px}}
-@media(max-width:600px){.customers-page{padding-left:14px;padding-right:14px}.customers-heading{flex-direction:column;gap:16px}.customer-stat{padding:10px 12px}.customer-stat>strong{font-size:22px}.customer-stat-top{font-size: 13px}.customer-stat-icon{width:28px;height:28px;flex-shrink:0}.customer-filters,.customer-panel-heading{padding-left:16px;padding-right:16px}.customer-filter-row{gap:16px 10px}.customer-filter-row>.MuiTextField-root{flex-basis:44%}.customer-table .MuiTable-root{min-width:0;display:block}.customer-table thead{display:none}.customer-table tbody{display:grid;gap:12px;padding:12px;background:#faf8f5}.customer-table .MuiTableRow-root{display:grid;grid-template-columns:1fr 1fr;background:white;border:1px solid #e7e1d9;border-radius:10px;padding:8px;position:relative}.customer-table .MuiTableCell-body{display:block;border:0;padding:8px;text-align:left;min-width:0}.customer-table .MuiTableCell-body:before{content:attr(data-label);display:block;color:#62584f;font-size: 13px;margin-bottom:5px}.customer-table .MuiTableCell-body:nth-child(2){grid-column:1/-1;grid-row:1;padding-right:35px}.customer-table .MuiTableCell-body:nth-child(2):before{display:none}.customer-table .MuiTableCell-body:nth-child(5){grid-column:1/-1}.customer-table .MuiTableCell-body:last-child{position:absolute;right:5px;top:6px}.customer-table .MuiTableCell-body:last-child:before{display:none}.customer-pagination{padding:16px;justify-content:center}.customer-contact a{overflow-wrap:anywhere}}
+@media(max-width:600px){.customers-page{padding-left:14px;padding-right:14px}.customers-heading{flex-direction:column;gap:16px}.customer-stat{padding:10px 12px}.customer-stat>strong{font-size:22px}.customer-stat-top{font-size: 13px}.customer-stat-icon{width:28px;height:28px;flex-shrink:0}.customer-filters,.customer-panel-heading{padding-left:16px;padding-right:16px}.customer-filter-row{gap:16px 10px}.customer-filter-row>.MuiTextField-root{flex-basis:44%}.customer-pagination{padding:16px;justify-content:center}.customer-contact a{overflow-wrap:anywhere}}
 @media(prefers-reduced-motion:reduce){.customer-stat{transition:none}.customer-stat:hover{transform:none}}
 
 /* Customer workspace refinements */
@@ -118,7 +118,7 @@
 .customers-page .cr-section-title>span { background: #efddc5; color: #8b603c; }
 .customers-page .cr-account-stats, .customers-page .cr-save-bar { background: #fff8ee; border-color: #dfc9af; }
 .customers-page .cr-help { background: #eddec9; border-color: #dcc5a7; }
-@media(max-width:600px) { .customers-page .customer-table tbody { background: #f4e8d9; }.customers-page .customer-table .MuiTableRow-root { background: #fffaf3; border-color: #e0c9af; }.customer-search-feedback { font-size: 13px; line-height: 1.6; } }
+@media(max-width:600px) {.customer-search-feedback { font-size: 13px; line-height: 1.6; } }
 
 /* Shared dashboard neutrals and soft natural accents. */
 .customers-page { background: var(--bg-main, #f8f1e7); color: var(--text-primary, #292522); }
@@ -158,7 +158,7 @@
 .customers-page .customer-row-actions .MuiIconButton-root.Mui-disabled { color: #b5b1aa; background: #f3f1ed; border-color: #e9e5df; }
 .customer-row-actions .MuiSvgIcon-root { font-size: 14px; }
 @media(min-width:601px) { .customers-page .customer-table .MuiTableCell-head:last-child { position: sticky; right: 0; z-index: 2; }.customers-page .customer-table .MuiTableCell-body:last-child { position: sticky; right: 0; z-index: 1; box-shadow: -5px 0 8px #76533508; } }
-@media(max-width:600px) { .customers-page .customer-table tbody { background: var(--bg-main); }.customers-page .customer-table .MuiTableRow-root { background: var(--surface); }.customers-page .customer-table .MuiTableCell-body:last-child { position: static; grid-column: 1/-1; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 12px; }.customers-page .customer-table .MuiTableCell-body:nth-child(2) { padding-right: 8px; }.customer-row-actions { display: flex; justify-content: flex-end; gap: 10px; }.customers-page .customer-row-actions .MuiIconButton-root { width: 34px; height: 34px; } }
+@media(max-width:600px) {.customer-row-actions { display: flex; justify-content: flex-end; gap: 10px; }.customers-page .customer-row-actions .MuiIconButton-root { width: 34px; height: 34px; } }
 
 /* Readable customer typography, scoped to this screen. */
 .customers-page {
@@ -211,23 +211,6 @@
 }
 .customer-compact-sort { display: none; gap: 12px; align-items: center; }
 .customer-compact-sort > .MuiTextField-root { min-width: 180px; }
-@container customer-directory (max-width: 1100px) {
-  .customers-page .customer-compact-sort { display: flex; flex-wrap: wrap; }
-  .customers-page .customer-table { overflow-x: hidden; }
-  .customers-page .customer-table .MuiTable-root { min-width: 0; display: block; }
-  .customers-page .customer-table thead { display: none; }
-  .customers-page .customer-table tbody { display: grid; gap: 12px; padding: 12px; background: var(--bg-main); }
-  .customers-page .customer-table .MuiTableRow-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-  .customers-page .customer-table .MuiTableCell-body { display: block; min-width: 0; padding: 8px; border: 0; text-align: left; overflow-wrap: anywhere; }
-  .customers-page .customer-table .MuiTableCell-body::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: .8rem; }
-  .customers-page .customer-table .MuiTableCell-body:nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
-  .customers-page .customer-table .MuiTableCell-body:nth-child(2)::before { display: none; }
-  .customers-page .customer-table .MuiTableCell-body:nth-child(5),
-  .customers-page .customer-table .MuiTableCell-body:last-child { grid-column: 1 / -1; }
-  .customers-page .customer-table .MuiTableCell-body:last-child { position: static; box-shadow: none; border-top: 1px solid var(--border); }
-  .customers-page .customer-table .MuiTableCell-body:last-child::before { display: none; }
-  .customers-page .customer-row-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; }
-}
 
 /* Match the Products pagination layout while retaining Customer page sizes. */
 .customers-page .customer-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 20px; padding: 22px; background: #fffbf5; border-top: 1px solid #eee6e1; }
@@ -360,7 +343,7 @@
 .customers-page .customer-table.is-inactive-view .MuiTableCell-head:nth-child(6) { width: 11%; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-head:nth-child(7) { width: 8%; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-head:nth-child(8) { width: 8%; }
-.customers-page .customer-table.is-inactive-view .customer-code { white-space: nowrap; overflow-wrap: normal; }
+.customers-page .customer-table.is-inactive-view .customer-code { white-space: normal; overflow-wrap: anywhere; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-root:first-child { padding-left: 12px; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-root:last-child { padding-right: 12px; }
 .customers-page .customer-table.is-inactive-view .customer-row-actions { gap: 2px; }
@@ -377,12 +360,6 @@
 .customers-page .customer-table .customer-inactivity-reason small { color: #807160; font-size: 10px; }
 .customers-page .customer-table .customer-inactivity-reason .MuiSkeleton-root { grid-column: 2; transform: none; }
 .customers-page .customer-table .customer-inactivity-error { margin: 0; font-size: 11px; }
-@container customer-directory (max-width: 1100px) {
-  .customers-page .customer-table.is-inactive-view .MuiTable-root { min-width: 0; }
-  .customers-page .customer-table.is-inactive-view .MuiTableCell-root { padding: 8px; }
-  .customers-page .customer-table .customer-inactivity-cell { min-width: 0; }
-  .customers-page .customer-table.is-inactive-view .customer-row-actions .MuiIconButton-root { width: 36px; height: 36px; padding: 8px; }
-}
 @media print {
   @page { size: A4 landscape; margin: 0; }
   body:has(.customers-page) .bd-sidebar,
@@ -452,3 +429,32 @@
 .customer-reason-dialog .MuiDialogActions-root { padding: 10px 22px 16px; }
 .customer-reason-dialog .MuiDialogActions-root .MuiButton-root { color: #805633; text-transform: none; }
 @media print { .customers-page .customer-reason-trigger { display: none; } }
+
+/* One container-driven directory card layout, shared by active/inactive views. */
+@media screen {
+  @container customer-directory (max-width: 1100px) {
+    .customers-page .customer-compact-sort { display: flex; flex-wrap: wrap; }
+    .customers-page .customer-panel .customer-table { overflow: visible; }
+    .customers-page .customer-panel .customer-table .MuiTable-root { display: block; width: 100%; min-width: 0; max-width: 100%; }
+    .customers-page .customer-panel .customer-table thead { display: none; }
+    .customers-page .customer-panel .customer-table tbody { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; min-width: 0; gap: 12px; padding: 12px; }
+    .customers-page .customer-panel .customer-table .MuiTableRow-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; min-width: 0; padding: 12px; gap: 12px 20px; background: #FFFDF9; border: 1px solid #e7d8c7; border-radius: 10px; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body { display: block; width: auto; min-width: 0; max-width: 100%; padding: 8px; border: 0; background: transparent; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body::before { content: attr(data-label); display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: .8rem; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body:nth-child(2) { grid-column: 1 / -1; grid-row: 1; padding-bottom: 16px; border-bottom: 1px solid #eee1d3; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body:last-child { position: static; grid-column: 1 / -1; border-top: 1px solid #eee1d3; box-shadow: none; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body:nth-child(2)::before, .customers-page .customer-panel .customer-table .MuiTableCell-body:last-child::before { display: none; }
+    .customers-page .customer-panel .customer-table :is(.customer-code, .customer-tax, .customer-contact, .customer-contact small, .customer-balance, .customer-type, .customer-status, .customer-row-actions) { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    .customers-page .customer-identity, .customers-page .customer-identity > div { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+    .customers-page .customer-avatar { flex-shrink: 0; }
+    .customers-page .customer-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-start; }
+    .customers-page .customer-panel .customer-table.is-inactive-view .customer-row-actions .MuiIconButton-root { width: 36px; height: 36px; padding: 8px; }
+  }
+  @container customer-directory (max-width: 28rem) {
+    .customers-page .customer-panel .customer-table .MuiTableRow-root { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-body { grid-column: 1 / -1; }
+  }
+}
+
+.customers-page .customer-result-count { border-radius: 6px; font-size: .75rem; }
+@media (max-width: 600px) { .customers-page .customer-panel-heading { flex-wrap: wrap; } }

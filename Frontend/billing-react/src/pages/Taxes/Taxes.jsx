@@ -2,6 +2,7 @@ import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
 import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
 import "../../styles/Dashboard.css";
 import { useRef, useState } from "react";
+import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import {
   Link,
   Navigate,
@@ -459,7 +460,9 @@ function TaxList({ search, setSearch }) {
 }
 
 function TaxForm({ initial, editing = false }) {
-  const [values, setValues] = useState(() => initial || emptyTax());
+  const draftKey = `tax:${initial?.id || 'new'}`;
+  const draft = useFormDraft(draftKey);
+  const [values, setValues] = useDraftState(draftKey, 'values', () => initial || emptyTax());
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -480,6 +483,7 @@ function TaxForm({ initial, editing = false }) {
     setSubmitError("");
     try {
       await activeTaxService.save(values, initial?.id);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: taxQueryKey });
       navigate("/settings/taxes", {
         state: {
@@ -555,7 +559,7 @@ function TaxForm({ initial, editing = false }) {
             className="tax-secondary-btn"
             type="button"
             disabled={saving}
-            onClick={() => navigate("/settings/taxes")}
+            onClick={() => { draft.clear(); navigate("/settings/taxes"); }}
           >
             Cancel
           </button>

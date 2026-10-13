@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import { useReactHookFormDraft } from '../../../context/FormDraftContext';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
 import { CustomerSelectField } from './CustomerSelectField';
@@ -251,11 +252,7 @@ export const CustomerForm = ({
   });
 
   // Re-populate when initialValues change (e.g. edit mode after async fetch)
-  useEffect(() => {
-    if (initialValues) {
-      reset(getInitialValues(initialValues));
-    }
-  }, [initialValues, reset]);
+  const draft = useReactHookFormDraft(`customer:${initialValues?.id || 'new'}`, { reset, watch }, getInitialValues(initialValues));
 
   // Sequential code auto-generation for create mode (CUST-001, CUST-002, etc.)
   useEffect(() => {
@@ -1394,7 +1391,7 @@ export const CustomerForm = ({
                   <button
                     type="button"
                     className="cust-btn cust-btn-secondary"
-                    onClick={onCancel}
+                    onClick={() => { draft.clear(); onCancel?.(); }}
                     disabled={isSubmitting}
                   >
                     Cancel
@@ -1432,7 +1429,7 @@ export const CustomerForm = ({
                     <button
                       type="button"
                       className="cust-btn cust-btn-secondary"
-                      onClick={onCancel}
+                      onClick={() => { draft.clear(); onCancel?.(); }}
                       disabled={isSubmitting}
                     >
                       Cancel

@@ -993,12 +993,12 @@ test("Create selects a remote customer/product, fills real metadata and saves a 
         await click(document.querySelector("[role=option]"));
         assert.ok(document.querySelector('input[value="INR"]'));
         await input(
-          document.querySelectorAll("input[type=date]")[0],
-          "2026-10-05",
+          document.querySelector('input[placeholder="dd/mm/yyyy"]'),
+          "05/10/2026",
         );
         await input(
-          document.querySelectorAll("input[type=date]")[1],
-          "2026-10-20",
+          document.querySelectorAll('input[placeholder="dd/mm/yyyy"]')[1],
+          "20/10/2026",
         );
         combo = document.querySelectorAll("input[role=combobox]")[1];
         await input(combo, "Test");

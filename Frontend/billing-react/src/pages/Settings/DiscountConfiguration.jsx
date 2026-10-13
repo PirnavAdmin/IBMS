@@ -8,16 +8,18 @@ import { LocalOfferOutlined, SaveOutlined, RestartAlt } from '@mui/icons-materia
 import { DiscountRules } from './DiscountRules';
 import { phase5Api, validateDiscountConfiguration, validateRolePermissions } from './services/phase5Api';
 import './settings.css';
+import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 
 const blank = { status: 'Active', maximumType: 'Percentage', maximumValue: '', discountType: 'Percentage', applicationLevel: 'Invoice Level', allowLineLevel: false, allowInvoiceLevel: false, enforceMaximum: false, allowManualOverride: false, requireOverrideReason: false, minimumReasonLength: 1, rowVersion: null };
 const SwitchRow = ({ label, help, checked, onChange, disabled = false }) => <div className="settings-switch-row"><div><strong>{label}</strong><small>{help}</small></div><Switch checked={Boolean(checked)} onChange={(event) => onChange(event.target.checked)} disabled={disabled} inputProps={{ 'aria-label': label }} /></div>;
 const validStatus = (status) => /^(active|inactive)$/i.test(status || '');
 
 export function DiscountConfiguration() {
+  const draft = useFormDraft('settings:discounts');
   const [loaded, setLoaded] = useState(false);
   const [maximumTouched, setMaximumTouched] = useState(false);
-  const [config, setConfig] = useState(blank); const [saved, setSaved] = useState(blank);
-  const [roles, setRoles] = useState([]); const [savedRoles, setSavedRoles] = useState([]);
+  const [config, setConfig] = useDraftState('settings:discounts', 'config', blank); const [saved, setSaved] = useState(blank);
+  const [roles, setRoles] = useDraftState('settings:discounts', 'roles', []); const [savedRoles, setSavedRoles] = useState([]);
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [savingRoles, setSavingRoles] = useState(false);
   const [error, setError] = useState(''); const [toast, setToast] = useState('');
   const [previewReason, setPreviewReason] = useState(''); const [discountPreview, setDiscountPreview] = useState(''); const [preview, setPreview] = useState(null);
@@ -29,7 +31,7 @@ export function DiscountConfiguration() {
     setLoading(true); setError('');
     try {
       const [nextConfig, nextRoles] = await Promise.all([phase5Api.getDiscountConfiguration(), phase5Api.getDiscountRolePermissions()]);
-      setMaximumTouched(false); setConfig(nextConfig); setSaved(nextConfig); setRoles(nextRoles); setSavedRoles(nextRoles); setLoaded(true);
+      setMaximumTouched(false); setConfig(draft.read('config') ?? nextConfig); setSaved(nextConfig); setRoles(draft.read('roles') ?? nextRoles); setSavedRoles(nextRoles); setLoaded(true);
     } catch (failure) { setError(failure.message); }
     finally { setLoading(false); }
   };
@@ -52,19 +54,19 @@ export function DiscountConfiguration() {
   const save = async () => {
     if (Object.keys(configErrors).length || requestLock.current) return;
     requestLock.current = true; setSaving(true); setError('');
-    try { const next = await phase5Api.updateDiscountConfiguration(config); setConfig(next); setSaved(next); setToast('Discount configuration saved.'); }
+    try { const next = await phase5Api.updateDiscountConfiguration(config); setConfig(next); draft.clear('config'); setSaved(next); setToast('Discount configuration saved.'); }
     catch (failure) { setError(failure.message); }
     finally { requestLock.current = false; setSaving(false); }
   };
   const saveRoles = async () => {
     if (Object.keys(roleErrors).length || requestLock.current) return;
     requestLock.current = true; setSavingRoles(true); setError('');
-    try { const next = await phase5Api.updateDiscountRolePermissions(roles); setRoles(next); setSavedRoles(next); setToast('Role permissions saved.'); }
+    try { const next = await phase5Api.updateDiscountRolePermissions(roles); setRoles(next); draft.clear('roles'); setSavedRoles(next); setToast('Role permissions saved.'); }
     catch (failure) { setError(failure.message); }
     finally { requestLock.current = false; setSavingRoles(false); }
   };
   const previewInvalid = Boolean(preview && !preview.isValid);
-  return <main className="settings-page"><SettingsPageHeader title="Discount Configuration" description="Control discount limits and who can apply or override them."><Button variant="outlined" startIcon={<RestartAlt />} disabled={disabled || !dirty} onClick={() => { setConfig(saved); setMaximumTouched(false); }}>Reset</Button><Button variant="contained" startIcon={<SaveOutlined />} disabled={disabled || !dirty || Object.keys(configErrors).length > 0} onClick={save}>{saving ? 'Saving...' : 'Save Changes'}</Button></SettingsPageHeader>
+  return <main className="settings-page"><SettingsPageHeader title="Discount Configuration" description="Control discount limits and who can apply or override them."><Button variant="outlined" startIcon={<RestartAlt />} disabled={disabled || !dirty} onClick={() => { setConfig(saved); draft.clear('config'); setMaximumTouched(false); }}>Reset</Button><Button variant="contained" startIcon={<SaveOutlined />} disabled={disabled || !dirty || Object.keys(configErrors).length > 0} onClick={save}>{saving ? 'Saving...' : 'Save Changes'}</Button></SettingsPageHeader>
     {error && (!loaded ? <DashboardErrorState title="Unable to load discount configuration" message={error} onRetry={load} /> : <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>)}
     {loading ? <div className="settings-empty">Loading discount configuration...</div> : !loaded ? null : <><section className="settings-layout"><Paper className="settings-panel" elevation={0}><div className="settings-panel-heading"><LocalOfferOutlined /><div><h2>Maximum Discount Rules</h2><p>The organization-wide cap for discounts entered by billing users.</p></div></div><div className="settings-form-grid"><TextField disabled={disabled} select label="Maximum Discount Type" value={config.maximumType} onChange={(e) => update('maximumType', e.target.value)}><MenuItem value="Percentage">Percentage</MenuItem><MenuItem value="Fixed Amount">Fixed Amount</MenuItem></TextField><TextField disabled={disabled} label={`Maximum Discount Value${config.maximumType === 'Percentage' ? ' (%)' : ' (₹)'}`} type="number" value={config.maximumValue} onChange={(e) => update('maximumValue', e.target.value)} onBlur={() => setMaximumTouched(true)} error={maximumTouched && Boolean(configErrors.maximumValue)} helperText={(maximumTouched && configErrors.maximumValue) || (config.maximumValue !== '' && !configErrors.maximumValue ? `Configured maximum: ${config.maximumType === 'Percentage' ? `${config.maximumValue}%` : `₹${config.maximumValue}`}` : '')} inputProps={{ min: 0, max: config.maximumType === 'Percentage' ? 100 : undefined, step: 'any' }} /><div className="settings-select-field"><label htmlFor="discount-status">Configuration status</label><Select disabled={disabled} id="discount-status" inputProps={{ "aria-label": "Configuration status" }} value={config.status} onChange={(e) => update('status', e.target.value)}>{!validStatus(config.status) && <MenuItem disabled value={config.status}>Unknown ({config.status || 'empty'})</MenuItem>}<MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select>{configErrors.status && <span className="settings-field-error">{configErrors.status}</span>}</div></div></Paper>
     <Paper className="settings-panel" elevation={0}><div className="settings-panel-heading"><div><h2>Discount Rule Controls</h2><p>Choose which discount methods are available while creating an invoice.</p></div></div><div className="settings-form-grid"><div className="settings-select-field"><label htmlFor="discount-type">Discount type</label><Select disabled={disabled} id="discount-type" inputProps={{ "aria-label": "Discount type" }} value={config.discountType} onChange={(e) => update('discountType', e.target.value)}><MenuItem value="Fixed">Fixed</MenuItem><MenuItem value="Percentage">Percentage</MenuItem></Select></div><div className="settings-select-field"><label htmlFor="application-level">Default application level</label><Select disabled={disabled} id="application-level" inputProps={{ "aria-label": "Default application level" }} value={config.applicationLevel} onChange={(e) => update('applicationLevel', e.target.value)}><MenuItem value="Line Level">Line Level</MenuItem><MenuItem value="Invoice Level">Invoice Level</MenuItem></Select></div></div><div className="settings-switch-list"><SwitchRow disabled={disabled} label="Allow line-level discount" help="Lets users discount an individual invoice item." checked={config.allowLineLevel} onChange={(value) => update('allowLineLevel', value)} /><SwitchRow disabled={disabled} label="Allow invoice-level discount" help="Lets users discount the total invoice." checked={config.allowInvoiceLevel} onChange={(value) => update('allowInvoiceLevel', value)} /><SwitchRow disabled={disabled} label="Enforce maximum discount" help="Blocks values that exceed the configured organization maximum." checked={config.enforceMaximum} onChange={(value) => update('enforceMaximum', value)} /></div>{config.enforceMaximum && <TextField disabled={disabled} className="settings-preview-input" label={`Discount validation preview (${config.maximumType === 'Percentage' ? '%' : '₹'})`} type="number" value={discountPreview} onChange={(e) => setDiscountPreview(e.target.value)} error={previewInvalid} helperText={preview?.message || 'Enter a value to validate against the backend maximum.'} inputProps={{ min: 0, step: 'any' }} />}</Paper>

@@ -5,8 +5,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
 import '../styles/customer-form.css';
+import { useFormDraft } from '../../../context/FormDraftContext';
 
 export const CreateCustomer = () => {
+  const draft = useFormDraft('customer:new');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
@@ -21,6 +23,7 @@ export const CreateCustomer = () => {
 
     try {
       await customerApi.createCustomer(formData);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
       navigate('/customers', { state: { customerNotice: 'Customer created successfully.' } });
     } catch (err) {

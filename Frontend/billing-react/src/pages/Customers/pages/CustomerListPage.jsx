@@ -1,3 +1,4 @@
+import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from "react";
@@ -221,7 +222,7 @@ export function CustomerListPage() {
           <Tooltip title="Print current customer page">
             <Button
               aria-label="Print current customer page"
-              onClick={() => window.print()}
+              onClick={() => printCustomerList(visibleCustomers)}
               variant="outlined"
               startIcon={<PrintOutlined />}
             >
@@ -297,15 +298,13 @@ export function CustomerListPage() {
         <div className="customer-panel-heading">
           <div>
             <h2>
-              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"} <span>{data?.totalCount ?? "—"}</span>
+              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"}
             </h2>
             <p>{cardView === "inactive" ? "Review each inactive profile, its recorded reason and deactivation details." : cardView === "outstanding" ? "Unpaid invoices are listed by due date, earliest first." : "Select a customer name to view their profile and transactions."}</p>
           </div>
-          {(query.isError || summaryQuery.isError) && (
-            <span className="customer-result-count unavailable" role="status">
-              {query.isError ? "Directory unavailable" : "Summary unavailable"}
-            </span>
-          )}
+          <span className={`customer-result-count${query.isError ? ' unavailable' : ''}`} role="status">
+            {query.isLoading ? 'Loading customers...' : query.isError ? 'Directory unavailable' : query.isFetching ? 'Updating results...' : `${data?.totalCount ?? 0} ${params.search || params.taxId || Object.keys(filterOptions).some(key => params[key]) ? 'matching ' : ''}${data?.totalCount === 1 ? 'customer' : 'customers'}`}
+          </span>
         </div>
         <div className="customer-filters">
           <TextField

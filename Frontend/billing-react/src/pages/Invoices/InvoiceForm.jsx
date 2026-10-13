@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import {
   Alert,
   Autocomplete,
@@ -104,12 +105,14 @@ function ProductSelect({ item, onSelect, error, disabled }) {
 }
 export function InvoiceForm() {
   const { id } = useParams();
+  const draftKey = `invoice:${id || 'new'}`;
+  const draft = useFormDraft(draftKey);
   const navigate = useNavigate();
   const client = useQueryClient();
   const user = useInvoiceUser();
   const { selectedCurrencies = [] } = useRegionalSettings();
   const defaultCurrency = selectedCurrencies.length === 1 ? selectedCurrencies[0] : "";
-  const [form, setForm] = useState(() => blankInvoice(defaultCurrency));
+  const [form, setForm] = useDraftState(draftKey, 'form', () => blankInvoice(defaultCurrency));
   const [loaded, setLoaded] = useState(!id);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -126,14 +129,13 @@ export function InvoiceForm() {
     staleTime: 0,
   });
   useEffect(() => {
-    setForm(blankInvoice(defaultCurrency));
     setLoaded(!id);
     setErrors({});
     setError("");
-  }, [id, defaultCurrency]);
+  }, [id]);
   useEffect(() => {
     if (persisted.data && !loaded) {
-      setForm(formFromInvoice(persisted.data));
+      if (!draft.has('form')) setForm(formFromInvoice(persisted.data));
       setLoaded(true);
     }
   }, [persisted.data, loaded]);
@@ -320,7 +322,9 @@ export function InvoiceForm() {
       !window.confirm("You have unsaved changes. Discard changes and leave?")
     ) {
       event.preventDefault();
+      return;
     }
+    draft.clear();
   };
   useEffect(() => {
     if (
@@ -452,6 +456,7 @@ export function InvoiceForm() {
           throw new Error("Failed to save draft invoice before issuing.");
         }
         const issued = await invoiceService.issue(saved.id);
+        draft.clear();
         await invalidateInvoices(client);
         navigate(`/invoices/${issued.id}`, {
           replace: true,
@@ -462,6 +467,7 @@ export function InvoiceForm() {
         return;
       }
 
+      draft.clear();
       await invalidateInvoices(client);
       navigate(`/invoices/${saved.id}`, {
         replace: true,

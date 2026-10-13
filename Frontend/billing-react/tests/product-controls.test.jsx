@@ -42,9 +42,14 @@ for (const mode of ['create', 'edit']) for (const type of ['Product', 'Service']
       await choose('GST 12%');
       assert.equal(tax.value, 'GST 12%');
       await input(tax, 'Other');
+      for (const label of ['Not Applicable','GST 5%','GST 12%','GST 18%','GST 28%','Other / type custom tax']) {
+        assert.ok([...document.querySelectorAll('.ant-select-item-option')].some(item=>item.textContent.includes(label)), `Same complete tax list includes ${label}`);
+      }
       await choose('Other / type custom tax');
       assert.equal(tax.value, '');
-      await input(tax, 'GST 6.25%');
+      await input(tax, '6.25');
+      await act(async () => Simulate.blur(tax)); await flush();
+      assert.equal(tax.value, 'GST 6.25%');
 
       const currency = host.querySelector('#productCurrency');
       await act(async () => Simulate.focus(currency));

@@ -45,3 +45,12 @@ test('switching away from Other excludes stale custom tax', async () => {
     }
   }
 });
+
+test('numeric custom tax is formatted as GST without calculating tax', async () => {
+  assert.equal(getProductTaxValues('7.5').taxCategory, 'GST 7.5%');
+  for (const taxCategory of ['7.5', '7.5%', 'gst 7.5', 'GST 7.5%']) {
+    const values = await productValidationSchema.validate({ ...validProduct, taxCategory });
+    assert.equal(resolveProductTax(values), 'GST 7.5%');
+  }
+  for (const taxCategory of ['101', '-1']) await assert.rejects(productValidationSchema.validate({ ...validProduct, taxCategory }));
+});

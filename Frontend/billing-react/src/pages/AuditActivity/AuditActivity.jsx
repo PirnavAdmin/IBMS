@@ -1,3 +1,4 @@
+import { DateInput } from '../../components/DateField';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem,
@@ -85,8 +86,8 @@ export function AuditActivity() {
             {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{draft[key]}</MenuItem>}
             {options[optionKey].map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
           </TextField>)}
-          <TextField size="small" type="date" label="From date" helperText="Start of day (IST)" InputLabelProps={{ shrink: true }} {...field('startDate')} />
-          <TextField size="small" type="date" label="To date" helperText="End of day (IST)" InputLabelProps={{ shrink: true }} inputProps={{ min: draft.startDate || undefined }} {...field('endDate')} />
+          <DateInput size="small" label="From date" helperText="Start of day (IST)" InputLabelProps={{ shrink: true }} {...field('startDate')} />
+          <DateInput size="small" label="To date" helperText="End of day (IST)" InputLabelProps={{ shrink: true }} inputProps={{ min: draft.startDate || undefined }} {...field('endDate')} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
         {optionsError && <Alert severity="error" action={![401, 403].includes(optionsError.response?.status)

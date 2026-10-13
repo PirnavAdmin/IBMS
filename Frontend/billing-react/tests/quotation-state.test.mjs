@@ -32,6 +32,7 @@ async function harness(loadFailure = null) {
   vm.runInNewContext(compiled.code, { module, exports: module.exports, React: react, setTimeout, clearTimeout, require: id => {
     if (id === 'react') return react;
     if (id === 'react-router-dom') return router;
+    if (id.includes('FormDraftContext')) return { useFormDraft: () => ({ clear: () => calls.push('clearDraft') }) };
     if (id.includes('quotationQuery')) return queries;
     if (id.includes('quotationDiscount')) return {validateQuotationDiscounts:async()=>{}};
     if (id.includes('quotationApi')) return {
@@ -67,7 +68,7 @@ test('create and edit refresh details/history and update the list without reload
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Created' });
   assert.equal(h.props('QuotationDetails').quotation.id, 2);
   assert.equal(h.props('QuotationDetails').quotation.auditLogs.length, 1);
-  assert.deepEqual(h.calls, ['save', 'get', 'communication', 'audit']);
+  assert.deepEqual(h.calls, ['save', 'clearDraft', 'get', 'communication', 'audit']);
   await h.props('QuotationDetails').onEdit({ id: 2 });
   assert.equal(h.props('QuotationForm').initial.rowVersion, 'v2');
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Edited' });
@@ -119,6 +120,7 @@ test('failed save keeps form open; concurrent saves only submit once', async () 
   const h = await harness(); h.props('QuotationList').onCreate(); h.setFailSave(true);
   await h.props('QuotationForm').onSave({ reference: 'Keep input' });
   assert.ok(h.props('QuotationForm'));
+  assert.equal(h.calls.includes('clearDraft'), false);
   h.setFailSave(false); let release; h.setSaveGate(new Promise(resolve => { release = resolve; }));
   const save = h.props('QuotationForm').onSave;
   const pending = save({ id: 2 }); await save({ id: 2 }); release(); await pending;

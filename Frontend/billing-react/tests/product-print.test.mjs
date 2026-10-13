@@ -13,5 +13,7 @@ test('Product print: only title and table, escaped values and all rows retained'
   assert.equal((html.match(/<tr>/g) || []).length, 206);
   assert.match(html, /display:table-header-group/);
   assert.match(html, /break-inside:avoid/);
-  assert.match(html, /window.print/);
+  assert.match(html, /background:#F0E2D0/);
+  assert.match(html, /border:1px solid #BBA58C/);
+  assert.doesNotMatch(html, /<script|window.print/);
 });

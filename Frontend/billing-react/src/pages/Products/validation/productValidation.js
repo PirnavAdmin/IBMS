@@ -4,9 +4,15 @@ import { CURRENCY_CODES } from '../../../utils/currencies.js';
 const CODE_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 
+export function normalizeProductTax(value) {
+  const text = String(value ?? '').trim();
+  const rate = text.match(/^(?:GST\s*)?(-?\d+(?:\.\d+)?)\s*%?$/i);
+  return rate ? `GST ${rate[1]}%` : text;
+}
+
 export const PRODUCT_TYPES = ['Product', 'Service'];
 export const CURRENCIES = CURRENCY_CODES;
-export const TAX_CATEGORIES = ['Not Applicable', 'GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'Other'];
+export const TAX_CATEGORIES = ['Not Applicable', 'GST 5%', 'GST 12%', 'GST 18%', 'GST 28%', 'Other'];
 export const STANDARD_UNITS = ['Piece', 'Set', 'Others'];
 
 export const productValidationSchema = yup.object({
@@ -79,6 +85,7 @@ export const productValidationSchema = yup.object({
 
   taxCategory: yup
     .string()
+    .transform(normalizeProductTax)
     .trim()
     .required('Select or enter a tax category')
     .max(64, 'Tax category must not exceed 64 characters')
@@ -152,9 +159,9 @@ export function resolveProductUnit({ unit, customUnit }) {
 }
 
 export function resolveProductTax({ taxCategory }) {
-  return taxCategory.trim();
+  return normalizeProductTax(taxCategory);
 }
 
 export function getProductTaxValues(taxCategory) {
-  return { taxCategory: taxCategory?.trim() || 'Not Applicable' };
+  return { taxCategory: normalizeProductTax(taxCategory) || 'Not Applicable' };
 }

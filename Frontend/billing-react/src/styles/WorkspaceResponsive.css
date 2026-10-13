@@ -1,0 +1,38 @@
+/* Layout follows available CSS width, including OS scaling and browser zoom.
+   Keep document/print styles and the existing sidebar drawer behavior intact. */
+@media screen {
+  .app-layout, .app-layout *, .app-layout *::before, .app-layout *::after { box-sizing: border-box; }
+  .app-layout .app-layout-main { flex: 1 1 0%; min-width: 0; max-width: 100%; }
+  .app-layout .app-layout-content { width: 100%; min-width: 0; max-width: 100%; container: workspace / inline-size; }
+  .app-layout-content > *, .app-layout-content > fieldset { min-width: 0; max-width: 100%; }
+  .app-layout-content > fieldset { margin: 0; padding: 0; border: 0; }
+  .app-layout .bd-header { min-width: 0; max-width: 100%; }
+  .app-layout .bd-search, .app-layout .bd-profile-area, .app-layout .bd-user-copy { min-width: 0; }
+  .app-layout .bd-user-copy { overflow-wrap: anywhere; }
+  .app-layout .bd-avatar, .app-layout .bd-icon-button { flex-shrink: 0; }
+  .app-layout-content :is(.customer-panel, .customer-card, .payment-panel, .invoice-panel, .product-panel, .quote-card, .settings-panel) { min-width: 0; max-width: 100%; }
+  .app-layout-content :is(.customer-fields, .payment-values, .invoice-values) > * { min-width: 0; overflow-wrap: anywhere; }
+  .app-layout-content :is(.customers-heading, .customers-heading-actions, .customer-panel-heading, .payment-heading, .payment-card-heading, .invoice-heading, .invoice-actions) { flex-wrap: wrap; min-width: 0; }
+  .app-layout-content :is(.customer-heading, .payment-heading, .invoice-heading) > * { min-width: 0; max-width: 100%; }
+  .app-layout-content :is(.MuiTableContainer-root, .invoice-table-scroll, .payment-allocation-scroll) { min-width: 0; max-width: 100%; overflow-x: auto; }
+  .app-layout .customers-page { overflow-x: visible; }
+  .app-layout .customers-page :is(.customer-stats, .customer-filters, .customer-filter-row, .customer-pagination) { min-width: 0; max-width: 100%; }
+  .app-layout .customers-heading-actions { flex-shrink: 1; }
+  .app-layout .customer-details-view .customer-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-layout .cr-layout { width: 100%; max-width: 100%; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+  @container workspace (max-width: 70rem) {
+    .app-layout-content :is(.invoice-overview-layout, .invoice-form-bottom, .invoice-document-bottom, .payment-summary-content) { grid-template-columns: minmax(0, 1fr); }
+    .app-layout .customer-details-view .customer-card-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @container workspace (max-width: 42rem) {
+    .app-layout-content :is(.customer-fields, .payment-values, .payment-form-grid, .invoice-values, .invoice-form-grid, .cr-layout, .cr-fields, .cr-details) { grid-template-columns: minmax(0, 1fr); }
+    .app-layout-content :is(.customer-stats, .payment-summary-totals) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .app-layout-content :is(.customer-panel-heading, .customer-filters, .payment-panel) { padding: 1rem; }
+    .app-layout .customers-page .customer-filter-row > .MuiTextField-root { min-width: 0; flex: 1 1 100%; }
+    .app-layout .customer-pagination nav { max-width: 100%; }
+    .app-layout .customer-pagination .MuiPagination-ul { flex-wrap: wrap; }
+  }
+  @container workspace (max-width: 24rem) {
+    .app-layout-content :is(.customer-stats, .payment-summary-totals) { grid-template-columns: minmax(0, 1fr); }
+  }
+}

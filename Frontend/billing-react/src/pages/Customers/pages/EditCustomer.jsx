@@ -5,10 +5,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
 import '../styles/customer-form.css';
+import { useFormDraft } from '../../../context/FormDraftContext';
 
 export const EditCustomer = () => {
   const { id: paramId, customerId } = useParams();
   const id = paramId || customerId;
+  const draft = useFormDraft(`customer:${id}`);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
@@ -73,6 +75,7 @@ export const EditCustomer = () => {
         isActive: isTargetActive,
         rowVersion: customer.rowVersion || formData.rowVersion,
       });
+      draft.clear();
       await Promise.all([
         ['customers'],
         ['customer', String(id)],
