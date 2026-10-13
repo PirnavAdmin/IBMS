@@ -1,0 +1,6 @@
+.protected-route-state { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--bg-main); color: var(--text-primary); text-align: center; }
+.protected-route-state section { max-width: 420px; padding: 28px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.protected-route-state h1 { font-size: 1.3rem; margin-bottom: 12px; }
+.protected-route-state p { color: var(--text-secondary); }
+.protected-route-state button { margin-top: 20px; padding: 10px 20px; border: 0; border-radius: 8px; background: var(--primary); color: #fff; font: inherit; cursor: pointer; }
+.protected-route-state button:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }

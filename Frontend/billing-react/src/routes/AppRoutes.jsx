@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
+import { ProtectedRoute } from './ProtectedRoute';
 
 import { Landing } from '../pages/Landing/Landing';
 import { Login } from '../pages/Login/Login';
@@ -64,7 +65,7 @@ export const AppRoutes = () => (
     <Route path="/reset-password" element={<ResetPassword />} />
 
     {/* Application Routes */}
-    <Route element={<FormDraftProvider><AppLayout /></FormDraftProvider>}>
+    <Route element={<ProtectedRoute><FormDraftProvider><AppLayout /></FormDraftProvider></ProtectedRoute>}>
       <Route path="/dashboard" element={<Dashboard />} />
 
       <Route path="/invoices" element={<InvoiceList />} />

@@ -4,6 +4,7 @@ import { useMediaQuery } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
+import { queryClient } from '../queryClient';
 import '../styles/Dashboard.css';
 import '../styles/ModuleSpacing.css';
 import '../styles/AppTheme.css';
@@ -56,6 +57,7 @@ export const AppLayout = () => {
   const signOut = () => {
     localStorage.removeItem('billing_auth_token');
     localStorage.removeItem('billing_auth_user');
+    queryClient.clear();
     navigate('/login');
   };
 
