@@ -21,6 +21,8 @@ import {
   IconButton,
   InputAdornment,
   Tooltip,
+  ListItemIcon,
+  Menu,
   MenuItem,
   Pagination,
   PaginationItem,
@@ -44,6 +46,8 @@ import {
   PersonOffOutlined,
   Search,
   AccountBalanceWalletOutlined,
+  MoreVert,
+  InfoOutlined,
 } from "@mui/icons-material";
 import {
   useCustomers,
@@ -154,6 +158,88 @@ function getSortValue(sortBy, sortOrder) {
   );
   return match ? `${match.sortBy}:${match.sortOrder}` : "";
 }
+
+export const CustomerRowActions = ({
+  customer,
+  onDeactivate,
+  onViewReason,
+}) => {
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState(null);
+  const open = Boolean(anchor);
+  const handleOpen = (event) => setAnchor(event.currentTarget);
+  const handleClose = () => setAnchor(null);
+
+  return (
+    <div className="customer-row-actions">
+      <IconButton
+        aria-label={`Actions for customer ${customer.name || customer.customerCode || customer.id}`}
+        title="More actions"
+        size="small"
+        onClick={handleOpen}
+      >
+        <MoreVert fontSize="small" />
+      </IconButton>
+      <Menu
+        anchorEl={anchor}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ className: "customer-actions-menu" }}
+      >
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate(`/customers/${encodeURIComponent(customer.id)}`);
+          }}
+        >
+          <ListItemIcon>
+            <VisibilityOutlined fontSize="small" />
+          </ListItemIcon>
+          View Details
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate(`/customers/${customer.id}/edit`);
+          }}
+        >
+          <ListItemIcon>
+            <EditOutlined fontSize="small" />
+          </ListItemIcon>
+          Edit Customer
+        </MenuItem>
+        {customer.status === "active" && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              onDeactivate(customer);
+            }}
+          >
+            <ListItemIcon>
+              <PersonOffOutlined fontSize="small" />
+            </ListItemIcon>
+            Deactivate Customer
+          </MenuItem>
+        )}
+        {customer.status === "inactive" && onViewReason && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              onViewReason(customer);
+            }}
+          >
+            <ListItemIcon>
+              <InfoOutlined fontSize="small" />
+            </ListItemIcon>
+            View Reason
+          </MenuItem>
+        )}
+      </Menu>
+    </div>
+  );
+};
 
 export function CustomerListPage() {
   const navigate = useNavigate();
@@ -630,51 +716,15 @@ export function CustomerListPage() {
                         </div>
                       </TableCell>
                       <TableCell data-label="Actions">
-                        <div
-                          className="customer-row-actions"
-                          role="group"
-                          aria-label={`Actions for ${customer.name}`}
-                        >
-                          <Tooltip title="View details">
-                            <IconButton
-                              className="action-view"
-                              size="small"
-                              aria-label={`View ${customer.name}`}
-                              component={Link}
-                              to={`/customers/${encodeURIComponent(customer.id)}`}
-                            >
-                              <VisibilityOutlined />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit customer">
-                            <IconButton
-                              className="action-edit"
-                              size="small"
-                              aria-label={`Edit ${customer.name}`}
-                              onClick={() =>
-                                navigate(`/customers/${customer.id}/edit`)
-                              }
-                            >
-                              <EditOutlined />
-                            </IconButton>
-                          </Tooltip>
-                          {customer.status === "active" && (
-                            <Tooltip title="Deactivate customer">
-                              <IconButton
-                                className="action-deactivate"
-                                size="small"
-                                aria-label={`Deactivate ${customer.name}`}
-                                onClick={() => {
-                                  mutation.reset();
-                                  setReason("");
-                                  setConfirm(customer);
-                                }}
-                              >
-                                <PersonOffOutlined />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </div>
+                        <CustomerRowActions
+                          customer={customer}
+                          onDeactivate={(c) => {
+                            mutation.reset();
+                            setReason("");
+                            setConfirm(c);
+                          }}
+                          onViewReason={(c) => setInactiveDetails(c)}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
