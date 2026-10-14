@@ -24,11 +24,11 @@ import { Link, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, INVOICE_STATUSES } from "./services/invoiceService";
 import { InvoiceActions } from "./components/InvoiceActions";
+import { InvoiceDateRangeFilter } from "./components/InvoiceDateRangeFilter";
 import {
   InvoiceShell,
   InvoiceState,
   InvoiceStatus,
-  DateField,
   money,
   date,
   identifier,
@@ -379,7 +379,7 @@ export function InvoiceList() {
         <div className="invoice-filters">
           <TextField
             className="invoice-filter-search"
-            placeholder="Search number, customer or reference"
+            placeholder="Search Invoice Number"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -389,7 +389,7 @@ export function InvoiceList() {
             type="search"
             size="small"
             inputProps={{
-              "aria-label": "Search number, customer or reference",
+              "aria-label": "Search Invoice Number",
             }}
             InputProps={{
               startAdornment: (
@@ -430,21 +430,12 @@ export function InvoiceList() {
             }}
             renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
           />
-          <DateField
-            className="invoice-filter-from"
-            size="small"
-            label="From date"
-            value={filters.startDate}
-            onChange={(val) => change("startDate", val)}
-            helperText=""
-          />
-          <DateField
-            className="invoice-filter-to"
-            size="small"
-            label="To date"
-            value={filters.endDate}
-            onChange={(val) => change("endDate", val)}
-            helperText=""
+          <InvoiceDateRangeFilter
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            onApply={(dates) => setFilters((previous) => ({
+              ...previous, ...dates, page: 1,
+            }))}
           />
           <TextField
             className="invoice-filter-currency"
