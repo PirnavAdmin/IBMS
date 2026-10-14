@@ -71,6 +71,9 @@ public class BillingDbContext : DbContext
 
     public DbSet<CreditNoteRefund> CreditNoteRefunds { get; set; }
 
+    public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _currentUserService?.TenantId;
@@ -853,6 +856,36 @@ public class BillingDbContext : DbContext
 
             entity.HasIndex(r => new { r.TenantId, r.RefundNumber }).IsUnique();
             entity.HasIndex(r => new { r.TenantId, r.CreditNoteId });
+        });
+
+        modelBuilder.Entity<NotificationTemplate>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.EventType).HasMaxLength(64).IsRequired();
+            entity.Property(t => t.Channel).HasMaxLength(32).HasDefaultValue("Email").IsRequired();
+            entity.Property(t => t.Name).HasMaxLength(128).IsRequired();
+            entity.Property(t => t.Description).HasMaxLength(256);
+            entity.Property(t => t.SubjectTemplate).HasMaxLength(500).IsRequired();
+            entity.Property(t => t.BodyTemplate).IsRequired();
+            entity.Property(t => t.IsActive).HasDefaultValue(true);
+            entity.HasIndex(t => new { t.TenantId, t.EventType, t.Channel });
+        });
+
+        modelBuilder.Entity<NotificationLog>(entity =>
+        {
+            entity.HasKey(l => l.Id);
+            entity.Property(l => l.EventType).HasMaxLength(64).IsRequired();
+            entity.Property(l => l.EntityType).HasMaxLength(64).IsRequired();
+            entity.Property(l => l.Channel).HasMaxLength(32).HasDefaultValue("Email").IsRequired();
+            entity.Property(l => l.Recipient).HasMaxLength(256).IsRequired();
+            entity.Property(l => l.Subject).HasMaxLength(500).IsRequired();
+            entity.Property(l => l.Status).HasMaxLength(32).HasDefaultValue("Sent").IsRequired();
+            entity.Property(l => l.RetryCount).HasDefaultValue(0);
+            entity.Property(l => l.FailureReason).HasMaxLength(1000);
+            entity.Property(l => l.SentBy).HasMaxLength(100);
+            entity.HasIndex(l => new { l.TenantId, l.EntityType, l.EntityId });
+            entity.HasIndex(l => new { l.TenantId, l.Status });
+            entity.HasIndex(l => new { l.TenantId, l.SentAtUtc });
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
