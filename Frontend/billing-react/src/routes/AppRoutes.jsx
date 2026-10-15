@@ -38,6 +38,7 @@ import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, Templ
 import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
+import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
 
 // ==============================
 // CUSTOMER MODULE
@@ -127,6 +128,7 @@ export const AppRoutes = () => (
       <Route path="/credit-notes/:id/edit" element={<CreditNoteForm />} />
       <Route path="/credit-notes/:id/approve" element={<CreditNoteDetails />} />
       <Route path="/credit-notes/:id/refund" element={<CreditNoteDetails />} />
+      <Route path="/credit-notes/:id/export" element={<CreditNoteExportPage />} />
       <Route path="/credit-notes/:id/preview" element={<CreditNoteDetails />} />
       <Route path="/credit-notes/:id" element={<CreditNoteDetails />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />

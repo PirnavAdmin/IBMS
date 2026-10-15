@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowBack, CheckCircleOutline, Close, ContentCopy, EditOutlined, LocalPrintshopOutlined,
+  ArrowBack, CheckCircleOutline, Close, ContentCopy, EditOutlined, LocalPrintshopOutlined, PictureAsPdfOutlined,
   PaymentsOutlined, ReceiptLongOutlined, SendOutlined, TaskAltOutlined,
 } from '@mui/icons-material';
 import {
@@ -95,7 +95,7 @@ export function CreditNoteDetails() {
 
   return (
     <main className={`cn-page cn-details-page ${isPreview ? 'cn-preview-page' : ''}`}>
-      {!isPreview && <><div className="cn-detail-toolbar"><Button component={Link} to="/credit-notes" startIcon={<ArrowBack />}>Credit Notes</Button><div><Button variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => navigate(`/credit-notes/${id}/preview`)}>Preview / Print</Button>{canSubmit && <Button component={Link} to={`/credit-notes/${id}/edit`} variant="outlined" startIcon={<EditOutlined />}>Edit draft</Button>}</div></div></>}
+      {!isPreview && <><div className="cn-detail-toolbar"><Button component={Link} to="/credit-notes" startIcon={<ArrowBack />}>Credit Notes</Button><div><Button component={Link} to={`/credit-notes/${id}/export`} variant="outlined" startIcon={<PictureAsPdfOutlined />}>Export PDF</Button><Button variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => navigate(`/credit-notes/${id}/preview`)}>Preview / Print</Button>{canSubmit && <Button component={Link} to={`/credit-notes/${id}/edit`} variant="outlined" startIcon={<EditOutlined />}>Edit draft</Button>}</div></div></>}
       {isPreview && <div className="cn-preview-toolbar"><Button onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
       <header className="cn-document-header">

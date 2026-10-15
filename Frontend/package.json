@@ -5,5 +5,8 @@
     "dev": "npm --prefix billing-react run dev",
     "build": "npm --prefix billing-react run build",
     "preview": "npm --prefix billing-react run preview"
+  },
+  "dependencies": {
+    "country-flag-icons": "^1.6.20"
   }
 }

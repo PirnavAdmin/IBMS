@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
+import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField } from '@mui/material';
 import { ArrowBack, ArrowForward, Check, DescriptionOutlined, ReceiptLongOutlined, SavingsOutlined } from '@mui/icons-material';
 import { creditNoteService } from '../services/creditNoteService';
 import { calculateCredit, creditLineAmounts, eligibleCredit, money, reconcileFullCredit } from '../utils/creditNoteCalculations';
@@ -30,6 +30,9 @@ export function CreditNoteForm() {
   const [invoiceId, setInvoiceId] = useDraftState(draftKey, 'invoiceId', () => location.state?.invoiceId ? String(location.state.invoiceId) : '');
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [invoicePage, setInvoicePage] = useState(0);
+  const [invoicePageSize, setInvoicePageSize] = useState(5);
+  const [activeEligibilityCard, setActiveEligibilityCard] = useState('');
   const [type, setType] = useDraftState(draftKey, 'type', 'Partial');
   const [reason, setReason] = useDraftState(draftKey, 'reason', '');
   const [reasonNote, setReasonNote] = useDraftState(draftKey, 'reasonNote', '');
@@ -41,9 +44,11 @@ export function CreditNoteForm() {
     const timer = setTimeout(() => setInvoiceSearchQuery(invoiceSearch.trim()), 250);
     return () => clearTimeout(timer);
   }, [invoiceSearch]);
+  useEffect(() => { setInvoicePage(0); }, [invoiceSearchQuery]);
   const invoicesQuery = useQuery({ queryKey: ['creditNotes', 'eligibleInvoices', invoiceSearchQuery], queryFn: () => creditNoteService.getInvoices({ search: invoiceSearchQuery }) });
   const selectedSummaryQuery = useQuery({ queryKey: ['creditNotes', 'invoiceSummary', invoiceId], queryFn: () => creditNoteService.getInvoiceCreditableSummary(invoiceId), enabled: Boolean(invoiceId) });
   const invoices = invoicesQuery.data || [];
+  const visibleInvoices = invoices.slice(invoicePage * invoicePageSize, (invoicePage + 1) * invoicePageSize);
   const selectedInvoice = selectedSummaryQuery.data || invoices.find((invoice) => Number(invoice.id) === Number(invoiceId));
   const selectedItems = useMemo(() => (selectedInvoice?.items || [])
     .map((item) => {
@@ -88,6 +93,7 @@ export function CreditNoteForm() {
 
   const selectInvoice = (value) => {
     setInvoiceId(value);
+    setActiveEligibilityCard('');
     setType('Partial');
     setQuantities({});
     setError('');
@@ -156,7 +162,7 @@ export function CreditNoteForm() {
   return (
     <main className="cn-page cn-form-page">
       <Breadcrumbs className="cn-breadcrumbs" aria-label="Breadcrumb"><Link to="/credit-notes">Credit Notes</Link><span>{isEditing ? 'Edit draft' : 'Create'}</span></Breadcrumbs>
-      <header className="cn-page-heading"><div><span className="cn-eyebrow">CREDIT WORKFLOW</span><h1>{isEditing ? `Edit ${noteQuery.data?.number || 'draft'}` : 'Create Credit Note'}</h1><p>Link every credit to its original invoice and keep the reason on record.</p></div><Button component={Link} to={isEditing ? `/credit-notes/${id}` : '/credit-notes'} variant="outlined" startIcon={<ArrowBack />}>Back to register</Button></header>
+      <header className="cn-page-heading"><div><span className="cn-eyebrow">CREDIT WORKFLOW</span><h1>{isEditing ? `Edit ${noteQuery.data?.number || 'draft'}` : 'Create Credit Note'}</h1><p>Link every credit to its original invoice and keep the reason on record.</p></div><Button component={Link} to={isEditing ? `/credit-notes/${id}` : '/credit-notes'} variant="outlined" startIcon={<ArrowBack />}>Back</Button></header>
 
       <nav className="cn-stepper" aria-label="Credit note creation steps">{steps.map((label, index) => <button type="button" key={label} className={`cn-step ${step === index ? 'active' : ''} ${step > index ? 'complete' : ''}`} onClick={() => index < step && setStep(index)}><span>{step > index ? <Check fontSize="small" /> : index + 1}</span><b>{label}</b></button>)}</nav>
 
@@ -164,13 +170,14 @@ export function CreditNoteForm() {
         <section className="cn-form-card">
           {step === 0 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><ReceiptLongOutlined /></span><div><h2>Select source invoice</h2><p>Only invoices with remaining credit eligibility are listed.</p></div></div>
             <TextField className="cn-invoice-search" size="small" label="Find an invoice" placeholder="Invoice number or customer" value={invoiceSearch} onChange={(event) => setInvoiceSearch(event.target.value)} />
-            <div className="cn-invoice-options">{invoicesQuery.isPending ? <div className="cn-loading-card">Loading eligible invoices…</div> : invoicesQuery.isError ? <DashboardErrorState title="Unable to load eligible invoices" message={invoicesQuery.error?.message} onRetry={() => invoicesQuery.refetch()} /> : invoices.length ? invoices.map((invoice) => <button type="button" key={invoice.id} onClick={() => selectInvoice(invoice.id)} className={`cn-invoice-option ${Number(invoiceId) === Number(invoice.id) ? 'selected' : ''}`}><span className="cn-radio-mark" /><span className="cn-invoice-copy"><strong>{invoice.number}</strong><b>{invoice.customer}</b><small>{invoice.email || 'Customer email unavailable'} · {invoice.date ? new Date(invoice.date).toLocaleDateString('en-IN') : 'Invoice date unavailable'}</small></span><span className="cn-invoice-amount"><small>Remaining creditable</small><strong>{money(eligibleCredit(invoice), invoice.currency)}</strong><small>{money(invoice.total, invoice.currency)} invoice total</small></span></button>) : <div className="cn-empty-inline">No eligible invoices found for this search.</div>}</div>
+            <div className="cn-invoice-options">{invoicesQuery.isPending ? <div className="cn-loading-card">Loading eligible invoices…</div> : invoicesQuery.isError ? <DashboardErrorState title="Unable to load eligible invoices" message={invoicesQuery.error?.message} onRetry={() => invoicesQuery.refetch()} /> : invoices.length ? visibleInvoices.map((invoice) => <button type="button" key={invoice.id} onClick={() => selectInvoice(invoice.id)} className={`cn-invoice-option ${Number(invoiceId) === Number(invoice.id) ? 'selected' : ''}`}><span className="cn-radio-mark" /><span className="cn-invoice-copy"><strong>{invoice.number}</strong><b>{invoice.customer}</b><small>{invoice.email || 'Customer email unavailable'} · {invoice.date ? new Date(invoice.date).toLocaleDateString('en-IN') : 'Invoice date unavailable'}</small></span><span className="cn-invoice-amount"><small>Remaining creditable</small><strong>{money(eligibleCredit(invoice), invoice.currency)}</strong><small>{money(invoice.total, invoice.currency)} invoice total</small></span></button>) : <div className="cn-empty-inline">No eligible invoices found for this search.</div>}</div>
             {invoiceId && selectedSummaryQuery.isPending && <div className="cn-loading-card">Loading authoritative invoice eligibility…</div>}
             {selectedSummaryQuery.isError && <DashboardErrorState title="Unable to load invoice eligibility" message={selectedSummaryQuery.error.message} onRetry={() => selectedSummaryQuery.refetch()} />}
             {selectedInvoice && <>
               {Number(selectedInvoice.previousCredits) > 0 && <div className="cn-previous-credit-warning"><strong>Previous issued credits: {money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong><span>This amount is already reflected in invoice eligibility. Available additional credit: {money(eligibleAmount, selectedInvoice.currency)}.</span></div>}
-              <div className="cn-eligibility-summary"><div><small>Original invoice total</small><strong>{money(selectedInvoice.total, selectedInvoice.currency)}</strong></div><div><small>Payments received</small><strong>{money(selectedInvoice.paid, selectedInvoice.currency)}</strong></div><div><small>Previous issued credits</small><strong>{money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong></div><div><small>Current amount due</small><strong>{money(selectedInvoice.currentDue, selectedInvoice.currency)}</strong></div><div className="cn-eligibility-highlight"><small>Remaining creditable</small><strong>{money(eligibleAmount, selectedInvoice.currency)}</strong></div></div>
+              <div className="cn-eligibility-summary"><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'invoiceTotal' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'invoiceTotal'} onClick={() => setActiveEligibilityCard((current) => current === 'invoiceTotal' ? '' : 'invoiceTotal')}><small>Original invoice total</small><strong>{money(selectedInvoice.total, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'payments' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'payments'} onClick={() => setActiveEligibilityCard((current) => current === 'payments' ? '' : 'payments')}><small>Payments received</small><strong>{money(selectedInvoice.paid, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'previousCredits' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'previousCredits'} onClick={() => setActiveEligibilityCard((current) => current === 'previousCredits' ? '' : 'previousCredits')}><small>Previous issued credits</small><strong>{money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'currentDue' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'currentDue'} onClick={() => setActiveEligibilityCard((current) => current === 'currentDue' ? '' : 'currentDue')}><small>Current amount due</small><strong>{money(selectedInvoice.currentDue, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice cn-eligibility-highlight ${activeEligibilityCard === 'remainingCredit' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'remainingCredit'} onClick={() => setActiveEligibilityCard((current) => current === 'remainingCredit' ? '' : 'remainingCredit')}><small>Remaining creditable</small><strong>{money(eligibleAmount, selectedInvoice.currency)}</strong></button></div>
             </>}
+            {invoices.length > 0 && <TablePagination component="div" className="cn-inline-pagination" count={invoices.length} page={invoicePage} onPageChange={(_, value) => setInvoicePage(value)} rowsPerPage={invoicePageSize} onRowsPerPageChange={(event) => { setInvoicePageSize(Number(event.target.value)); setInvoicePage(0); }} rowsPerPageOptions={[5, 10, 25]} labelRowsPerPage="Invoices per page" />}
           </div>}
 
           {step === 1 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Choose credit scope &amp; items</h2><p>Set credit quantities within the remaining invoice quantities.</p></div></div>
@@ -181,7 +188,6 @@ export function CreditNoteForm() {
 
           {step === 2 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><DescriptionOutlined /></span><div><h2>Reason &amp; supporting details</h2><p>Keep a clear audit explanation for the customer and finance team.</p></div></div>
             <div className="cn-form-fields"><TextField select required label="Credit reason" value={reason} onChange={(event) => setReason(event.target.value)} error={Boolean(error && !reason)} helperText={error && !reason ? 'Select a reason.' : 'Choose the closest matching reason.'}>{reasons.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Internal reference (optional)" placeholder="e.g. RMA-2026-1048" value={reference} onChange={(event) => setReference(event.target.value)} className="cn-reference-field" /><TextField required multiline minRows={4} label="Reason details" placeholder="Describe what changed, why this credit is required, and any agreement with the customer." value={reasonNote} onChange={(event) => setReasonNote(event.target.value)} inputProps={{ maxLength: 600 }} helperText={`${reasonNote.length}/600 · minimum 8 characters`} className="cn-notes-field" /></div>
-            <div className="cn-attachments-pending"><DescriptionOutlined /><div><strong>Supporting documents</strong><span>Document uploads are not supported by the current Credit Notes API.</span></div><b>NOT AVAILABLE</b></div>
             <div className="cn-info-callout"><strong>Financial history stays traceable</strong><span>This creates a credit record linked to {selectedInvoice?.number || 'the invoice'}. It does not itself record a cash refund.</span></div>
           </div>}
 

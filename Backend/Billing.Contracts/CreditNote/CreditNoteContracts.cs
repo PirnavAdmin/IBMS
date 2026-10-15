@@ -137,6 +137,7 @@ public class CreditNoteListItemDto
     public DateTime CreditDate { get; set; }
     public string Type { get; set; } = "Full";
     public decimal Subtotal { get; set; }
+    public decimal Subtotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal RefundedAmount { get; set; }
@@ -158,7 +159,6 @@ public class CreditNoteDetailDto
     public string CustomerName { get; set; } = string.Empty;
     public DateTime CreditDate { get; set; }
     public string Type { get; set; } = "Full";
-    public decimal Subtotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal RefundedAmount { get; set; }

@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Add, ArrowDownward, ArrowUpward, DownloadOutlined, FilterAltOutlined,
-  LocalPrintshopOutlined, MoreHoriz, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
+  Add, ArrowDownward, ArrowUpward, EditOutlined, FilterAltOutlined,
+  LocalPrintshopOutlined, MoreHoriz, OpenInNew, PictureAsPdfOutlined, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
   Autorenew,
 } from '@mui/icons-material';
 import {
@@ -33,7 +33,6 @@ export function CreditNoteList() {
   const [pageSize, setPageSize] = useState(10);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuNote, setMenuNote] = useState(null);
-  const [exported, setExported] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => { setSearch(searchInput.trim()); setPage(0); }, 250);
@@ -56,19 +55,6 @@ export function CreditNoteList() {
     setPage(0);
   };
 
-  const exportCsv = () => {
-    const headers = ['Credit Note', 'Customer', 'Invoice', 'Type', 'Amount', 'Refunded', 'Remaining refundable', 'Status', 'Date'];
-    const rows = items.map((note) => [note.number, note.customer, note.invoiceNumber, note.type, note.total, note.refunded, note.remainingRefundable, note.status, note.date]);
-    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')).join('\r\n');
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    link.download = `credit-notes-page-${page + 1}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    setExported(true);
-    setTimeout(() => setExported(false), 2200);
-  };
-
   const openMenu = (event, note) => { setMenuAnchor(event.currentTarget); setMenuNote(note); };
   const closeMenu = () => { setMenuAnchor(null); setMenuNote(null); };
   const clearFilters = () => { setStatus(''); setType(''); setSearchInput(''); setSearch(''); setFromDate(''); setToDate(''); setPage(0); };
@@ -79,7 +65,7 @@ export function CreditNoteList() {
       <Breadcrumbs className="cn-breadcrumbs" aria-label="Breadcrumb"><span>Billing</span><span>Credit Notes</span></Breadcrumbs>
       <header className="cn-page-heading">
         <div><span className="cn-eyebrow">CREDITS &amp; REFUNDS</span><h1>Credit Notes</h1><p>Manage invoice credits, approvals and customer refunds.</p></div>
-        <div className="cn-heading-actions"><Button variant="outlined" startIcon={<DownloadOutlined />} onClick={exportCsv} disabled={!items.length}>{exported ? 'Exported' : 'Export this page'}</Button><Button className="cn-list-print-button" variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button></div>
+        <div className="cn-heading-actions"><Button className="cn-list-print-button" variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button></div>
       </header>
 
 
@@ -128,11 +114,11 @@ export function CreditNoteList() {
         <TablePagination component="div" className="cn-pagination" count={totalCount} page={page} onPageChange={(_, value) => setPage(value)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />
       </section>
 
-      <p className="cn-finance-note">The billing API is authoritative for eligibility, numbering, approvals, invoice balances, and refunds.</p>
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
-        <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}`} onClick={closeMenu}>View details</MenuItem>
-        {menuNote?.status === 'Draft' && <MenuItem component={Link} to={`/credit-notes/${menuNote.id}/edit`} onClick={closeMenu}>Edit draft</MenuItem>}
-        <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/preview`); }}>Preview / print</MenuItem>
+        <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}`} onClick={closeMenu}><OpenInNew fontSize="small" sx={{ mr: 1 }} />View details</MenuItem>
+        {menuNote?.status === 'Draft' && <MenuItem component={Link} to={`/credit-notes/${menuNote.id}/edit`} onClick={closeMenu}><EditOutlined fontSize="small" sx={{ mr: 1 }} />Edit draft</MenuItem>}
+        <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/preview`); }}><LocalPrintshopOutlined fontSize="small" sx={{ mr: 1 }} />Preview / print</MenuItem>
+        <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/export`); }}><PictureAsPdfOutlined fontSize="small" sx={{ mr: 1 }} />Export PDF</MenuItem>
       </Menu>
     </main>
   );
