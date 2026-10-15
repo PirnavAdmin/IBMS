@@ -482,6 +482,67 @@ test("List debounces first-character search and uses server paging/sorting", asy
     },
   );
 });
+test("List Date Range stages dates, validates order, applies existing filters and clears", async () => {
+  const calls = [];
+  await defaults({
+    list: async (values) => { calls.push(values); return page([]); },
+    summary: async () => [],
+  }, async () => {
+    const mounted = await mount(<InvoiceList />);
+    const openRange = () => click(document.querySelector('.invoice-filter-date-range'));
+    const from = () => document.querySelector('input[aria-label="From Date"]');
+    const to = () => document.querySelector('input[aria-label="To Date"]');
+    try {
+      await openRange();
+      const initialCalls = calls.length;
+      await input(from(), '2026-10-10');
+      await input(to(), '2026-10-09');
+      assert.equal(calls.length, initialCalls, 'Draft dates must not query the backend');
+      assert.equal(button('Apply').disabled, true);
+      assert.equal(to().min, '2026-10-10');
+      assert.match(document.body.textContent, /To Date must be on or after From Date/);
+      await input(to(), '2026-10-14');
+      await click(button('Apply'));
+      assert.equal(calls.at(-1).startDate, '2026-10-10');
+      assert.equal(calls.at(-1).endDate, '2026-10-14');
+      assert.equal(calls.at(-1).page, 1);
+      assert.match(document.querySelector('.invoice-filter-date-range').textContent, /10\/10\/2026.*14\/10\/2026/);
+      await flush(250);
+      assert.equal(document.querySelector('input[aria-label="From Date"]'), null);
+
+      await openRange();
+      await input(from(), '2026-10-12');
+      await click(document.querySelector('.MuiBackdrop-root'));
+      await flush(250);
+      assert.equal(calls.at(-1).startDate, '2026-10-10', 'Dismissal must discard draft edits');
+      await openRange();
+      assert.equal(from().value, '2026-10-10');
+      await click(button('Clear'));
+      assert.equal(calls.at(-1).startDate, '');
+      assert.equal(calls.at(-1).endDate, '');
+      assert.equal(document.querySelector('.invoice-filter-date-range').textContent, 'Date Range');
+      await flush(250);
+
+      await openRange();
+      await input(to(), '2026-10-14');
+      await click(button('Apply'));
+      assert.equal(calls.at(-1).startDate, '');
+      assert.equal(calls.at(-1).endDate, '2026-10-14');
+      await flush(250);
+      await openRange();
+      await input(to(), '');
+      await input(from(), '2026-10-10');
+      await click(button('Apply'));
+      assert.equal(calls.at(-1).startDate, '2026-10-10');
+      assert.equal(calls.at(-1).endDate, '');
+      await click(button('Reset Filters'));
+      assert.equal(document.querySelector('.invoice-filter-date-range').textContent, 'Date Range');
+    } finally {
+      await mounted.close();
+    }
+  });
+});
+
 test("List shows backend error separately from empty state", async () => {
   await defaults(
     {

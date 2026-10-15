@@ -161,6 +161,9 @@ builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
 builder.Services.AddScoped<ICreditNoteService, CreditNoteService>();
+builder.Services.AddScoped<ITemplateEngineService, TemplateEngineService>();
+builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // ============================================================
 // Repositories
@@ -185,6 +188,8 @@ builder.Services.AddScoped<IInvoiceTemplateRepository, InvoiceTemplateRepository
 builder.Services.AddScoped<IInvoiceSnapshotRepository, InvoiceSnapshotRepository>();
 builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
 builder.Services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
+builder.Services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
+builder.Services.AddScoped<INotificationLogRepository, NotificationLogRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================

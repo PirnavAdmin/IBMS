@@ -379,7 +379,8 @@
   color: var(--cust-text-primary);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .cust-field input,
@@ -472,6 +473,7 @@
 }
 
 .cust-field-badge {
+  margin-left: auto;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--cust-secondary);
@@ -636,6 +638,14 @@
 .cust-phone-group .country-calling-code-trigger {
   height: 42px !important;
   font-size: 0.875rem !important;
+}
+
+.cust-field .calling-code-search-input {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 28px 0 36px !important;
+  font-size: 0.8125rem !important;
 }
 
 .cust-phone-input {
@@ -1283,7 +1293,7 @@
 .cust-field-badge {
   display: inline-flex;
   align-items: center;
-  margin-left: 8px;
+  margin-left: auto;
   padding: 2px 8px;
   font-size: 0.72rem;
   font-weight: 600;

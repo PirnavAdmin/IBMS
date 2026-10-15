@@ -146,17 +146,59 @@
 .customers-page .customer-stat.green .customer-stat-icon { background: #d7f5e3; color: #548669; }
 .customers-page .customer-stat.gray .customer-stat-icon { background: #e8dcff; color: #8d76a6; }
 .customers-page .customer-stat.orange .customer-stat-icon { background: #fff4b8; color: #927d2e; }
-.customer-row-actions { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.customers-page .customer-row-actions .action-view { --action-bg: #edf4fc; --action-border: #dce8f5; --action-ink: #6286ad; --action-hover: #dfecf9; }
-.customers-page .customer-row-actions .action-edit { --action-bg: #f3eefa; --action-border: #e8def3; --action-ink: #9276af; --action-hover: #eae0f4; }
-.customers-page .customer-row-actions .action-invoice,
-.customers-page .customer-row-actions .action-activate { --action-bg: #edf7ef; --action-border: #dcecdf; --action-ink: #638e70; --action-hover: #dfefe3; }
-.customers-page .customer-row-actions .action-deactivate { --action-bg: #fcf0ed; --action-border: #f1ded7; --action-ink: #b48070; --action-hover: #f6e3dd; }
-.customers-page .customer-row-actions .MuiIconButton-root { width: 26px; height: 26px; padding: 4px; border: 1px solid var(--action-border); border-radius: 6px; background: var(--action-bg); color: var(--action-ink); }
-.customers-page .customer-row-actions .MuiIconButton-root:hover { background: var(--action-hover); }
-.customers-page .customer-row-actions .MuiIconButton-root.Mui-focusVisible { outline: 2px solid var(--action-ink); outline-offset: 2px; }
-.customers-page .customer-row-actions .MuiIconButton-root.Mui-disabled { color: #b5b1aa; background: #f3f1ed; border-color: #e9e5df; }
-.customer-row-actions .MuiSvgIcon-root { font-size: 14px; }
+.customer-row-actions { display: flex; justify-content: flex-start; gap: 8px; }
+.customers-page .customer-row-actions .MuiIconButton-root {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-main, #f8f3ec);
+  color: var(--secondary, #8b451f);
+  border: none;
+  padding: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.customers-page .customer-row-actions .MuiIconButton-root:hover {
+  background: var(--border, #eadfd2);
+  color: var(--primary, #5a2508);
+}
+.customers-page .customer-row-actions .MuiIconButton-root.Mui-focusVisible {
+  outline: 2px solid var(--secondary, #8b451f);
+  outline-offset: 2px;
+}
+.customers-page .customer-row-actions .MuiIconButton-root.Mui-disabled {
+  color: #b5b1aa;
+  background: #f3f1ed;
+}
+.customer-row-actions .MuiSvgIcon-root {
+  font-size: 18px;
+}
+
+.customer-actions-menu,
+.customer-actions-menu.MuiPaper-root,
+.customer-actions-menu .MuiPaper-root {
+  border-radius: 12px;
+  border: 1px solid var(--border, #eadfd2);
+  box-shadow: 0 8px 24px rgba(78, 51, 31, 0.12);
+  min-width: 175px;
+  padding: 4px;
+}
+.customer-actions-menu .MuiMenuItem-root {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-primary, #2b1f17);
+  padding: 8px 12px;
+  border-radius: 8px;
+  gap: 10px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.customer-actions-menu .MuiMenuItem-root:hover {
+  background: var(--bg-main, #f8f3ec);
+  color: var(--primary, #5a2508);
+}
+.customer-actions-menu .MuiListItemIcon-root {
+  min-width: unset;
+  color: inherit;
+}
 @media(min-width:601px) { .customers-page .customer-table .MuiTableCell-head:last-child { position: sticky; right: 0; z-index: 2; }.customers-page .customer-table .MuiTableCell-body:last-child { position: sticky; right: 0; z-index: 1; box-shadow: -5px 0 8px #76533508; } }
 @media(max-width:600px) {.customer-row-actions { display: flex; justify-content: flex-end; gap: 10px; }.customers-page .customer-row-actions .MuiIconButton-root { width: 34px; height: 34px; } }
 
@@ -293,7 +335,7 @@
 .customers-page .customer-table .MuiTableCell-body { padding: 13px 12px; }
 .customers-page .customer-detail-link { color: #795940; font-size: 12px; margin-top: 4px; }
 .customers-page .customer-row-actions { flex-wrap: nowrap; }
-.customers-page .customer-row-actions .MuiIconButton-root { width: 30px; height: 30px; }
+.customers-page .customer-row-actions .MuiIconButton-root { width: 32px; height: 32px; }
 .customers-page .customer-pagination { padding: 16px 22px; }
 @container customer-directory (min-width: 1101px) {
   .customers-page .customer-table .MuiTable-root { width: 100%; min-width: 0; table-layout: fixed; }
@@ -323,7 +365,7 @@
   .customers-page .customer-type { display: inline-block; max-width: 100%; box-sizing: border-box; }
   .customers-page .customer-table .MuiTableCell-root:last-child { position: static; box-shadow: none; }
   .customers-page .customer-row-actions { display: flex; flex-wrap: nowrap; gap: 4px; white-space: nowrap; }
-  .customers-page .customer-row-actions .MuiIconButton-root { width: 24px; height: 24px; padding: 4px; flex-shrink: 0; }
+  .customers-page .customer-row-actions .MuiIconButton-root { width: 32px; height: 32px; padding: 0; flex-shrink: 0; }
 }
 @media (max-width: 600px) {
   .customers-page .customer-panel-heading { padding: 16px; }
@@ -346,8 +388,8 @@
 .customers-page .customer-table.is-inactive-view .customer-code { white-space: normal; overflow-wrap: anywhere; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-root:first-child { padding-left: 12px; }
 .customers-page .customer-table.is-inactive-view .MuiTableCell-root:last-child { padding-right: 12px; }
-.customers-page .customer-table.is-inactive-view .customer-row-actions { gap: 2px; }
-.customers-page .customer-table.is-inactive-view .customer-row-actions .MuiIconButton-root { width: 24px; height: 24px; padding: 4px; }
+.customers-page .customer-table.is-inactive-view .customer-row-actions { gap: 4px; }
+.customers-page .customer-table.is-inactive-view .customer-row-actions .MuiIconButton-root { width: 32px; height: 32px; padding: 0; }
 .customers-page .customer-table .customer-contact { line-height: 1.45; }
 .customers-page .customer-table .customer-contact small { margin-top: 4px; color: #786b60; }
 .customers-page .customer-table .customer-status { white-space: nowrap; }
@@ -360,6 +402,7 @@
 .customers-page .customer-table .customer-inactivity-reason small { color: #807160; font-size: 10px; }
 .customers-page .customer-table .customer-inactivity-reason .MuiSkeleton-root { grid-column: 2; transform: none; }
 .customers-page .customer-table .customer-inactivity-error { margin: 0; font-size: 11px; }
+
 @media print {
   @page { size: A4 landscape; margin: 0; }
   body:has(.customers-page) .bd-sidebar,
