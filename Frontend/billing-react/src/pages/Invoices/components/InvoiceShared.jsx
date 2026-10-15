@@ -52,28 +52,7 @@ export const money = (amount, currency) =>
           return `${currency} ${amount}`;
         }
       })();
-export const date = (value) => {
-  if (!value) return "\u2014";
-  try {
-    const raw = String(value).slice(0, 10);
-    const parts = raw.split("-");
-    if (parts.length === 3 && parts[0].length === 4) {
-      const [y, m, d] = parts;
-      return `${d}/${m}/${y}`;
-    }
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) return raw;
-    const dt = new Date(value);
-    if (!Number.isNaN(dt.getTime())) {
-      const d = String(dt.getDate()).padStart(2, "0");
-      const m = String(dt.getMonth() + 1).padStart(2, "0");
-      const y = dt.getFullYear();
-      return `${d}/${m}/${y}`;
-    }
-    return raw;
-  } catch {
-    return value || "\u2014";
-  }
-};
+export { displayDate as date } from '../../../utils/localDate';
 
 export { DateField } from '../../../components/DateField';
 
@@ -141,7 +120,7 @@ export function InvoiceValues({ values }) {
 export function InvoiceTotals({ invoice, calculation, currency }) {
   const isCalc = Boolean(calculation);
   const activeCurrency = currency || invoice?.currency || "INR";
-  
+
   const baseRows = isCalc
     ? [
         ["Subtotal", calculation.grossSubtotal],

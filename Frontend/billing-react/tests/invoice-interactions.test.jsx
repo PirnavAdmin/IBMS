@@ -512,7 +512,7 @@ test("List Date Range stages dates, validates order, applies existing filters an
 
       await openRange();
       await input(from(), '2026-10-12');
-      await click(document.querySelector('.MuiBackdrop-root'));
+      await act(async () => { document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); document.body.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       await flush(250);
       assert.equal(calls.at(-1).startDate, '2026-10-10', 'Dismissal must discard draft edits');
       await openRange();

@@ -25,7 +25,7 @@ function unresolvedTaxLabel(product) {
 }
 
 export function ProductTable({ items, loading, error, params, onSort, filtered, onClear, onRetry }) {
-  return <TableContainer className="product-table" tabIndex={0} aria-label="Scrollable product catalog" aria-busy={loading}>
+  return <TableContainer className="ibms-table-frame product-table" tabIndex={0} aria-label="Scrollable product catalog" aria-busy={loading}>
     <Table aria-label="Products and services catalog" size="small">
       <TableHead><TableRow>{columns.map(([key, label, sortable]) => <TableCell key={key} align="left" sortDirection={params.sortBy === key ? params.sortOrder : false}>
         {sortable ? <TableSortLabel sx={key === 'price' ? { marginRight: 0, flexDirection: 'row', whiteSpace: 'nowrap', '& .MuiTableSortLabel-icon': { marginRight: 0, marginLeft: '4px' } } : undefined} active={params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => onSort(key)}>{label}</TableSortLabel> : label}
@@ -39,9 +39,9 @@ export function ProductTable({ items, loading, error, params, onSort, filtered, 
           <TableCell align="left"><span className={`product-badge ${product.type.toLowerCase()}`}>{product.type}</span></TableCell>
           <TableCell align="left"><Tooltip title={product.category}><span className="product-category">{product.category}</span></Tooltip></TableCell>
           <TableCell align="left">{product.unit || '-'}</TableCell><TableCell align="left" className="product-price">{formatProductPrice(product.price, product.currency)}</TableCell>
-          <TableCell align="left"><Tooltip title="Saved product discount; transaction discounts may differ."><span>{discountLabel(product)}</span></Tooltip></TableCell>
+          <TableCell align="left"><span>{discountLabel(product)}</span></TableCell>
           <TableCell align="left"><span>{product.taxCategory || 'Not Applicable'}</span></TableCell>
-          <TableCell align="left" className="product-price">{product.defaultFinalPrice != null ? <strong style={{ fontWeight: 600 }}>{formatProductPrice(product.defaultFinalPrice, product.currency)}</strong> : <Tooltip title="Final unit price is unavailable for this product."><span>Unavailable</span></Tooltip>}</TableCell>
+          <TableCell align="left" className="product-price">{product.defaultFinalPrice != null ? <strong style={{ fontWeight: 600 }}>{formatProductPrice(product.defaultFinalPrice, product.currency)}</strong> : <span>Unavailable</span>}</TableCell>
           <TableCell align="left"><span className={`product-badge ${product.status.toLowerCase()}`}>{product.status}</span></TableCell>
           <TableCell align="left"><ProductActionsMenu product={product} /></TableCell>
         </TableRow>)}

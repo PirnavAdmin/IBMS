@@ -652,36 +652,6 @@
   border-color: #dfcdbb;
 }
 
-.invoice-date-range-popover.MuiPaper-root {
-  width: min(22rem, calc(100vw - 32px));
-  padding: 20px 16px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface, #ffffff);
-  color: var(--text-primary);
-}
-
-.invoice-date-range-form {
-  display: grid;
-  gap: 16px;
-}
-
-.invoice-date-range-form .MuiOutlinedInput-root {
-  min-height: 40px;
-  border-radius: 8px;
-  font-size: 13.5px;
-}
-
-.invoice-date-range-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.invoice-date-range-actions .MuiButton-root {
-  text-transform: none;
-}
-
 /* --------------------------------------------------------------------------
    6. Table Card & Data Grid
    -------------------------------------------------------------------------- */

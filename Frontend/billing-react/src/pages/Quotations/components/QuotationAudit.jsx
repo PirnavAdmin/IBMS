@@ -72,7 +72,7 @@ export function QuotationAudit({ entries = [] }) {
         placeholder="Search activity, user or description…" value={search} onChange={event => setSearch(event.target.value)} /></label>
       <label className="quote-audit-sort">Sort by <ThemedSelect label="Sort audit history" value={order} onChange={setOrder} options={[{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }]} /></label>
     </div>
-    {visible.length ? <div className="quote-table-wrap"><table className="quote-audit-table">
+    {visible.length ? <div className="quote-table-wrap ibms-table-frame"><table className="quote-audit-table">
       <caption className="quote-audit-sr-only">Quotation activity history</caption>
       <thead><tr><th scope="col">Event</th><th scope="col">Date & time</th><th scope="col">Performed by</th><th scope="col">Description</th></tr></thead>
       <tbody>{visible.map((entry, index) => <tr key={entry.id || `${entry.date}-${entry.action}-${index}`}>

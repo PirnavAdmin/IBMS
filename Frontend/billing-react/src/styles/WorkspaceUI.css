@@ -1,0 +1,123 @@
+/* Invoice's actual type scale and table structure, scoped to workspace UI. */
+.app-layout {
+  --ui-title: clamp(26px, 2.8vw, 34px);
+  --ui-section: 19px;
+  --ui-body: 14px;
+  --ui-secondary: 13px;
+  --ui-table: 13.5px;
+  --ui-table-heading: 11.5px;
+  --ui-kpi: clamp(18px, 1.5vw, 23px);
+  --ui-heading-weight: 750;
+  --ui-table-header-bg: #f5efe8;
+  --ui-row-border: #f0e6dc;
+}
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading) h1 {
+  font-size: var(--ui-title);
+  font-weight: var(--ui-heading-weight);
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading) p:not([class$="eyebrow"]) { font-size: var(--ui-body); line-height: 1.6; }
+.app-layout :is(.premium-panel, .premium-actions, .payment-card-heading, .product-panel-heading, .customer-panel-heading, .settings-panel-heading, .cn-panel-heading, .cn-list-heading) h2 {
+  font-size: var(--ui-section);
+  font-weight: 700;
+  line-height: 1.35;
+}
+.app-layout :is(.premium-filters, .premium-title) :is(label, .premium-filter-field, input, select, button),
+.app-layout .premium-filters .premium-select-trigger { font-size: var(--ui-secondary); }
+.app-layout .premium-stat span { font-size: var(--ui-secondary); font-weight: 650; }
+.app-layout .premium-stat > strong { font-size: var(--ui-kpi); font-weight: var(--ui-heading-weight); line-height: 1.25; white-space: nowrap; overflow-wrap: normal; }
+.app-layout .premium-stat > small,
+.app-layout .premium-records td small,
+.app-layout .premium-empty,
+.app-layout .premium-notice { font-size: var(--ui-secondary); }
+.app-layout .premium-actions strong { font-size: var(--ui-body); }
+.app-layout :is(.premium-chart-data, .premium-aging-legend, .premium-ring-label, .premium-legend, .premium-chart-legend) { font-size: 12px; }
+.app-layout .premium-aging-legend :is(strong, small) { font-size: 12px; }
+.app-layout .premium-ring-value small { font-size: 12px; }
+.app-layout .premium-stat-link { text-decoration: none; color: inherit; cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease; }
+.app-layout .premium-stat-link:hover, .app-layout .premium-actions a:hover { transform: translateY(-2px); border-color: #ba9774; box-shadow: 0 7px 16px #67483218; }
+.app-layout .premium-stat-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+/* Attach once at the existing outer table card; keep inner scroll areas intact. */
+.app-layout .ibms-table-frame {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: auto;
+}
+
+.app-layout .ibms-table-frame :is(table, .ant-table) { font-family: inherit; font-size: var(--ui-table); }
+.app-layout .ibms-table-frame table { width: 100%; border-collapse: collapse; }
+.app-layout .ibms-table-frame :is(th, td) { border-left: 0; border-right: 0; vertical-align: middle; }
+.app-layout .ibms-table-frame table > thead > tr > th,
+.app-layout .ibms-table-frame table > thead > tr > .MuiTableCell-head {
+  background: var(--ui-table-header-bg);
+  color: #421a05;
+  border-top: 0;
+  border-bottom: 1.5px solid var(--border);
+  padding: 13px 16px;
+  font-size: var(--ui-table-heading);
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.app-layout .ibms-table-frame th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric) { text-align: left; }
+.app-layout .ibms-table-frame table > tbody > tr > td,
+.app-layout .ibms-table-frame table > tbody > tr > .MuiTableCell-body {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ui-row-border);
+  font-size: var(--ui-table);
+  line-height: 1.4;
+}
+.app-layout .ibms-table-frame tbody tr:hover > td,
+.app-layout .ibms-table-frame table tbody tr.MuiTableRow-hover:hover > .MuiTableCell-body { background: #faf3ea; }
+.app-layout .ibms-table-frame > table > tbody > tr:last-child > td { border-bottom: 0; }
+.app-layout .ibms-table-frame :is(.MuiTableCell-alignRight, .numeric) { font-variant-numeric: tabular-nums; }
+/* Ant's decorative vertical header dividers are not part of the Invoice style. */
+.app-layout .ibms-table-frame .ant-table-thead > tr > th::before { display: none; }
+@media (max-width: 600px) {
+  .app-layout { --ui-title: 26px; --ui-kpi: clamp(17px, 4.2vw, 22px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-layout .premium-stat-link { transition: none; }
+}
+
+.app-layout .premium-records .premium-status { font-size: 11.5px; }
+
+.app-layout main:is(.invoice-page, .payments-page, .product-page, .customers-page, .customer-page, .cn-page, .settings-page, .notification-page, .premium-main) { font-size: var(--ui-body); }
+
+.app-layout .premium-eyebrow { font-size: 11px; font-weight: 750; }
+.app-layout .premium-tag { font-size: 12px; }
+.app-layout .premium-chart-data .ibms-table-frame { padding: 0; margin-top: 8px; }
+.app-layout .premium-panel header :is(p, a) { font-size: var(--ui-secondary); line-height: 1.5; }
+.app-layout .premium-ring-label small,
+.app-layout .premium-current-share small { font-size: 12px; }
+.app-layout .premium-current-share { font-size: var(--ui-secondary); }
+.app-layout .premium-dashboard .premium-ring-visual .premium-ring-value strong { font-size: 22px; }
+
+/* Boundaries attach to the scroll container, enclosing the actual rows. */
+.app-layout .ibms-table-frame { border-color: var(--border, #e4d8c8); background: var(--surface, #fffdf9); }
+.app-layout .ibms-table-frame .ant-table-container { overflow: hidden; border-radius: 13px; }
+.app-layout .premium-records .ibms-table-frame { margin: 8px 16px 16px; padding: 0; max-width: calc(100% - 32px); }
+.app-layout .premium-records :is(th, td):nth-child(3) { text-align: left; white-space: nowrap; }
+.app-layout .premium-records td small { max-width: none; white-space: normal; min-width: 140px; overflow: visible; text-overflow: clip; }
+.app-layout .premium-records th:first-child, .app-layout .premium-records th:last-child { border-radius: 0; }
+
+/* Keep range controls aligned with each module's existing filter bar. */
+.app-layout .audit-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(250px, 1fr); align-items: start; }
+@media (max-width: 1200px) { .app-layout .audit-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .app-layout .audit-filter-grid { grid-template-columns: 1fr; } .app-layout .date-range-filter { max-width: 100%; white-space: normal; height: auto; } }
+
+@media (prefers-reduced-motion: reduce) { .app-layout .premium-stat-link:hover, .app-layout .premium-actions a:hover { transform: none; } }
+@media (max-width: 440px) { .app-layout .premium-kpis { grid-template-columns: 1fr; } }
+
+/* Shared secondary navigation for form pages. */
+.workspace-back-button.ant-btn { min-height: 40px; padding: 0 14px; border: 1px solid #baa18b; border-radius: 8px; background: #fffdf9; color: #65442e; font-family: inherit; font-size: 13px; font-weight: 600; box-shadow: none; }
+.workspace-back-button.ant-btn:not(:disabled):hover { color: #513420; border-color: #96704e; background: #f6eee4; }
+.workspace-back-button.ant-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }
+.workspace-back-button.ant-btn:disabled { opacity: .55; }

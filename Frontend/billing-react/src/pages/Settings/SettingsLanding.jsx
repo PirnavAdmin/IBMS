@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Settings,
   DiscountOutlined,
@@ -7,9 +7,11 @@ import {
   FormatListNumberedOutlined,
   ReceiptLongOutlined,
   PublicOutlined,
+  NotificationsOutlined,
 } from '@mui/icons-material';
 import { Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './settings.css';
 
 const cards = [
@@ -40,6 +42,12 @@ const cards = [
       'Configure document numbering format, dynamic date tokens, and sequence rules.',
     icon: FormatListNumberedOutlined,
     route: '/settings/numbering',
+  },
+  {
+    title: 'Notification Management',
+    description: 'Manage customer email templates and review communication delivery history.',
+    icon: NotificationsOutlined,
+    route: '/settings/notifications',
   },
 ];
 
@@ -103,9 +111,15 @@ function CardPattern({ variant }) {
 
 export function SettingsLanding() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [countryNotice, setCountryNotice] = useState(location.state?.countrySaved || '');
+  React.useEffect(() => {
+    if (location.state?.countrySaved) navigate(location.pathname, { replace: true, state: { ...location.state, countrySaved: undefined } });
+  }, [location, navigate]);
 
   return (
     <main className="settings-page settings-landing">
+      <FeedbackSnackbar message={countryNotice} onClose={() => setCountryNotice('')} />
       <div className="settings-hero">
         <div className="settings-title-icon">
           <Settings />

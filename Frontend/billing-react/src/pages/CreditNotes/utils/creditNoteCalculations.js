@@ -53,12 +53,6 @@ export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull =
 
 export const refundableBalance = (note) => Math.max(0, Number(note?.remainingRefundable ?? (Number(note?.total || 0) - Number(note?.refunded || 0))));
 
-export const formatDate = (date) => date
-  ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date))
-  : '—';
-
-export const formatDateTime = (date) => date
-  ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(date))
-  : '—';
+export { displayDate as formatDate, displayDateTime as formatDateTime } from '../../../utils/localDate.js';
 
 export const eligibleCredit = (invoice) => roundCurrency(Math.max(0, Number(invoice?.remainingAmount ?? (Number(invoice?.total || 0) - Number(invoice?.previousCredits || 0)))));

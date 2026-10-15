@@ -44,16 +44,7 @@ export function readAuditPage(response) {
   };
 }
 
-export function auditDate(value) {
-  if (!value) return '—';
-  // Database DateTime values can lose their UTC kind; audit timestamps are written in UTC.
-  const text = String(value);
-  const utc = /T\d{2}:\d{2}/.test(text) && !/(Z|[+-]\d{2}:\d{2})$/i.test(text) ? `${text}Z` : text;
-  const date = new Date(utc);
-  if (Number.isNaN(date.getTime())) return 'Unavailable';
-  return new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZoneName: 'short' }).format(date);
-}
+export { displayDateTime as auditDate } from '../../utils/localDate.js';
 
 export function auditSnapshot(value) {
   if (!value) return 'Not recorded';

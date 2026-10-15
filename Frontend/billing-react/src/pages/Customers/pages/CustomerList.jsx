@@ -259,7 +259,7 @@ export const CustomerList = () => {
 
         {/* Customer Data Table */}
         {!loading && !error && filteredCustomers.length > 0 && (
-          <div className="cust-table-wrap">
+          <div className="cust-table-wrap ibms-table-frame">
             <table className="cust-table">
               <thead>
                 <tr>
@@ -312,7 +312,7 @@ export const CustomerList = () => {
                           className="cust-action-icon"
                           onClick={() => navigate(`/customers/${customer.id}`)}
                           aria-label={`View details for ${customer.name}`}
-                          title="View Details"
+
                         >
                           <VisibilityOutlined />
                         </button>
@@ -321,7 +321,7 @@ export const CustomerList = () => {
                           className="cust-action-icon"
                           onClick={() => navigate(`/customers/${customer.id}/edit`)}
                           aria-label={`Edit ${customer.name}`}
-                          title="Edit Customer"
+
                         >
                           <EditOutlined />
                         </button>
@@ -330,7 +330,7 @@ export const CustomerList = () => {
                           className="cust-action-icon cust-action-delete"
                           onClick={() => setDeleteConfirmId(customer.id)}
                           aria-label={`Delete ${customer.name}`}
-                          title="Delete Customer"
+
                         >
                           <DeleteOutline />
                         </button>

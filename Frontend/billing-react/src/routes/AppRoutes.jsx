@@ -14,6 +14,9 @@ import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
+import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';
+import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';
+import { NotificationHistory } from '../pages/Notifications/NotificationHistory';
 import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
 import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
 import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
@@ -39,6 +42,9 @@ import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
 import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
+import { Integrations } from '../pages/Integrations/Integrations';
+import { Webhooks } from '../pages/Webhooks/Webhooks';
+import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
 
 // ==============================
 // CUSTOMER MODULE
@@ -145,8 +151,15 @@ export const AppRoutes = () => (
       <Route path="/templates-branding/:templateId/edit" element={<EditTemplate />} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
       <Route path="/settings/numbering" element={<NumberingSettings />} />
-      <Route path="/integration-settings" element={<ModulePlaceholder />} />
+      <Route path="/integrations" element={<Integrations />} />
+      <Route path="/webhooks" element={<Webhooks />} />
+      <Route path="/webhooks/deliveries" element={<DeliveryHistory />} />
+      <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/notifications" element={<NotificationTemplates />} />
+      <Route path="/settings/notifications/new" element={<NotificationTemplateForm />} />
+      <Route path="/settings/notifications/:id/edit" element={<NotificationTemplateForm />} />
+      <Route path="/settings/notifications/history" element={<NotificationHistory />} />
       <Route path="/settings/countries" element={<CountryConfiguration />} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />

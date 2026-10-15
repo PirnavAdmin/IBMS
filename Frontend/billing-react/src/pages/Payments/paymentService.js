@@ -1,3 +1,4 @@
+import { displayDateTime } from '../../utils/localDate';
 import { apiClient } from 'billing-api-client';
 
 // Contracts: PaymentsController, PaymentContracts, PaymentMethod/PaymentStatus.
@@ -74,57 +75,8 @@ export const money = (amount, currency) => {
     minimumFractionDigits: 2,
   }).format(val);
 };
-export const displayDate = value => {
-  if (!value) return '\u2014';
-  let target = value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return '\u2014';
-    if (trimmed.length === 10) {
-      target = `${trimmed}T00:00:00`;
-    } else if (!trimmed.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(trimmed)) {
-      target = `${trimmed.replace(' ', 'T')}Z`;
-    } else {
-      target = trimmed;
-    }
-  }
-  const d = target instanceof Date ? target : new Date(target);
-  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value.slice(0, 10) : '\u2014';
-  return new Intl.DateTimeFormat('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  }).format(d);
-};
-
-export const formatIndianDateTime = (value, includeSeconds = true) => {
-  if (!value) return '\u2014';
-  let target = value;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return '\u2014';
-    if (trimmed.length === 10) {
-      target = `${trimmed}T00:00:00Z`;
-    } else if (!trimmed.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(trimmed)) {
-      target = `${trimmed.replace(' ', 'T')}Z`;
-    } else {
-      target = trimmed;
-    }
-  }
-  const d = target instanceof Date ? target : new Date(target);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return new Intl.DateTimeFormat('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...(includeSeconds ? { second: '2-digit' } : {}),
-    hour12: true,
-  }).format(d);
-};
+export { displayDate } from '../../utils/localDate';
+export const formatIndianDateTime = (value, includeSeconds = true) => displayDateTime(value, { includeSeconds, includeZone: false });
 export function paymentPermissions(user) {
   const list = value => (Array.isArray(value) ? value : [value]).filter(Boolean).flatMap(v => String(v).split(',')).map(v => v.trim().toLowerCase());
   const roles = list(user?.roles ?? user?.role); const permissions = list(user?.permissions);

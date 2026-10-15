@@ -58,7 +58,7 @@ export function CategoryList() {
     {error && !confirm && <Alert severity="error">{error}</Alert>}
     <section className="product-panel" aria-label="Category list">
       <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><CategoryOutlined /></span><div><h2>Categories</h2><p>Organize your billing catalog.</p></div></div><span className="product-result-count">{query.isPending ? 'Loading categories...' : query.isError ? 'Categories unavailable' : `${categories.length} categories`}</span></div>
-      <TableContainer className="product-table category-table" tabIndex={0} aria-label="Scrollable categories">
+      <TableContainer className="ibms-table-frame product-table category-table" tabIndex={0} aria-label="Scrollable categories">
         <Table aria-label="Product categories"><TableHead><TableRow>{['Category Name', 'Description', 'Status', 'Products', 'Actions'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{query.isPending ? <TableRow><TableCell colSpan={5}><div className="product-state" role="status">Loading categories...</div></TableCell></TableRow>
             : query.isError ? <TableRow><TableCell colSpan={5}><Alert severity="error" action={<Button onClick={() => query.refetch()}>Retry</Button>}>{categoryError(query.error)}</Alert></TableCell></TableRow>

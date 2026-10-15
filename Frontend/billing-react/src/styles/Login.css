@@ -660,3 +660,11 @@
 .recovery-back-link:hover { background: #E7D8CB; }
 .recovery-back-link:focus-visible { outline: 2px solid #9A4F2F; outline-offset: 3px; }
 .register-back-link, .billing-auth-route-button { text-decoration: none; }
+
+/* Login owns visibility; suppress the browser's independent reveal button. */
+#password::-ms-reveal, #password::-ms-clear { display: none; }
+.billing-auth-input .MuiOutlinedInput-root.Mui-focused { box-shadow: 0 0 0 3px #cba57b26; }
+.billing-auth-input .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #96704e !important; }
+.billing-auth-input .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline { border-color: #b44336 !important; }
+.billing-password-toggle.MuiIconButton-root:hover { background: #eee2d5; color: #715238; }
+.billing-password-toggle.MuiIconButton-root:focus-visible, .billing-auth-submit-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }

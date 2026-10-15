@@ -21,7 +21,7 @@ export function CountryFlag({
   if (FlagComponent) {
     return (
       <FlagComponent
-        title={name || upperCode}
+        aria-label={name || upperCode} role="img"
         className={`country-flag-svg ${className}`.trim()}
         style={{
           width: typeof width === 'number' ? `${width}px` : width,
@@ -42,6 +42,7 @@ export function CountryFlag({
   return (
     <span
       className={`country-flag-fallback ${className}`.trim()}
+      role="img" aria-label={name || upperCode}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -56,7 +57,7 @@ export function CountryFlag({
         flexShrink: 0,
         ...style,
       }}
-      title={name || upperCode}
+
     >
       {upperCode ? upperCode.slice(0, 2) : '🌐'}
     </span>
