@@ -67,7 +67,6 @@ const mapDetail = (item) => {
 
   return {
     ...note,
-    email: item.customerEmail || '',
     reasonNote,
     reference: referenceMatch?.[1] || '',
     invoiceTotal: Number(item.invoiceTotalAmount || 0),

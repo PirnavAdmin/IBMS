@@ -16,6 +16,7 @@ public class QuotationActionService : IQuotationActionService
     private readonly IFinancialCalculationEngine _financialEngine;
     private readonly INumberGenerationService _numberGenerationService;
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly IOutboxService? _outboxService;
 
     public QuotationActionService(
         IQuotationRepository quotationRepository,
@@ -23,7 +24,8 @@ public class QuotationActionService : IQuotationActionService
         IUnitOfWork unitOfWork,
         IFinancialCalculationEngine financialEngine,
         INumberGenerationService numberGenerationService,
-        IAuditLogRepository auditLogRepository)
+        IAuditLogRepository auditLogRepository,
+        IOutboxService? outboxService = null)
     {
         _quotationRepository = quotationRepository;
         _invoiceRepository = invoiceRepository;
@@ -31,6 +33,7 @@ public class QuotationActionService : IQuotationActionService
         _financialEngine = financialEngine;
         _numberGenerationService = numberGenerationService;
         _auditLogRepository = auditLogRepository;
+        _outboxService = outboxService;
     }
 
     public async Task<ApiResponse<bool>> CalculateAndFreezeSnapshotAsync(int quotationId, int tenantId)
@@ -185,6 +188,19 @@ public class QuotationActionService : IQuotationActionService
             Timestamp = DateTime.UtcNow
         };
         await _auditLogRepository.AddAsync(auditLog);
+
+        if (_outboxService != null)
+        {
+            await _outboxService.PublishEventAsync(tenantId, "quotation.approved", new
+            {
+                QuotationId = quotation.Id,
+                QuotationNumber = quotation.QuoteNumber,
+                CustomerId = quotation.CustomerId,
+                TotalAmount = quotation.TotalAmount,
+                ApprovedBy = approverId,
+                ApprovedAtUtc = DateTime.UtcNow
+            });
+        }
 
         return ApiResponse<bool>.Ok(true, "Quotation approved.");
     }

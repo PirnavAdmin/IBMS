@@ -16,6 +16,7 @@ public class InvoiceService : IInvoiceService
     private readonly IEmailService _emailService;
     private readonly IInvoiceCommunicationRepository _communicationRepository;
     private readonly IInvoiceTemplateService _templateService;
+    private readonly IOutboxService? _outboxService;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
@@ -25,7 +26,8 @@ public class InvoiceService : IInvoiceService
         IAuditLogRepository auditLogRepository,
         IEmailService emailService,
         IInvoiceCommunicationRepository communicationRepository,
-        IInvoiceTemplateService templateService)
+        IInvoiceTemplateService templateService,
+        IOutboxService? outboxService = null)
     {
         _invoiceRepository = invoiceRepository;
         _numberGenerationService = numberGenerationService;
@@ -35,6 +37,7 @@ public class InvoiceService : IInvoiceService
         _emailService = emailService;
         _communicationRepository = communicationRepository;
         _templateService = templateService;
+        _outboxService = outboxService;
     }
 
     private async Task RecalculateInvoiceTotalsAsync(Invoice invoice, int tenantId)
@@ -233,6 +236,22 @@ public class InvoiceService : IInvoiceService
 
             await _invoiceRepository.UpdateAsync(invoice);
             await _auditLogRepository.AddAsync(new AuditLog { TenantId = tenantId, EntityName = "Invoice", EntityId = invoice.Id.ToString(), Action = "Issued", UserName = userName ?? "System", Changes = $"Invoice issued with number {invoice.InvoiceNumber}.", Timestamp = DateTime.UtcNow });
+
+            if (_outboxService != null)
+            {
+                await _outboxService.PublishEventAsync(tenantId, "invoice.issued", new
+                {
+                    InvoiceId = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    CustomerId = invoice.CustomerId,
+                    TotalAmount = invoice.TotalAmount,
+                    BalanceAmount = invoice.BalanceAmount,
+                    Currency = invoice.GetCurrency(),
+                    DueDate = invoice.DueDate,
+                    Status = invoice.Status,
+                    IssuedAtUtc = DateTime.UtcNow
+                });
+            }
             
             await _unitOfWork.CommitTransactionAsync();
 
@@ -265,6 +284,18 @@ public class InvoiceService : IInvoiceService
         await _invoiceRepository.UpdateAsync(invoice);
         await _auditLogRepository.AddAsync(new AuditLog { TenantId = tenantId, EntityName = "Invoice", EntityId = invoice.Id.ToString(), Action = "Cancelled", UserName = userName ?? "System", Changes = $"Invoice cancelled. Reason: {reason}", Timestamp = DateTime.UtcNow });
 
+        if (_outboxService != null)
+        {
+            await _outboxService.PublishEventAsync(tenantId, "invoice.cancelled", new
+            {
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                CustomerId = invoice.CustomerId,
+                Reason = reason,
+                CancelledAtUtc = DateTime.UtcNow
+            });
+        }
+
         return ApiResponse<Invoice>.Ok(invoice, "Invoice cancelled successfully.");
     }
 
@@ -287,6 +318,18 @@ public class InvoiceService : IInvoiceService
 
         await _invoiceRepository.UpdateAsync(invoice);
         await _auditLogRepository.AddAsync(new AuditLog { TenantId = tenantId, EntityName = "Invoice", EntityId = invoice.Id.ToString(), Action = "Voided", UserName = userName ?? "System", Changes = $"Invoice voided. Reason: {reason}", Timestamp = DateTime.UtcNow });
+
+        if (_outboxService != null)
+        {
+            await _outboxService.PublishEventAsync(tenantId, "invoice.voided", new
+            {
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                CustomerId = invoice.CustomerId,
+                Reason = reason,
+                VoidedAtUtc = DateTime.UtcNow
+            });
+        }
 
         return ApiResponse<Invoice>.Ok(invoice, "Invoice voided successfully.");
     }
@@ -352,6 +395,18 @@ public class InvoiceService : IInvoiceService
         {
             invoice.Status = "Sent";
             await _invoiceRepository.UpdateAsync(invoice);
+        }
+
+        if (_outboxService != null)
+        {
+            await _outboxService.PublishEventAsync(tenantId, "invoice.sent", new
+            {
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                CustomerId = invoice.CustomerId,
+                Recipient = invoice.Customer.Email,
+                SentAtUtc = DateTime.UtcNow
+            });
         }
 
         return ApiResponse<bool>.Ok(true, "Invoice delivered successfully.");

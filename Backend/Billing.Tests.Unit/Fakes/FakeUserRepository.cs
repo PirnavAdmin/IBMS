@@ -51,4 +51,67 @@ public class FakeUserRepository : IUserRepository
         }
         return Task.CompletedTask;
     }
+
+    public Task DeleteAsync(User user)
+    {
+        var existing = Users.FirstOrDefault(u => u.Id == user.Id);
+        if (existing != null)
+        {
+            Users.Remove(existing);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<(List<User> Users, int TotalCount)> GetPagedUsersAsync(
+        string? search,
+        string? status,
+        string? role,
+        int? tenantId,
+        string? identityType,
+        int pageNumber,
+        int pageSize)
+    {
+        var query = Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            query = query.Where(u =>
+                (u.Name != null && u.Name.Contains(s, StringComparison.OrdinalIgnoreCase)) ||
+                (u.Email != null && u.Email.Contains(s, StringComparison.OrdinalIgnoreCase)) ||
+                (u.Username != null && u.Username.Contains(s, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(u => string.Equals(u.Status, status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (tenantId.HasValue)
+        {
+            query = query.Where(u => u.TenantId == tenantId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(identityType))
+        {
+            query = query.Where(u => string.Equals(u.IdentityType, identityType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(u => u.Roles.Any(r => string.Equals(r, role, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        var total = query.Count();
+        var paged = query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult((paged, total));
+    }
+
+    public Task<User?> GetByExternalSubjectAsync(string provider, string subjectId)
+    {
+        var match = Users.FirstOrDefault(u =>
+            string.Equals(u.ExternalProvider, provider, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(u.ExternalSubjectId, subjectId, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(match);
+    }
 }

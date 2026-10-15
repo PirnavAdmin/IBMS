@@ -10,6 +10,7 @@ using Billing.Application.Services;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
 using Billing.Infrastructure.Services;
+using Billing.Infrastructure.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -164,11 +165,25 @@ builder.Services.AddScoped<ICreditNoteService, CreditNoteService>();
 builder.Services.AddScoped<ITemplateEngineService, TemplateEngineService>();
 builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserAdministrationService, UserAdministrationService>();
+builder.Services.AddScoped<IRoleAdministrationService, RoleAdministrationService>();
+
+// ============================================================
+// Webhook & Integration Services (Module 15)
+// ============================================================
+builder.Services.AddSingleton<IWebhookSecurityService, WebhookSecurityService>();
+builder.Services.AddHttpClient<IWebhookDispatcher, WebhookDispatcher>();
+builder.Services.AddScoped<IOutboxService, OutboxService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<IWebhookDeliveryService, WebhookDeliveryService>();
+builder.Services.AddScoped<IIntegrationApplicationService, IntegrationApplicationService>();
+builder.Services.AddHostedService<OutboxProcessorHostedService>();
 
 // ============================================================
 // Repositories
 // ============================================================
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
@@ -190,6 +205,10 @@ builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentReposi
 builder.Services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
 builder.Services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
 builder.Services.AddScoped<INotificationLogRepository, NotificationLogRepository>();
+builder.Services.AddScoped<IWebhookRepository, WebhookRepository>();
+builder.Services.AddScoped<IWebhookDeliveryRepository, WebhookDeliveryRepository>();
+builder.Services.AddScoped<IIntegrationApplicationRepository, IntegrationApplicationRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================
