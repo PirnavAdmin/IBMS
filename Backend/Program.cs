@@ -177,7 +177,22 @@ builder.Services.AddScoped<IOutboxService, OutboxService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddScoped<IWebhookDeliveryService, WebhookDeliveryService>();
 builder.Services.AddScoped<IIntegrationApplicationService, IntegrationApplicationService>();
-builder.Services.AddHostedService<OutboxProcessorHostedService>();
+
+// ============================================================
+// Background Worker & Jobs (Module 16)
+// ============================================================
+builder.Services.AddScoped<IOverdueInvoiceJobService, OverdueInvoiceJobService>();
+builder.Services.AddScoped<IReminderJobService, ReminderJobService>();
+builder.Services.AddScoped<IPdfGenerationJobService, PdfGenerationJobService>();
+builder.Services.AddScoped<IEmailNotificationJobService, EmailNotificationJobService>();
+builder.Services.AddScoped<IWebhookDeliveryJobService, WebhookDeliveryJobService>();
+builder.Services.AddScoped<IExportJobService, ExportJobService>();
+builder.Services.AddScoped<IOperationalCleanupJobService, OperationalCleanupJobService>();
+builder.Services.AddScoped<IBackgroundJobCoordinator, BackgroundJobCoordinator>();
+if (builder.Configuration.GetValue<bool>("BackgroundWorker:Enabled", true))
+{
+    builder.Services.AddHostedService<BackgroundWorkerHostedService>();
+}
 
 // ============================================================
 // Repositories
@@ -209,6 +224,8 @@ builder.Services.AddScoped<IWebhookRepository, WebhookRepository>();
 builder.Services.AddScoped<IWebhookDeliveryRepository, WebhookDeliveryRepository>();
 builder.Services.AddScoped<IIntegrationApplicationRepository, IntegrationApplicationRepository>();
 builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<IExportJobRepository, ExportJobRepository>();
+builder.Services.AddScoped<IOperationalCleanupRepository, OperationalCleanupRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================

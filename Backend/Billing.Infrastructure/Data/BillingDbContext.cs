@@ -84,6 +84,7 @@ public class BillingDbContext : DbContext
     public DbSet<Webhook> Webhooks { get; set; }
     public DbSet<WebhookDelivery> WebhookDeliveries { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
+    public DbSet<ExportJob> ExportJobs { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -1006,6 +1007,28 @@ public class BillingDbContext : DbContext
             entity.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAtUtc });
             entity.HasIndex(o => new { o.TenantId, o.EventId });
             entity.HasOne(o => o.Tenant).WithMany().HasForeignKey(o => o.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExportJob>(entity =>
+        {
+            entity.ToTable("exportjobs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.JobType).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ExportFormat).HasMaxLength(16).HasDefaultValue("CSV").IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("Pending").IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(64).HasDefaultValue("text/csv").IsRequired();
+            entity.Property(e => e.RequestedBy).HasMaxLength(100).HasDefaultValue("System").IsRequired();
+            entity.Property(e => e.FileName).HasMaxLength(256);
+            entity.Property(e => e.StoragePath).HasMaxLength(500);
+            entity.Property(e => e.FilterParametersJson).HasColumnType("longtext");
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            entity.Property(e => e.TotalRecords).HasDefaultValue(0);
+            entity.Property(e => e.ProcessedRecords).HasDefaultValue(0);
+
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.HasIndex(e => new { e.TenantId, e.JobType });
+            entity.HasIndex(e => new { e.TenantId, e.CreatedAtUtc });
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
