@@ -74,6 +74,11 @@ public class BillingDbContext : DbContext
     public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
 
+    public DbSet<IntegrationApplication> IntegrationApplications { get; set; }
+    public DbSet<Webhook> Webhooks { get; set; }
+    public DbSet<WebhookDelivery> WebhookDeliveries { get; set; }
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _currentUserService?.TenantId;
@@ -886,6 +891,70 @@ public class BillingDbContext : DbContext
             entity.HasIndex(l => new { l.TenantId, l.EntityType, l.EntityId });
             entity.HasIndex(l => new { l.TenantId, l.Status });
             entity.HasIndex(l => new { l.TenantId, l.SentAtUtc });
+        });
+
+        modelBuilder.Entity<IntegrationApplication>(entity =>
+        {
+            entity.ToTable("integrationapplications");
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.Name).HasMaxLength(150).IsRequired();
+            entity.Property(a => a.Description).HasMaxLength(500);
+            entity.Property(a => a.ClientId).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.ClientSecretHash).HasMaxLength(256).IsRequired();
+            entity.Property(a => a.FeatureFlagsJson).HasColumnType("longtext");
+            entity.Property(a => a.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.HasIndex(a => new { a.TenantId, a.ClientId }).IsUnique();
+            entity.HasOne(a => a.Tenant).WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Webhook>(entity =>
+        {
+            entity.ToTable("webhooks");
+            entity.HasKey(w => w.Id);
+            entity.Property(w => w.Name).HasMaxLength(150).IsRequired();
+            entity.Property(w => w.TargetUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(w => w.SecretKey).HasMaxLength(128).IsRequired();
+            entity.Property(w => w.SubscribedEventsJson).HasColumnType("longtext");
+            entity.Property(w => w.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Property(w => w.ConsecutiveFailureCount).HasDefaultValue(0);
+            entity.HasIndex(w => new { w.TenantId, w.Status });
+            entity.HasOne(w => w.Tenant).WithMany().HasForeignKey(w => w.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(w => w.Application).WithMany(a => a.Webhooks).HasForeignKey(w => w.ApplicationId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WebhookDelivery>(entity =>
+        {
+            entity.ToTable("webhookdeliveries");
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.EventId).HasMaxLength(64).IsRequired();
+            entity.Property(d => d.EventType).HasMaxLength(100).IsRequired();
+            entity.Property(d => d.PayloadJson).HasColumnType("longtext").IsRequired();
+            entity.Property(d => d.RequestHeadersJson).HasColumnType("longtext");
+            entity.Property(d => d.ResponseBody).HasColumnType("longtext");
+            entity.Property(d => d.Status).HasMaxLength(32).HasDefaultValue("Success").IsRequired();
+            entity.Property(d => d.AttemptNumber).HasDefaultValue(1);
+            entity.Property(d => d.MaxAttempts).HasDefaultValue(5);
+            entity.Property(d => d.FailureReason).HasMaxLength(1000);
+            entity.HasIndex(d => new { d.TenantId, d.WebhookId, d.Status });
+            entity.HasIndex(d => new { d.TenantId, d.EventId });
+            entity.HasIndex(d => new { d.TenantId, d.CreatedAtUtc });
+            entity.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(d => d.Webhook).WithMany(w => w.Deliveries).HasForeignKey(d => d.WebhookId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.ToTable("outboxmessages");
+            entity.HasKey(o => o.Id);
+            entity.Property(o => o.EventId).HasMaxLength(64).IsRequired();
+            entity.Property(o => o.EventType).HasMaxLength(100).IsRequired();
+            entity.Property(o => o.PayloadJson).HasColumnType("longtext").IsRequired();
+            entity.Property(o => o.Status).HasMaxLength(32).HasDefaultValue("Pending").IsRequired();
+            entity.Property(o => o.RetryCount).HasDefaultValue(0);
+            entity.Property(o => o.Error).HasMaxLength(1000);
+            entity.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAtUtc });
+            entity.HasIndex(o => new { o.TenantId, o.EventId });
+            entity.HasOne(o => o.Tenant).WithMany().HasForeignKey(o => o.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(

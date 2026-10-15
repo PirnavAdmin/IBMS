@@ -39,6 +39,7 @@ public class CreditNoteService : ICreditNoteService
     private readonly INumberGenerationService _numberGenerationService;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOutboxService? _outboxService;
 
     public CreditNoteService(
         ICreditNoteRepository creditNoteRepository,
@@ -46,7 +47,8 @@ public class CreditNoteService : ICreditNoteService
         ICustomerRepository customerRepository,
         INumberGenerationService numberGenerationService,
         IAuditLogRepository auditLogRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IOutboxService? outboxService = null)
     {
         _creditNoteRepository = creditNoteRepository;
         _invoiceRepository = invoiceRepository;
@@ -54,6 +56,7 @@ public class CreditNoteService : ICreditNoteService
         _numberGenerationService = numberGenerationService;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
+        _outboxService = outboxService;
     }
 
     public async Task<ApiResponse<CreditNoteDetailDto>> CreateCreditNoteAsync(
@@ -527,6 +530,20 @@ public class CreditNoteService : ICreditNoteService
                 UserName = userDisplayName,
                 Timestamp = DateTime.UtcNow
             });
+
+            if (_outboxService != null)
+            {
+                await _outboxService.PublishEventAsync(tenantId, "credit_note.applied", new
+                {
+                    CreditNoteId = creditNote.Id,
+                    CreditNoteNumber = creditNote.CreditNoteNumber,
+                    InvoiceId = invoice.Id,
+                    CustomerId = creditNote.CustomerId,
+                    Amount = creditNote.TotalAmount,
+                    IssuedBy = userDisplayName,
+                    IssuedAtUtc = DateTime.UtcNow
+                });
+            }
 
             await _unitOfWork.CommitTransactionAsync();
 
