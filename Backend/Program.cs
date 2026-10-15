@@ -165,6 +165,8 @@ builder.Services.AddScoped<ICreditNoteService, CreditNoteService>();
 builder.Services.AddScoped<ITemplateEngineService, TemplateEngineService>();
 builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserAdministrationService, UserAdministrationService>();
+builder.Services.AddScoped<IRoleAdministrationService, RoleAdministrationService>();
 
 // ============================================================
 // Webhook & Integration Services (Module 15)
@@ -181,6 +183,7 @@ builder.Services.AddHostedService<OutboxProcessorHostedService>();
 // Repositories
 // ============================================================
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();

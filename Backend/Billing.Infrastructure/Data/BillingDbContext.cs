@@ -20,6 +20,12 @@ public class BillingDbContext : DbContext
 
     public DbSet<UserSession> UserSessions { get; set; }
 
+    public DbSet<Role> Roles { get; set; }
+
+    public DbSet<Permission> Permissions { get; set; }
+
+    public DbSet<RolePermission> RolePermissions { get; set; }
+
     public DbSet<Customer> Customers { get; set; }
 
     public DbSet<CustomerAddress> CustomerAddresses { get; set; }
@@ -245,6 +251,10 @@ public class BillingDbContext : DbContext
             entity.Property(u => u.Username).HasMaxLength(256);
             entity.Property(u => u.Name).HasMaxLength(256);
             entity.Property(u => u.ApplicationId).HasMaxLength(128);
+            entity.Property(u => u.IdentityType).HasMaxLength(32).HasDefaultValue("Platform").IsRequired();
+            entity.Property(u => u.ExternalProvider).HasMaxLength(64);
+            entity.Property(u => u.ExternalSubjectId).HasMaxLength(128);
+            entity.Property(u => u.ExternalScopes).HasMaxLength(500);
             entity.Property(u => u.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
             entity.Ignore(u => u.IsActive);
             entity.Property(u => u.RolesString).HasColumnName("Roles").HasMaxLength(256).HasDefaultValue("User").IsRequired();
@@ -262,6 +272,47 @@ public class BillingDbContext : DbContext
             entity.HasMany(u => u.Sessions)
                   .WithOne(s => s.User)
                   .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Name).HasMaxLength(64).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(256);
+            entity.Property(r => r.IsSystemRole).HasDefaultValue(false);
+
+            entity.HasOne(r => r.Tenant)
+                  .WithMany()
+                  .HasForeignKey(r => r.TenantId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(r => new { r.TenantId, r.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Code).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Name).HasMaxLength(128).IsRequired();
+            entity.Property(p => p.Module).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(256);
+
+            entity.HasIndex(p => p.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            entity.HasOne(rp => rp.Role)
+                  .WithMany(r => r.RolePermissions)
+                  .HasForeignKey(rp => rp.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                  .WithMany(p => p.RolePermissions)
+                  .HasForeignKey(rp => rp.PermissionId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

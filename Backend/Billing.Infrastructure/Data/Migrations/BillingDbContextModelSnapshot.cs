@@ -1760,6 +1760,41 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Permissions");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -2111,6 +2146,61 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("QuotationItems");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<bool>("IsSystemRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int?>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.RolePermission", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.TaxRate", b =>
                 {
                     b.Property<int>("Id")
@@ -2429,6 +2519,25 @@ namespace Billing.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
+
+                    b.Property<string>("ExternalProvider")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("ExternalScopes")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ExternalSubjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("IdentityType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Platform");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -3083,6 +3192,35 @@ namespace Billing.Infrastructure.Migrations
                     b.Navigation("Quotation");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.Role", b =>
+                {
+                    b.HasOne("Billing.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.RolePermission", b =>
+                {
+                    b.HasOne("Billing.Domain.Entities.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Billing.Domain.Entities.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.TaxRate", b =>
                 {
                     b.HasOne("Billing.Domain.Entities.Tenant", "Tenant")
@@ -3212,6 +3350,11 @@ namespace Billing.Infrastructure.Migrations
                     b.Navigation("Allocations");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.ProductCategory", b =>
                 {
                     b.Navigation("Products");
@@ -3222,6 +3365,11 @@ namespace Billing.Infrastructure.Migrations
                     b.Navigation("Communications");
 
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("Billing.Domain.Entities.Tenant", b =>

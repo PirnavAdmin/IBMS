@@ -20,6 +20,14 @@ public class User
 
     public string ApplicationId { get; set; } = "IBMS";
 
+    public string IdentityType { get; set; } = "Platform";
+
+    public string? ExternalProvider { get; set; }
+
+    public string? ExternalSubjectId { get; set; }
+
+    public string? ExternalScopes { get; set; }
+
     public string RolesString { get; set; } = "User";
 
     public string PermissionsString { get; set; } = "billing.view,billing.create";
