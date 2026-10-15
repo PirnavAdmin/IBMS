@@ -25,6 +25,8 @@ const routeModules = {
   '/reports': 'reports',
   '/audit-activity': 'activity',
   '/templates-branding': 'templates',
+  '/integrations': 'integrations',
+  '/webhooks': 'webhooks',
   '/integration-settings': 'integrations',
   '/settings': 'settings',
   '/support': 'support',

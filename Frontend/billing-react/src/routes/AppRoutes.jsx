@@ -39,6 +39,9 @@ import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
 import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
+import { Integrations } from '../pages/Integrations/Integrations';
+import { Webhooks } from '../pages/Webhooks/Webhooks';
+import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
 
 // ==============================
 // CUSTOMER MODULE
@@ -145,7 +148,10 @@ export const AppRoutes = () => (
       <Route path="/templates-branding/:templateId/edit" element={<EditTemplate />} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
       <Route path="/settings/numbering" element={<NumberingSettings />} />
-      <Route path="/integration-settings" element={<ModulePlaceholder />} />
+      <Route path="/integrations" element={<Integrations />} />
+      <Route path="/webhooks" element={<Webhooks />} />
+      <Route path="/webhooks/deliveries" element={<DeliveryHistory />} />
+      <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
       <Route path="/settings" element={<SettingsLanding />} />
       <Route path="/settings/countries" element={<CountryConfiguration />} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
