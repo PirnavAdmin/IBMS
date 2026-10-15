@@ -1,15 +1,15 @@
-import { DateInput } from '../../../components/DateField';
+import { DateRangeFilter } from '../../../components/DateRangeFilter';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Add, ArrowDownward, ArrowUpward, DownloadOutlined, FilterAltOutlined,
-  LocalPrintshopOutlined, MoreHoriz, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
-  Autorenew,
+  LocalPrintshopOutlined, MoreVert, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
+  Autorenew, VisibilityOutlined, EditOutlined,
 } from '@mui/icons-material';
 import {
-  Breadcrumbs, Button, IconButton, Menu, MenuItem, Table, TableBody, TableCell,
-  TableContainer, TableHead, TablePagination, TableRow, TextField, Tooltip,
+  Breadcrumbs, Button, IconButton, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell,
+  TableContainer, TableHead, TablePagination, TableRow, TextField,
 } from '@mui/material';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
@@ -96,12 +96,11 @@ export function CreditNoteList() {
           <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
           <TextField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value=""><FilterAltOutlined fontSize="small" /> All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</TextField>
           <TextField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></TextField>
-          <DateInput className="cn-date-filter" size="small" label="From date" value={fromDate} onChange={(event) => { setFromDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ max: toDate || undefined, 'aria-label': 'Filter credit notes from date' }} />
-          <DateInput className="cn-date-filter" size="small" label="To date" value={toDate} onChange={(event) => { setToDate(event.target.value); setPage(0); }} InputLabelProps={{ shrink: true }} inputProps={{ min: fromDate || undefined, 'aria-label': 'Filter credit notes to date' }} />
+          <DateRangeFilter startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
-          <Tooltip title="Refresh from billing API"><span><IconButton onClick={() => { query.refetch(); draftQuery.refetch(); pendingQuery.refetch(); }} disabled={query.isFetching}><Autorenew /></IconButton></span></Tooltip>
+          <span><IconButton aria-label="Refresh from billing API" onClick={() => { query.refetch(); draftQuery.refetch(); pendingQuery.refetch(); }} disabled={query.isFetching}><Autorenew /></IconButton></span>
         </div>
-        <TableContainer className="cn-table-wrap">
+        <TableContainer className="ibms-table-frame cn-table-wrap">
           <Table stickyHeader aria-label="Credit note register">
             <TableHead><TableRow>
               {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
@@ -119,7 +118,7 @@ export function CreditNoteList() {
                 <TableCell><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
                 <TableCell><CreditNoteStatusBadge status={note.status} /></TableCell>
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
-                <TableCell align="right"><Tooltip title="More actions"><IconButton size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreHoriz /></IconButton></Tooltip></TableCell>
+                <TableCell align="right"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
               </TableRow>)}
               {!query.isPending && !query.isError && !items.length && <TableRow><TableCell colSpan={9}><div className="cn-empty-state"><span className="cn-empty-icon"><ReceiptLongOutlined /></span><strong>{totalCount ? 'No records on this page' : 'No Credit Notes in the billing API'}</strong><span>{totalCount ? 'Adjust page or filters to see other records.' : 'Create a note after the billing API returns eligible invoices.'}</span>{!totalCount && <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button>}</div></TableCell></TableRow>}
             </TableBody>
@@ -129,10 +128,10 @@ export function CreditNoteList() {
       </section>
 
       <p className="cn-finance-note">The billing API is authoritative for eligibility, numbering, approvals, invoice balances, and refunds.</p>
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
-        <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}`} onClick={closeMenu}>View details</MenuItem>
-        {menuNote?.status === 'Draft' && <MenuItem component={Link} to={`/credit-notes/${menuNote.id}/edit`} onClick={closeMenu}>Edit draft</MenuItem>}
-        <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/preview`); }}>Preview / print</MenuItem>
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}`} onClick={closeMenu}><ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>View details</MenuItem>
+        {menuNote?.status === 'Draft' && <MenuItem component={Link} to={`/credit-notes/${menuNote.id}/edit`} onClick={closeMenu}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit draft</MenuItem>}
+        <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/preview`); }}><ListItemIcon><LocalPrintshopOutlined fontSize="small" /></ListItemIcon>Preview / print</MenuItem>
       </Menu>
     </main>
   );

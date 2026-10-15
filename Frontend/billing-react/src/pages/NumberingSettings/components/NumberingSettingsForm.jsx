@@ -152,12 +152,12 @@ export const NumberingSettingsForm = ({
             </div>
             <div className="num-token-chips">
               {SUPPORTED_TOKENS.map((t) => (
-                <button
+                <button aria-label={`Insert ${t.token} (${t.desc})`}
                   type="button"
                   key={t.token}
                   className="num-token-chip"
                   onClick={() => handleTokenClick(t.token)}
-                  title={`Insert ${t.token} (${t.desc})`}
+
                 >
                   <strong>{t.token}</strong>
                   <span>{t.label}</span>

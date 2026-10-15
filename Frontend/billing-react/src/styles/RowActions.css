@@ -1,0 +1,90 @@
+/* Invoice is the reference for row-action menus, including portaled popups. */
+body:has(.app-layout) .ibms-row-actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--secondary, #8b451f);
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+body:has(.app-layout) .ibms-row-actions-trigger:not(:disabled):is(:hover, [aria-expanded="true"], .ant-dropdown-open) {
+  background: #f4e9db;
+  color: var(--primary, #5a2508);
+}
+body:has(.app-layout) .ibms-row-actions-trigger:focus-visible {
+  outline: 2px solid #795137;
+  outline-offset: 2px;
+}
+body:has(.app-layout) .ibms-row-actions-trigger svg { font-size: 20px; }
+body:has(.app-layout) .ibms-row-actions-trigger:is(:disabled, .Mui-disabled) { opacity: .45; cursor: default; }
+
+body:has(.app-layout) .ibms-row-actions-menu[role="menu"],
+body:has(.app-layout) .ibms-row-actions-menu.MuiPaper-root,
+body:has(.app-layout) .ibms-row-actions-menu .ant-dropdown-menu {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5d6c5);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(90, 37, 8, .12), 0 2px 6px rgba(90, 37, 8, .04);
+  min-width: 175px;
+  max-width: 220px;
+  overflow: hidden;
+  padding: 0;
+}
+body:has(.app-layout) .ibms-row-actions-menu[role="menu"],
+body:has(.app-layout) .ibms-row-actions-menu .MuiMenu-list,
+body:has(.app-layout) .ibms-row-actions-menu .ant-dropdown-menu { padding-block: 4px; }
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiMenuItem-root, .ant-dropdown-menu-item, [role="menuitem"]) {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 12px;
+  margin: 1px 4px;
+  gap: 0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.25;
+  color: var(--text-primary, #33231a);
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiMenuItem-root, .ant-dropdown-menu-item, [role="menuitem"]):not(.Mui-disabled):not(.ant-dropdown-menu-item-disabled):is(:hover, :focus-visible, .Mui-focusVisible, .ant-dropdown-menu-item-active) {
+  background: #f7eee3;
+  color: var(--primary, #5a2508);
+}
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiListItemIcon-root, .ant-dropdown-menu-item-icon) {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 28px;
+  margin: 0;
+  color: var(--secondary, #8b451f);
+}
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiListItemIcon-root svg, .ant-dropdown-menu-item-icon svg) { font-size: 17px; }
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiMenuItem-root, .ant-dropdown-menu-item, [role="menuitem"]):is(:hover, :focus-visible, .Mui-focusVisible, .ant-dropdown-menu-item-active) :is(.MuiListItemIcon-root, .ant-dropdown-menu-item-icon) { color: var(--primary, #5a2508); }
+body:has(.app-layout) .ibms-row-actions-menu :is(.is-destructive, .ant-dropdown-menu-item-danger),
+body:has(.app-layout) .ibms-row-actions-menu .is-destructive .MuiListItemIcon-root,
+body:has(.app-layout) .ibms-row-actions-menu .ant-dropdown-menu-item-danger .ant-dropdown-menu-item-icon { color: #b91c1c; }
+body:has(.app-layout) .ibms-row-actions-menu :is(.is-destructive, .ant-dropdown-menu-item-danger):not(.Mui-disabled):not(.ant-dropdown-menu-item-disabled):is(:hover, :focus-visible, .Mui-focusVisible, .ant-dropdown-menu-item-active) {
+  background: #fef2f2;
+  color: #991b1b;
+}
+body:has(.app-layout) .ibms-row-actions-menu :is(.is-destructive, .ant-dropdown-menu-item-danger):is(:hover, :focus-visible, .Mui-focusVisible, .ant-dropdown-menu-item-active) :is(.MuiListItemIcon-root, .ant-dropdown-menu-item-icon) { color: #991b1b; }
+body:has(.app-layout) .ibms-row-actions-menu :is(.MuiDivider-root, .ant-dropdown-menu-item-divider) { margin: 4px 6px; border-color: #efe2d5; background: #efe2d5; }
+@media (prefers-reduced-motion: reduce) {
+  body:has(.app-layout) .ibms-row-actions-trigger,
+  body:has(.app-layout) .ibms-row-actions-menu :is(.MuiMenuItem-root, .ant-dropdown-menu-item, [role="menuitem"]) { transition: none; }
+}
+
+body:has(.app-layout) .ibms-row-actions-menu[role="menu"] > [role="menuitem"] > svg { width: 17px; height: 17px; margin-right: 11px; flex-shrink: 0; color: var(--secondary, #8b451f); }

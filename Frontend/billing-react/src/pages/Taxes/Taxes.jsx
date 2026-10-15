@@ -379,7 +379,7 @@ function TaxList({ search, setSearch }) {
               </div>
             ) : (
               <div
-                className="tax-table-container"
+                className="tax-table-container ibms-table-frame"
                 tabIndex={0}
                 role="region"
                 aria-label="Tax configurations"

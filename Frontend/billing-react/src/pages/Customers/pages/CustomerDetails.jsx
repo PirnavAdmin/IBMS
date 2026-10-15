@@ -1,3 +1,4 @@
+import { displayDateTime } from '../../../utils/localDate';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -252,11 +253,11 @@ export const CustomerDetails = () => {
         <section className="cust-card cust-col-span-2 cust-audit-card">
           <span>
             Created:{' '}
-            <strong>{createdOn ? new Date(createdOn).toLocaleString() : '—'}</strong>
+            <strong>{createdOn ? displayDateTime(createdOn) : '—'}</strong>
           </span>
           <span>
             Last Updated:{' '}
-            <strong>{updatedOn ? new Date(updatedOn).toLocaleString() : '—'}</strong>
+            <strong>{updatedOn ? displayDateTime(updatedOn) : '—'}</strong>
           </span>
         </section>
       </div>

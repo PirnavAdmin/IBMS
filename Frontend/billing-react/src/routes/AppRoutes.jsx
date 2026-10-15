@@ -14,6 +14,9 @@ import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
+import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';
+import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';
+import { NotificationHistory } from '../pages/Notifications/NotificationHistory';
 import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
 import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
 import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
@@ -145,6 +148,10 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/notifications" element={<NotificationTemplates />} />
+      <Route path="/settings/notifications/new" element={<NotificationTemplateForm />} />
+      <Route path="/settings/notifications/:id/edit" element={<NotificationTemplateForm />} />
+      <Route path="/settings/notifications/history" element={<NotificationHistory />} />
       <Route path="/settings/countries" element={<CountryConfiguration />} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />

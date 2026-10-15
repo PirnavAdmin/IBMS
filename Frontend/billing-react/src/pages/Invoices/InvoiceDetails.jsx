@@ -9,7 +9,6 @@ import {
   IconButton,
   Tab,
   Tabs,
-  Tooltip,
 } from "@mui/material";
 import {
   CheckCircleOutline,
@@ -635,7 +634,7 @@ export function InvoiceDetails() {
                     {row.items?.length === 1 ? "Line Item" : "Line Items"}
                   </span>
                 </div>
-                <div className="invoice-table-scroll">
+                <div className="invoice-table-scroll ibms-table-frame">
                   <table className="invoice-table invoice-detail-items-table">
                     <thead>
                       <tr>
@@ -825,7 +824,7 @@ export function InvoiceDetails() {
                       </div>
                     ) : (
                       <>
-                        <div className="invoice-table-scroll">
+                        <div className="invoice-table-scroll ibms-table-frame">
                           <table className="invoice-table">
                             <thead>
                               <tr>
@@ -987,7 +986,7 @@ export function InvoiceDetails() {
                       </div>
                     ) : (
                       <>
-                        <div className="invoice-table-scroll">
+                        <div className="invoice-table-scroll ibms-table-frame">
                           <table className="invoice-table">
                             <thead>
                               <tr>
@@ -1118,12 +1117,10 @@ export function InvoiceDetails() {
                       >
                         {customerData?.email || "No email on record"}
                         {customerData?.email && (
-                          <Tooltip
-                            title={
+
+                            <IconButton aria-label={
                               copied ? "Copied!" : "Copy email address"
                             }
-                          >
-                            <IconButton
                               size="small"
                               onClick={() =>
                                 handleCopyEmail(customerData.email)
@@ -1138,7 +1135,7 @@ export function InvoiceDetails() {
                                 <ContentCopyOutlined fontSize="small" />
                               )}
                             </IconButton>
-                          </Tooltip>
+
                         )}
                       </span>
                     </div>
@@ -1228,7 +1225,7 @@ export function InvoiceDetails() {
                       </div>
                     ) : (
                       <>
-                        <div className="invoice-table-scroll">
+                        <div className="invoice-table-scroll ibms-table-frame">
                           <table className="invoice-table invoice-audit-table">
                             <thead>
                               <tr>

@@ -54,7 +54,7 @@ test('audit page preserves real response data and supports PascalCase contracts'
 
 test('timestamps display UTC and UTC-kindless backend values consistently in IST', () => {
   const expected = auditDate(record.timestamp);
-  assert.match(expected, /09 Oct 2026/);
+  assert.match(expected, /09\/10\/2026/);
   assert.match(expected, /10:22:23/);
   assert.match(expected, /IST/);
   assert.equal(auditDate('2026-10-09T04:52:23.454293'), expected);

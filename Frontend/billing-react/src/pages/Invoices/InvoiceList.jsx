@@ -337,7 +337,7 @@ export function InvoiceList() {
                       : false);
 
                   return (
-                    <button
+                    <button aria-label={`Filter invoices by ${label} (${group.currency})`}
                       key={label}
                       type="button"
                       className={`invoice-summary-card invoice-kpi-circular-card ${tone} ${
@@ -352,7 +352,7 @@ export function InvoiceList() {
                           page: 1,
                         }))
                       }
-                      title={`Filter invoices by ${label} (${group.currency})`}
+
                     >
                       <span className="invoice-kpi-label">{label}</span>
                       <KpiDonut percent={progress} icon={icon} />
@@ -490,7 +490,7 @@ export function InvoiceList() {
           retry={() => list.refetch()}
         />
         {!invalidDates && !list.error && (
-          <div className="invoice-table-card">
+          <div className="invoice-table-card ibms-table-frame">
             <div className="invoice-table-heading">
               <div>
                 <h2>Invoices</h2>

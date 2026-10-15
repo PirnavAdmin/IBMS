@@ -194,7 +194,7 @@ function PaymentAuditTimeline({ history = [], currency }) {
                     <strong className="payment-timeline-action">{humanizeAction(event.action)}</strong>
                     <span className={`payment-timeline-chip chip-${type}`}>{event.action}</span>
                   </div>
-                  <div className="payment-timeline-time" title={event.timestamp}>
+                  <div className="payment-timeline-time" >
                     <AccessTimeOutlined fontSize="inherit" />
                     <span>{formatIndianDateTime(event.timestamp)}</span>
                   </div>
@@ -266,7 +266,7 @@ export function PaymentDetails() {
       </section>
       <section className="payment-panel payment-allocation-card" aria-labelledby="payment-allocation-title">
         <header className="payment-detail-heading"><div><h2 id="payment-allocation-title">Invoice Allocation</h2><p>Payment allocation and current invoice balances</p></div></header>
-        {p.allocations.length ? <div className="payment-allocation-scroll" role="region" aria-label="Invoice allocations" tabIndex={0}>
+        {p.allocations.length ? <div className="payment-allocation-scroll ibms-table-frame" role="region" aria-label="Invoice allocations" tabIndex={0}>
           <table className="payment-allocation-table"><thead><tr>{['Invoice', 'Allocated Amount', 'Paid Total', 'Outstanding', 'Invoice Status', 'Actions'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
             <tbody>{p.allocations.map(a => <tr key={a.id}>
               <td><strong>{a.invoiceNumber || a.invoiceId}</strong></td>

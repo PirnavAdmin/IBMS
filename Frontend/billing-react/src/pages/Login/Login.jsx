@@ -83,6 +83,9 @@ export const Login = () => {
   // ==========================================================
 
   const [showPassword, setShowPassword] = useState(false);
+  const passwordPresentation = showPassword
+    ? { type: 'text', action: 'Hide password', icon: <Visibility fontSize="small" /> }
+    : { type: 'password', action: 'Show password', icon: <VisibilityOff fontSize="small" /> };
   const [rememberMe, setRememberMe] = useState(true);
   const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'Your session has timed out. Please log in again.' : null);
 
@@ -1016,11 +1019,7 @@ export const Login = () => {
                     fullWidth
                     size="small"
                     id="password"
-                    type={
-                      showPassword
-                        ? 'text'
-                        : 'password'
-                    }
+                    type={passwordPresentation.type}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     disabled={isSubmitting}
@@ -1045,6 +1044,11 @@ export const Login = () => {
 
                           <IconButton
                             type="button"
+                            aria-label={passwordPresentation.action}
+                            aria-pressed={showPassword}
+                            aria-controls="password"
+                            className="billing-password-toggle"
+                            onMouseDown={event => event.preventDefault()}
                             onClick={() =>
                               setShowPassword(
                                 (current) => !current
@@ -1056,15 +1060,8 @@ export const Login = () => {
                               color: '#7D6E66',
                             }}
                           >
-                            {showPassword ? (
-                              <VisibilityOff
-                                fontSize="small"
-                              />
-                            ) : (
-                              <Visibility
-                                fontSize="small"
-                              />
-                            )}
+                            {passwordPresentation.icon}
+
                           </IconButton>
 
                         </InputAdornment>
@@ -1100,7 +1097,7 @@ export const Login = () => {
                     }
                     label={
                       <span className="billing-auth-remember-label">
-                        Remember me 
+                        Remember me
                       </span>
                     }
                     sx={{
@@ -1369,6 +1366,9 @@ export const Login = () => {
 
                           <IconButton
                             type="button"
+                            aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                            aria-pressed={showNewPassword}
+                            onMouseDown={event => event.preventDefault()}
                             onClick={() =>
                               setShowNewPassword(
                                 (current) => !current
@@ -1444,6 +1444,9 @@ export const Login = () => {
 
                           <IconButton
                             type="button"
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-pressed={showConfirmPassword}
+                            onMouseDown={event => event.preventDefault()}
                             onClick={() =>
                               setShowConfirmPassword(
                                 (current) => !current

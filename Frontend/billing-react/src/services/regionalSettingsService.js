@@ -95,39 +95,21 @@ export const regionalSettingsService = {
       }
     }
 
-    const key = getStorageKey();
+    // The shared client returns the API envelope, not an Axios response.
+    // Persist locally and notify subscribers only after confirmed server success.
+    const response = await apiClient.put('/api/v1/settings/country', {
+      countries: unique.map((c) => ({ country: c.name, countryCode: c.code, phoneCode: c.phoneCode, currency: c.currency })),
+    });
+    if (response?.success === false || (response?.success !== true && !(response?.status >= 200 && response?.status < 300))) {
+      throw new Error(response?.message || 'Country settings could not be saved. Please try again.');
+    }
     try {
       const serialized = JSON.stringify(unique.map((c) => c.name));
-      localStorage.setItem(key, serialized);
+      localStorage.setItem(getStorageKey(), serialized);
       localStorage.setItem('invoice_billing_selected_countries_default', serialized);
-    } catch (e) {}
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent(REGIONAL_SETTINGS_EVENT, { detail: unique })
-      );
-    }
-
-    let backendStatus = {
-      backendBlocked: true,
-      message: 'Country configuration saved successfully.',
-    };
-
-    try {
-      const response = await apiClient.put('/api/v1/settings/country', {
-        countries: unique.map((c) => ({
-          country: c.name,
-          countryCode: c.code,
-          phoneCode: c.phoneCode,
-          currency: c.currency,
-        })),
-      });
-      if (response && response.status >= 200 && response.status < 300) {
-        backendStatus = { backendBlocked: false, message: 'Country settings saved successfully.' };
-      }
-    } catch (err) {
-      // Mark BACKEND BLOCKED per project specifications
-    }
+    } catch { /* Server success remains valid when browser storage is unavailable. */ }
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT, { detail: unique }));
+    const backendStatus = { backendBlocked: false, message: response.message || 'Country settings saved successfully.' };
 
     return {
       selectedCountries: unique,

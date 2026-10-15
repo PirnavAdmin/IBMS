@@ -208,7 +208,7 @@ export function InvoiceActions({ invoice, permissions }) {
     <div className="invoice-action-control">
       <IconButton
         id={`invoice-actions-btn-${invoice.id}`}
-        className={`invoice-action-trigger ${anchor ? "is-active" : ""}`}
+        className={`invoice-action-trigger ibms-row-actions-trigger ${anchor ? "is-active" : ""}`}
         size="small"
         aria-label={`Actions for ${identifier(invoice)}`}
         aria-haspopup="menu"
@@ -228,7 +228,7 @@ export function InvoiceActions({ invoice, permissions }) {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
           paper: {
-            className: "invoice-actions-dropdown-paper",
+            className: "invoice-actions-dropdown-paper ibms-row-actions-menu",
             elevation: 4,
           },
         }}

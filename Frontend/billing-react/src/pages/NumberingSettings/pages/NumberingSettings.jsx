@@ -348,11 +348,11 @@ export function NumberingSettings() {
                 <h2>Build Your Format</h2>
                 <p>Drag and drop tokens to build your numbering format.</p>
               </div>
-              <button
+              <button aria-label="Clear all tokens"
                 type="button"
                 className="panel-clear-btn"
                 onClick={handleClearTokens}
-                title="Clear all tokens"
+
               >
                 <DeleteOutline style={{ fontSize: '1.05rem' }} />
                 Clear All

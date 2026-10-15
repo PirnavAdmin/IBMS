@@ -1,4 +1,4 @@
-import { ThemedDatePicker } from '../ThemedDatePicker';
+import { DateRangeFilter } from '../DateRangeFilter';
 import { useState, useRef, useEffect } from 'react';
 import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
@@ -32,12 +32,6 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
     };
   }, [isOpen]);
 
-  const setDate = (key, value) => {
-    const next = { ...values, [key]: value };
-    if (next.start && next.end && next.start > next.end) next[key === 'start' ? 'end' : 'start'] = value;
-    onChange(next);
-  };
-
   const selectPeriod = id => {
     const period = periods.find(option => option.id === id);
     if (period) onChange({ ...values, start: period.start, end: period.end });
@@ -47,12 +41,7 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
   const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch(''); };
 
   return <section className="premium-filters" aria-label="Dashboard filters">
-    {['start', 'end'].map((key, index) => (
-      <label key={key}>
-        {index ? 'To Date' : 'From Date'}
-        <ThemedDatePicker label={index ? "To Date" : "From Date"} value={values[key]} onChange={value => setDate(key, value)} />
-      </label>
-    ))}
+    <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} /></div>
 
     <div className="premium-filter-field premium-period-field" ref={dropdownRef}>
       <span className="premium-filter-label">Period</span>
