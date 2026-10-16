@@ -32,7 +32,15 @@ public class EmailService : IEmailService
         email.To.Add(MailboxAddress.Parse(toEmail));
         email.Subject = subject;
 
-        var builder = new BodyBuilder { TextBody = body };
+        var builder = new BodyBuilder();
+        if (!string.IsNullOrWhiteSpace(body) && (body.Contains("<html", StringComparison.OrdinalIgnoreCase) || body.Contains("<div", StringComparison.OrdinalIgnoreCase) || body.Contains("<p", StringComparison.OrdinalIgnoreCase) || body.Contains("<table", StringComparison.OrdinalIgnoreCase)))
+        {
+            builder.HtmlBody = body;
+        }
+        else
+        {
+            builder.TextBody = body;
+        }
 
         if (attachmentBytes != null && !string.IsNullOrWhiteSpace(attachmentName))
         {
