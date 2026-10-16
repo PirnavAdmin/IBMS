@@ -17,6 +17,7 @@ public class QuotationActionService : IQuotationActionService
     private readonly INumberGenerationService _numberGenerationService;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IOutboxService? _outboxService;
+    private readonly IEmailService _emailService;
 
     public QuotationActionService(
         IQuotationRepository quotationRepository,
@@ -25,6 +26,7 @@ public class QuotationActionService : IQuotationActionService
         IFinancialCalculationEngine financialEngine,
         INumberGenerationService numberGenerationService,
         IAuditLogRepository auditLogRepository,
+        IEmailService emailService,
         IOutboxService? outboxService = null)
     {
         _quotationRepository = quotationRepository;
@@ -34,6 +36,7 @@ public class QuotationActionService : IQuotationActionService
         _numberGenerationService = numberGenerationService;
         _auditLogRepository = auditLogRepository;
         _outboxService = outboxService;
+        _emailService = emailService;
     }
 
     public async Task<ApiResponse<bool>> CalculateAndFreezeSnapshotAsync(int quotationId, int tenantId)
@@ -124,14 +127,54 @@ public class QuotationActionService : IQuotationActionService
         if (quotation.ValidUntil.Date < DateTime.UtcNow.Date)
             return ApiResponse<bool>.Fail("Quotation validity has expired and cannot be sent.", errorCode: "EXPIRED_VALIDITY");
 
+        var customer = quotation.Customer;
+        var recipient = customer?.Email;
+        if (customer == null || string.IsNullOrWhiteSpace(recipient))
+            return ApiResponse<bool>.Fail("Customer does not have a valid email address.");
+
+        var currency = string.IsNullOrWhiteSpace(customer.Currency) ? "INR" : customer.Currency.Trim().ToUpperInvariant();
+        var subject = $"Quotation {quotation.QuoteNumber}";
+        var body = new System.Text.StringBuilder()
+            .AppendLine($"Dear {customer.Name},")
+            .AppendLine()
+            .AppendLine($"Please find the quotation details for {quotation.QuoteNumber}.")
+            .AppendLine($"Quotation date: {quotation.QuotationDate:yyyy-MM-dd}")
+            .AppendLine($"Valid until: {quotation.ValidUntil:yyyy-MM-dd}")
+            .AppendLine()
+            .AppendLine("Items:");
+        foreach (var item in quotation.Items)
+        {
+            body.AppendLine($"- {item.Description}: {item.Quantity} x {item.UnitPrice:0.00} = {item.TotalAmount:0.00} {currency}");
+        }
+
+        body.AppendLine()
+            .AppendLine($"Subtotal: {quotation.Subtotal:0.00} {currency}")
+            .AppendLine($"Discount: {quotation.DiscountAmount:0.00} {currency}")
+            .AppendLine($"Tax: {quotation.TaxAmount:0.00} {currency}")
+            .AppendLine($"Charges: {quotation.ChargesAmount:0.00} {currency}")
+            .AppendLine($"Total: {quotation.TotalAmount:0.00} {currency}");
+        if (!string.IsNullOrWhiteSpace(quotation.Notes))
+            body.AppendLine().AppendLine(quotation.Notes);
+        if (!string.IsNullOrWhiteSpace(quotation.TermsAndConditions))
+            body.AppendLine().AppendLine($"Terms and conditions: {quotation.TermsAndConditions}");
+
+        try
+        {
+            await _emailService.SendEmailAsync(recipient, subject, body.ToString());
+        }
+        catch (Exception ex)
+        {
+            return ApiResponse<bool>.Fail($"Failed to send quotation email: {ex.Message}");
+        }
+
         quotation.Status = QuotationStatus.Sent;
         quotation.Communications.Add(new QuotationCommunication
         {
             QuotationId = quotationId,
             CommunicationType = "Email",
-            Recipient = quotation.Customer?.Email ?? "customer@example.com",
-            Subject = $"Quotation #{quotation.QuoteNumber}",
-            Message = $"Quotation #{quotation.QuoteNumber} has been sent.",
+            Recipient = recipient,
+            Subject = subject,
+            Message = body.ToString(),
             Status = "Sent",
             SentAt = DateTime.UtcNow,
             SentBy = userId

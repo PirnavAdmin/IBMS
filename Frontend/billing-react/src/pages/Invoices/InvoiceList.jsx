@@ -492,9 +492,9 @@ export function InvoiceList() {
         {!invalidDates && !list.error && (
           <div className="invoice-table-card ibms-table-frame">
             <div className="invoice-table-heading">
-              <div>
+              <div className="invoice-list-heading-title">
                 <h2>Invoices</h2>
-                <p>All customer invoices</p>
+                <span>All customer invoices</span>
               </div>
               {list.data && <span className="invoice-count-badge">{list.data.totalCount} invoices</span>}
             </div>

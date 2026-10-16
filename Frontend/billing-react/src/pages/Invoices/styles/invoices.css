@@ -673,6 +673,20 @@
   background: #ffffff;
 }
 
+.invoice-table-card > .invoice-table-heading {
+  box-sizing: border-box;
+  min-height: 54px;
+  padding: 0 16px;
+  align-items: center;
+}
+
+.invoice-list-heading-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  transform: translateY(6px);
+}
+
 .invoice-table-heading h2 {
   font-size: 18px;
   font-weight: 700;
@@ -681,10 +695,25 @@
   letter-spacing: -0.015em;
 }
 
+.invoice-list-heading-title h2 {
+  line-height: 1.25;
+  margin: 0 !important;
+}
+
 .invoice-table-heading p {
   font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.invoice-list-heading-title > span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.invoice-table-card > .invoice-table-heading .invoice-count-badge {
+  padding: 4px 10px;
 }
 
 .invoice-count-badge {
@@ -795,7 +824,7 @@
 /* Individual column widths for neat, balanced spacing */
 .invoice-list-table th:nth-child(1),
 .invoice-list-table td:nth-child(1) {
-  min-width: 175px; /* Invoice Number */
+  min-width: 220px; /* Invoice Number */
 }
 
 .invoice-list-table th:nth-child(2),
