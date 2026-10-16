@@ -17,18 +17,27 @@ public class QuotationsController : ControllerBase
     private readonly IQuotationService _quotationService;
     private readonly IQuotationActionService _actionService;
     private readonly IAuditLogRepository? _auditLogRepo;
+    private readonly IQuotationPdfEngine? _quotationPdfEngine;
+    private readonly IQuotationRepository? _quotationRepository;
+    private readonly ITenantRepository? _tenantRepository;
     private readonly ILogger<QuotationsController> _logger;
 
     public QuotationsController(
         IQuotationService quotationService,
         IQuotationActionService actionService,
         ILogger<QuotationsController> logger,
-        IAuditLogRepository? auditLogRepo = null)
+        IAuditLogRepository? auditLogRepo = null,
+        IQuotationPdfEngine? quotationPdfEngine = null,
+        IQuotationRepository? quotationRepository = null,
+        ITenantRepository? tenantRepository = null)
     {
         _quotationService = quotationService;
         _actionService = actionService;
         _logger = logger;
         _auditLogRepo = auditLogRepo;
+        _quotationPdfEngine = quotationPdfEngine;
+        _quotationRepository = quotationRepository;
+        _tenantRepository = tenantRepository;
     }
 
     /// <summary>
@@ -60,6 +69,29 @@ public class QuotationsController : ControllerBase
         if (!result.Success) return NotFound(result);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Download or preview official Quotation PDF document.
+    /// </summary>
+    [HttpGet("{id:int}/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetQuotationPdf([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        if (_quotationRepository == null || _quotationPdfEngine == null)
+            return StatusCode(StatusCodes.Status501NotImplemented, "PDF generation engine is unavailable.");
+
+        var quotation = await _quotationRepository.GetByIdAsync(id, tenantId.Value);
+        if (quotation == null) return NotFound("Quotation not found.");
+
+        var tenant = quotation.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId.Value) : null);
+        var pdfBytes = _quotationPdfEngine.GenerateQuotationPdf(quotation, tenant);
+
+        return File(pdfBytes, "application/pdf", $"{quotation.QuoteNumber}.pdf");
     }
 
     /// <summary>

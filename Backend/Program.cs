@@ -160,6 +160,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
+builder.Services.AddSingleton<IQuotationPdfEngine, QuestPdfQuotationEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
 builder.Services.AddScoped<ICreditNoteService, CreditNoteService>();
 builder.Services.AddScoped<ITemplateEngineService, TemplateEngineService>();

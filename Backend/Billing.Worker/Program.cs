@@ -26,6 +26,7 @@ builder.Services.AddScoped<ICurrentUserService, WorkerCurrentUserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
+builder.Services.AddSingleton<IQuotationPdfEngine, QuestPdfQuotationEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
 builder.Services.AddSingleton<IWebhookSecurityService, WebhookSecurityService>();
 builder.Services.AddHttpClient<IWebhookDispatcher, WebhookDispatcher>();
