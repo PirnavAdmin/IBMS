@@ -20,6 +20,8 @@ public class QuotationActionService : IQuotationActionService
     private readonly IEmailService _emailService;
     private readonly IQuotationPdfEngine? _quotationPdfEngine;
     private readonly ITenantRepository? _tenantRepository;
+    private readonly INotificationLogRepository? _notificationLogRepository;
+    private readonly INotificationService? _notificationService;
 
     public QuotationActionService(
         IQuotationRepository quotationRepository,
@@ -31,7 +33,9 @@ public class QuotationActionService : IQuotationActionService
         IEmailService emailService,
         IOutboxService? outboxService = null,
         IQuotationPdfEngine? quotationPdfEngine = null,
-        ITenantRepository? tenantRepository = null)
+        ITenantRepository? tenantRepository = null,
+        INotificationLogRepository? notificationLogRepository = null,
+        INotificationService? notificationService = null)
     {
         _quotationRepository = quotationRepository;
         _invoiceRepository = invoiceRepository;
@@ -43,6 +47,8 @@ public class QuotationActionService : IQuotationActionService
         _emailService = emailService;
         _quotationPdfEngine = quotationPdfEngine;
         _tenantRepository = tenantRepository;
+        _notificationLogRepository = notificationLogRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<ApiResponse<bool>> CalculateAndFreezeSnapshotAsync(int quotationId, int tenantId)
@@ -157,16 +163,93 @@ public class QuotationActionService : IQuotationActionService
             }
         }
 
-        // 2. Build Clean Minimal Email Body (Matching Image 1)
+        // 2. Build Clean Minimal Email Body (Fallback)
         var body = $"Dear {customer.Name},\n\nPlease find attached the quotation {quotation.QuoteNumber} for the amount of {quotation.TotalAmount:0.00} {currency}.\n\nThank you for your business!";
 
-        try
+        if (_notificationService != null)
         {
-            await _emailService.SendEmailAsync(recipient, subject, body, pdfBytes, pdfBytes != null ? pdfFileName : null);
+            var notifResult = await _notificationService.SendQuotationNotificationAsync(
+                quotationId,
+                tenantId,
+                userId,
+                pdfBytes,
+                pdfBytes != null ? pdfFileName : null);
+
+            if (!notifResult.Success)
+            {
+                return ApiResponse<bool>.Fail(notifResult.Message);
+            }
+
+            if (notifResult.Data != null)
+            {
+                subject = notifResult.Data.Subject;
+                body = notifResult.Data.Message;
+            }
         }
-        catch (Exception ex)
+        else
         {
-            return ApiResponse<bool>.Fail($"Failed to send quotation email: {ex.Message}");
+            // Send Email fallback if notification service not provided
+            try
+            {
+                await _emailService.SendEmailAsync(recipient, subject, body, pdfBytes, pdfBytes != null ? pdfFileName : null);
+
+                if (_notificationLogRepository != null)
+                {
+                    try
+                    {
+                        await _notificationLogRepository.AddAsync(new NotificationLog
+                        {
+                            TenantId = tenantId,
+                            EventType = "QuotationSent",
+                            EntityType = "Quotation",
+                            EntityId = quotationId,
+                            Channel = "Email",
+                            Recipient = recipient,
+                            Subject = subject,
+                            Message = body,
+                            Status = "Sent",
+                            SentAtUtc = DateTime.UtcNow,
+                            SentBy = userId ?? "System",
+                            RetryCount = 0
+                        });
+                    }
+                    catch
+                    {
+                        // Non-blocking log persistence
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_notificationLogRepository != null)
+                {
+                    try
+                    {
+                        await _notificationLogRepository.AddAsync(new NotificationLog
+                        {
+                            TenantId = tenantId,
+                            EventType = "QuotationSent",
+                            EntityType = "Quotation",
+                            EntityId = quotationId,
+                            Channel = "Email",
+                            Recipient = recipient,
+                            Subject = subject,
+                            Message = body,
+                            Status = "Failed",
+                            FailureReason = ex.Message,
+                            NextRetryAtUtc = DateTime.UtcNow.AddMinutes(5),
+                            SentAtUtc = DateTime.UtcNow,
+                            SentBy = userId ?? "System",
+                            RetryCount = 0
+                        });
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                return ApiResponse<bool>.Fail($"Failed to send quotation email: {ex.Message}");
+            }
         }
 
         quotation.Status = QuotationStatus.Sent;

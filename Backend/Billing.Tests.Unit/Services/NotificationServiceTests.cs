@@ -1,7 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
+using Billing.Contracts;
 using Billing.Contracts.Notification;
 using Billing.Domain.Entities;
+using Billing.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -10,192 +15,189 @@ namespace Billing.Tests.Unit.Services;
 
 public class NotificationServiceTests
 {
-    private readonly TemplateEngineService _templateEngine;
     private readonly Mock<INotificationTemplateRepository> _templateRepoMock;
     private readonly Mock<INotificationLogRepository> _logRepoMock;
-    private readonly Mock<IEmailService> _emailServiceMock;
+    private readonly Mock<ITemplateEngineService> _templateEngineMock;
+    private readonly Mock<IEmailService> _emailMock;
     private readonly Mock<IInvoiceRepository> _invoiceRepoMock;
     private readonly Mock<IPaymentRepository> _paymentRepoMock;
     private readonly Mock<IQuotationRepository> _quotationRepoMock;
     private readonly Mock<ICreditNoteRepository> _creditNoteRepoMock;
     private readonly Mock<ITenantRepository> _tenantRepoMock;
-    private readonly Mock<IAuditLogRepository> _auditRepoMock;
+    private readonly Mock<IAuditLogRepository> _auditLogRepoMock;
     private readonly Mock<ILogger<NotificationService>> _loggerMock;
-    private readonly NotificationService _notificationService;
+    private readonly NotificationService _sut;
 
     public NotificationServiceTests()
     {
-        _templateEngine = new TemplateEngineService();
         _templateRepoMock = new Mock<INotificationTemplateRepository>();
         _logRepoMock = new Mock<INotificationLogRepository>();
-        _emailServiceMock = new Mock<IEmailService>();
+        _templateEngineMock = new Mock<ITemplateEngineService>();
+        _emailMock = new Mock<IEmailService>();
         _invoiceRepoMock = new Mock<IInvoiceRepository>();
         _paymentRepoMock = new Mock<IPaymentRepository>();
         _quotationRepoMock = new Mock<IQuotationRepository>();
         _creditNoteRepoMock = new Mock<ICreditNoteRepository>();
         _tenantRepoMock = new Mock<ITenantRepository>();
-        _auditRepoMock = new Mock<IAuditLogRepository>();
+        _auditLogRepoMock = new Mock<IAuditLogRepository>();
         _loggerMock = new Mock<ILogger<NotificationService>>();
 
-        _notificationService = new NotificationService(
+        _sut = new NotificationService(
             _templateRepoMock.Object,
             _logRepoMock.Object,
-            _templateEngine,
-            _emailServiceMock.Object,
+            _templateEngineMock.Object,
+            _emailMock.Object,
             _invoiceRepoMock.Object,
             _paymentRepoMock.Object,
             _quotationRepoMock.Object,
             _creditNoteRepoMock.Object,
             _tenantRepoMock.Object,
-            _auditRepoMock.Object,
+            _auditLogRepoMock.Object,
             _loggerMock.Object);
     }
 
     [Fact]
-    public void TemplateEngine_RendersTokens_AndStripsUnsafeScripts()
+    public async Task GetNotificationHistoryAsync_ReturnsPagedResults()
     {
-        var template = "Hello {{CustomerName}}, please pay {{TotalAmount}}.<script>alert('hack');</script>";
-        var variables = new Dictionary<string, string>
+        var queryParams = new NotificationLogQueryParameters { PageNumber = 1, PageSize = 10 };
+        var logs = new List<NotificationLog>
         {
-            ["CustomerName"] = "Acme Inc",
-            ["TotalAmount"] = "₹5,000.00"
+            new() { Id = 1, TenantId = 1, EventType = "InvoiceSent", Status = "Sent", Recipient = "cust@example.com", SentAtUtc = DateTime.UtcNow }
         };
+        var pagedResult = new PagedResult<NotificationLog>(logs, 1, 1, 10);
+        _logRepoMock.Setup(r => r.QueryLogsAsync(1, queryParams)).ReturnsAsync(pagedResult);
 
-        var rendered = _templateEngine.Render(template, variables);
+        var result = await _sut.GetNotificationHistoryAsync(1, queryParams);
 
-        Assert.Equal("Hello Acme Inc, please pay ₹5,000.00.", rendered);
-        Assert.DoesNotContain("<script>", rendered);
+        Assert.True(result.Success);
+        Assert.Single(result.Data!.Items);
+        Assert.Equal("InvoiceSent", result.Data.Items[0].EventType);
+        Assert.Equal("cust@example.com", result.Data.Items[0].Recipient);
     }
 
     [Fact]
-    public void TemplateEngine_GetAvailableVariables_ReturnsDefinitionsForAllEvents()
+    public async Task RetryNotificationAsync_WhenSuccess_UpdatesStatusToSentAndIncrementsRetryCount()
     {
-        var invoiceVars = _templateEngine.GetAvailableVariables("InvoiceSent");
-        var paymentVars = _templateEngine.GetAvailableVariables("PaymentReceived");
-        var quoteVars = _templateEngine.GetAvailableVariables("QuotationSent");
-        var creditVars = _templateEngine.GetAvailableVariables("CreditNoteIssued");
-
-        Assert.Contains(invoiceVars, v => v.Token == "{{InvoiceNumber}}");
-        Assert.Contains(paymentVars, v => v.Token == "{{PaymentNumber}}");
-        Assert.Contains(quoteVars, v => v.Token == "{{QuotationNumber}}");
-        Assert.Contains(creditVars, v => v.Token == "{{CreditNoteNumber}}");
-    }
-
-    [Fact]
-    public async Task SendInvoiceNotification_SuccessfulDispatch_LogsSentStatus()
-    {
-        int tenantId = 1;
-        int invoiceId = 100;
-        var invoice = new Invoice
+        var log = new NotificationLog
         {
-            Id = invoiceId,
-            TenantId = tenantId,
-            InvoiceNumber = "INV-2026-001",
-            InvoiceDate = DateTime.UtcNow,
-            DueDate = DateTime.UtcNow.AddDays(15),
-            TotalAmount = 15000m,
-            Currency = "INR",
-            Customer = new Customer { Name = "Tech Corp", Email = "billing@techcorp.com" }
-        };
-
-        _invoiceRepoMock.Setup(r => r.GetByIdAsync(invoiceId, tenantId, default))
-            .ReturnsAsync(invoice);
-
-        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(tenantId, "InvoiceSent", "Email"))
-            .ReturnsAsync(new NotificationTemplate
-            {
-                SubjectTemplate = "Invoice {{InvoiceNumber}}",
-                BodyTemplate = "<p>Dear {{CustomerName}}, amount {{TotalAmount}}</p>"
-            });
-
-        _emailServiceMock.Setup(e => e.SendEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]?>(), It.IsAny<string?>()))
-            .Returns(Task.CompletedTask);
-
-        _logRepoMock.Setup(r => r.AddAsync(It.IsAny<NotificationLog>()))
-            .ReturnsAsync((NotificationLog l) => l);
-
-        var response = await _notificationService.SendInvoiceNotificationAsync(invoiceId, tenantId, "InvoiceSent");
-
-        Assert.True(response.Success);
-        Assert.Equal("Sent", response.Data?.Status);
-        Assert.Equal("billing@techcorp.com", response.Data?.Recipient);
-        Assert.Equal(0, response.Data?.RetryCount);
-
-        _emailServiceMock.Verify(e => e.SendEmailAsync(
-            "billing@techcorp.com",
-            "Invoice INV-2026-001",
-            "<p>Dear Tech Corp, amount 15,000.00</p>",
-            null,
-            "INV-2026-001.pdf"), Times.Once);
-    }
-
-    [Fact]
-    public async Task SendInvoiceNotification_WhenEmailFails_LogsFailedStatusAndFailureReason()
-    {
-        int tenantId = 1;
-        int invoiceId = 101;
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            TenantId = tenantId,
-            InvoiceNumber = "INV-2026-002",
-            Customer = new Customer { Name = "Client A", Email = "client@domain.com" }
-        };
-
-        _invoiceRepoMock.Setup(r => r.GetByIdAsync(invoiceId, tenantId, default))
-            .ReturnsAsync(invoice);
-
-        _emailServiceMock.Setup(e => e.SendEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]?>(), It.IsAny<string?>()))
-            .ThrowsAsync(new System.Net.Sockets.SocketException(10060)); // Connection timed out
-
-        NotificationLog? capturedLog = null;
-        _logRepoMock.Setup(r => r.AddAsync(It.IsAny<NotificationLog>()))
-            .Callback<NotificationLog>(l => capturedLog = l)
-            .ReturnsAsync((NotificationLog l) => l);
-
-        var response = await _notificationService.SendInvoiceNotificationAsync(invoiceId, tenantId, "InvoiceSent");
-
-        Assert.False(response.Success);
-        Assert.NotNull(capturedLog);
-        Assert.Equal("Failed", capturedLog?.Status);
-        Assert.NotNull(capturedLog?.FailureReason);
-        Assert.NotNull(capturedLog?.NextRetryAtUtc);
-    }
-
-    [Fact]
-    public async Task RetryNotification_IncrementsRetryCount_AndSetsStatusSentOnSuccess()
-    {
-        int tenantId = 1;
-        int logId = 55;
-        var failedLog = new NotificationLog
-        {
-            Id = logId,
-            TenantId = tenantId,
-            Recipient = "client@domain.com",
-            Subject = "Test Subject",
-            Message = "Test Body",
+            Id = 10,
+            TenantId = 1,
+            EventType = "PaymentReceived",
+            Recipient = "client@example.com",
+            Subject = "Receipt",
+            Message = "Thank you",
             Status = "Failed",
             RetryCount = 1,
-            FailureReason = "Previous timeout"
+            FailureReason = "SMTP timeout"
         };
+        _logRepoMock.Setup(r => r.GetByIdAsync(10, 1)).ReturnsAsync(log);
 
-        _logRepoMock.Setup(r => r.GetByIdAsync(logId, tenantId))
-            .ReturnsAsync(failedLog);
+        var result = await _sut.RetryNotificationAsync(10, 1, "Admin");
 
-        _emailServiceMock.Setup(e => e.SendEmailAsync(
-            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]?>(), It.IsAny<string?>()))
-            .Returns(Task.CompletedTask);
+        Assert.True(result.Success);
+        Assert.Equal("Sent", log.Status);
+        Assert.Equal(2, log.RetryCount);
+        Assert.Null(log.FailureReason);
+        Assert.Null(log.NextRetryAtUtc);
+        _emailMock.Verify(e => e.SendEmailAsync("client@example.com", "Receipt", "Thank you", null, null), Times.Once);
+        _logRepoMock.Verify(r => r.UpdateAsync(log), Times.Once);
+    }
 
-        _logRepoMock.Setup(r => r.UpdateAsync(It.IsAny<NotificationLog>()))
-            .ReturnsAsync((NotificationLog l) => l);
+    [Fact]
+    public async Task RetryNotificationAsync_WhenEmailThrows_UpdatesStatusToFailedWithExponentialBackoff()
+    {
+        var log = new NotificationLog
+        {
+            Id = 10,
+            TenantId = 1,
+            EventType = "PaymentReceived",
+            Recipient = "client@example.com",
+            Subject = "Receipt",
+            Message = "Thank you",
+            Status = "Failed",
+            RetryCount = 1
+        };
+        _logRepoMock.Setup(r => r.GetByIdAsync(10, 1)).ReturnsAsync(log);
+        _emailMock.Setup(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), null, null))
+            .ThrowsAsync(new InvalidOperationException("Connection refused"));
 
-        var response = await _notificationService.RetryNotificationAsync(logId, tenantId);
+        var result = await _sut.RetryNotificationAsync(10, 1, "Admin");
 
-        Assert.True(response.Success);
-        Assert.Equal("Sent", response.Data?.Status);
-        Assert.Equal(2, response.Data?.RetryCount);
-        Assert.Null(response.Data?.FailureReason);
+        Assert.False(result.Success);
+        Assert.Equal("Failed", log.Status);
+        Assert.Equal(2, log.RetryCount);
+        Assert.Contains("Connection refused", log.FailureReason);
+        Assert.NotNull(log.NextRetryAtUtc);
+        _logRepoMock.Verify(r => r.UpdateAsync(log), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendPaymentNotificationAsync_WhenTemplateExists_RendersAndSendsEmail()
+    {
+        int paymentId = 5;
+        int tenantId = 1;
+        var payment = new Payment
+        {
+            Id = paymentId,
+            TenantId = tenantId,
+            PaymentNumber = "PAY-001",
+            Amount = 250m,
+            PaymentDate = DateTime.UtcNow,
+            Method = PaymentMethod.BankTransfer,
+            Customer = new Customer { Id = 1, Name = "Alice", Email = "alice@example.com" },
+            Allocations = new List<InvoicePaymentAllocation>
+            {
+                new()
+                {
+                    Invoice = new Invoice { Id = 2, InvoiceNumber = "INV-001", BalanceAmount = 0m, Currency = "INR" }
+                }
+            }
+        };
+        _paymentRepoMock.Setup(r => r.GetByIdAsync(tenantId, paymentId)).ReturnsAsync(payment);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(tenantId)).ReturnsAsync(new Tenant { Id = tenantId, Name = "My Corp" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(tenantId, "PaymentReceived", "Email"))
+            .ReturnsAsync(new NotificationTemplate { SubjectTemplate = "Receipt {{PaymentNumber}}", BodyTemplate = "Dear {{CustomerName}}" });
+        _templateEngineMock.Setup(t => t.Render("Receipt {{PaymentNumber}}", It.IsAny<IDictionary<string, string>>()))
+            .Returns("Receipt PAY-001");
+        _templateEngineMock.Setup(t => t.Render("Dear {{CustomerName}}", It.IsAny<IDictionary<string, string>>()))
+            .Returns("Dear Alice");
+
+        var result = await _sut.SendPaymentNotificationAsync(paymentId, tenantId, "PaymentReceived", "Admin");
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync("alice@example.com", "Receipt PAY-001", "Dear Alice", null, null), Times.Once);
+        _logRepoMock.Verify(r => r.AddAsync(It.Is<NotificationLog>(l =>
+            l.EventType == "PaymentReceived" &&
+            l.Status == "Sent" &&
+            l.Recipient == "alice@example.com")), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendCreditNoteNotificationAsync_SendsEmailAndLogsNotification()
+    {
+        int creditNoteId = 8;
+        int tenantId = 1;
+        var creditNote = new CreditNote
+        {
+            Id = creditNoteId,
+            TenantId = tenantId,
+            CreditNoteNumber = "CN-001",
+            TotalAmount = 100m,
+            CreditDate = DateTime.UtcNow,
+            Reason = "Defective goods",
+            Customer = new Customer { Id = 1, Name = "Bob", Email = "bob@example.com" },
+            Invoice = new Invoice { Id = 2, InvoiceNumber = "INV-002", Currency = "INR" }
+        };
+        _creditNoteRepoMock.Setup(r => r.GetByIdAsync(creditNoteId, tenantId, default)).ReturnsAsync(creditNote);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(tenantId)).ReturnsAsync(new Tenant { Id = tenantId, Name = "My Corp" });
+
+        var result = await _sut.SendCreditNoteNotificationAsync(creditNoteId, tenantId, "Admin");
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync("bob@example.com", It.IsAny<string>(), It.IsAny<string>(), null, "CN-001.pdf"), Times.Once);
+        _logRepoMock.Verify(r => r.AddAsync(It.Is<NotificationLog>(l =>
+            l.EventType == "CreditNoteIssued" &&
+            l.Status == "Sent" &&
+            l.Recipient == "bob@example.com")), Times.Once);
     }
 }

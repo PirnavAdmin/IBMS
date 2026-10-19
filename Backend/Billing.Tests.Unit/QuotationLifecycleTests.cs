@@ -399,5 +399,99 @@ public class QuotationLifecycleTests
         var header = System.Text.Encoding.ASCII.GetString(pdfBytes.Take(5).ToArray());
         Assert.Equal("%PDF-", header);
     }
+
+    [Fact]
+    public async Task SendQuotation_WhenNotificationLogRepoProvided_LogsSentStatusToNotificationLogs()
+    {
+        var q = new Quotation
+        {
+            Id = 1,
+            TenantId = 1,
+            QuoteNumber = "QT-LOG-01",
+            Status = QuotationStatus.Draft,
+            CustomerId = 100,
+            Customer = new Customer { Id = 100, Name = "Test Customer", Email = "customer@example.com" },
+            ValidUntil = DateTime.UtcNow.AddDays(15),
+            TotalAmount = 500m,
+            Items = new List<QuotationItem> { new() { Description = "Test Item", Quantity = 1, UnitPrice = 500, TotalAmount = 500 } }
+        };
+        _mockQuotationRepo.Setup(r => r.GetByIdForUpdateAsync(1, 1)).ReturnsAsync(q);
+
+        var mockLogRepo = new Mock<INotificationLogRepository>();
+
+        var service = new QuotationActionService(
+            _mockQuotationRepo.Object,
+            _mockInvoiceRepo.Object,
+            _mockUow.Object,
+            _mockFinanceEngine.Object,
+            _mockNumberGen.Object,
+            _mockAudit.Object,
+            _mockEmail.Object,
+            outboxService: null,
+            quotationPdfEngine: null,
+            tenantRepository: null,
+            notificationLogRepository: mockLogRepo.Object
+        );
+
+        var result = await service.SendQuotationAsync(1, 1, "user1");
+
+        Assert.True(result.Success);
+        mockLogRepo.Verify(r => r.AddAsync(It.Is<NotificationLog>(l => 
+            l.EventType == "QuotationSent" && 
+            l.EntityId == 1 && 
+            l.Status == "Sent" && 
+            l.Recipient == "customer@example.com")), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendQuotation_WhenNotificationServiceProvided_DelegatesToNotificationService()
+    {
+        var q = new Quotation
+        {
+            Id = 2,
+            TenantId = 1,
+            QuoteNumber = "QT-NOTIF-02",
+            Status = QuotationStatus.Draft,
+            CustomerId = 100,
+            Customer = new Customer { Id = 100, Name = "Dynamic Customer", Email = "customer@example.com" },
+            ValidUntil = DateTime.UtcNow.AddDays(15),
+            TotalAmount = 750m,
+            Items = new List<QuotationItem> { new() { Description = "Test Item", Quantity = 1, UnitPrice = 750, TotalAmount = 750 } }
+        };
+        _mockQuotationRepo.Setup(r => r.GetByIdForUpdateAsync(2, 1)).ReturnsAsync(q);
+
+        var mockNotificationService = new Mock<INotificationService>();
+        mockNotificationService
+            .Setup(n => n.SendQuotationNotificationAsync(2, 1, "user1", It.IsAny<byte[]?>(), It.IsAny<string?>()))
+            .ReturnsAsync(ApiResponse<Billing.Contracts.Notification.NotificationLogDto>.Ok(new Billing.Contracts.Notification.NotificationLogDto
+            {
+                Id = 99,
+                EventType = "QuotationSent",
+                Subject = "Dynamic Template Subject",
+                Message = "Dynamic Template Body",
+                Status = "Sent"
+            }));
+
+        var service = new QuotationActionService(
+            _mockQuotationRepo.Object,
+            _mockInvoiceRepo.Object,
+            _mockUow.Object,
+            _mockFinanceEngine.Object,
+            _mockNumberGen.Object,
+            _mockAudit.Object,
+            _mockEmail.Object,
+            outboxService: null,
+            quotationPdfEngine: null,
+            tenantRepository: null,
+            notificationLogRepository: null,
+            notificationService: mockNotificationService.Object
+        );
+
+        var result = await service.SendQuotationAsync(2, 1, "user1");
+
+        Assert.True(result.Success);
+        mockNotificationService.Verify(n => n.SendQuotationNotificationAsync(
+            2, 1, "user1", It.IsAny<byte[]?>(), It.IsAny<string?>()), Times.Once);
+    }
 }
 
