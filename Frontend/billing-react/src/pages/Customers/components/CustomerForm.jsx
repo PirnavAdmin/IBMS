@@ -36,6 +36,8 @@ import {
 } from '@mui/icons-material';
 import '../styles/customer-form.css';
 
+const basicInfoValidationSchema = customerValidationSchema.pick(STEP_FIELDS[0]);
+
 const STEPS = [
   {
     id: 0,
@@ -314,6 +316,7 @@ export const CustomerForm = ({
   const billingAddress = watch('billingAddress');
   const taxRegistrationType = watch('taxRegistrationType');
   const watchedValues = watch();
+  const isBasicInfoValid = basicInfoValidationSchema.isValidSync(watchedValues);
   const watchedPhoneCode = watch('phoneCountryCode') || '';
   const currentPhoneConfig = watchedPhoneCode && COUNTRY_PHONE_CONFIG[watchedPhoneCode]
     ? COUNTRY_PHONE_CONFIG[watchedPhoneCode]
@@ -1406,7 +1409,7 @@ export const CustomerForm = ({
                     data-customer-action="next"
                     className="cust-btn cust-btn-primary"
                     onClick={handleNextStep}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (currentStep === 0 && !isBasicInfoValid)}
                   >
                     Next: {STEPS[currentStep + 1].label} <ArrowForward />
                   </button>

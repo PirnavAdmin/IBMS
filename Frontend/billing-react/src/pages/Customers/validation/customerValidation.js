@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { hasRecognizedEmailDomain } from '../../../utils/authValidation.js';
+import { hasRecognizedEmailDomain, hasExcessiveNameRepetition } from '../../../utils/authValidation.js';
 
 function parsePhoneNumberFromString(value) {
   const text = String(value || '').trim();
@@ -65,9 +65,21 @@ export const customerValidationSchema = yup.object({
   name: yup
     .string()
     .trim()
-    .required('Contact / Customer name is required')
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Customer name must not exceed 100 characters'),
+    .required('Customer name is required')
+    .min(2, 'Customer name must be at least 2 characters')
+    .max(100, 'Customer name must not exceed 100 characters')
+    .test('no-numbers', 'Customer name must not contain numbers', (val) => {
+      if (!val) return true;
+      return !/\d/.test(val);
+    })
+    .matches(
+      /^[\p{L}\p{M}][\p{L}\p{M}\s.'’ʼ\-&,]*$/u,
+      'Customer name should contain only alphabetic characters and valid special characters'
+    )
+    .test('name-repetition', 'Customer name contains invalid repeated characters', (val) => {
+      if (!val) return true;
+      return !hasExcessiveNameRepetition(val);
+    }),
   customerCode: yup
     .string()
     .trim()
