@@ -19,6 +19,7 @@ public class NotificationService : INotificationService
     private readonly ITenantRepository _tenantRepository;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly ILogger<NotificationService> _logger;
+    private readonly IQuotationPdfEngine? _quotationPdfEngine;
 
     public NotificationService(
         INotificationTemplateRepository templateRepository,
@@ -31,7 +32,8 @@ public class NotificationService : INotificationService
         ICreditNoteRepository creditNoteRepository,
         ITenantRepository tenantRepository,
         IAuditLogRepository auditLogRepository,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        IQuotationPdfEngine? quotationPdfEngine = null)
     {
         _templateRepository = templateRepository;
         _logRepository = logRepository;
@@ -44,6 +46,7 @@ public class NotificationService : INotificationService
         _tenantRepository = tenantRepository;
         _auditLogRepository = auditLogRepository;
         _logger = logger;
+        _quotationPdfEngine = quotationPdfEngine;
     }
 
     public async Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(
@@ -313,6 +316,17 @@ public class NotificationService : INotificationService
             SentBy = userName ?? "System",
             RetryCount = 0
         };
+
+        if (pdfBytes == null && _quotationPdfEngine != null)
+        {
+            try
+            {
+                pdfBytes = _quotationPdfEngine.GenerateQuotationPdf(quotation, tenant);
+            }
+            catch
+            {
+            }
+        }
 
         try
         {

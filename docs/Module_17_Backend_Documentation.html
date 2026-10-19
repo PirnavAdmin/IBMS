@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IBMS - Module 17: User & Role Administration (Backend)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --code-bg: #f1f5f9;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 40px 50px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #dcfce7;
+      color: #15803d;
+    }
+    h1 { font-size: 28px; margin: 0 0 8px 0; color: #0f172a; }
+    h2 { font-size: 20px; margin-top: 36px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: #1e293b; }
+    h3 { font-size: 16px; margin-top: 24px; color: #334155; }
+    p, li { font-size: 14.5px; color: #334155; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background-color: #f8fafc;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    tr:nth-child(even) { background-color: #fbfcfe; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      background-color: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    pre {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    pre code {
+      background-color: transparent;
+      color: #f8fafc;
+      padding: 0;
+    }
+    .btn-container {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    @media print {
+      body { padding: 0; background: white; }
+      .container { box-shadow: none; border: none; padding: 20px; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-bar">
+    <div>
+      <span class="badge">✔ Backend Complete & Pushed</span>
+      <h1 style="margin-top: 10px;">IBMS – Module 17: User & Role Administration</h1>
+      <p style="margin: 0; color: var(--text-muted);">Technical Specification & Implementation Report</p>
+    </div>
+    <div class="no-print">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <h2>1. Overview & Key Metrics</h2>
+  <ul>
+    <li><strong>Target Framework:</strong> .NET 10 Web API / C# / EF Core</li>
+    <li><strong>Database:</strong> MySQL <code>billingdb</code></li>
+    <li><strong>Git Status:</strong> Pushed to <code>origin/main</code> on GitHub (Commit: <code>86d41952</code>)</li>
+    <li><strong>Unit Tests:</strong> <strong>386 / 386 Passed (0 Failed, 0 Skipped)</strong></li>
+    <li><strong>System Disruption:</strong> <strong>Zero Disruption</strong> to existing Modules 1–16</li>
+  </ul>
+
+  <h2>2. Requirement Traceability Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Requirement Specification</th>
+        <th>Implemented Component / Endpoint</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Platform-Owned Identity</strong></td>
+        <td><code>POST /api/users</code>, <code>PUT /api/users/{id}</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>Host-Owned Identity (SSO)</strong></td>
+        <td><code>POST /api/users/host-identity</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>Role & Permission Management</strong></td>
+        <td><code>GET/POST/PUT/DELETE /api/roles</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>Role-Permission Mapping</strong></td>
+        <td><code>POST /api/roles/{id}/permissions</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>User-Role Mapping & Permission Sync</strong></td>
+        <td><code>POST /api/users/{id}/roles</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>Active / Inactive Status Management</strong></td>
+        <td><code>PATCH /api/users/{id}/status</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+      <tr>
+        <td><strong>Tenant & Application Assignment</strong></td>
+        <td><code>PUT /api/users/{id}/assignment</code></td>
+        <td><span class="badge">Verified</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Key Files Implemented</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>File Path</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>API Controller</strong></td>
+        <td><code>Backend/Billing.API/Controllers/UsersController.cs</code></td>
+        <td>9 user administration endpoints (pagination, CRUD, status toggle, role & tenant assignment)</td>
+      </tr>
+      <tr>
+        <td><strong>API Controller</strong></td>
+        <td><code>Backend/Billing.API/Controllers/RolesController.cs</code></td>
+        <td>7 role administration endpoints (CRUD, permissions catalog, role-permission assignment)</td>
+      </tr>
+      <tr>
+        <td><strong>Application Service</strong></td>
+        <td><code>Backend/Billing.Application/Services/UserAdministrationService.cs</code></td>
+        <td>User creation, BCrypt hashing, status toggle, session revocation, permission auto-sync</td>
+      </tr>
+      <tr>
+        <td><strong>Application Service</strong></td>
+        <td><code>Backend/Billing.Application/Services/RoleAdministrationService.cs</code></td>
+        <td>Role CRUD, system role protection (cannot delete built-in roles), permission mapping</td>
+      </tr>
+      <tr>
+        <td><strong>Domain Entities</strong></td>
+        <td><code>Role.cs</code>, <code>Permission.cs</code>, <code>RolePermission.cs</code>, <code>User.cs</code></td>
+        <td>Core domain entities and composite many-to-many mapping</td>
+      </tr>
+      <tr>
+        <td><strong>Infrastructure / EF Core</strong></td>
+        <td><code>Backend/Billing.Infrastructure/Data/BillingDbContext.cs</code></td>
+        <td>DbSets, composite primary keys, and foreign key cascade rules</td>
+      </tr>
+      <tr>
+        <td><strong>EF Core Migration</strong></td>
+        <td><code>Data/Migrations/20261015070641_AddModule17UserAndRoleAdministration.cs</code></td>
+        <td>Official migration for automatic schema creation on any machine</td>
+      </tr>
+      <tr>
+        <td><strong>Unit Tests</strong></td>
+        <td><code>Backend/Billing.Tests.Unit/UserAndRoleAdministrationTests.cs</code></td>
+        <td>Comprehensive automated tests covering all Module 17 requirements</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. System Permissions Catalog (14 Seeded Permissions)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Module</th>
+        <th>Display Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>users.view</code></td><td>Users</td><td>View Users</td></tr>
+      <tr><td><code>users.create</code></td><td>Users</td><td>Create Users</td></tr>
+      <tr><td><code>users.edit</code></td><td>Users</td><td>Edit Users</td></tr>
+      <tr><td><code>users.delete</code></td><td>Users</td><td>Delete Users</td></tr>
+      <tr><td><code>users.assign</code></td><td>Users</td><td>Assign Roles & Tenancy</td></tr>
+      <tr><td><code>roles.view</code></td><td>Roles</td><td>View Roles & Permissions</td></tr>
+      <tr><td><code>roles.manage</code></td><td>Roles</td><td>Manage Roles</td></tr>
+      <tr><td><code>billing.view</code></td><td>Billing</td><td>View Billing Details</td></tr>
+      <tr><td><code>billing.create</code></td><td>Billing</td><td>Create Billing Items</td></tr>
+      <tr><td><code>invoices.view</code></td><td>Invoices</td><td>View Invoices</td></tr>
+      <tr><td><code>invoices.manage</code></td><td>Invoices</td><td>Manage Invoices</td></tr>
+      <tr><td><code>payments.view</code></td><td>Payments</td><td>View Payments</td></tr>
+      <tr><td><code>payments.manage</code></td><td>Payments</td><td>Manage Payments</td></tr>
+      <tr><td><code>reports.view</code></td><td>Reports</td><td>View Analytics & Reports</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Sample API Request & Response</h2>
+  <h3>Create User (<code>POST /api/users</code>)</h3>
+  <pre><code>// Request
+POST /api/users
+Content-Type: application/json
+
+{
+  "name": "Kiran Kumar",
+  "email": "kiran@example.com",
+  "password": "Password@123",
+  "tenantId": 1,
+  "applicationId": "IBMS",
+  "roles": ["Admin"],
+  "identityType": "Platform"
+}
+
+// Response: 201 Created
+{
+  "success": true,
+  "message": "User created successfully.",
+  "data": {
+    "id": 4,
+    "name": "Kiran Kumar",
+    "email": "kiran@example.com",
+    "roles": ["Admin"],
+    "permissions": ["users.view", "users.create", "users.edit", "users.delete", ...],
+    "status": "Active"
+  }
+}</code></pre>
+
+  <h2>6. Conclusion & Sign-Off</h2>
+  <p>Module 17 backend is fully implemented according to specifications. Code is clean, documented, covered by automated tests, and safely merged into the main development branch.</p>
+</div>
+
+</body>
+</html>

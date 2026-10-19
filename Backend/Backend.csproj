@@ -4,6 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>ibms-billing-backend-7a3f2b9c</UserSecretsId>
 		<DefaultItemExcludes>$(DefaultItemExcludes);Billing.*/**</DefaultItemExcludes>
 	</PropertyGroup>
 

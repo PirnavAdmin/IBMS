@@ -1,5 +1,6 @@
 import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
 import { useEffect, useRef, useState } from 'react';
+import { apiClient } from 'billing-api-client/apiClient.js';
 import { currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
 
@@ -223,13 +224,35 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
     setSignatureStrokes(strokes => strokes.slice(0, -1));
   };
   const downloadInvoice = async () => {
+    setPdfBusy(true);
+    setPdfError('');
+    const fileName = `${String(quotation.quoteNumber || 'quotation').replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`;
+
+    if (quotation.id) {
+      try {
+        const response = await apiClient.get(`/api/v1/quotations/${quotation.id}/pdf`, { responseType: 'blob' });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        setPdfBusy(false);
+        return;
+      } catch (err) {
+        console.warn('Server PDF download failed, falling back to client-side renderer', err);
+      }
+    }
+
     if (!invoiceRef.current) {
       setPdfError('The invoice is not ready to download.');
+      setPdfBusy(false);
       return;
     }
 
-    setPdfBusy(true);
-    setPdfError('');
     const invoice = invoiceRef.current;
     const originalStyle = invoice.getAttribute('style');
     try {
