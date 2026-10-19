@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { hasRecognizedEmailDomain, hasExcessiveNameRepetition } from '../../../utils/authValidation.js';
 
 function parsePhoneNumberFromString(value) {
   const text = String(value || '').trim();
@@ -18,7 +19,7 @@ function parsePhoneNumberFromString(value) {
   };
 }
 
-const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
 const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
 const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
@@ -64,9 +65,21 @@ export const customerValidationSchema = yup.object({
   name: yup
     .string()
     .trim()
-    .required('Contact / Customer name is required')
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Customer name must not exceed 100 characters'),
+    .required('Customer name is required')
+    .min(2, 'Customer name must be at least 2 characters')
+    .max(100, 'Customer name must not exceed 100 characters')
+    .test('no-numbers', 'Customer name must not contain numbers', (val) => {
+      if (!val) return true;
+      return !/\d/.test(val);
+    })
+    .matches(
+      /^[\p{L}\p{M}][\p{L}\p{M}\s.'’ʼ\-&,]*$/u,
+      'Customer name should contain only alphabetic characters and valid special characters'
+    )
+    .test('name-repetition', 'Customer name contains invalid repeated characters', (val) => {
+      if (!val) return true;
+      return !hasExcessiveNameRepetition(val);
+    }),
   customerCode: yup
     .string()
     .trim()
@@ -106,8 +119,16 @@ export const customerValidationSchema = yup.object({
     .string()
     .trim()
     .required('Email address is required')
+    .max(256, 'Email must not exceed 256 characters')
     .matches(EMAIL_REGEX, 'Enter a valid email address')
-    .max(256, 'Email must not exceed 256 characters'),
+    .test(
+      'recognized-email-domain',
+      'Enter a valid email address with a valid domain',
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        return hasRecognizedEmailDomain(val.trim());
+      }
+    ),
   phoneCountryCode: yup
     .string()
     .trim()

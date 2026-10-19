@@ -7,7 +7,14 @@ export function hasRecognizedEmailDomain(value) {
   if (!value) return true; // The required rule owns empty-field feedback.
   const at = value.lastIndexOf('@');
   if (at < 1) return false;
+  if (value.indexOf('@') !== at) return false;
   const hostname = value.slice(at + 1);
+  if (!hostname || /\s/.test(hostname)) return false;
+  const labels = hostname.split('.');
+  if (labels.length < 2) return false;
+  for (const label of labels) {
+    if (!label || label.startsWith('-') || label.endsWith('-')) return false;
+  }
   const result = parse(hostname, { extractHostname: false, validateHostname: true, allowPrivateDomains: false });
   return result.isIcann === true && Boolean(result.domain);
 }

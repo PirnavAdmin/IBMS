@@ -2,6 +2,7 @@ using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Notification;
 using Billing.Domain.Entities;
+using Billing.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Billing.Application.Services;
@@ -159,7 +160,7 @@ public class NotificationService : INotificationService
         string eventType = "PaymentReceived",
         string? userName = null)
     {
-        var payment = await _paymentRepository.GetByIdAsync(paymentId, tenantId);
+        var payment = await _paymentRepository.GetByIdAsync(tenantId, paymentId);
         if (payment == null)
             return ApiResponse<NotificationLogDto>.Fail("Payment record not found.");
 
@@ -340,6 +341,17 @@ public class NotificationService : INotificationService
             log.Status = "Sent";
             log.SentAtUtc = DateTime.UtcNow;
             await _logRepository.AddAsync(log);
+
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "Quotation",
+                EntityId = quotation.Id.ToString(),
+                Action = "NotificationSent",
+                UserName = userName ?? "System",
+                Changes = $"Sent QuotationSent email to {quotation.Customer.Email}",
+                Timestamp = DateTime.UtcNow
+            });
 
             return ApiResponse<NotificationLogDto>.Ok(MapToDto(log), "Quotation notification sent successfully.");
         }

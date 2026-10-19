@@ -8,10 +8,16 @@ import { Link as RouterLink } from 'react-router-dom';
 import { authApi } from 'billing-api-client';
 import { AuthCardLayout } from '../../components/AuthCardLayout';
 import { useAuthNav } from '../../hooks/useAuthNav';
+import { hasRecognizedEmailDomain } from '../../utils/authValidation.js';
 import '../../styles/Login.css';
 
 const forgotSchema = yup.object({
-  email: yup.string().trim().email('Please enter a valid email address').required('Registered email is required'),
+  email: yup
+    .string()
+    .trim()
+    .email('Please enter a valid email address')
+    .test('recognized-email-domain', 'Please enter a valid email address', hasRecognizedEmailDomain)
+    .required('Registered email is required'),
 }).required();
 
 export const ForgotPassword = () => {

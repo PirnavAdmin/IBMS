@@ -39,6 +39,7 @@ public class PaymentService : IPaymentService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOutboxService? _outboxService;
+    private readonly INotificationService? _notificationService;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -47,7 +48,8 @@ public class PaymentService : IPaymentService
         INumberGenerationService numberGenerationService,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
-        IOutboxService? outboxService = null)
+        IOutboxService? outboxService = null,
+        INotificationService? notificationService = null)
     {
         _paymentRepository = paymentRepository;
         _invoiceRepository = invoiceRepository;
@@ -56,6 +58,7 @@ public class PaymentService : IPaymentService
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _outboxService = outboxService;
+        _notificationService = notificationService;
     }
 
     public async Task<PaymentOperationResult<PaymentDetailDto>> CreatePaymentAsync(
@@ -424,6 +427,22 @@ public class PaymentService : IPaymentService
                 }
 
                 await _unitOfWork.CommitTransactionAsync();
+
+                if (_notificationService != null && savedPayment.Status == PaymentStatus.Completed)
+                {
+                    try
+                    {
+                        await _notificationService.SendPaymentNotificationAsync(
+                            savedPayment.Id,
+                            tenantId,
+                            "PaymentReceived",
+                            actor);
+                    }
+                    catch
+                    {
+                        // Notification failure must not affect the committed payment transaction
+                    }
+                }
 
                 savedPayment.Customer = customer;
                 var detailDto = await BuildPaymentDetailDtoAsync(tenantId, savedPayment);
@@ -977,6 +996,23 @@ public class PaymentService : IPaymentService
                     }
 
                     await _unitOfWork.CommitTransactionAsync();
+
+                    if (_notificationService != null && (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed))
+                    {
+                        try
+                        {
+                            var notificationEventType = targetStatus == PaymentStatus.Completed ? "PaymentReceived" : "PaymentFailed";
+                            await _notificationService.SendPaymentNotificationAsync(
+                                payment.Id,
+                                tenantId,
+                                notificationEventType,
+                                performedBy);
+                        }
+                        catch
+                        {
+                            // Notification failure must not affect the committed status change
+                        }
+                    }
 
                     var dto = await BuildPaymentDetailDtoAsync(tenantId, payment);
                     return PaymentOperationResult<PaymentDetailDto>.Success(dto, 200);

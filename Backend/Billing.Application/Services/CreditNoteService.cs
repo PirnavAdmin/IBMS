@@ -40,6 +40,7 @@ public class CreditNoteService : ICreditNoteService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOutboxService? _outboxService;
+    private readonly INotificationService? _notificationService;
 
     public CreditNoteService(
         ICreditNoteRepository creditNoteRepository,
@@ -48,7 +49,8 @@ public class CreditNoteService : ICreditNoteService
         INumberGenerationService numberGenerationService,
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
-        IOutboxService? outboxService = null)
+        IOutboxService? outboxService = null,
+        INotificationService? notificationService = null)
     {
         _creditNoteRepository = creditNoteRepository;
         _invoiceRepository = invoiceRepository;
@@ -57,6 +59,7 @@ public class CreditNoteService : ICreditNoteService
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
         _outboxService = outboxService;
+        _notificationService = notificationService;
     }
 
     public async Task<ApiResponse<CreditNoteDetailDto>> CreateCreditNoteAsync(
@@ -546,6 +549,18 @@ public class CreditNoteService : ICreditNoteService
             }
 
             await _unitOfWork.CommitTransactionAsync();
+
+            if (_notificationService != null)
+            {
+                try
+                {
+                    await _notificationService.SendCreditNoteNotificationAsync(creditNote.Id, tenantId, userDisplayName);
+                }
+                catch
+                {
+                    // Notification failure should not fail credit note issuance
+                }
+            }
 
             return ApiResponse<CreditNoteDetailDto>.Ok(MapToDetailDto(creditNote, invoice), "Credit note issued and invoice balance adjusted successfully.");
         }
