@@ -260,3 +260,17 @@
   .hero-cta-row > a { width: 100%; }
   .selected-invoice-preview .invoice-sheet-top { flex-wrap: wrap; gap: 12px; }
 }
+
+/* Decorative payment card: elevation without suggesting navigation. */
+.landing-root .hero-phone-mockup { transition: transform 210ms ease, box-shadow 210ms ease, border-color 210ms ease; }
+.landing-root .hero-phone-mockup:hover { transform: translateY(-3px); border-color: #cba57b; box-shadow: 0 29px 55px -10px #9a4f2f66, 0 12px 24px -5px #2d211c38; }
+/* Reserve vertical space for the lifted cards inside the clipped marquee. */
+.landing-root .capabilities-marquee-wrapper { padding-block: 12px; box-sizing: border-box; }
+.landing-root .capability-pill-card { box-sizing: border-box; transition: border-color 210ms ease, background-color 210ms ease, transform 210ms ease, box-shadow 210ms ease; }
+.landing-root .capability-pill-card:active { border-color: #795137; background: #faf3eb; box-shadow: 0 6px 16px #7951371f; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-root .hero-phone-mockup, .landing-root .capability-pill-card { transition: none; }
+  .landing-root .hero-phone-mockup:hover, .landing-root .capability-pill-card:hover { transform: none; }
+  .landing-root .capabilities-marquee-track { animation: none; }
+  .landing-root .capabilities-marquee-wrapper { overflow-x: auto; mask-image: none; -webkit-mask-image: none; }
+}

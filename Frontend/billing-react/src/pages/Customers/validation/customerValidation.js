@@ -165,9 +165,9 @@ export const customerValidationSchema = yup.object({
   // 3. Tax Information
   taxRegistrationType: yup
     .string()
+    .trim()
     .required('Tax registration status is required')
-    .oneOf(['gst', 'non-gst', 'pan'])
-    .default('gst'),
+    .oneOf(['gst', 'non-gst', 'pan'], 'Please select a valid tax registration status'),
   pan: yup
     .string()
     .trim()
@@ -331,7 +331,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   phoneCountryCode: '',
   phone: '',
   website: '',
-  taxRegistrationType: 'gst',
+  taxRegistrationType: '',
   pan: '',
   gstin: '',
   taxId: '',

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
-import { LockOutlined, VpnKeyOutlined, RefreshOutlined } from '@mui/icons-material';
+import { LockOutlined, VpnKeyOutlined, RefreshOutlined, EditOutlined, VerifiedUserOutlined } from '@mui/icons-material';
 import { authApi } from 'billing-api-client';
-import { AuthCardLayout, useAuthNav, OtpInputGroup } from 'billing-react';
+import { AuthCardLayout } from '../../components/AuthCardLayout';
+import { useAuthNav } from '../../hooks/useAuthNav';
+import { OtpInputGroup } from '../../components/OtpInputGroup';
 import '../../styles/Login.css';
 
 export const VerifyOtp = () => {
@@ -57,7 +59,9 @@ export const VerifyOtp = () => {
     <AuthCardLayout
       isExiting={isExiting}
       onBack={() => handleNav('/forgot-password')}
-      backLabel="Back"
+      hideBack
+      className="billing-otp-page"
+      header={<div className="billing-recovery-heading"><div className="billing-auth-card-badge"><LockOutlined aria-hidden="true" /></div><h1 className="billing-auth-form-title">Enter verification code</h1></div>}
       tagLabel="OTP"
       brandTitle="INVOICE.BILLING"
       brandSubtitle="TWO-STEP VERIFICATION"
@@ -70,7 +74,7 @@ export const VerifyOtp = () => {
           {!email && (
             <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2, py: 0.5 }}>
               No email address found for verification. Please{' '}
-              <Link component={RouterLink} to="/forgot-password" onClick={(e) => { e.preventDefault(); handleNav('/forgot-password'); }} sx={{ fontWeight: 700, color: '#9A4F2F' }}>
+              <Link underline="none" component={RouterLink} to="/forgot-password" onClick={(e) => { e.preventDefault(); handleNav('/forgot-password'); }} sx={{ fontWeight: 700, color: '#9A4F2F' }}>
                 request a code here
               </Link>.
             </Alert>
@@ -96,7 +100,7 @@ export const VerifyOtp = () => {
           variant="contained"
           disabled={isSubmitting || !email}
           className="auth-submit-btn"
-          endIcon={!isSubmitting && <VpnKeyOutlined sx={{ fontSize: 17 }} />}
+          endIcon={!isSubmitting && <VerifiedUserOutlined sx={{ fontSize: 17 }} />}
         >
           {isSubmitting ? <CircularProgress size={20} color="inherit" /> : 'Verify Code'}
         </Button>
@@ -118,8 +122,8 @@ export const VerifyOtp = () => {
       <Box sx={{ textAlign: 'center', mt: 2 }}>
         <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.8rem' }}>
           Incorrect email?{' '}
-          <Link component={RouterLink} to="/forgot-password" onClick={(e) => { e.preventDefault(); handleNav('/forgot-password'); }} sx={{ color: '#9A4F2F', fontWeight: 700, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-            Change email address
+          <Link underline="none" component={RouterLink} to="/forgot-password" onClick={(e) => { e.preventDefault(); handleNav('/forgot-password'); }} sx={{ color: '#9A4F2F', fontWeight: 700, textDecoration: 'none', '&:hover': { textDecoration: 'none', color: '#74371F' } }}>
+            <EditOutlined fontSize="small" sx={{ verticalAlign: 'middle', mr: .5 }} />Change email
           </Link>
         </Typography>
       </Box>

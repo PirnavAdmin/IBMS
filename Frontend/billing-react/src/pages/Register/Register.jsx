@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import { registrationSchema } from '../../utils/authValidation';
 import {
   Alert,
   Box,
@@ -10,7 +10,6 @@ import {
   Checkbox,
   CircularProgress,
   FormControlLabel,
-  IconButton,
   InputAdornment,
   Stack,
   TextField,
@@ -20,57 +19,50 @@ import {
   PersonOutline,
   MailOutline,
   LockOutlined,
-  Visibility,
-  VisibilityOff,
+  CheckCircleOutline,
+  CheckOutlined,
+  RadioButtonUncheckedOutlined,
 } from '@mui/icons-material';
 import { authApi } from 'billing-api-client';
 import '../../styles/Login.css';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
+import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
 
 
-
-const registerSchema = yup.object({
-  fullName: yup.string().trim().required('Full name is required'),
-  email: yup.string().trim().email('Please enter a valid work email').required('Work email is required'),
-  password: yup
-    .string()
-    .min(8, 'Use 8 or more characters with letters and numbers')
-    .matches(/[a-z]/, 'Include a lowercase letter')
-    .matches(/[A-Z]/, 'Include an uppercase letter')
-    .matches(/\d/, 'Include a number')
-    .matches(/[^A-Za-z0-9]/, 'Include a special character')
-    .required('Password is required'),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref('password')], 'Passwords must match')
-    .required('Please confirm your password'),
-  terms: yup.boolean().oneOf([true], 'You must agree to Terms and Privacy Policy'),
-}).required();
 
 export const Register = () => {
   const navigate = useNavigate();
+  const submitLock = useRef(false);
+  const redirectTimer = useRef(null);
+  useEffect(() => () => clearTimeout(redirectTimer.current), []);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    control,
+    trigger,
+    getValues,
+    formState: { errors, isSubmitting, isValid },
   } = useForm({
-    resolver: yupResolver(registerSchema),
+    resolver: yupResolver(registrationSchema),
     defaultValues: {
       fullName: '',
       email: '',
       password: '',
       confirmPassword: '',
-      terms: true,
+      terms: false,
     },
-    mode: 'onTouched',
+    mode: 'onChange',
   });
   const passwordValue = watch('password', '');
+  useEffect(() => { if (getValues('confirmPassword')) void trigger('confirmPassword'); }, [passwordValue, getValues, trigger]);
   const checks = {
     lower: /[a-z]/.test(passwordValue),
     upper: /[A-Z]/.test(passwordValue),
@@ -78,29 +70,26 @@ export const Register = () => {
     special: /[^A-Za-z0-9]/.test(passwordValue),
     length: passwordValue.length >= 8,
   };
-  const textOutput = `${checks.lower ? '✓' : '✗'} lowercase, ${checks.upper ? '✓' : '✗'} uppercase, ${checks.number ? '✓' : '✗'} number, ${checks.special ? '✓' : '✗'} special char, ${checks.length ? '✓' : '✗'} 8 chars`;
+  const confirmValue = watch('confirmPassword', '');
+  const passwordValid = registrationSchema.fields.password.isValidSync(passwordValue);
+  const passwordsMatch = passwordValid && Boolean(confirmValue) && confirmValue === passwordValue;
+  const passwordRules = [['lower', 'Lowercase letter', 'a-z'], ['upper', 'Uppercase letter', 'A-Z'], ['number', 'Number', '0-9'], ['special', 'Special character', '@#$'], ['length', 'At least 8 characters', '8+']];
 
 
   const onSubmit = async (formData) => {
+    if (submitLock.current) return;
+    submitLock.current = true;
+    setRegistering(true);
     try {
       setApiError(null);
-      try {
-        await authApi.register({
-          name: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-        });
-      } catch (err) {
-        console.warn('Backend register endpoint unavailable or rejected, proceeding in local session:', err?.message);
-      }
+      const response = await authApi.register({ name: formData.fullName, email: formData.email, password: formData.password, confirmPassword: formData.confirmPassword });
+      if (response?.success === false || response?.Success === false) throw new Error(response.message || response.Message || 'Registration failed. Please check your details and try again.');
       setIsSuccess(true);
-      setTimeout(() => {
-        navigate('/login', { state: { registeredEmail: formData.email, registeredSuccess: true } });
-      }, 900);
+      redirectTimer.current = setTimeout(() => navigate('/login', { state: { registeredEmail: formData.email, registeredSuccess: true } }), 900);
     } catch (err) {
+      submitLock.current = false;
       setApiError(err?.message || 'Registration failed. Please check your details and try again.');
-    }
+    } finally { setRegistering(false); }
   };
 
   return (
@@ -151,14 +140,6 @@ export const Register = () => {
       {/* ================= RIGHT FORM PANEL ================= */}
       <Box className="billing-auth-form-side register-form-side">
         <div className="register-form-stack">
-          {/* Back to Sign In Link */}
-          <RouterLink
-            to="/login"
-            className="billing-auth-back-link register-back-link"
-          >
-            &larr; Back to sign in
-          </RouterLink>
-
         <div className="billing-auth-card register-card">
           {/* Step Tag */}
           <span className="billing-auth-step-tag"></span>
@@ -187,14 +168,15 @@ export const Register = () => {
               {/* Full Name */}
               <Box>
                 <label className="billing-auth-input-label" htmlFor="fullName">
-                  Full name
+                  Full name<span className="billing-auth-required" aria-hidden="true"> *</span>
                 </label>
                 <TextField
                   fullWidth
                   size="small"
                   id="fullName"
+                  required
                   placeholder="Your full name"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || registering || isSuccess}
                   {...register('fullName')}
                   error={Boolean(errors.fullName)}
                   helperText={errors.fullName?.message}
@@ -212,15 +194,16 @@ export const Register = () => {
               {/* Work Email */}
               <Box>
                 <label className="billing-auth-input-label" htmlFor="email">
-                  Work email
+                  Work email<span className="billing-auth-required" aria-hidden="true"> *</span>
                 </label>
                 <TextField
                   fullWidth
                   size="small"
                   id="email"
+                  required
                   type="email"
                   placeholder="you@company.com"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || registering || isSuccess}
                   {...register('email')}
                   error={Boolean(errors.email)}
                   helperText={errors.email?.message}
@@ -238,19 +221,21 @@ export const Register = () => {
               {/* Create Password */}
               <Box>
                 <label className="billing-auth-input-label" htmlFor="password">
-                  Create password
+                  Create password<span className="billing-auth-required" aria-hidden="true"> *</span>
                 </label>
                 <TextField
                   fullWidth
                   size="small"
                   id="password"
+                  required
                   type={showPassword ? 'text' : 'password'}
                   placeholder="At least 8 characters"
-                  disabled={isSubmitting}
-                  {...register('password')}
+                  disabled={isSubmitting || registering || isSuccess}
+                  {...register('password', { onBlur: () => setPasswordFocused(false) })}
+                  onFocus={() => setPasswordFocused(true)}
                   error={Boolean(errors.password)}
                   helperText={errors.password?.message}
-                  className="billing-auth-input"
+                  className={`billing-auth-input ${passwordValid ? 'is-valid' : ''}`}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -259,36 +244,36 @@ export const Register = () => {
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          size="small"
-                          sx={{ color: '#7D6E66' }}
-                        >
-                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
+                        {passwordValid && <CheckCircleOutline className="billing-auth-valid-icon" role="img" aria-label="Password meets requirements" fontSize="small" />}
+                        <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword(current => !current)} inputId="password" label="password" disabled={isSubmitting || registering || isSuccess} />
                       </InputAdornment>
                     ),
                   }}
                 />
+                {passwordFocused && passwordValue.length > 0 && (
+                  <ul className="billing-auth-password-checks" aria-label="Password requirements" aria-live="polite">
+                    {passwordRules.map(([key, label, symbol]) => <li key={key} className={checks[key] ? 'is-met' : ''} aria-label={`${label}: ${checks[key] ? 'met' : 'not met'}`}>{checks[key] ? <CheckOutlined aria-hidden="true" /> : <RadioButtonUncheckedOutlined aria-hidden="true" />}<span aria-hidden="true">{symbol}</span></li>)}
+                  </ul>
+                )}
               </Box>
 
               {/* Confirm Password */}
               <Box>
                 <label className="billing-auth-input-label" htmlFor="confirmPassword">
-                  Confirm password
+                  Confirm password<span className="billing-auth-required" aria-hidden="true"> *</span>
                 </label>
                 <TextField
                   fullWidth
                   size="small"
                   id="confirmPassword"
+                  required
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Re-enter your password"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || registering || isSuccess}
                   {...register('confirmPassword')}
                   error={Boolean(errors.confirmPassword)}
                   helperText={errors.confirmPassword?.message}
-                  className="billing-auth-input"
+                  className={`billing-auth-input ${passwordsMatch ? 'is-valid' : ''}`}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -297,62 +282,36 @@ export const Register = () => {
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
-                          size="small"
-                          sx={{ color: '#7D6E66' }}
-                        >
-                          {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                        </IconButton>
+                        {passwordsMatch && <CheckCircleOutline className="billing-auth-valid-icon" role="img" aria-label="Passwords match" fontSize="small" />}
+                        <PasswordVisibilityToggle visible={showConfirmPassword} onToggle={() => setShowConfirmPassword(current => !current)} inputId="confirmPassword" label="confirm password" disabled={isSubmitting || registering || isSuccess} />
                       </InputAdornment>
                     ),
                   }}
                 />
-                <div className="billing-auth-pwd-hint">
-                  <p className="billing-auth-password-checks" aria-live="polite">{textOutput}</p>
-                </div>
+
               </Box>
 
-              {/* Terms Checkbox */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    defaultChecked
-                    {...register('terms')}
-                    size="small"
-                    sx={{
-                      color: '#E7D8CB',
-                      p: 0.5,
-                      '&.Mui-checked': { color: '#9A4F2F' },
-                    }}
-                  />
-                }
-                label={
-                  <span className="billing-auth-terms-label">
-                    I agree to INVOICE.BILLING's{' '}
-                    <span className="billing-auth-terms-link">Terms</span> and{' '}
-                    <span className="billing-auth-terms-link">Privacy Policy</span>.
-                  </span>
-                }
-                sx={{ m: 0, mt: 0.2 }}
-              />
-              {errors.terms && (
-                <Typography variant="caption" color="error" sx={{ fontSize: '0.72rem', display: 'block' }}>
-                  {errors.terms.message}
-                </Typography>
-              )}
+              <div className="billing-auth-consent">
+                <Controller name="terms" control={control} render={({ field }) => <FormControlLabel
+                  control={<Checkbox id="registration-consent" size="small" checked={field.value === true} inputRef={field.ref} name={field.name} onBlur={field.onBlur} onChange={event => field.onChange(event.target.checked)} inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(errors.terms), 'aria-describedby': errors.terms ? 'registration-consent-error' : undefined }} />}
+                  label={<span className="billing-auth-terms-label">I agree to INVOICE.BILLING's Terms and Privacy Policy (required).</span>} sx={{ m: 0 }} />}
+                />
+                <div className="billing-auth-legal-documents" aria-label="Legal documents">
+                  <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><span>and</span><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                </div>
+                {errors.terms && <p id="registration-consent-error" role="alert" className="billing-auth-consent-error">{errors.terms.message}</p>}
+              </div>
 
               {/* Submit Button */}
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
-                disabled={isSubmitting}
+                disabled={!isValid || isSubmitting || registering || isSuccess}
                 className="billing-auth-submit-btn"
                 sx={{ mt: 1 }}
               >
-                {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create Account'}
+                {isSubmitting || registering ? <CircularProgress size={22} color="inherit" /> : 'Create Account'}
               </Button>
             </Stack>
           </Box>

@@ -371,7 +371,7 @@
 }
 
 .billing-auth-forgot-link:hover {
-  text-decoration: underline !important;
+  text-decoration: none !important;
   color: #74371F !important;
 }
 
@@ -409,7 +409,7 @@
 }
 
 .billing-auth-create-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
   color: #74371F;
 }
 
@@ -553,7 +553,7 @@
 }
 
 .otp-resend-btn:hover:not(:disabled) {
-  text-decoration: underline;
+  text-decoration: none;
   color: #74371F;
 }
 
@@ -574,7 +574,7 @@
 }
 
 .billing-auth-terms-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
   color: #74371F;
 }
 
@@ -668,3 +668,61 @@
 .billing-auth-input .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline { border-color: #b44336 !important; }
 .billing-password-toggle.MuiIconButton-root:hover { background: #eee2d5; color: #715238; }
 .billing-password-toggle.MuiIconButton-root:focus-visible, .billing-auth-submit-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }
+
+/* Login card header follows the reference alignment while retaining IBMS colors. */
+.billing-login-card .billing-login-lock-badge { width: 56px; height: 56px; margin: 0 auto 14px; border: 1px solid #cba57b; border-radius: 50%; background: #f9f2e9; color: #795137; }
+.billing-login-lock-badge svg { font-size: 30px; }
+.billing-login-card .billing-auth-form-title, .billing-login-card .billing-auth-form-subtitle { text-align: center; }
+.billing-login-card .billing-auth-required { color: #b44336; }
+.billing-login-card .billing-auth-field-warning, .billing-login-card .MuiFormHelperText-root.Mui-error { color: #b44336; }
+.billing-login-card .billing-auth-remember-control { padding: 2px 4px; }
+.billing-login-card .billing-auth-remember-control .MuiCheckbox-root:hover { background: #e8d6c1; color: #795137; }
+.billing-login-card .billing-auth-remember-control .MuiCheckbox-root.Mui-focusVisible { outline: 2px solid #96704e; outline-offset: 2px; }
+
+/* Keep browser-autofilled fields white on Login, Create Account and Forgot Password.
+   Paint the input only, preserving the surrounding focus ring and error border. */
+.billing-auth-login-page .billing-auth-input input:is(:-webkit-autofill, :autofill),
+.auth-neutral-input input:is(:-webkit-autofill, :autofill) {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #2d211c !important;
+  color: #2d211c !important;
+  caret-color: #795137;
+}
+
+/* Shared auth field geometry and secondary navigation. */
+.billing-auth-login-page .billing-auth-input .MuiOutlinedInput-root, .billing-forgot-page .billing-auth-input .MuiOutlinedInput-root { min-height: 44px; border-radius: 9px !important; }
+.billing-auth-login-page .billing-auth-required, .billing-forgot-page .billing-auth-required { color: #b44336; }
+.billing-auth-input input:is(#password, #confirmPassword)::-ms-reveal, .billing-auth-input input:is(#password, #confirmPassword)::-ms-clear { display: none; }
+.billing-auth-create-link:focus-visible, .billing-auth-recovery-nav a:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; border-radius: 3px; }
+.billing-auth-recovery-nav { display: flex; justify-content: flex-end; }
+.billing-auth-recovery-nav a { color: #795137; font-size: 13px; font-weight: 600; text-decoration: none; }
+.billing-auth-recovery-nav a:hover { color: #513420; text-decoration: none; }
+.billing-recovery-card > .billing-auth-card-badge, .billing-recovery-heading .billing-auth-card-badge { margin-inline: auto; }
+.billing-recovery-card > .billing-auth-form-title, .billing-recovery-card > .billing-auth-form-subtitle, .billing-recovery-heading, .billing-forgot-page .card-mode-desc { text-align: center; }
+.billing-forgot-page .glass-card-header { justify-content: flex-end; }
+.billing-auth-legal-documents { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; font-size: 12px; }
+.billing-auth-legal-documents button { border: 0; padding: 2px; background: transparent; color: #806b5b; font: inherit; text-decoration: none; cursor: default; }
+.billing-auth-legal-note { margin: 4px 0 0; font-size: 12px; color: #806b5b; text-align: center; }
+.billing-auth-consent-error { margin: 4px 0 0; color: #b44336; font-size: 12px; }
+.register-card .billing-auth-consent .MuiCheckbox-root { color: #a8886b; }
+.register-card .billing-auth-consent .MuiCheckbox-root.Mui-checked { color: #795137; }
+.register-card .billing-auth-consent .MuiCheckbox-root:hover { background: #f1e5d7; }
+.register-card .billing-auth-consent .MuiCheckbox-root.Mui-focusVisible { outline: 2px solid #96704e; outline-offset: 2px; }
+
+.billing-auth-login-page .billing-auth-input .MuiFormHelperText-root.Mui-error, .billing-forgot-page .billing-auth-input .MuiFormHelperText-root.Mui-error { color: #b44336; font-size: 12px; line-height: 1.4; }
+
+.billing-login-card .billing-auth-remember-control:hover .MuiCheckbox-root { background: #e8d6c1; color: #795137; }
+.register-card > .billing-auth-form-title, .register-card > .billing-auth-form-subtitle { text-align: center; }
+.register-card .billing-auth-password-checks { display: flex; flex-wrap: nowrap; align-items: center; gap: 12px; width: max-content; max-width: 100%; box-sizing: border-box; list-style: none; padding: 3px 0 0; margin: 0; font-size: 11px; line-height: 16px; }
+.register-card .billing-auth-password-checks li { display: flex; align-items: center; gap: 3px; min-height: 16px; padding: 0; border: 0; border-radius: 0; background: transparent; white-space: nowrap; color: #806b5b; }
+.register-card .billing-auth-password-checks svg { display: block; font-size: 11px; flex-shrink: 0; }
+.register-card .billing-auth-password-checks .is-met, .register-card .billing-auth-valid-icon { color: #32734b; }
+.register-card .billing-auth-input.is-valid .MuiOutlinedInput-notchedOutline { border-color: #32734b !important; }
+.billing-auth-legal-documents a { color: #795137; padding: 2px; text-decoration: none; }
+.billing-auth-legal-documents a:hover { color: #513420; }
+.billing-auth-legal-documents a:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
+.billing-otp-card > .billing-auth-card-badge { margin-inline: auto; }
+.billing-otp-card > .billing-auth-form-title, .billing-otp-card > .billing-auth-form-subtitle, .billing-otp-page .card-mode-desc { text-align: center; }
+.billing-auth-recovery-nav .MuiButton-root { padding: 4px 0; color: #795137; font: inherit; font-size: 13px; font-weight: 600; text-transform: none; }
+.billing-auth-recovery-nav .MuiButton-root:hover { background: #f6eee4; }

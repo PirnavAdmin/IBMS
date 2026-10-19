@@ -129,7 +129,16 @@ export const CustomerForm = ({
   const getInitialValues = (values) => {
     const rawTax = String(values?.taxId || values?.gstin || values?.pan || '').trim();
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
-    const taxType = values?.taxRegistrationType === 'non-gst' ? 'non-gst' : 'gst';
+    let taxType = '';
+    if (values?.taxRegistrationType === 'non-gst') {
+      taxType = 'non-gst';
+    } else if (values?.taxRegistrationType === 'gst') {
+      taxType = 'gst';
+    } else if (values?.taxRegistrationType) {
+      taxType = values.taxRegistrationType;
+    } else if (isGst || values?.gstin) {
+      taxType = 'gst';
+    }
 
     let initialPan = values?.pan || '';
     if (!initialPan) {
@@ -526,7 +535,7 @@ export const CustomerForm = ({
       email: data.email?.trim(),
       phone: fullPhone,
       phoneCountryCode: data.phoneCountryCode || '',
-      taxRegistrationType: data.taxRegistrationType || 'gst',
+      taxRegistrationType: data.taxRegistrationType,
       pan: cleanedPan,
       gstin: cleanedGstin,
       taxId: effectiveTaxId,
@@ -978,13 +987,14 @@ export const CustomerForm = ({
                     ariaLabel="Tax Registration Status"
                     invalid={Boolean(errors.taxRegistrationType)}
                     onValueChange={(val) => {
-                      if (val === 'non-gst') {
-                        setValue('gstin', '', { shouldValidate: true, shouldDirty: true });
-                      } else {
+                      if (val === 'non-gst' || !val) {
+                        setValue('gstin', '', { shouldValidate: Boolean(val), shouldDirty: true });
+                      } else if (val === 'gst') {
                         trigger('gstin');
                       }
                     }}
                     options={[
+                      { value: '', label: 'Select Tax Registration Status' },
                       { value: 'gst', label: 'GST Registered' },
                       { value: 'non-gst', label: 'Non-GST / Unregistered' },
                     ]}
@@ -1036,8 +1046,10 @@ export const CustomerForm = ({
                       <>
                         GSTIN (15-Character GST Number) <span className="cust-required">*</span>
                       </>
-                    ) : (
+                    ) : taxRegistrationType === 'non-gst' ? (
                       'GSTIN (Not Applicable)'
+                    ) : (
+                      'GSTIN (15-Character GST Number)'
                     )}
                   </label>
                   <div className="cust-input-with-icon">
@@ -1047,14 +1059,16 @@ export const CustomerForm = ({
                     <input
                       id="customer-gstin"
                       type="text"
-                      disabled={taxRegistrationType === 'non-gst'}
+                      disabled={taxRegistrationType !== 'gst'}
                       placeholder={
                         taxRegistrationType === 'gst'
                           ? 'e.g. 36AAACD1234F1Z8'
-                          : 'Not required for Non-GST customers'
+                          : taxRegistrationType === 'non-gst'
+                          ? 'Not required for Non-GST customers'
+                          : 'Select Tax Registration Status first'
                       }
                       maxLength={15}
-                      className={taxRegistrationType === 'non-gst' ? 'cust-input-readonly' : ''}
+                      className={taxRegistrationType !== 'gst' ? 'cust-input-readonly' : ''}
                       aria-invalid={Boolean(errors.gstin)}
                       aria-describedby={errors.gstin ? 'customer-gstin-err' : undefined}
                       {...register('gstin', {
@@ -1261,7 +1275,9 @@ export const CustomerForm = ({
                       <span className="cust-review-value">
                         {watchedValues.taxRegistrationType === 'gst'
                           ? 'GST Registered'
-                          : 'Non-GST / Unregistered'}
+                          : watchedValues.taxRegistrationType === 'non-gst'
+                          ? 'Non-GST / Unregistered'
+                          : '—'}
                       </span>
                     </div>
                     <div className="cust-review-row">
@@ -1273,7 +1289,9 @@ export const CustomerForm = ({
                       <span className="cust-review-value">
                         {watchedValues.taxRegistrationType === 'gst'
                           ? (watchedValues.gstin || '—')
-                          : 'Not Applicable'}
+                          : watchedValues.taxRegistrationType === 'non-gst'
+                          ? 'Not Applicable'
+                          : '—'}
                       </span>
                     </div>
                     <div className="cust-review-row">
