@@ -5,6 +5,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { Landing } from '../pages/Landing/Landing';
 import { Login } from '../pages/Login/Login';
 import { Register } from '../pages/Register/Register';
+import { TermsAndConditions, PrivacyPolicy } from '../pages/Legal/LegalPages';
 import { ForgotPassword } from '../pages/ForgotPassword/ForgotPassword';
 import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';
 import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
@@ -67,6 +68,8 @@ export const AppRoutes = () => (
     <Route path="/" element={<Landing />} />
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
+    <Route path="/terms" element={<TermsAndConditions />} />
+    <Route path="/privacy" element={<PrivacyPolicy />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/verify-otp" element={<VerifyOtp />} />
     <Route path="/reset-password" element={<ResetPassword />} />

@@ -1,3 +1,5 @@
+import { Register } from '../src/pages/Register/Register';
+import { ForgotPassword } from '../src/pages/ForgotPassword/ForgotPassword';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FormDraftProvider } from '../src/context/FormDraftContext';
 import { RecordPayment } from '../src/pages/Payments/RecordPayment';
@@ -18,7 +20,7 @@ import assert from 'node:assert/strict';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import { MemoryRouter, Route, Routes, Link, useLocation } from 'react-router-dom';
-import { apiClient } from 'billing-api-client';
+import { apiClient, authApi } from 'billing-api-client';
 import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration';
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
 import { regionalSettingsService, COUNTRIES_LIST } from '../src/services/regionalSettingsService';
@@ -89,7 +91,7 @@ test('Login password visibility has matching icons, accessible actions and an un
     await act(async () => { input.value = 'Retained-password'; Simulate.change(input, { target: { name: 'password', value: input.value } }); });
     assert.equal(input.type, 'password');
     let toggle = ui.host.querySelector('[aria-label="Show password"]');
-    assert.ok(toggle.querySelector('[data-testid="VisibilityOffIcon"]'));
+    assert.ok(toggle.querySelector('[data-testid="VisibilityIcon"]'));
     assert.equal(toggle.type, 'button');
     toggle.focus(); assert.equal(document.activeElement, toggle);
     for (let index = 0; index < 4; index++) {
@@ -99,7 +101,7 @@ test('Login password visibility has matching icons, accessible actions and an un
       assert.equal(input.value, 'Retained-password');
       toggle = ui.host.querySelector(`[aria-label="${visible ? 'Hide' : 'Show'} password"]`);
       assert.equal(toggle.getAttribute('aria-pressed'), String(visible));
-      assert.ok(toggle.querySelector(`[data-testid="${visible ? 'Visibility' : 'VisibilityOff'}Icon"]`));
+      assert.ok(toggle.querySelector(`[data-testid="${visible ? 'VisibilityOff' : 'Visibility'}Icon"]`));
     }
     assert.match(ui.host.textContent, /Forgot password\?/);
     await click(button(ui.host, 'Create an account'));
@@ -391,4 +393,293 @@ test('Payment compact styling and Notification page gutters use scoped existing 
   assert.match(payments, /payment-list-table\.ibms-table-frame[^}]*border: 1px solid[^}]*overflow-x: auto/s);
   const notifications = readFileSync('src/pages/Notifications/notifications.css', 'utf8');
   assert.match(notifications, /notification-data-table \.ant-table-container[^}]*border: 1px solid[^}]*overflow: hidden/s);
+});
+
+
+test('Login reports invalid email while typing, exposes an error indicator, and clears it only after correction', async () => {
+  const original = authApi.login; let requests = 0;
+  authApi.login = async () => { requests++; throw new Error('Invalid input must not submit'); };
+  const ui = await mount(<Login />, '/login');
+  try {
+    const email = ui.host.querySelector('#email');
+    await changeInput(email, 'not-an-email'); await settle();
+    assert.match(ui.host.textContent, /Please enter a valid work email/);
+    assert.equal(email.getAttribute('aria-invalid'), 'true');
+    assert.ok(ui.host.querySelector('.billing-auth-field-warning'));
+    assert.match(document.getElementById(email.getAttribute('aria-describedby')).textContent, /Please enter a valid work email/);
+    assert.equal(document.getElementById(email.getAttribute('aria-describedby')).getAttribute('role'), 'alert');
+    await act(async () => { Simulate.focus(email); Simulate.blur(email); }); await settle();
+    assert.match(ui.host.textContent, /Please enter a valid work email/);
+    await act(async () => Simulate.submit(ui.host.querySelector('form'))); await settle();
+    assert.equal(requests, 0);
+    await changeInput(email, 'dksjnfkjs@gmail.comkjfdjkvjkdfv'); await settle();
+    assert.equal(email.getAttribute('aria-invalid'), 'true');
+    assert.match(ui.host.textContent, /Please enter a valid work email/);
+    await changeInput(email, 'admin@example.com'); await settle();
+    assert.equal(email.getAttribute('aria-invalid'), 'false');
+    assert.equal(ui.host.querySelector('.billing-auth-field-warning'), null);
+    assert.doesNotMatch(ui.host.textContent, /Please enter a valid work email/);
+  } finally { await ui.close(); authApi.login = original; }
+});
+
+test('Login uses a centered lock header, required fields and an accessible Remember me checkbox', async () => {
+  const ui = await mount(<Login />, '/login');
+  try {
+    const card = ui.host.querySelector('.billing-login-card'); assert.ok(card);
+    assert.match(card.querySelector('.billing-auth-form-title').textContent, /Welcome Back!/);
+    assert.ok(card.querySelector('.billing-login-lock-badge [data-testid="LockOutlinedIcon"]'));
+    assert.equal(card.querySelector('.billing-auth-logo-badge'), null);
+    assert.equal(card.querySelectorAll('.billing-auth-required').length, 2);
+    assert.equal(card.querySelector('#email').required, true); assert.equal(card.querySelector('#password').required, true);
+    const checkbox = card.querySelector('.billing-auth-remember-control input[type="checkbox"]');
+    assert.equal(checkbox.checked, false);
+    await act(async () => Simulate.change(checkbox, { target: { checked: true } }));
+    assert.equal(checkbox.checked, true);
+    await act(async () => Simulate.change(checkbox, { target: { checked: false } }));
+    assert.equal(checkbox.checked, false);
+    checkbox.focus(); assert.equal(document.activeElement, checkbox);
+    const css = readFileSync('src/styles/Login.css', 'utf8');
+    assert.match(css, /billing-auth-remember-control \.MuiCheckbox-root:hover[^}]*background:/);
+    assert.doesNotMatch(css, /billing-auth-remember-control:hover\s*\{|billing-auth-remember-control:focus-within/);
+    assert.match(css, /billing-auth-remember-control \.MuiCheckbox-root\.Mui-focusVisible[^}]*outline:/);
+    assert.match(css, /billing-login-card \.billing-auth-form-title[^}]*text-align: center/);
+  } finally { await ui.close(); }
+});
+
+
+const fillRegistration = async host => {
+  for (const [id, value] of [['fullName', 'Reddy Sumanth'], ['email', 'admin@example.com'], ['password', 'Password@123'], ['confirmPassword', 'Password@123']]) await changeInput(host.querySelector(`#${id}`), value);
+};
+const submitRegistration = ui => act(async () => Simulate.submit(ui.host.querySelector('form')));
+
+test('Registration defaults to explicit unchecked consent, required fields and only bottom Sign in navigation', async () => {
+  const ui = await mount(<Register />, '/register');
+  try {
+    const card = ui.host.querySelector('.register-card');
+    assert.equal(card.querySelector('#registration-consent').checked, false);
+    assert.equal(card.querySelector('#registration-consent').getAttribute('aria-required'), 'true');
+    assert.equal(card.querySelectorAll('.billing-auth-required').length, 4);
+    for (const id of ['fullName', 'email', 'password', 'confirmPassword']) assert.equal(card.querySelector(`#${id}`).required, true);
+    assert.equal(ui.host.querySelector('.register-back-link'), null);
+    assert.equal(ui.host.querySelectorAll('a[href="/login"]').length, 1);
+    await act(async () => ui.host.querySelector('a[href="/login"]').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })));
+    assert.equal(ui.host.querySelector('[data-location]').textContent, '/login');
+  } finally { await ui.close(); }
+});
+
+test('Legal documents open independently without changing explicit consent', async () => {
+  const ui = await mount(<Register />, '/register');
+  try {
+    const checkbox = ui.host.querySelector('#registration-consent');
+    for (const path of ['/terms', '/privacy']) {
+      const legal = ui.host.querySelector(`a[href="${path}"]`); assert.ok(legal);
+      assert.equal(legal.closest('label'), null); assert.equal(legal.target, '_blank');
+      assert.match(legal.rel, /noopener/); assert.match(legal.rel, /noreferrer/);
+      await click(legal); assert.equal(checkbox.checked, false);
+    }
+    await act(async () => Simulate.change(checkbox, { target: { checked: true } }));
+    for (const path of ['/terms', '/privacy']) { await click(ui.host.querySelector(`a[href="${path}"]`)); assert.equal(checkbox.checked, true); }
+    assert.doesNotMatch(ui.host.textContent, /Read the project policy drafts before agreeing/);
+    assert.equal(checkbox.hasAttribute('aria-describedby'), false);
+  } finally { await ui.close(); }
+  const fresh = await mount(<Register />, '/register');
+  try { assert.equal(fresh.host.querySelector('#registration-consent').checked, false); } finally { await fresh.close(); }
+});
+
+test('Registration has one independent non-submit toggle per password field with matching input type and icon', async () => {
+  const ui = await mount(<Register />, '/register');
+  try {
+    await fillRegistration(ui.host);
+    for (const [id, label] of [['password', 'password'], ['confirmPassword', 'confirm password']]) {
+      const input = ui.host.querySelector(`#${id}`); const value = input.value;
+      assert.equal(input.type, 'password');
+      assert.equal(ui.host.querySelectorAll(`[aria-controls="${id}"]`).length, 1);
+      let toggle = ui.host.querySelector(`[aria-label="Show ${label}"]`); assert.equal(toggle.type, 'button');
+      assert.ok(toggle.querySelector('[data-testid="VisibilityIcon"]'));
+      toggle.focus(); assert.equal(document.activeElement, toggle);
+      await click(toggle); assert.equal(input.type, 'text'); assert.equal(input.value, value);
+      toggle = ui.host.querySelector(`[aria-label="Hide ${label}"]`); assert.ok(toggle.querySelector('[data-testid="VisibilityOffIcon"]'));
+      const other = ui.host.querySelector(id === 'password' ? '#confirmPassword' : '#password'); assert.equal(other.type, 'password');
+      await click(toggle); assert.equal(input.type, 'password'); assert.equal(input.value, value);
+    }
+  } finally { await ui.close(); }
+});
+
+test('Registration invalid fields and missing consent block the API; corrected blur errors clear', async () => {
+  const original = authApi.register; let calls = 0; authApi.register = async () => { calls++; return { success: true }; };
+  const ui = await mount(<Register />, '/register');
+  try {
+    await submitRegistration(ui); await settle(); assert.equal(calls, 0);
+    assert.match(ui.host.textContent, /Full name is required/); assert.match(ui.host.textContent, /You must agree/);
+    await fillRegistration(ui.host);
+    await changeInput(ui.host.querySelector('#fullName'), 'qqqqqqqqqqqqqqqqqqqq');
+    await act(async () => Simulate.blur(ui.host.querySelector('#fullName'))); await settle();
+    assert.match(ui.host.textContent, /Full Name contains invalid repeated characters/);
+    await submitRegistration(ui); await settle(); assert.equal(calls, 0);
+    await changeInput(ui.host.querySelector('#fullName'), 'Mary Anne'); await settle();
+    assert.doesNotMatch(ui.host.textContent, /Full Name contains invalid repeated characters/);
+    await submitRegistration(ui); await settle(); assert.equal(calls, 0);
+    assert.equal(ui.host.querySelector('#registration-consent').getAttribute('aria-invalid'), 'true');
+  } finally { await ui.close(); authApi.register = original; }
+});
+
+test('Changing Create Password revalidates Confirm Password without clearing current consent', async () => {
+  const ui = await mount(<Register />, '/register');
+  try {
+    await fillRegistration(ui.host);
+    await act(async () => Simulate.change(ui.host.querySelector('#registration-consent'), { target: { checked: true } }));
+    await changeInput(ui.host.querySelector('#password'), 'Changed@456'); await settle();
+    assert.match(ui.host.textContent, /Passwords must match/);
+    assert.equal(ui.host.querySelector('#registration-consent').checked, true);
+    await changeInput(ui.host.querySelector('#confirmPassword'), 'Changed@456');
+    await act(async () => Simulate.blur(ui.host.querySelector('#confirmPassword'))); await settle();
+    assert.doesNotMatch(ui.host.textContent, /Passwords must match/);
+  } finally { await ui.close(); }
+});
+
+test('Valid registration submits the existing payload once and waits for actual server success', async () => {
+  const original = authApi.register; const calls = []; let resolve;
+  authApi.register = payload => { calls.push(payload); return new Promise(done => { resolve = done; }); };
+  const ui = await mount(<Register />, '/register');
+  try {
+    await fillRegistration(ui.host);
+    await act(async () => Simulate.change(ui.host.querySelector('#registration-consent'), { target: { checked: true } }));
+    await act(async () => { Simulate.submit(ui.host.querySelector('form')); Simulate.submit(ui.host.querySelector('form')); }); await settle();
+    assert.deepEqual(calls, [{ name: 'Reddy Sumanth', email: 'admin@example.com', password: 'Password@123', confirmPassword: 'Password@123' }]);
+    assert.equal(button(ui.host, 'Create Account'), undefined); assert.ok(ui.host.querySelector('.billing-auth-submit-btn').disabled);
+    assert.doesNotMatch(ui.host.textContent, /Account registered!/);
+    await act(async () => resolve({ success: true })); await settle(); assert.match(ui.host.textContent, /Account registered!/);
+  } finally { await ui.close(); authApi.register = original; }
+});
+
+test('Registration server errors preserve values and never become fake success', async () => {
+  const original = authApi.register;
+  for (const response of [false, true]) {
+    authApi.register = async () => { if (response) throw new Error('Registration refused'); return { success: false, message: 'Registration refused' }; };
+    const ui = await mount(<Register />, '/register');
+    try {
+      await fillRegistration(ui.host);
+      await act(async () => Simulate.change(ui.host.querySelector('#registration-consent'), { target: { checked: true } }));
+      await submitRegistration(ui); await settle();
+      assert.match(ui.host.textContent, /Registration refused/); assert.doesNotMatch(ui.host.textContent, /Account registered!/);
+      assert.equal(ui.host.querySelector('#fullName').value, 'Reddy Sumanth'); assert.equal(ui.host.querySelector('#password').value, 'Password@123');
+      assert.equal(ui.host.querySelector('#registration-consent').checked, true); assert.equal(button(ui.host, 'Create Account').disabled, false);
+      assert.equal(ui.host.querySelector('[data-location]').textContent, '/register');
+    } finally { await ui.close(); }
+  }
+  authApi.register = original;
+});
+
+test('Inline recovery centers its header and places Back to Login between email and OTP submission', async () => {
+  const ui = await mount(<Login />, '/login');
+  try {
+    await click(button(ui.host, 'Forgot password?'));
+    const card = ui.host.querySelector('.billing-recovery-card'); assert.ok(card);
+    assert.equal(ui.host.querySelector('.recovery-back-link'), null);
+    const form = card.querySelector('form'); const link = form.querySelector('.billing-auth-recovery-nav a');
+    const send = form.querySelector('button[type="submit"]'); assert.equal(send.textContent, 'Send OTP'); assert.ok(send.querySelector('[data-testid="SendOutlinedIcon"]'));
+    assert.equal(link.getAttribute('href'), '/login'); assert.equal(link.textContent, 'Back to Login');
+    assert.ok(form.querySelector('#forgot-email').compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING);
+    assert.ok(link.compareDocumentPosition(form.querySelector('button[type="submit"]')) & Node.DOCUMENT_POSITION_FOLLOWING);
+    await act(async () => link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })));
+    assert.ok(ui.host.querySelector('#password'));
+  } finally { await ui.close(); }
+});
+
+test('Standalone recovery retains its OTP request and navigation with the centered header and small back link', async () => {
+  const original = authApi.forgotPassword; const calls = [];
+  authApi.forgotPassword = async payload => { calls.push(payload); return { success: true }; };
+  const ui = await mount(<ForgotPassword />, '/forgot-password');
+  try {
+    assert.match(ui.host.querySelector('.billing-recovery-heading').textContent, /Reset password/);
+    assert.equal(ui.host.querySelector('.auth-back-btn'), null);
+    assert.ok(ui.host.querySelector('.billing-auth-recovery-nav a[href="/login"]'));
+    assert.equal(ui.host.querySelector('button[type="submit"]').textContent, 'Send OTP');
+    assert.ok(ui.host.querySelector('button[type="submit"] [data-testid="SendOutlinedIcon"]'));
+    await changeInput(ui.host.querySelector('#email'), 'admin@example.com');
+    await act(async () => Simulate.submit(ui.host.querySelector('form'))); await settle();
+    assert.deepEqual(calls, [{ email: 'admin@example.com' }]);
+    assert.match(ui.host.textContent, /Verification code dispatched/);
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 900)); });
+    assert.equal(ui.host.querySelector('[data-location]').textContent, '/verify-otp');
+  } finally { await ui.close(); authApi.forgotPassword = original; }
+});
+
+test('Landing hover and marquee clipping fixes preserve border width and motion preferences', () => {
+  const css = readFileSync('src/styles/Landing.css', 'utf8');
+  assert.match(css, /hero-phone-mockup[^}]*transition: transform 210ms/);
+  assert.match(css, /hero-phone-mockup:hover[^}]*translateY\(-3px\)/);
+  assert.match(css, /capabilities-marquee-wrapper[^}]*padding-block: 12px/);
+  assert.match(css, /capabilities-marquee-track[^}]*animation: marqueeLeft 42s linear infinite/);
+  assert.match(css, /capability-pill-card:active[^}]*border-color:/);
+  assert.doesNotMatch(css, /capability-pill-card:(?:hover|active)[^}]*border(?:-width)?:/);
+  assert.match(css, /prefers-reduced-motion: reduce/);
+});
+
+
+test('Registration gates submission on current validity and shows password guidance and success indicators', async () => {
+  const ui = await mount(<Register />, '/register');
+  try {
+    const submit = ui.host.querySelector('button[type="submit"]'); assert.equal(submit.disabled, true);
+    assert.equal(ui.host.querySelector('#registration-requirements'), null);
+    assert.doesNotMatch(ui.host.textContent, /Complete all fields and accept/);
+    assert.equal(ui.host.querySelector('.billing-auth-password-checks'), null);
+    const password = ui.host.querySelector('#password');
+    await act(async () => Simulate.focus(password));
+    assert.equal(ui.host.querySelector('.billing-auth-password-checks'), null);
+    await changeInput(password, 'a');
+    assert.equal(ui.host.querySelectorAll('.billing-auth-password-checks li').length, 5);
+    await changeInput(password, '');
+    assert.equal(ui.host.querySelector('.billing-auth-password-checks'), null);
+    await fillRegistration(ui.host); await settle(); assert.equal(submit.disabled, true);
+    const rules = ui.host.querySelector('.billing-auth-password-checks'); assert.ok(rules);
+    assert.ok(password.compareDocumentPosition(rules) & Node.DOCUMENT_POSITION_FOLLOWING);
+    assert.ok(rules.compareDocumentPosition(ui.host.querySelector('#confirmPassword')) & Node.DOCUMENT_POSITION_FOLLOWING);
+    assert.ok(ui.host.querySelector('[aria-label="Password meets requirements"]'));
+    assert.ok(ui.host.querySelector('[aria-label="Passwords match"]'));
+    assert.equal(rules.querySelectorAll('.is-met').length, 5);
+    await act(async () => Simulate.blur(password)); await settle();
+    assert.equal(ui.host.querySelector('.billing-auth-password-checks'), null);
+    await act(async () => Simulate.focus(password));
+    assert.equal(ui.host.querySelectorAll('.billing-auth-password-checks li').length, 5);
+    await act(async () => Simulate.blur(password));
+    await act(async () => Simulate.change(ui.host.querySelector('#registration-consent'), { target: { checked: true } })); await settle();
+    assert.equal(submit.disabled, false);
+    await changeInput(ui.host.querySelector('#fullName'), 'Name123'); await settle();
+    assert.equal(ui.host.querySelector('#fullName').getAttribute('aria-invalid'), 'true'); assert.equal(submit.disabled, true);
+    await changeInput(ui.host.querySelector('#fullName'), 'Mary Anne');
+    await changeInput(ui.host.querySelector('#email'), 'admin@example.comwrong'); await settle();
+    assert.equal(ui.host.querySelector('#email').getAttribute('aria-invalid'), 'true'); assert.equal(submit.disabled, true);
+    await changeInput(ui.host.querySelector('#email'), 'admin@example.com'); await settle(); assert.equal(submit.disabled, false);
+    await changeInput(ui.host.querySelector('#confirmPassword'), 'Different@123'); await settle();
+    assert.equal(ui.host.querySelector('[aria-label="Passwords match"]'), null); assert.equal(submit.disabled, true);
+    await changeInput(ui.host.querySelector('#confirmPassword'), 'Password@123'); await settle(); assert.equal(submit.disabled, false);
+  } finally { await ui.close(); }
+});
+
+test('Inline OTP keeps Change email inside the centered verification card with meaningful icons', async () => {
+  const original = authApi.forgotPassword; const calls = [];
+  authApi.forgotPassword = async payload => { calls.push(payload); return { success: true }; };
+  const ui = await mount(<Login />, '/login');
+  try {
+    await click(button(ui.host, 'Forgot password?'));
+    await changeInput(ui.host.querySelector('#forgot-email'), 'admin@example.com');
+    await act(async () => Simulate.submit(ui.host.querySelector('form'))); await settle();
+    assert.deepEqual(calls, [{ email: 'admin@example.com' }]);
+    const card = ui.host.querySelector('.billing-otp-card'); assert.ok(card);
+    assert.match(card.querySelector('.billing-auth-form-title').textContent, /Enter verification code/);
+    const change = button(ui.host, 'Change email'); assert.ok(card.contains(change));
+    assert.ok(change.querySelector('[data-testid="EditOutlinedIcon"]'));
+    assert.equal(ui.host.querySelector('.recovery-back-link'), null);
+    assert.ok(button(ui.host, 'Verify code').querySelector('[data-testid="VerifiedUserOutlinedIcon"]'));
+    await click(change); assert.equal(ui.host.querySelector('#forgot-email').value, 'admin@example.com');
+  } finally { await ui.close(); authApi.forgotPassword = original; }
+});
+
+test('Legal routes provide substantive project drafts and identify remaining operator details', () => {
+  const routes = readFileSync('src/routes/AppRoutes.jsx', 'utf8');
+  assert.match(routes, /path="\/terms"/); assert.match(routes, /path="\/privacy"/);
+  const source = readFileSync('src/pages/Legal/LegalPages.jsx', 'utf8');
+  assert.match(source, /Draft for project review/); assert.match(source, /Your billing records/);
+  assert.match(source, /Retention and requests/); assert.match(source, /operator identity and privacy contact/);
 });
