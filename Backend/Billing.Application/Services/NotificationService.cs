@@ -342,11 +342,16 @@ public class NotificationService : INotificationService
             log.SentAtUtc = DateTime.UtcNow;
             await _logRepository.AddAsync(log);
 
-            if (quotation.Status == QuotationStatus.Draft)
+            await _auditLogRepository.AddAsync(new AuditLog
             {
-                quotation.Status = QuotationStatus.Sent;
-                await _quotationRepository.UpdateAsync(quotation);
-            }
+                TenantId = tenantId,
+                EntityName = "Quotation",
+                EntityId = quotation.Id.ToString(),
+                Action = "NotificationSent",
+                UserName = userName ?? "System",
+                Changes = $"Sent QuotationSent email to {quotation.Customer.Email}",
+                Timestamp = DateTime.UtcNow
+            });
 
             return ApiResponse<NotificationLogDto>.Ok(MapToDto(log), "Quotation notification sent successfully.");
         }

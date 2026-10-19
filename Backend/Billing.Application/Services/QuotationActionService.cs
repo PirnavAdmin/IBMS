@@ -252,34 +252,41 @@ public class QuotationActionService : IQuotationActionService
             }
         }
 
-        quotation.Status = QuotationStatus.Sent;
-        quotation.Communications.Add(new QuotationCommunication
+        try
         {
-            QuotationId = quotationId,
-            CommunicationType = "Email",
-            Recipient = recipient,
-            Subject = subject,
-            Message = $"Quotation {quotation.QuoteNumber} sent to {recipient}. Items: {quotation.Items.Count}, Total: {quotation.TotalAmount:0.00} {currency}. PDF attached: {(pdfBytes != null ? "Yes" : "No")}.",
-            Status = "Sent",
-            SentAt = DateTime.UtcNow,
-            SentBy = userId
-        });
-        await _quotationRepository.UpdateAsync(quotation);
-        
-        var auditLog = new AuditLog
+            quotation.Status = QuotationStatus.Sent;
+            quotation.Communications.Add(new QuotationCommunication
+            {
+                QuotationId = quotationId,
+                CommunicationType = "Email",
+                Recipient = recipient,
+                Subject = subject,
+                Message = $"Quotation {quotation.QuoteNumber} sent to {recipient}. Items: {quotation.Items.Count}, Total: {quotation.TotalAmount:0.00} {currency}. PDF attached: {(pdfBytes != null ? "Yes" : "No")}.",
+                Status = "Sent",
+                SentAt = DateTime.UtcNow,
+                SentBy = userId
+            });
+            await _quotationRepository.UpdateAsync(quotation);
+            
+            var auditLog = new AuditLog
+            {
+                TenantId = tenantId,
+                CustomerId = quotation.CustomerId,
+                EntityName = "Quotation",
+                EntityId = quotationId.ToString(),
+                Action = "Sent",
+                UserName = userId,
+                Changes = $"Status changed to Sent. Quotation email with PDF sent to {recipient}.",
+                Timestamp = DateTime.UtcNow
+            };
+            await _auditLogRepository.AddAsync(auditLog);
+            
+            return ApiResponse<bool>.Ok(true, "Quotation sent.");
+        }
+        catch (Exception ex)
         {
-            TenantId = tenantId,
-            CustomerId = quotation.CustomerId,
-            EntityName = "Quotation",
-            EntityId = quotationId.ToString(),
-            Action = "Sent",
-            UserName = userId,
-            Changes = $"Status changed to Sent. Quotation email with PDF sent to {recipient}.",
-            Timestamp = DateTime.UtcNow
-        };
-        await _auditLogRepository.AddAsync(auditLog);
-        
-        return ApiResponse<bool>.Ok(true, "Quotation sent.");
+            return ApiResponse<bool>.Fail($"Failed to record quotation status: {ex.Message}");
+        }
     }
 
     private static string BuildQuotationHtmlEmail(Quotation quotation, Customer customer, Tenant? tenant, string currency, bool hasPdfAttachment)
