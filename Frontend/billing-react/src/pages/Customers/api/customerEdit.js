@@ -39,6 +39,10 @@ export function validateCustomerEdit(values) {
   const website = (values.website ?? "").trim();
   if (name.length < 2 || name.length > 256)
     errors.name = "Enter a customer name between 2 and 256 characters.";
+  else if (/\d/.test(name))
+    errors.name = "Customer name must not contain numbers.";
+  else if (!/^[\p{L}\p{M}][\p{L}\p{M}\s.'’ʼ\-&,]*$/u.test(name))
+    errors.name = "Customer name should contain only alphabetic characters and valid special characters.";
   if (
     email.length > 256 ||
     !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(email) ||
