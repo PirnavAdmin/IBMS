@@ -1,3 +1,5 @@
+import { hasRecognizedEmailDomain } from "../../../utils/authValidation.js";
+
 // UpdateCustomerRequest: preserve fields outside this form because PUT replaces them.
 const updateFields = [
   "customerCode",
@@ -37,7 +39,11 @@ export function validateCustomerEdit(values) {
   const website = (values.website ?? "").trim();
   if (name.length < 2 || name.length > 256)
     errors.name = "Enter a customer name between 2 and 256 characters.";
-  if (email.length > 256 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+  if (
+    email.length > 256 ||
+    !/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/.test(email) ||
+    !hasRecognizedEmailDomain(email)
+  )
     errors.email = "Enter a valid email address (up to 256 characters).";
   if (
     phone &&
