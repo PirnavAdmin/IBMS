@@ -102,6 +102,15 @@
 
 /* Boundaries attach to the scroll container, enclosing the actual rows. */
 .app-layout .ibms-table-frame { border-color: var(--border, #e4d8c8); background: var(--surface, #fffdf9); }
+/* Separate catalog table edges from the surrounding filter/pagination card. */
+.app-layout :is(.customer-table, .product-table, .cust-table-wrap).ibms-table-frame {
+  width: calc(100% - 32px);
+  max-width: calc(100% - 32px);
+  margin: 0 16px 16px;
+  border: 1px solid var(--border, #d5c6b5);
+  overflow-x: auto;
+}
+.app-layout :is(.customer-table, .product-table).ibms-table-frame .MuiTableCell-head { border-top: 0; }
 .app-layout .ibms-table-frame .ant-table-container { overflow: hidden; border-radius: 13px; }
 .app-layout .premium-records .ibms-table-frame { margin: 8px 16px 16px; padding: 0; max-width: calc(100% - 32px); }
 .app-layout .premium-records :is(th, td):nth-child(3) { text-align: left; white-space: nowrap; }

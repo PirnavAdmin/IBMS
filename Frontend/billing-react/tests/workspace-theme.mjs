@@ -28,10 +28,23 @@ try {
     await call('Page.setDocumentContent',{frameId:tree.frameTree.frame.id,html});
     const result=await call('Runtime.evaluate',{expression:`JSON.stringify((()=>{const area=document.querySelector('.app-layout-content'),header=document.querySelector('.customer-panel-heading'),count=document.querySelector('.customer-result-count'),grid=document.querySelector('.quote-calendar-grid');const right=getComputedStyle(area),left=getComputedStyle(document.querySelector('.bd-sidebar-scroll'));return {rightColor:right.scrollbarColor,leftColor:left.scrollbarColor,rightWidth:right.scrollbarWidth,leftWidth:left.scrollbarWidth,scrolls:area.scrollHeight>area.clientHeight,columns:getComputedStyle(grid).gridTemplateColumns.split(' ').length,countRight:count.getBoundingClientRect().right,headerRight:header.getBoundingClientRect().right,headerPadding:parseFloat(getComputedStyle(header).paddingRight),overflow:document.documentElement.scrollWidth>innerWidth};})())`,returnByValue:true});
     const metrics=JSON.parse(result.result.value);
-    assert.equal(metrics.rightWidth,metrics.leftWidth);assert.equal(metrics.rightColor,'rgb(134, 102, 79) rgba(0, 0, 0, 0)');assert.equal(metrics.leftColor,'rgb(134, 102, 79) rgb(53, 35, 28)');
+    assert.equal(metrics.rightWidth,metrics.leftWidth);assert.equal(metrics.rightColor,'rgb(134, 102, 79) rgba(0, 0, 0, 0)');assert.equal(metrics.leftColor,'rgb(134, 102, 79) rgb(48, 36, 30)');
     assert.equal(metrics.scrolls,true);assert.equal(metrics.columns,7);assert.equal(metrics.overflow,false);
     assert.ok(metrics.countRight<=metrics.headerRight);
     if(width>600) assert.ok(Math.abs(metrics.headerRight-metrics.countRight-metrics.headerPadding)<2);
   }
-  console.log('PASS Chromium: transparent right scrollbar track and original sidebar, themed calendar grid, and customer count placement at mobile and desktop widths.');
+  // Check readable navigation text on the current sidebar palette.
+  await call('Emulation.setDeviceMetricsOverride',{width:1366,height:800,deviceScaleFactor:1,mobile:false});
+  const tree=await call('Page.getFrameTree');
+  const icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>';
+  const navigation=['Dashboard','Invoices','Quotations','Payments','Customers','Products &amp; Services','Credit Notes','Settings &amp; Administration','Audit Activity'];
+  const sidebar='<aside class="bd-sidebar"><button class="bd-sidebar-brand"><strong>INVOICE<span>.</span>BILLING</strong></button><div class="bd-sidebar-scroll"><nav class="bd-sidebar-nav"><div class="bd-nav-section"><small>Workspace</small>'+navigation.map((label,i)=>'<button class="bd-nav-item'+(i===4?' active':'')+'">'+icon+'<span>'+label+'</span></button>').join('')+'</div></nav><div class="bd-sidebar-footer"><button>'+icon+'<span>Help &amp; Support</span></button></div></div></aside>';
+  await call('Page.setDocumentContent',{frameId:tree.frameTree.frame.id,html:'<style>'+styles+'</style><div class="app-layout">'+sidebar+'<div class="app-layout-main"><header class="bd-header">INVOICE.BILLING</header><main style="padding:32px"><h1>Customers</h1></main></div></div>'});
+  const palette=await call('Runtime.evaluate',{expression:`JSON.stringify((()=>{const sidebar=getComputedStyle(document.querySelector('.bd-sidebar')),normal=getComputedStyle(document.querySelector('.bd-nav-item:not(.active)')),active=getComputedStyle(document.querySelector('.bd-nav-item.active')),heading=getComputedStyle(document.querySelector('.bd-nav-section > small'));return {background:sidebar.backgroundColor,normal:normal.color,activeText:active.color,activeBackground:active.backgroundColor,section:heading.color};})())`,returnByValue:true});
+  const colors=JSON.parse(palette.result.value);
+  const luminance=color=>color.match(/[\d.]+/g).slice(0,3).map(Number).map(n=>n/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4).reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0);
+  const contrast=(a,b)=>{const values=[luminance(a),luminance(b)].sort((x,y)=>y-x);return (values[0]+.05)/(values[1]+.05);};
+  assert.equal(colors.background,'rgb(48, 36, 30)');
+  for(const [foreground,background] of [[colors.normal,colors.background],[colors.section,colors.background],[colors.activeText,colors.activeBackground]]) assert.ok(contrast(foreground,background)>=4.5,'Sidebar text contrast is at least 4.5:1');
+  console.log('PASS Chromium: desktop/mobile theme layout, sidebar palette and readable navigation text (contrast >= 4.5:1).');
 } finally { socket?.close(); chrome.kill(); }

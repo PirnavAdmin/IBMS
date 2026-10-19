@@ -12,6 +12,7 @@ import { DashboardFilters } from '../src/components/dashboard/DashboardFilters';
 import { OutstandingAging } from '../src/components/dashboard/DashboardCharts';
 import { DashboardRecords } from '../src/pages/Dashboard/Dashboard';
 import { CustomerFilters } from '../src/pages/Customers/components/CustomerTable';
+import { CustomerForm } from '../src/pages/Customers/components/CustomerForm';
 import { defaultDashboardFilters } from '../src/pages/Dashboard/dashboardModel';
 import { historyParams } from '../src/pages/Notifications/notificationService';
 import { auditQuery } from '../src/pages/AuditActivity/auditModel';
@@ -20,7 +21,7 @@ import assert from 'node:assert/strict';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import { MemoryRouter, Route, Routes, Link, useLocation } from 'react-router-dom';
-import { apiClient, authApi } from 'billing-api-client';
+import { apiClient, authApi, customerApi } from 'billing-api-client';
 import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration';
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
 import { regionalSettingsService, COUNTRIES_LIST } from '../src/services/regionalSettingsService';
@@ -91,7 +92,7 @@ test('Login password visibility has matching icons, accessible actions and an un
     await act(async () => { input.value = 'Retained-password'; Simulate.change(input, { target: { name: 'password', value: input.value } }); });
     assert.equal(input.type, 'password');
     let toggle = ui.host.querySelector('[aria-label="Show password"]');
-    assert.ok(toggle.querySelector('[data-testid="VisibilityIcon"]'));
+    assert.ok(toggle.querySelector('[data-testid="VisibilityOffIcon"]'));
     assert.equal(toggle.type, 'button');
     toggle.focus(); assert.equal(document.activeElement, toggle);
     for (let index = 0; index < 4; index++) {
@@ -101,7 +102,7 @@ test('Login password visibility has matching icons, accessible actions and an un
       assert.equal(input.value, 'Retained-password');
       toggle = ui.host.querySelector(`[aria-label="${visible ? 'Hide' : 'Show'} password"]`);
       assert.equal(toggle.getAttribute('aria-pressed'), String(visible));
-      assert.ok(toggle.querySelector(`[data-testid="${visible ? 'VisibilityOff' : 'Visibility'}Icon"]`));
+      assert.ok(toggle.querySelector(`[data-testid="${visible ? 'Visibility' : 'VisibilityOff'}Icon"]`));
     }
     assert.match(ui.host.textContent, /Forgot password\?/);
     await click(button(ui.host, 'Create an account'));
@@ -495,10 +496,10 @@ test('Registration has one independent non-submit toggle per password field with
       assert.equal(input.type, 'password');
       assert.equal(ui.host.querySelectorAll(`[aria-controls="${id}"]`).length, 1);
       let toggle = ui.host.querySelector(`[aria-label="Show ${label}"]`); assert.equal(toggle.type, 'button');
-      assert.ok(toggle.querySelector('[data-testid="VisibilityIcon"]'));
+      assert.ok(toggle.querySelector('[data-testid="VisibilityOffIcon"]'));
       toggle.focus(); assert.equal(document.activeElement, toggle);
       await click(toggle); assert.equal(input.type, 'text'); assert.equal(input.value, value);
-      toggle = ui.host.querySelector(`[aria-label="Hide ${label}"]`); assert.ok(toggle.querySelector('[data-testid="VisibilityOffIcon"]'));
+      toggle = ui.host.querySelector(`[aria-label="Hide ${label}"]`); assert.ok(toggle.querySelector('[data-testid="VisibilityIcon"]'));
       const other = ui.host.querySelector(id === 'password' ? '#confirmPassword' : '#password'); assert.equal(other.type, 'password');
       await click(toggle); assert.equal(input.type, 'password'); assert.equal(input.value, value);
     }
@@ -682,4 +683,74 @@ test('Legal routes provide substantive project drafts and identify remaining ope
   const source = readFileSync('src/pages/Legal/LegalPages.jsx', 'utf8');
   assert.match(source, /Draft for project review/); assert.match(source, /Your billing records/);
   assert.match(source, /Retention and requests/); assert.match(source, /operator identity and privacy contact/);
+});
+
+
+const chooseCustomerCurrency = async (host, value) => {
+  await act(async () => Simulate.mouseDown(host.querySelector('#customer-currency'), { button: 0 }));
+  await click([...document.body.querySelectorAll('[role="option"]')].find(node => node.getAttribute('data-value') === value));
+  await settle();
+};
+
+test('Customer Basic Info Next stays disabled until the existing step rules pass and updates as fields are cleared', async () => {
+  let submitted = 0;
+  const ui = await mount(<CustomerForm initialValues={{ customerCode: 'CUST-044' }} onSubmit={() => submitted++} />, '/customers/create');
+  try {
+    const next = () => ui.host.querySelector('[data-customer-action="next"]');
+    const name = ui.host.querySelector('#customer-name');
+    assert.equal(next().disabled, true);
+    await changeInput(name, 'Venkat Rao'); assert.equal(next().disabled, true);
+    await chooseCustomerCurrency(ui.host, 'INR'); assert.equal(next().disabled, false);
+    for (const invalidName of ['', '   ', 'V', 'V'.repeat(101)]) {
+      await changeInput(name, invalidName); assert.equal(next().disabled, true);
+      await act(async () => next().click());
+      assert.match(ui.host.querySelector('.cust-step-title').textContent, /Basic Information/);
+    }
+    await act(async () => Simulate.keyDown(name, { key: 'Enter', target: name })); await settle();
+    assert.match(ui.host.textContent, /Customer name must not exceed/);
+    assert.equal(submitted, 0);
+    await changeInput(name, 'Venkat Rao'); await settle(); assert.equal(next().disabled, false);
+    await chooseCustomerCurrency(ui.host, ''); assert.equal(next().disabled, true);
+    await chooseCustomerCurrency(ui.host, 'INR'); assert.equal(next().disabled, false);
+    await changeInput(ui.host.querySelector('#customer-company'), 'C'.repeat(257)); assert.equal(next().disabled, true);
+    await changeInput(ui.host.querySelector('#customer-company'), ''); assert.equal(next().disabled, false);
+    await click(next()); await settle();
+    assert.match(ui.host.querySelector('.cust-step-title').textContent, /Contact Information/);
+    assert.equal(submitted, 0);
+    await click(button(ui.host, 'Back')); await settle(); assert.equal(next().disabled, false);
+  } finally { await ui.close(); }
+});
+
+test('Customer Next waits for the generated required code and allows valid Basic Info without completing later steps', async () => {
+  const original = customerApi.getNextCustomerCode; let resolve;
+  customerApi.getNextCustomerCode = () => new Promise(done => { resolve = done; });
+  const ui = await mount(<CustomerForm initialValues={{ name: 'Venkat Rao', currency: 'INR' }} />, '/customers/create');
+  try {
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, true);
+    await act(async () => resolve('CUST-044')); await settle();
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, false);
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    assert.match(ui.host.querySelector('.cust-step-title').textContent, /Contact Information/);
+  } finally { await ui.close(); customerApi.getNextCustomerCode = original; }
+});
+
+test('Customer Basic Info validity follows restored drafts and existing edit values', async () => {
+  const initial = { id: 44, customerCode: 'CUST-044', name: 'Venkat Rao', currency: 'INR' };
+  const ui = await mount(<FormDraftProvider><Routes>
+    <Route path="/customers/44/edit" element={<><CustomerForm mode="edit" initialValues={initial} /><Link to="/away">Leave customer draft</Link></>} />
+    <Route path="/away" element={<Link to="/customers/44/edit">Return to customer</Link>} />
+  </Routes></FormDraftProvider>, '/customers/44/edit');
+  try {
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, false);
+    await changeInput(ui.host.querySelector('#customer-name'), '');
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, true);
+    await click([...ui.host.querySelectorAll('a')].find(node => node.textContent === 'Leave customer draft'));
+    await click([...ui.host.querySelectorAll('a')].find(node => node.textContent === 'Return to customer')); await settle();
+    assert.equal(ui.host.querySelector('#customer-name').value, '');
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, true);
+    await changeInput(ui.host.querySelector('#customer-name'), 'Corrected name');
+    assert.equal(ui.host.querySelector('[data-customer-action="next"]').disabled, false);
+  } finally { await ui.close(); }
+  const busy = await mount(<CustomerForm mode="edit" initialValues={initial} isSubmitting />);
+  try { assert.equal(busy.host.querySelector('[data-customer-action="next"]').disabled, true); } finally { await busy.close(); }
 });
