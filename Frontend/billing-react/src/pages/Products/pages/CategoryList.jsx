@@ -3,8 +3,8 @@ import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Breadcrumbs, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
-import { Add, ArrowBack, CategoryOutlined, PrintOutlined } from '@mui/icons-material';
+import { Alert, Breadcrumbs, Button, IconButton, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Add, ArrowBack, CategoryOutlined, EditOutlined, MoreVert, PrintOutlined, ToggleOff, ToggleOn } from '@mui/icons-material';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
 import '../styles/products.css';
@@ -30,6 +30,8 @@ export function CategoryList() {
     }
   }, [location.state, location.pathname, navigate]);
   const [confirm, setConfirm] = useState(null);
+  const [actionsMenu, setActionsMenu] = useState(null);
+  const closeActionsMenu = () => setActionsMenu(null);
   const changeStatus = async (category, status) => {
     if (requestLock.current) return;
     requestLock.current = true;
@@ -66,11 +68,24 @@ export function CategoryList() {
             : categories.map(category => <TableRow key={category.id} hover>
             <TableCell><strong>{category.name}</strong></TableCell><TableCell className="category-description">{category.description || '—'}</TableCell>
             <TableCell><span className={`product-badge ${category.status.toLowerCase()}`}>{category.status}</span></TableCell>
-            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><Button component={Link} to={`/products/categories/${category.id}/edit`} size="small" aria-label={`Edit ${category.name}`}>Edit</Button><Button disabled={busy || category.status === 'Unknown'} size="small" aria-label={`${category.status === 'Active' ? 'Deactivate' : 'Activate'} ${category.name}`} onClick={() => setConfirm(category)}>{category.status === 'Active' ? 'Deactivate' : 'Activate'}</Button></div></TableCell>
+            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><IconButton size="small" className="ibms-row-actions-trigger" aria-label={`Actions for ${category.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.category.id === category.id} onClick={event => setActionsMenu({ anchor: event.currentTarget, category })}><MoreVert fontSize="small" /></IconButton></div></TableCell>
           </TableRow>)}</TableBody>
         </Table>
       </TableContainer>
     </section>
+    <Menu anchorEl={actionsMenu?.anchor} open={Boolean(actionsMenu)} onClose={closeActionsMenu}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      PaperProps={{ className: 'ibms-row-actions-menu' }}>
+      {actionsMenu && <>
+        <MenuItem component={Link} to={`/products/categories/${actionsMenu.category.id}/edit`} onClick={closeActionsMenu}>
+          <ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit
+        </MenuItem>
+        <MenuItem disabled={busy || actionsMenu.category.status === 'Unknown'} onClick={() => { setConfirm(actionsMenu.category); closeActionsMenu(); }}>
+          <ListItemIcon>{actionsMenu.category.status === 'Active' ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>
+          {actionsMenu.category.status === 'Active' ? 'Deactivate' : 'Activate'}
+        </MenuItem>
+      </>}
+    </Menu>
     <DeactivateCategoryDialog open={Boolean(confirm)} activating={confirm?.status === 'Inactive'} busy={busy} error={error} onClose={() => { setConfirm(null); setError(''); }} onConfirm={() => confirm && changeStatus(confirm, confirm.status === 'Active' ? 'Inactive' : 'Active')} />
     <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
   </main>;
