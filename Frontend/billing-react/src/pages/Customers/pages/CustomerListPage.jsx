@@ -81,6 +81,7 @@ const moneyWithCurrency = (value, currency) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: currency.trim().toUpperCase(),
+      currencyDisplay: "code",
       maximumFractionDigits: 2,
     }).format(value);
   } catch {
