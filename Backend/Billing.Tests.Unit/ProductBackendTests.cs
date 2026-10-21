@@ -937,6 +937,77 @@ public class ProductBackendTests
         Assert.Equal(224.20m, item.FinalUnitPrice); // 190 + 34.20 = 224.20
     }
 
+    [Fact]
+    public void MapToDto_Motorola60Pro_CalculatesFinalPriceCorrectly()
+    {
+        var product = new Product
+        {
+            Id = 99,
+            TenantId = 1,
+            ProductCode = "PRD-MOTO",
+            Name = "Motorola 60 pro",
+            Type = "Product",
+            Price = 35000.00m,
+            Currency = "INR",
+            TaxCategory = "GST 12%",
+            DiscountAllowed = true,
+            DiscountPercent = 10.00m,
+            Status = "Active"
+        };
+
+        var dto = _service.MapToDto(product);
+
+        Assert.Equal(35000.00m, dto.UnitPrice);
+        Assert.Equal("Percentage", dto.DiscountType);
+        Assert.Equal(3500.00m, dto.DiscountAmount);
+        Assert.Equal(12.00m, dto.TaxRate);
+        Assert.Equal(3780.00m, dto.TaxAmount); // (35000 - 3500) * 0.12 = 31500 * 0.12 = 3780
+        Assert.False(dto.IsTaxExempt);
+        Assert.Equal(35280.00m, dto.FinalUnitPrice); // 31500 + 3780 = 35280
+        Assert.Equal(35280.00m, dto.DefaultFinalPrice);
+    }
+
+    [Fact]
+    public void MapToDto_WithTaxSettings_EnforcesStandardFormula()
+    {
+        var product = new Product
+        {
+            Id = 100,
+            TenantId = 1,
+            ProductCode = "PRD-MOTO2",
+            Name = "Motorola 60 pro",
+            Type = "Product",
+            Price = 35000.00m,
+            Currency = "INR",
+            TaxCategory = "GST 12%",
+            DiscountAllowed = true,
+            DiscountPercent = 10.00m,
+            Status = "Active"
+        };
+
+        var settings = new TaxSetting
+        {
+            TenantId = 1,
+            IsTaxEnabled = true,
+            PricesIncludeTax = true,
+            DefaultTaxCalculation = "Inclusive"
+        };
+
+        var rates = new List<TaxRate>
+        {
+            new() { Id = 1, TenantId = 1, Name = "GST 12%", Code = "GST_12", Rate = 12.00m, Status = "Active", IsInclusive = true }
+        };
+
+        var dto = _service.MapToDto(product, settings, rates);
+
+        Assert.Equal(35000.00m, dto.UnitPrice);
+        Assert.Equal(3500.00m, dto.DiscountAmount);
+        Assert.Equal(12.00m, dto.TaxRate);
+        Assert.Equal(3780.00m, dto.TaxAmount);
+        Assert.Equal(35280.00m, dto.FinalUnitPrice);
+        Assert.Equal(35280.00m, dto.DefaultFinalPrice);
+    }
+
     #endregion
 
     #endregion

@@ -511,7 +511,7 @@ public class ProductService : IProductService
             || categoryTrimmed.Equals("0%", StringComparison.OrdinalIgnoreCase)
             || categoryTrimmed.Equals("None", StringComparison.OrdinalIgnoreCase);
 
-        if (!isTaxEnabled || isExplicitlyExempt)
+        if (isExplicitlyExempt)
         {
             isTaxExempt = true;
             isTaxInclusive = false;
@@ -570,7 +570,7 @@ public class ProductService : IProductService
                 isTaxInclusive = isDefaultInclusive;
             }
 
-            if (taxRate <= 0.00m)
+            if (taxRate <= 0.00m || (!isTaxEnabled && matchedRate == null && parsedPercent < 0))
             {
                 isTaxExempt = true;
                 taxAmount = 0.00m;
@@ -579,48 +579,9 @@ public class ProductService : IProductService
             else
             {
                 isTaxExempt = false;
-                if (_taxCalculationService != null)
-                {
-                    var itemRequest = new Billing.Contracts.Tax.TaxCalculationItemRequest
-                    {
-                        UnitPrice = unitPrice,
-                        DiscountPercent = discountValue,
-                        Quantity = 1,
-                        IsInclusive = isTaxInclusive
-                    };
-                    var rateObj = new TaxRate
-                    {
-                        Id = matchedRate?.Id ?? 0,
-                        Name = matchedRate?.Name ?? safeCat,
-                        Code = matchedRate?.Code ?? safeCat,
-                        TaxType = matchedRate?.TaxType ?? "GST",
-                        Rate = taxRate,
-                        IsInclusive = isTaxInclusive,
-                        IsCompound = matchedRate?.IsCompound ?? false,
-                        Priority = matchedRate?.Priority ?? 1,
-                        ApplicationLevel = matchedRate?.ApplicationLevel ?? "Item",
-                        Status = "Active",
-                        EffectiveFrom = null,
-                        EffectiveTo = null
-                    };
-                    var calc = _taxCalculationService.CalculateLineItem(itemRequest, new[] { rateObj }, isTaxInclusive, DateTime.UtcNow);
-                    taxAmount = calc.TotalTaxAmount;
-                    finalUnitPrice = calc.GrossAmount;
-                }
-                else
-                {
-                    if (isTaxInclusive)
-                    {
-                        decimal taxableBase = Math.Round(netUnitPrice / (1m + (taxRate / 100m)), 4, MidpointRounding.AwayFromZero);
-                        taxAmount = Math.Round(netUnitPrice - taxableBase, 2, MidpointRounding.AwayFromZero);
-                        finalUnitPrice = netUnitPrice;
-                    }
-                    else
-                    {
-                        taxAmount = Math.Round(netUnitPrice * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
-                        finalUnitPrice = Math.Round(netUnitPrice + taxAmount, 2, MidpointRounding.AwayFromZero);
-                    }
-                }
+                // Final Price = (Product Amount - Discount) + Tax Amount
+                taxAmount = Math.Round(netUnitPrice * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
+                finalUnitPrice = Math.Round(netUnitPrice + taxAmount, 2, MidpointRounding.AwayFromZero);
             }
         }
 
