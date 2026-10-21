@@ -46,6 +46,8 @@ import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExpor
 import { Integrations } from '../pages/Integrations/Integrations';
 import { Webhooks } from '../pages/Webhooks/Webhooks';
 import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
+import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';
+import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';
 
 // ==============================
 // CUSTOMER MODULE
@@ -157,6 +159,8 @@ export const AppRoutes = () => (
       <Route path="/integrations" element={<Integrations />} />
       <Route path="/webhooks" element={<Webhooks />} />
       <Route path="/webhooks/deliveries" element={<DeliveryHistory />} />
+      <Route path="/background-jobs" element={<BackgroundJobStatus />} />
+      <Route path="/export-jobs" element={<ExportJobStatus />} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
       <Route path="/settings" element={<SettingsLanding />} />
       <Route path="/settings/notifications" element={<NotificationTemplates />} />

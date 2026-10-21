@@ -393,6 +393,29 @@
   transform: translateY(-1px);
 }
 
+.billing-auth-submit-btn.Mui-disabled,
+.billing-auth-submit-btn.Mui-disabled:hover {
+  background: #d8c9c0 !important;
+  color: #7D6E66 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.billing-auth-password-match {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.billing-auth-password-match.is-match {
+  color: #2e7d32;
+}
+
+.billing-auth-password-match.is-mismatch {
+  color: #b44336;
+}
+
 .billing-auth-footer-text {
   text-align: center;
   margin-top: clamp(12px, 1.8vh, 18px);

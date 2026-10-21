@@ -1,0 +1,45 @@
+.background-jobs-page { box-sizing: border-box; min-width: 0; min-height: 100%; padding: var(--module-page-block-padding, 32px) var(--module-page-gutter, 16px); color: var(--text-primary, #35231c); background: var(--workspace-surface, var(--bg-main, #f9f5ef)); }
+.background-jobs-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.background-jobs-heading h1 { margin: 7px 0 8px; font-size: clamp(25px, 2.4vw, 32px); font-weight: 650; letter-spacing: -.025em; }
+.background-jobs-heading p { max-width: 680px; margin: 0; color: var(--text-secondary, #806b5b); font-size: 14px; line-height: 1.6; }
+.background-jobs-eyebrow { color: var(--secondary, #987455); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.background-jobs-page > .MuiAlert-root { margin-bottom: 16px; }
+.background-jobs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 16px; }
+.background-job-card, .export-job-create, .export-job-list { min-width: 0; padding: 20px; border: 1px solid var(--border, #dccebf); border-radius: 12px; background: var(--surface, #fffdf9); box-shadow: 0 3px 14px rgba(53,35,28,.04); }
+.background-job-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.background-job-card h2, .export-job-create h2, .export-job-list h2 { margin: 0; color: var(--primary, #68462f); }
+.background-job-card-heading p { margin: 8px 0 0; color: var(--text-secondary, #806b5b); font-size: 13px; line-height: 1.5; }
+.background-job-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.background-job-facts div { min-width: 0; }
+.background-job-facts dt { color: var(--text-secondary, #806b5b); font-size: 12px; }
+.background-job-facts dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
+.background-job-message { overflow-wrap: anywhere; margin: 0 0 14px; color: var(--text-secondary, #806b5b); font-size: 12px; }
+.background-job-message.is-error, .export-job-error { color: #b42318; }
+.export-job-create { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.export-job-create h2 { margin-right: auto; }
+.export-job-create .MuiTextField-root { min-width: 150px; }
+.export-job-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.export-job-list-heading > div { display: flex; gap: 10px; }
+.export-job-list-heading .MuiTextField-root { min-width: 145px; }
+.background-jobs-table-scroll { width: 100%; overflow-x: auto; }
+.background-jobs-table { width: 100%; min-width: 900px; border-collapse: collapse; text-align: left; }
+.background-jobs-table th { padding: 12px 10px; color: var(--primary, #68462f); background: var(--bg-main, #f9f5ef); font-size: 12px; white-space: nowrap; }
+.background-jobs-table td { padding: 13px 10px; border-top: 1px solid var(--border, #dccebf); font-size: 13px; vertical-align: middle; }
+.background-jobs-table td:first-child { min-width: 160px; }
+.background-jobs-table td:first-child span { display: block; margin-top: 4px; color: var(--text-secondary, #806b5b); font-size: 12px; }
+.background-jobs-table td:first-child .export-job-error { color: #b42318; }
+.export-job-status { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: #f3f2f0; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.export-job-status.status-completed { color: #247044; background: #eaf6ee; }
+.export-job-status.status-failed { color: #a32b2b; background: #fcebea; }
+.export-job-status.status-processing { color: #805400; background: #fff3d6; }
+.export-job-status.status-pending { color: #68462f; background: #f0e2d0; }
+.background-jobs-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; color: var(--text-secondary, #806b5b); font-size: 13px; }
+.background-jobs-empty { padding: 24px !important; color: var(--text-secondary, #806b5b); text-align: center; }
+@media (max-width: 700px) {
+  .background-jobs-page { padding: 24px 16px; }
+  .background-jobs-heading, .export-job-list-heading { align-items: stretch; flex-direction: column; }
+  .export-job-create { align-items: stretch; flex-direction: column; }
+  .export-job-create h2 { margin-right: 0; }
+  .export-job-list-heading > div { flex-wrap: wrap; }
+  .export-job-list-heading .MuiTextField-root { flex: 1; }
+}

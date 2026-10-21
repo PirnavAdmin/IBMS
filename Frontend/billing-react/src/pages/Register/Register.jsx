@@ -288,7 +288,11 @@ export const Register = () => {
                     ),
                   }}
                 />
-
+                {passwordsMatch && (
+                  <p className="billing-auth-password-match is-match" aria-live="polite">
+                    Passwords match
+                  </p>
+                )}
               </Box>
 
               <div className="billing-auth-consent">

@@ -29,6 +29,8 @@ const routeModules = {
   '/templates-branding': 'templates',
   '/integrations': 'integrations',
   '/webhooks': 'webhooks',
+  '/background-jobs': 'background-jobs',
+  '/export-jobs': 'export-jobs',
   '/integration-settings': 'integrations',
   '/settings': 'settings',
   '/support': 'support',

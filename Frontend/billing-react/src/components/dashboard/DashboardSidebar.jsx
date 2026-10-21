@@ -1,6 +1,7 @@
 import {
   BrandingWatermarkOutlined,
   FormatListNumberedOutlined,
+  FileDownloadOutlined,
   IntegrationInstructionsOutlined,
   AssessmentOutlined,
   AutorenewOutlined,
@@ -14,6 +15,7 @@ import {
   ReceiptOutlined,
   RequestQuoteOutlined,
   SettingsOutlined,
+  ScheduleOutlined,
   SupportAgentOutlined,
   NotificationsOutlined,
 } from '@mui/icons-material';
@@ -37,6 +39,8 @@ const iconMap = {
   report: AssessmentOutlined,
   activity: HistoryOutlined,
   notification: NotificationsOutlined,
+  jobs: ScheduleOutlined,
+  exports: FileDownloadOutlined,
 };
 
 export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClose }) => (

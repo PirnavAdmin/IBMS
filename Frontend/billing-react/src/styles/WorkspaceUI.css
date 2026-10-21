@@ -11,14 +11,14 @@
   --ui-table-header-bg: #f5efe8;
   --ui-row-border: #f0e6dc;
 }
-.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading) h1 {
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading, .background-jobs-heading) h1 {
   font-size: var(--ui-title);
   font-weight: var(--ui-heading-weight);
   line-height: 1.2;
   letter-spacing: -.025em;
 }
-.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading) p:not([class$="eyebrow"]) { font-size: var(--ui-body); line-height: 1.6; }
-.app-layout :is(.premium-panel, .premium-actions, .payment-card-heading, .product-panel-heading, .customer-panel-heading, .settings-panel-heading, .cn-panel-heading, .cn-list-heading) h2 {
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .background-jobs-heading) p:not([class$="eyebrow"]) { font-size: var(--ui-body); line-height: 1.6; }
+.app-layout :is(.premium-panel, .premium-actions, .payment-card-heading, .product-panel-heading, .customer-panel-heading, .settings-panel-heading, .cn-panel-heading, .cn-list-heading, .background-job-card, .export-job-create, .export-job-list) h2 {
   font-size: var(--ui-section);
   font-weight: 700;
   line-height: 1.35;
@@ -89,7 +89,7 @@
 
 .app-layout .premium-records .premium-status { font-size: 11.5px; }
 
-.app-layout main:is(.invoice-page, .payments-page, .product-page, .customers-page, .customer-page, .cn-page, .settings-page, .notification-page, .premium-main) { font-size: var(--ui-body); }
+.app-layout main:is(.invoice-page, .payments-page, .product-page, .customers-page, .customer-page, .cn-page, .settings-page, .notification-page, .premium-main, .background-jobs-page) { font-size: var(--ui-body); }
 
 .app-layout .premium-eyebrow { font-size: 11px; font-weight: 750; }
 .app-layout .premium-tag { font-size: 12px; }
