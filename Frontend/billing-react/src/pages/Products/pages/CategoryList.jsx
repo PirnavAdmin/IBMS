@@ -68,7 +68,9 @@ export function CategoryList() {
             : categories.map(category => <TableRow key={category.id} hover>
             <TableCell><strong>{category.name}</strong></TableCell><TableCell className="category-description">{category.description || '—'}</TableCell>
             <TableCell><span className={`product-badge ${category.status.toLowerCase()}`}>{category.status}</span></TableCell>
-            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><IconButton size="small" className="ibms-row-actions-trigger" aria-label={`Actions for ${category.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.category.id === category.id} onClick={event => setActionsMenu({ anchor: event.currentTarget, category })}><MoreVert fontSize="small" /></IconButton></div></TableCell>
+            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions category-actions">
+              <IconButton size="small" className="ibms-row-actions-trigger" aria-label={`Actions for ${category.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.category.id === category.id} onClick={event => setActionsMenu({ anchor: event.currentTarget, category })}><MoreVert fontSize="small" /></IconButton>
+            </div></TableCell>
           </TableRow>)}</TableBody>
         </Table>
       </TableContainer>

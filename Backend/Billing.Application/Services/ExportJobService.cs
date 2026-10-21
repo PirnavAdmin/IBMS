@@ -63,7 +63,7 @@ public class ExportJobService : IExportJobService
             ExportFormat = format,
             Status = "Pending",
             FilterParametersJson = request.FilterParametersJson,
-            ContentType = format == "CSV" ? "text/csv" : "application/json",
+            ContentType = GetContentType(format),
             RequestedBy = requestedBy ?? "System",
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -109,7 +109,7 @@ public class ExportJobService : IExportJobService
         {
             var bytes = await _storageService.GetDocumentAsync(job.StoragePath, tenantId, cancellationToken);
             var fileName = job.FileName ?? $"{job.JobType}_Export_{job.Id}.{job.ExportFormat.ToLowerInvariant()}";
-            return ApiResponse<(byte[] Content, string FileName, string ContentType)>.Ok((bytes, fileName, job.ContentType));
+            return ApiResponse<(byte[] Content, string FileName, string ContentType)>.Ok((bytes, fileName, GetContentType(job.ExportFormat)));
         }
         catch (Exception ex)
         {
@@ -201,6 +201,7 @@ public class ExportJobService : IExportJobService
                         throw new InvalidOperationException($"Unsupported job type '{job.JobType}'.");
                     }
 
+                    job.ContentType = GetContentType(job.ExportFormat);
                     var storagePath = await _storageService.SaveDocumentAsync(fileBytes, fileName, job.ContentType, job.TenantId, cancellationToken);
 
                     job.StoragePath = storagePath;
@@ -425,6 +426,13 @@ public class ExportJobService : IExportJobService
         }
         return value;
     }
+
+    private static string GetContentType(string format) => format.ToUpperInvariant() switch
+    {
+        "CSV" => "text/csv",
+        "JSON" => "application/json",
+        _ => throw new InvalidOperationException($"Unsupported export format '{format}'.")
+    };
 
     private static ExportJobDto MapToDto(ExportJob job)
     {
