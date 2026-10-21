@@ -391,6 +391,16 @@
 .customers-page .customer-table.is-inactive-view .customer-row-actions { gap: 4px; }
 .customers-page .customer-table.is-inactive-view .customer-row-actions .MuiIconButton-root { width: 32px; height: 32px; padding: 0; }
 .customers-page .customer-table .customer-contact { line-height: 1.45; }
+.customers-page .customer-table .customer-contact .customer-email-link {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
+}
 .customers-page .customer-table .customer-contact small { margin-top: 4px; color: #786b60; }
 .customers-page .customer-table .customer-status { white-space: nowrap; }
 .customers-page .customer-table .customer-inactivity-cell { min-width: 0; background: #fffdf9; }

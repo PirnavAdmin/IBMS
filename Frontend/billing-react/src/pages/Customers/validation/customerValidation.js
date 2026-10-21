@@ -153,6 +153,11 @@ export const customerValidationSchema = yup.object({
             message: 'Mobile number must be exactly 10 digits',
           });
         }
+        if (!/^[6-9]/.test(val)) {
+          return this.createError({
+            message: 'Indian mobile numbers must start with 6, 7, 8 or 9',
+          });
+        }
         return true;
       }
 
