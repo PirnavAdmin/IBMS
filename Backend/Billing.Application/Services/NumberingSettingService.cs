@@ -123,6 +123,15 @@ public class NumberingSettingService : INumberingSettingService
         }
         else
         {
+            if (!string.IsNullOrWhiteSpace(request.RowVersion))
+            {
+                var existingRowVersionStr = Convert.ToBase64String(BitConverter.GetBytes(existing.RowVersion.Ticks));
+                if (!string.Equals(existingRowVersionStr, request.RowVersion.Trim(), StringComparison.Ordinal))
+                {
+                    return ApiResponse<NumberingSettingDto>.Fail("Concurrency error: The numbering configuration was modified by another user.");
+                }
+            }
+
             existing.Prefix = request.Prefix?.Trim() ?? string.Empty;
             existing.Suffix = request.Suffix?.Trim() ?? string.Empty;
             existing.Tokens = request.Tokens?.Trim() ?? string.Empty;
@@ -251,5 +260,52 @@ public class NumberingSettingService : INumberingSettingService
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
+    }
+
+    public async Task<ApiResponse<NumberingSettingDto>> ResetSequenceAsync(string documentType, int tenantId, long resetTo = 1, string? userName = null)
+    {
+        if (tenantId <= 0)
+        {
+            return ApiResponse<NumberingSettingDto>.Fail("Invalid tenant identifier", "Tenant ID must be greater than 0.");
+        }
+
+        var docType = string.IsNullOrWhiteSpace(documentType) ? "Invoice" : documentType.Trim();
+        var setting = await _numberingRepository.GetByDocumentTypeAsync(docType, tenantId);
+        if (setting == null)
+        {
+            return ApiResponse<NumberingSettingDto>.Fail("Setting not found", $"No numbering setting found for '{docType}'.");
+        }
+
+        setting.NextNumber = Math.Max(1, resetTo);
+        setting.LastResetDateUtc = DateTime.UtcNow;
+        setting.UpdatedAtUtc = DateTime.UtcNow;
+        setting.RowVersion = DateTime.UtcNow;
+
+        setting = await _numberingRepository.UpdateAsync(setting);
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "NumberingSetting",
+                EntityId = setting.Id.ToString(),
+                Action = "RESET",
+                UserName = userName ?? "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Reset sequence counter for '{docType}' to {setting.NextNumber}."
+            });
+        }
+
+        var dto = MapToDto(setting);
+        dto.Preview = _generationService.FormatNumber(
+            setting.Prefix,
+            setting.Tokens,
+            setting.NextNumber,
+            setting.SequenceLength,
+            setting.Suffix,
+            DateTime.UtcNow);
+
+        return ApiResponse<NumberingSettingDto>.Ok(dto, "Numbering sequence reset successfully.");
     }
 }

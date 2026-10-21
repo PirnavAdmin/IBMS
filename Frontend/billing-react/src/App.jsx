@@ -44,6 +44,12 @@ const getAppTheme = (mode = 'light') => {
     },
     shape: { borderRadius: 12 },
     components: {
+      MuiAutocomplete: {
+        defaultProps: {
+          // Keep MUI's accessible button labels without duplicate native hover text.
+          componentsProps: { popupIndicator: { title: '' }, clearIndicator: { title: '' } },
+        },
+      },
       MuiButton: {
         styleOverrides: {
           root: {

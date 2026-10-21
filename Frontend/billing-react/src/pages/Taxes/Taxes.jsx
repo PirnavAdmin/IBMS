@@ -2,6 +2,7 @@ import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
 import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
 import "../../styles/Dashboard.css";
 import { useRef, useState } from "react";
+import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import {
   Link,
   Navigate,
@@ -12,7 +13,7 @@ import {
   useParams,
 } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, CircularProgress, Skeleton } from "@mui/material";
+import { Alert, CircularProgress, MenuItem, Select, Skeleton } from "@mui/material";
 import {
   AccountTreeOutlined,
   CheckCircleOutline,
@@ -53,26 +54,35 @@ function Field({
 }) {
   return (
     <div className="tax-form-group">
-      <label htmlFor={`tax-${name}`}>
+      <label id={`tax-${name}-label`} htmlFor={`tax-${name}`}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
       {options ? (
-        <select
+        <Select
+          className="tax-select"
           id={`tax-${name}`}
+          labelId={`tax-${name}-label`}
           value={value}
           onChange={onChange}
           required={required}
-          aria-invalid={!!error}
-          aria-describedby={error ? `tax-${name}-error` : undefined}
+          inputProps={{
+            "aria-label": label,
+            "aria-invalid": !!error,
+            "aria-describedby": error ? `tax-${name}-error` : undefined,
+          }}
+          MenuProps={{
+            PaperProps: { className: "tax-select-menu" },
+            MenuListProps: { className: "tax-select-menu-list" },
+          }}
           {...props}
         >
           {options.map((option) => (
-            <option key={option} value={option}>
+            <MenuItem key={option} value={option}>
               {option || "Select an option"}
-            </option>
+            </MenuItem>
           ))}
-        </select>
+        </Select>
       ) : (
         <input
           id={`tax-${name}`}
@@ -197,10 +207,6 @@ function Preview() {
           )}
         </div>
       </div>
-      <p className="tax-preview-note">
-        Preview only. Final invoice and billing amounts are calculated by the
-        backend.
-      </p>
     </section>
   );
 }
@@ -238,6 +244,15 @@ function TaxList({ search, setSearch }) {
   const [notice, setNotice] = useState(() => state?.taxNotice || "");
   const [selectedTax, setSelectedTax] = useState(null);
   const taxes = query.data || [];
+  const openSummary = (tone) => {
+    setSearch("");
+    setType("All");
+    setStatus(tone === "active" ? "Active" : tone === "inactive" ? "Inactive" : "All");
+    document.getElementById("tax-register")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (tone === "types") {
+      window.setTimeout(() => document.getElementById("tax-filter-type")?.focus(), 180);
+    }
+  };
   const filtered = prioritizePrefix(
     taxes.filter(
       (tax) =>
@@ -295,9 +310,12 @@ function TaxList({ search, setSearch }) {
                 tone: "types",
               },
             ].map((stat) => (
-              <article
+              <button
+                type="button"
                 className={`tax-summary-card tax-summary-${stat.tone}`}
                 key={stat.label}
+                onClick={() => openSummary(stat.tone)}
+                aria-label={`${stat.label}: ${stat.value}. Show related tax rules.`}
               >
                 <div className="tax-summary-top">
                   <span>{stat.label}</span>
@@ -307,10 +325,10 @@ function TaxList({ search, setSearch }) {
                 </div>
                 <strong>{stat.value}</strong>
                 <small>{stat.text}</small>
-              </article>
+              </button>
             ))}
           </section>
-          <section className="tax-card">
+          <section className="tax-card" id="tax-register" tabIndex={-1}>
             <div className="tax-toolbar">
               <Field
                 name="search"
@@ -361,7 +379,7 @@ function TaxList({ search, setSearch }) {
               </div>
             ) : (
               <div
-                className="tax-table-container"
+                className="tax-table-container ibms-table-frame"
                 tabIndex={0}
                 role="region"
                 aria-label="Tax configurations"
@@ -438,7 +456,9 @@ function TaxList({ search, setSearch }) {
 }
 
 function TaxForm({ initial, editing = false }) {
-  const [values, setValues] = useState(() => initial || emptyTax());
+  const draftKey = `tax:${initial?.id || 'new'}`;
+  const draft = useFormDraft(draftKey);
+  const [values, setValues] = useDraftState(draftKey, 'values', () => initial || emptyTax());
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -459,6 +479,7 @@ function TaxForm({ initial, editing = false }) {
     setSubmitError("");
     try {
       await activeTaxService.save(values, initial?.id);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: taxQueryKey });
       navigate("/settings/taxes", {
         state: {
@@ -534,7 +555,7 @@ function TaxForm({ initial, editing = false }) {
             className="tax-secondary-btn"
             type="button"
             disabled={saving}
-            onClick={() => navigate("/settings/taxes")}
+            onClick={() => { draft.clear(); navigate("/settings/taxes"); }}
           >
             Cancel
           </button>

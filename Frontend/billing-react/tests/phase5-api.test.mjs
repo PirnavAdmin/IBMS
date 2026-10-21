@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { apiClient } from '../../billing-api-client/apiClient.js';
 import { numberingService } from '../src/pages/NumberingSettings/services/numberingService.js';
-import { RESET_POLICIES, numberingValidationSchema, generateNumberPreview } from '../src/pages/NumberingSettings/validation/numberingValidation.js';
+import { RESET_POLICIES, numberingValidationSchema } from '../src/pages/NumberingSettings/validation/numberingValidation.js';
 
 test('Numbering propagates failed GET/PUT and rejects malformed success data', async () => {
   for (const method of ['get', 'put']) {
@@ -15,7 +15,7 @@ test('Numbering propagates failed GET/PUT and rejects malformed success data', a
 });
 
 test('Numbering maps reset policies and day tokens, preserves empty fields and validates counters', async () => {
-  const input = { documentType: 'Invoice', prefix: '', suffix: '', tokens: '{DAY}-', sequenceLength: 4, nextNumber: 1 };
+  const input = { documentType: 'Invoice', prefix: '', suffix: '', tokens: '{DD}-', sequenceLength: 4, nextNumber: 1, status: 'Active' };
   for (const resetPolicy of RESET_POLICIES) {
     await mock('put', async (path, body) => {
       assert.equal(path, '/api/v1/settings/numbering');
@@ -26,13 +26,12 @@ test('Numbering maps reset policies and day tokens, preserves empty fields and v
       const result = await numberingService.updateSettings({ ...input, resetPolicy });
       assert.equal(result.resetPolicy, resetPolicy);
       assert.equal(result.prefix, ''); assert.equal(result.suffix, '');
-      assert.equal(result.tokens, '{DAY}-');
+      assert.equal(result.tokens, '{DD}-');
     });
   }
   for (const nextNumber of ['', 0, 1.5, 1000000000000]) {
     await assert.rejects(numberingValidationSchema.validate({ ...input, resetPolicy: RESET_POLICIES[0], nextNumber }));
   }
-  assert.equal(generateNumberPreview({ ...input, tokens: '' }).fullPreview, '0001');
 });
 import { chargeFromApi, chargeToApi, discountConfigurationFromApi, discountConfigurationToApi, discountRuleToApi, phase5Api, phase5Error, validateDiscountConfiguration, validateDiscountRule, validateRolePermissions } from '../src/pages/Settings/services/phase5Api.js';
 

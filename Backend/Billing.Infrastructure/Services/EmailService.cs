@@ -1,10 +1,12 @@
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
+using Billing.Application.Interfaces;
+using System.IO;
 
 namespace Billing.Infrastructure.Services;
 
-public class EmailService
+public class EmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
 
@@ -13,25 +15,39 @@ public class EmailService
         _configuration = configuration;
     }
 
-    public async Task SendEmailAsync(string toEmail, string subject, string body)
+    public async Task SendEmailAsync(string toEmail, string subject, string body, byte[]? attachmentBytes = null, string? attachmentName = null)
     {
         var email = new MimeMessage();
 
-        var fromEmail = _configuration["EmailSettings:Email"] 
-            ?? throw new InvalidOperationException("EmailSettings:Email is not configured.");
-        var appPassword = _configuration["EmailSettings:AppPassword"] 
-            ?? throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
+        var fromEmail = _configuration["EmailSettings:Email"]?.Trim();
+        if (string.IsNullOrWhiteSpace(fromEmail))
+            throw new InvalidOperationException("EmailSettings:Email is not configured.");
+
+        var configuredAppPassword = _configuration["EmailSettings:AppPassword"];
+        if (string.IsNullOrWhiteSpace(configuredAppPassword))
+            throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
+        var appPassword = string.Concat(configuredAppPassword.Where(character => !char.IsWhiteSpace(character)));
 
         email.From.Add(MailboxAddress.Parse(fromEmail));
-
         email.To.Add(MailboxAddress.Parse(toEmail));
-
         email.Subject = subject;
 
-        email.Body = new TextPart("plain")
+        var builder = new BodyBuilder();
+        if (!string.IsNullOrWhiteSpace(body) && (body.Contains("<html", StringComparison.OrdinalIgnoreCase) || body.Contains("<div", StringComparison.OrdinalIgnoreCase) || body.Contains("<p", StringComparison.OrdinalIgnoreCase) || body.Contains("<table", StringComparison.OrdinalIgnoreCase)))
         {
-            Text = body
-        };
+            builder.HtmlBody = body;
+        }
+        else
+        {
+            builder.TextBody = body;
+        }
+
+        if (attachmentBytes != null && !string.IsNullOrWhiteSpace(attachmentName))
+        {
+            builder.Attachments.Add(attachmentName, attachmentBytes, ContentType.Parse("application/pdf"));
+        }
+
+        email.Body = builder.ToMessageBody();
 
         using var smtp = new SmtpClient();
 
@@ -41,13 +57,8 @@ public class EmailService
             MailKit.Security.SecureSocketOptions.StartTls
         );
 
-        await smtp.AuthenticateAsync(
-            fromEmail,
-            appPassword
-        );
-
+        await smtp.AuthenticateAsync(fromEmail, appPassword);
         await smtp.SendAsync(email);
-
         await smtp.DisconnectAsync(true);
     }
 }

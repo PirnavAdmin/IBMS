@@ -5,8 +5,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';
 import '../styles/customer-form.css';
+import { useFormDraft } from '../../../context/FormDraftContext';
 
 export const CreateCustomer = () => {
+  const draft = useFormDraft('customer:new');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
@@ -21,6 +23,7 @@ export const CreateCustomer = () => {
 
     try {
       await customerApi.createCustomer(formData);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
       navigate('/customers', { state: { customerNotice: 'Customer created successfully.' } });
     } catch (err) {
@@ -39,18 +42,17 @@ export const CreateCustomer = () => {
           className="cust-breadcrumb-link"
           onClick={() => navigate('/customers')}
         >
-          <ArrowBack /> Customers
+          Customers
         </button>
-        <span className="cust-breadcrumb-sep">/</span>
-        <span className="cust-breadcrumb-current">New Customer</span>
+        <span className="cust-breadcrumb-sep">&gt;</span>
+        <span className="cust-breadcrumb-current">Create Customer</span>
       </nav>
 
       {/* Header */}
       <header className="cust-header">
         <div>
-          <span className="cust-eyebrow">Customer Registration</span>
-          <h1>Add New Customer</h1>
-          <p>Create a customer record with billing details and tax identification.</p>
+          <h1 className="cust-page-title">Create New Customer</h1>
+          <p className="cust-page-subtitle">Add customer details for billing and tax purposes.</p>
         </div>
       </header>
 

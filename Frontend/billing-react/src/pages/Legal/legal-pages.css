@@ -1,0 +1,12 @@
+.ibms-legal-page { min-height: 100vh; padding: 32px 16px; background: #f9f5ef; color: #35231c; }
+.ibms-legal-document { max-width: 880px; margin: 0 auto; padding: clamp(20px, 4vw, 44px); background: #fffdf9; border: 1px solid #dccdbd; border-radius: 16px; box-shadow: 0 8px 28px #35231c0b; }
+.ibms-legal-brand { display: flex; align-items: center; gap: 10px; font-weight: 750; }
+.ibms-legal-eyebrow { margin-top: 24px; color: #806b5b; font-size: 12px; }
+.ibms-legal-document h1 { margin: 8px 0 12px; font-size: clamp(26px, 4vw, 34px); }
+.ibms-legal-document h2 { margin: 26px 0 8px; font-size: 19px; }
+.ibms-legal-document p { margin-bottom: 0; font-size: 14px; line-height: 1.75; }
+.ibms-legal-review { margin: 24px 0; padding: 14px 16px; border: 1px solid #dcc6aa; border-radius: 8px; background: #f6eee4; font-size: 13px; line-height: 1.6; }
+.ibms-legal-document footer { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e8ddd1; }
+.ibms-legal-document a { color: #795137; font-size: 14px; font-weight: 600; text-decoration: none; }
+.ibms-legal-document a:hover { color: #513420; }
+.ibms-legal-document a:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }

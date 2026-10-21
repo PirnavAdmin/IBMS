@@ -20,6 +20,12 @@ public class BillingDbContext : DbContext
 
     public DbSet<UserSession> UserSessions { get; set; }
 
+    public DbSet<Role> Roles { get; set; }
+
+    public DbSet<Permission> Permissions { get; set; }
+
+    public DbSet<RolePermission> RolePermissions { get; set; }
+
     public DbSet<Customer> Customers { get; set; }
 
     public DbSet<CustomerAddress> CustomerAddresses { get; set; }
@@ -49,12 +55,36 @@ public class BillingDbContext : DbContext
     public DbSet<QuotationCommunication> QuotationCommunications { get; set; }
 
     public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<InvoiceCommunication> InvoiceCommunications { get; set; }
 
     public DbSet<InvoiceItem> InvoiceItems { get; set; }
+
+    public DbSet<InvoiceTemplate> InvoiceTemplates { get; set; }
+
+    public DbSet<TemplateVersion> TemplateVersions { get; set; }
+
+    public DbSet<InvoiceSnapshot> InvoiceSnapshots { get; set; }
+
+    public DbSet<GeneratedDocument> GeneratedDocuments { get; set; }
 
     public DbSet<Payment> Payments { get; set; }
 
     public DbSet<InvoicePaymentAllocation> InvoicePaymentAllocations { get; set; }
+
+    public DbSet<CreditNote> CreditNotes { get; set; }
+
+    public DbSet<CreditNoteItem> CreditNoteItems { get; set; }
+
+    public DbSet<CreditNoteRefund> CreditNoteRefunds { get; set; }
+
+    public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
+
+    public DbSet<IntegrationApplication> IntegrationApplications { get; set; }
+    public DbSet<Webhook> Webhooks { get; set; }
+    public DbSet<WebhookDelivery> WebhookDeliveries { get; set; }
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+    public DbSet<ExportJob> ExportJobs { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -222,6 +252,10 @@ public class BillingDbContext : DbContext
             entity.Property(u => u.Username).HasMaxLength(256);
             entity.Property(u => u.Name).HasMaxLength(256);
             entity.Property(u => u.ApplicationId).HasMaxLength(128);
+            entity.Property(u => u.IdentityType).HasMaxLength(32).HasDefaultValue("Platform").IsRequired();
+            entity.Property(u => u.ExternalProvider).HasMaxLength(64);
+            entity.Property(u => u.ExternalSubjectId).HasMaxLength(128);
+            entity.Property(u => u.ExternalScopes).HasMaxLength(500);
             entity.Property(u => u.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
             entity.Ignore(u => u.IsActive);
             entity.Property(u => u.RolesString).HasColumnName("Roles").HasMaxLength(256).HasDefaultValue("User").IsRequired();
@@ -239,6 +273,47 @@ public class BillingDbContext : DbContext
             entity.HasMany(u => u.Sessions)
                   .WithOne(s => s.User)
                   .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Name).HasMaxLength(64).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(256);
+            entity.Property(r => r.IsSystemRole).HasDefaultValue(false);
+
+            entity.HasOne(r => r.Tenant)
+                  .WithMany()
+                  .HasForeignKey(r => r.TenantId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(r => new { r.TenantId, r.Name }).IsUnique();
+        });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Code).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Name).HasMaxLength(128).IsRequired();
+            entity.Property(p => p.Module).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(256);
+
+            entity.HasIndex(p => p.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            entity.HasOne(rp => rp.Role)
+                  .WithMany(r => r.RolePermissions)
+                  .HasForeignKey(rp => rp.RoleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                  .WithMany(p => p.RolePermissions)
+                  .HasForeignKey(rp => rp.PermissionId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -582,6 +657,7 @@ public class BillingDbContext : DbContext
             entity.Property(inv => inv.ChargesAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.TotalAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.PaidAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.CreditedAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.BalanceAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.RowVersion).IsRowVersion();
 
@@ -620,6 +696,64 @@ public class BillingDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(i => i.ProductId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<InvoiceTemplate>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+            entity.Property(t => t.Description).HasMaxLength(500);
+            entity.Property(t => t.CreatedBy).HasMaxLength(200);
+            entity.Property(t => t.UpdatedBy).HasMaxLength(200);
+            entity.Property(t => t.RowVersion).IsRowVersion();
+
+            entity.HasIndex(t => new { t.TenantId, t.Name }).IsUnique();
+            entity.HasIndex(t => new { t.TenantId, t.Status });
+            entity.HasIndex(t => new { t.TenantId, t.Style });
+
+            entity.HasMany(t => t.Versions)
+                  .WithOne(v => v.Template)
+                  .HasForeignKey(v => v.TemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TemplateVersion>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.VersionDescription).HasMaxLength(500);
+            entity.Property(v => v.CreatedBy).HasMaxLength(200);
+
+            entity.HasIndex(v => new { v.TenantId, v.TemplateId, v.VersionNumber }).IsUnique();
+            entity.HasIndex(v => new { v.TenantId, v.Status });
+        });
+
+        modelBuilder.Entity<InvoiceSnapshot>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.InvoiceNumber).HasMaxLength(64).IsRequired();
+            entity.Property(s => s.CreatedBy).HasMaxLength(200);
+
+            entity.HasIndex(s => new { s.TenantId, s.InvoiceId }).IsUnique();
+            entity.HasIndex(s => new { s.TenantId, s.InvoiceNumber });
+
+            entity.HasOne(s => s.TemplateVersion)
+                  .WithMany()
+                  .HasForeignKey(s => s.TemplateVersionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GeneratedDocument>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.DocumentType).HasMaxLength(50).IsRequired();
+            entity.Property(d => d.StoragePath).HasMaxLength(500).IsRequired();
+            entity.Property(d => d.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(d => d.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(d => d.ChecksumSha256).HasMaxLength(64);
+            entity.Property(d => d.Status).HasMaxLength(50).IsRequired();
+
+            entity.HasIndex(d => new { d.TenantId, d.InvoiceId });
+            entity.HasIndex(d => new { d.TenantId, d.DocumentType });
         });
 
         modelBuilder.Entity<Payment>(entity =>
@@ -689,6 +823,214 @@ public class BillingDbContext : DbContext
             entity.HasIndex(a => new { a.TenantId, a.PaymentId });
         });
 
+        modelBuilder.Entity<CreditNote>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.CreditNoteNumber).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.Type).HasMaxLength(32).HasDefaultValue("Full").IsRequired();
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Draft").IsRequired();
+            entity.Property(c => c.Reason).HasMaxLength(250).IsRequired();
+            entity.Property(c => c.Notes).HasMaxLength(1000);
+            entity.Property(c => c.Subtotal).HasPrecision(18, 2);
+            entity.Property(c => c.TaxAmount).HasPrecision(18, 2);
+            entity.Property(c => c.TotalAmount).HasPrecision(18, 2);
+            entity.Property(c => c.RefundedAmount).HasPrecision(18, 2);
+            entity.Property(c => c.RemainingRefundableAmount).HasPrecision(18, 2);
+            entity.Property(c => c.CreatedBy).HasMaxLength(200).IsRequired();
+            entity.Property(c => c.ApprovedBy).HasMaxLength(200);
+            entity.Property(c => c.RejectionReason).HasMaxLength(500);
+            entity.Property(c => c.RejectedBy).HasMaxLength(200);
+            entity.Property(c => c.IssuedBy).HasMaxLength(200);
+            entity.Property(c => c.CancelledBy).HasMaxLength(200);
+            entity.Property(c => c.CancellationReason).HasMaxLength(500);
+            entity.Property(c => c.RowVersion).IsRowVersion();
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(c => c.Customer)
+                  .WithMany()
+                  .HasForeignKey(c => c.CustomerId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(c => c.Invoice)
+                  .WithMany(inv => inv.CreditNotes)
+                  .HasForeignKey(c => c.InvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(c => c.Items)
+                  .WithOne(i => i.CreditNote)
+                  .HasForeignKey(i => i.CreditNoteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(c => c.Refunds)
+                  .WithOne(r => r.CreditNote)
+                  .HasForeignKey(r => r.CreditNoteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => new { c.TenantId, c.CreditNoteNumber }).IsUnique();
+            entity.HasIndex(c => new { c.TenantId, c.InvoiceId });
+            entity.HasIndex(c => new { c.TenantId, c.CustomerId });
+            entity.HasIndex(c => new { c.TenantId, c.Status });
+            entity.HasIndex(c => new { c.TenantId, c.CreditDate });
+        });
+
+        modelBuilder.Entity<CreditNoteItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Description).HasMaxLength(500).IsRequired();
+            entity.Property(i => i.Quantity).HasPrecision(18, 4);
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TaxType).HasMaxLength(32);
+            entity.Property(i => i.TaxRate).HasPrecision(18, 2);
+            entity.Property(i => i.TaxAmount).HasPrecision(18, 2);
+            entity.Property(i => i.TotalAmount).HasPrecision(18, 2);
+            entity.Property(i => i.HSNSAC).HasMaxLength(64);
+
+            entity.HasOne(i => i.Product)
+                  .WithMany()
+                  .HasForeignKey(i => i.ProductId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(i => i.InvoiceItem)
+                  .WithMany()
+                  .HasForeignKey(i => i.InvoiceItemId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CreditNoteRefund>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.RefundNumber).HasMaxLength(64).IsRequired();
+            entity.Property(r => r.RefundAmount).HasPrecision(18, 2);
+            entity.Property(r => r.PaymentMethod).HasMaxLength(50).IsRequired();
+            entity.Property(r => r.ReferenceNumber).HasMaxLength(100);
+            entity.Property(r => r.Notes).HasMaxLength(500);
+            entity.Property(r => r.ProcessedBy).HasMaxLength(200).IsRequired();
+
+            entity.HasIndex(r => new { r.TenantId, r.RefundNumber }).IsUnique();
+            entity.HasIndex(r => new { r.TenantId, r.CreditNoteId });
+        });
+
+        modelBuilder.Entity<NotificationTemplate>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.EventType).HasMaxLength(64).IsRequired();
+            entity.Property(t => t.Channel).HasMaxLength(32).HasDefaultValue("Email").IsRequired();
+            entity.Property(t => t.Name).HasMaxLength(128).IsRequired();
+            entity.Property(t => t.Description).HasMaxLength(256);
+            entity.Property(t => t.SubjectTemplate).HasMaxLength(500).IsRequired();
+            entity.Property(t => t.BodyTemplate).IsRequired();
+            entity.Property(t => t.IsActive).HasDefaultValue(true);
+            entity.HasIndex(t => new { t.TenantId, t.EventType, t.Channel });
+        });
+
+        modelBuilder.Entity<NotificationLog>(entity =>
+        {
+            entity.HasKey(l => l.Id);
+            entity.Property(l => l.EventType).HasMaxLength(64).IsRequired();
+            entity.Property(l => l.EntityType).HasMaxLength(64).IsRequired();
+            entity.Property(l => l.Channel).HasMaxLength(32).HasDefaultValue("Email").IsRequired();
+            entity.Property(l => l.Recipient).HasMaxLength(256).IsRequired();
+            entity.Property(l => l.Subject).HasMaxLength(500).IsRequired();
+            entity.Property(l => l.Status).HasMaxLength(32).HasDefaultValue("Sent").IsRequired();
+            entity.Property(l => l.RetryCount).HasDefaultValue(0);
+            entity.Property(l => l.FailureReason).HasMaxLength(1000);
+            entity.Property(l => l.SentBy).HasMaxLength(100);
+            entity.HasIndex(l => new { l.TenantId, l.EntityType, l.EntityId });
+            entity.HasIndex(l => new { l.TenantId, l.Status });
+            entity.HasIndex(l => new { l.TenantId, l.SentAtUtc });
+        });
+
+        modelBuilder.Entity<IntegrationApplication>(entity =>
+        {
+            entity.ToTable("integrationapplications");
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.Name).HasMaxLength(150).IsRequired();
+            entity.Property(a => a.Description).HasMaxLength(500);
+            entity.Property(a => a.ClientId).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.ClientSecretHash).HasMaxLength(256).IsRequired();
+            entity.Property(a => a.FeatureFlagsJson).HasColumnType("longtext");
+            entity.Property(a => a.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.HasIndex(a => new { a.TenantId, a.ClientId }).IsUnique();
+            entity.HasOne(a => a.Tenant).WithMany().HasForeignKey(a => a.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Webhook>(entity =>
+        {
+            entity.ToTable("webhooks");
+            entity.HasKey(w => w.Id);
+            entity.Property(w => w.Name).HasMaxLength(150).IsRequired();
+            entity.Property(w => w.TargetUrl).HasMaxLength(1000).IsRequired();
+            entity.Property(w => w.SecretKey).HasMaxLength(128).IsRequired();
+            entity.Property(w => w.SubscribedEventsJson).HasColumnType("longtext");
+            entity.Property(w => w.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Property(w => w.ConsecutiveFailureCount).HasDefaultValue(0);
+            entity.HasIndex(w => new { w.TenantId, w.Status });
+            entity.HasOne(w => w.Tenant).WithMany().HasForeignKey(w => w.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(w => w.Application).WithMany(a => a.Webhooks).HasForeignKey(w => w.ApplicationId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WebhookDelivery>(entity =>
+        {
+            entity.ToTable("webhookdeliveries");
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.EventId).HasMaxLength(64).IsRequired();
+            entity.Property(d => d.EventType).HasMaxLength(100).IsRequired();
+            entity.Property(d => d.PayloadJson).HasColumnType("longtext").IsRequired();
+            entity.Property(d => d.RequestHeadersJson).HasColumnType("longtext");
+            entity.Property(d => d.ResponseBody).HasColumnType("longtext");
+            entity.Property(d => d.Status).HasMaxLength(32).HasDefaultValue("Success").IsRequired();
+            entity.Property(d => d.AttemptNumber).HasDefaultValue(1);
+            entity.Property(d => d.MaxAttempts).HasDefaultValue(5);
+            entity.Property(d => d.FailureReason).HasMaxLength(1000);
+            entity.HasIndex(d => new { d.TenantId, d.WebhookId, d.Status });
+            entity.HasIndex(d => new { d.TenantId, d.EventId });
+            entity.HasIndex(d => new { d.TenantId, d.CreatedAtUtc });
+            entity.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(d => d.Webhook).WithMany(w => w.Deliveries).HasForeignKey(d => d.WebhookId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.ToTable("outboxmessages");
+            entity.HasKey(o => o.Id);
+            entity.Property(o => o.EventId).HasMaxLength(64).IsRequired();
+            entity.Property(o => o.EventType).HasMaxLength(100).IsRequired();
+            entity.Property(o => o.PayloadJson).HasColumnType("longtext").IsRequired();
+            entity.Property(o => o.Status).HasMaxLength(32).HasDefaultValue("Pending").IsRequired();
+            entity.Property(o => o.RetryCount).HasDefaultValue(0);
+            entity.Property(o => o.Error).HasMaxLength(1000);
+            entity.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAtUtc });
+            entity.HasIndex(o => new { o.TenantId, o.EventId });
+            entity.HasOne(o => o.Tenant).WithMany().HasForeignKey(o => o.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExportJob>(entity =>
+        {
+            entity.ToTable("exportjobs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.JobType).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ExportFormat).HasMaxLength(16).HasDefaultValue("CSV").IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("Pending").IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(64).HasDefaultValue("text/csv").IsRequired();
+            entity.Property(e => e.RequestedBy).HasMaxLength(100).HasDefaultValue("System").IsRequired();
+            entity.Property(e => e.FileName).HasMaxLength(256);
+            entity.Property(e => e.StoragePath).HasMaxLength(500);
+            entity.Property(e => e.FilterParametersJson).HasColumnType("longtext");
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
+            entity.Property(e => e.TotalRecords).HasDefaultValue(0);
+            entity.Property(e => e.ProcessedRecords).HasDefaultValue(0);
+
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.HasIndex(e => new { e.TenantId, e.JobType });
+            entity.HasIndex(e => new { e.TenantId, e.CreatedAtUtc });
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
             v => v,
             v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
@@ -713,3 +1055,4 @@ public class BillingDbContext : DbContext
         }
     }
 }
+

@@ -1,5 +1,7 @@
+import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
+import { useProductSelectProps } from '../../Products/components/ProductSelect';
 import { useEffect, useRef, useState } from "react";
 import {
   Link,
@@ -18,7 +20,8 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
-  Tooltip,
+  ListItemIcon,
+  Menu,
   MenuItem,
   Pagination,
   PaginationItem,
@@ -39,10 +42,11 @@ import {
   EditOutlined,
   VisibilityOutlined,
   PrintOutlined,
-  ReceiptLongOutlined,
   PersonOffOutlined,
   Search,
   AccountBalanceWalletOutlined,
+  MoreVert,
+  InfoOutlined,
 } from "@mui/icons-material";
 import {
   useCustomers,
@@ -58,11 +62,10 @@ import "../styles/customer-list.css";
 export const money = (value) =>
   value == null
     ? "—"
-    : new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
+    : Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(value);
+      });
 export const StatusChip = ({ status }) =>
   !["active", "inactive"].includes(status) ? (
     <span>—</span>
@@ -125,22 +128,140 @@ const columns = [
   ["status", "Status"],
   ["", "Actions"],
 ];
+
+const SORT_OPTIONS = [
+  { label: "Recently Added", sortBy: "createdAt", sortOrder: "desc" },
+  { label: "Alphabetical (A – Z)", sortBy: "name", sortOrder: "asc" },
+  { label: "Alphabetical (Z – A)", sortBy: "name", sortOrder: "desc" },
+  { label: "Price: Low to High", sortBy: "price", sortOrder: "asc" },
+  { label: "Price: High to Low", sortBy: "price", sortOrder: "desc" },
+  { label: "First Added", sortBy: "id", sortOrder: "asc" },
+  { label: "Last Added", sortBy: "id", sortOrder: "desc" },
+];
+
+const ALLOWED_SORT_FIELDS = [
+  "customerCode",
+  "name",
+  "createdAt",
+  "price",
+  "id",
+  "email",
+  "companyName",
+  "code",
+  "updatedAt",
+];
+
+function getSortValue(sortBy, sortOrder) {
+  const match = SORT_OPTIONS.find(
+    (o) => o.sortBy === sortBy && o.sortOrder === sortOrder
+  );
+  return match ? `${match.sortBy}:${match.sortOrder}` : "";
+}
+
+export const CustomerRowActions = ({
+  customer,
+  onDeactivate,
+  onViewReason,
+}) => {
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState(null);
+  const open = Boolean(anchor);
+  const handleOpen = (event) => setAnchor(event.currentTarget);
+  const handleClose = () => setAnchor(null);
+
+  return (
+    <div className="customer-row-actions">
+      <IconButton
+        className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={open}
+        aria-label={`Actions for customer ${customer.name || customer.customerCode || customer.id}`}
+
+        size="small"
+        onClick={handleOpen}
+      >
+        <MoreVert fontSize="small" />
+      </IconButton>
+      <Menu
+        anchorEl={anchor}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{ className: "customer-actions-menu ibms-row-actions-menu" }}
+      >
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate(`/customers/${encodeURIComponent(customer.id)}`);
+          }}
+        >
+          <ListItemIcon>
+            <VisibilityOutlined fontSize="small" />
+          </ListItemIcon>
+          View Details
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            navigate(`/customers/${customer.id}/edit`);
+          }}
+        >
+          <ListItemIcon>
+            <EditOutlined fontSize="small" />
+          </ListItemIcon>
+          Edit Customer
+        </MenuItem>
+        {customer.status === "active" && (
+          <MenuItem className="is-destructive"
+            onClick={() => {
+              handleClose();
+              onDeactivate(customer);
+            }}
+          >
+            <ListItemIcon>
+              <PersonOffOutlined fontSize="small" />
+            </ListItemIcon>
+            Deactivate Customer
+          </MenuItem>
+        )}
+        {customer.status === "inactive" && onViewReason && (
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              onViewReason(customer);
+            }}
+          >
+            <ListItemIcon>
+              <InfoOutlined fontSize="small" />
+            </ListItemIcon>
+            View Reason
+          </MenuItem>
+        )}
+      </Menu>
+    </div>
+  );
+};
+
 export function CustomerListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const summaryQuery = useCustomerSummary();
   const [url, setUrl] = useSearchParams();
+  const sortSelectProps = useProductSelectProps();
   const params = {
     page: Math.max(1, Number(url.get("page")) || 1),
     pageSize: [10, 25, 50, 100].includes(Number(url.get("pageSize")))
       ? Number(url.get("pageSize"))
       : 10,
-    taxId: url.get("taxId") || "",
     search: url.get("search") || "",
-    sortBy: ["customerCode", "name"].includes(url.get("sortBy"))
+    sortBy: ALLOWED_SORT_FIELDS.includes(url.get("sortBy"))
       ? url.get("sortBy")
-      : "customerCode",
-    sortOrder: url.get("sortOrder") === "desc" ? "desc" : "asc",
+      : "",
+    sortOrder:
+      url.get("sortOrder") === "desc"
+        ? "desc"
+        : url.get("sortOrder") === "asc"
+        ? "asc"
+        : "",
     ...Object.fromEntries(
       Object.entries(filterOptions).map(([key, option]) => [
         key,
@@ -150,8 +271,20 @@ export function CustomerListPage() {
       ])
     ),
   };
+  const sortValue = getSortValue(params.sortBy, params.sortOrder);
+  const handleSortChange = (value) => {
+    if (!value) {
+      change({ sortBy: "", sortOrder: "", page: 1 });
+      return;
+    }
+    const option = SORT_OPTIONS.find(
+      (o) => `${o.sortBy}:${o.sortOrder}` === value
+    );
+    if (option) {
+      change({ sortBy: option.sortBy, sortOrder: option.sortOrder, page: 1 });
+    }
+  };
   const [search, setSearch] = useState(params.search);
-  const [taxId, setTaxId] = useState(params.taxId);
   const change = (values) =>
     setUrl(
       (previous) => {
@@ -166,23 +299,20 @@ export function CustomerListPage() {
   useEffect(() => {
     setSearch(params.search);
   }, [params.search]);
-  useEffect(() => {
-    setTaxId(params.taxId);
-  }, [params.taxId]);
-  useSearchCommit(JSON.stringify([search.trim(), taxId.trim()]), (value) => {
-    const [nextSearch, nextTaxId] = JSON.parse(value);
-    if (nextSearch !== params.search || nextTaxId !== params.taxId) {
-      change({ search: nextSearch, taxId: nextTaxId, page: 1 });
+  useSearchCommit(search.trim(), (nextSearch) => {
+    if (nextSearch !== params.search) {
+      change({ search: nextSearch, page: 1 });
     }
   });
   const query = useCustomers(params);
   const mutation = useCustomerStatus();
   const statusLock = useRef(false);
   const [confirm, setConfirm] = useState(null);
+  const [inactiveDetails, setInactiveDetails] = useState(null);
   const [reason, setReason] = useState("");
   const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
   const selectCard = (view) => {
-    setSearch(""); setTaxId("");
+    setSearch("");
     setUrl(view === "total" ? {} : view === "outstanding" ? { outstanding: "Has Outstanding" } : { status: view });
   };
   const [notice, setNotice] = useState(location.state?.customerNotice || "");
@@ -197,13 +327,10 @@ export function CustomerListPage() {
   const visibleCustomers = data?.items || [];
   const reset = () => {
     setSearch("");
-    setTaxId("");
     setUrl({});
   };
   const filtered =
-    !!params.taxId ||
-    params.sortBy !== "customerCode" ||
-    params.sortOrder !== "asc" ||
+    !!params.sortBy ||
     !!params.search ||
     Object.keys(filterOptions).some((key) => !!params[key]);
   return (
@@ -219,16 +346,16 @@ export function CustomerListPage() {
           </p>
         </div>
         <div className="customers-heading-actions">
-          <Tooltip title="Print current customer page">
+
             <Button
               aria-label="Print current customer page"
-              onClick={() => window.print()}
+              onClick={() => printCustomerList(visibleCustomers)}
               variant="outlined"
               startIcon={<PrintOutlined />}
             >
               Print
             </Button>
-          </Tooltip>
+
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -262,7 +389,7 @@ export function CustomerListPage() {
             value: summaryQuery.data?.inactive,
             text: "History safely retained",
             icon: <PersonOffOutlined />,
-            tone: "gray",
+            tone: "red",
           },
           {
             label: "Total Outstanding",
@@ -298,15 +425,13 @@ export function CustomerListPage() {
         <div className="customer-panel-heading">
           <div>
             <h2>
-              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"} <span>{data?.totalCount ?? "—"}</span>
+              {cardView === "inactive" ? "Inactive customers and reasons" : cardView === "active" ? "Active customers" : cardView === "outstanding" ? "Outstanding by customer and invoice" : "Customer directory"}
             </h2>
             <p>{cardView === "inactive" ? "Review each inactive profile, its recorded reason and deactivation details." : cardView === "outstanding" ? "Unpaid invoices are listed by due date, earliest first." : "Select a customer name to view their profile and transactions."}</p>
           </div>
-          {(query.isError || summaryQuery.isError) && (
-            <span className="customer-result-count unavailable" role="status">
-              {query.isError ? "Directory unavailable" : "Summary unavailable"}
-            </span>
-          )}
+          <span className={`customer-result-count${query.isError ? ' unavailable' : ''}`} role="status">
+            {query.isLoading ? 'Loading customers...' : query.isError ? 'Directory unavailable' : query.isFetching ? 'Updating results...' : `${data?.totalCount ?? 0} ${params.search || params.taxId || Object.keys(filterOptions).some(key => params[key]) ? 'matching ' : ''}${data?.totalCount === 1 ? 'customer' : 'customers'}`}
+          </span>
         </div>
         <div className="customer-filters">
           <TextField
@@ -348,55 +473,45 @@ export function CustomerListPage() {
               </TextField>
             ))}
             <TextField
+              select
+              SelectProps={sortSelectProps}
+              label="Sort By"
               size="small"
-              label="Tax ID / GST / VAT ID"
-              value={taxId}
-              onChange={(event) => setTaxId(event.target.value)}
-            />
+              value={sortValue}
+              onChange={(event) => handleSortChange(event.target.value)}
+              className="customer-sort-select"
+            >
+              <MenuItem value="">Sort By</MenuItem>
+              {SORT_OPTIONS.map((o) => (
+                <MenuItem
+                  key={`${o.sortBy}:${o.sortOrder}`}
+                  value={`${o.sortBy}:${o.sortOrder}`}
+                >
+                  {o.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <Button
               onClick={reset}
-              disabled={!filtered && !search && !taxId && !url.toString()}
+              disabled={!filtered && !search && !url.toString()}
             >
               Reset filters
             </Button>
           </div>
-          <div className="customer-compact-sort" aria-label="Customer sorting">
-            <TextField
-              select
-              size="small"
-              label="Sort customers by"
-              value={params.sortBy}
-              onChange={(event) =>
-                change({ sortBy: event.target.value, page: 1 })
-              }
-              disabled={!customerCapabilities.sorting}
-            >
-              <MenuItem value="customerCode">Customer code</MenuItem>
-              <MenuItem value="name">Customer name</MenuItem>
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label="Sort order"
-              value={params.sortOrder}
-              onChange={(event) =>
-                change({ sortOrder: event.target.value, page: 1 })
-              }
-              disabled={!customerCapabilities.sorting}
-            >
-              <MenuItem value="asc">Ascending</MenuItem>
-              <MenuItem value="desc">Descending</MenuItem>
-            </TextField>
-          </div>
           {filtered && (
             <div className="customer-filter-chips">
-              {params.taxId && (
+              {params.sortBy && (
                 <Chip
                   size="small"
-                  label={`Tax ID: ${params.taxId}`}
+                  label={`Sort: ${
+                    SORT_OPTIONS.find(
+                      (o) =>
+                        o.sortBy === params.sortBy &&
+                        o.sortOrder === params.sortOrder
+                    )?.label || `${params.sortBy} (${params.sortOrder || "asc"})`
+                  }`}
                   onDelete={() => {
-                    setTaxId("");
-                    change({ taxId: "", page: 1 });
+                    change({ sortBy: "", sortOrder: "", page: 1 });
                   }}
                 />
               )}
@@ -462,7 +577,7 @@ export function CustomerListPage() {
           </div>
         ) : (
           <>
-            <TableContainer className={`customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
+            <TableContainer className={`ibms-table-frame customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
               <Table size="small" aria-label="Customer directory">
                 <TableHead>
                   <TableRow>
@@ -536,9 +651,6 @@ export function CustomerListPage() {
                             </small>
                           </div>
                         </div>
-                        {cardView === "inactive" && (
-                          <CustomerCardDetails customerId={customer.id} view="inactive" compact />
-                        )}
                       </TableCell>
                       <TableCell data-label="Type">
                         <span className="customer-type">
@@ -588,77 +700,31 @@ export function CustomerListPage() {
                         {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
                       </TableCell>
                       <TableCell data-label="Status">
-                        <StatusChip status={customer.status} />
-                      </TableCell>
-                      <TableCell data-label="Actions">
-                        <div
-                          className="customer-row-actions"
-                          role="group"
-                          aria-label={`Actions for ${customer.name}`}
-                        >
-                          <Tooltip title="View details">
-                            <IconButton
-                              className="action-view"
+                        <div className="customer-status-details">
+                          <StatusChip status={customer.status} />
+                          {customer.status === "inactive" && (
+                            <Button
+                              className="customer-reason-trigger"
                               size="small"
-                              aria-label={`View ${customer.name}`}
-                              component={Link}
-                              to={`/customers/${encodeURIComponent(customer.id)}`}
+                              aria-label={`View deactivation reason for ${customer.name}`}
+                              aria-haspopup="dialog"
+                              onClick={() => setInactiveDetails(customer)}
                             >
-                              <VisibilityOutlined />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit customer">
-                            <IconButton
-                              className="action-edit"
-                              size="small"
-                              aria-label={`Edit ${customer.name}`}
-                              onClick={() =>
-                                navigate(`/customers/${customer.id}/edit`)
-                              }
-                            >
-                              <EditOutlined />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip
-                            title={
-                              customer.status === "inactive"
-                                ? "Inactive customers cannot receive new invoices"
-                                : "Create invoice"
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                className="action-invoice"
-                                size="small"
-                                disabled={customer.status !== "active"}
-                                aria-label={`Create invoice for ${customer.name}`}
-                                onClick={() =>
-                                  navigate(
-                                    `/invoices/new?customerId=${customer.id}`
-                                  )
-                                }
-                              >
-                                <ReceiptLongOutlined />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                          {customer.status === "active" && (
-                            <Tooltip title="Deactivate customer">
-                              <IconButton
-                                className="action-deactivate"
-                                size="small"
-                                aria-label={`Deactivate ${customer.name}`}
-                                onClick={() => {
-                                  mutation.reset();
-                                  setReason("");
-                                  setConfirm(customer);
-                                }}
-                              >
-                                <PersonOffOutlined />
-                              </IconButton>
-                            </Tooltip>
+                              View reason
+                            </Button>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell data-label="Actions">
+                        <CustomerRowActions
+                          customer={customer}
+                          onDeactivate={(c) => {
+                            mutation.reset();
+                            setReason("");
+                            setConfirm(c);
+                          }}
+                          onViewReason={(c) => setInactiveDetails(c)}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -710,6 +776,28 @@ export function CustomerListPage() {
           </>
         )}
       </section>
+      <Dialog
+        className="customer-reason-dialog"
+        open={!!inactiveDetails}
+        onClose={() => setInactiveDetails(null)}
+        aria-labelledby="customer-reason-title"
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle id="customer-reason-title">Deactivation details</DialogTitle>
+        <DialogContent>
+          <div className="customer-reason-profile">
+            <strong>{inactiveDetails?.name}</strong>
+            <span>{inactiveDetails?.customerCode}</span>
+          </div>
+          {inactiveDetails && (
+            <CustomerCardDetails key={inactiveDetails.id} customerId={inactiveDetails.id} view="inactive" compact />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInactiveDetails(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={!!confirm}
         onClose={() => !mutation.isPending && setConfirm(null)}

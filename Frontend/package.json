@@ -4,6 +4,10 @@
   "scripts": {
     "dev": "npm --prefix billing-react run dev",
     "build": "npm --prefix billing-react run build",
-    "preview": "npm --prefix billing-react run preview"
+    "preview": "npm --prefix billing-react run preview",
+    "postinstall": "npm --prefix billing-react install"
+  },
+  "dependencies": {
+    "country-flag-icons": "^1.6.20"
   }
 }

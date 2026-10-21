@@ -13,28 +13,20 @@ import {
   productValidationSchema,
   DEFAULT_PRODUCT_VALUES,
   PRODUCT_TYPES,
-  CURRENCIES,
   TAX_CATEGORIES,
   STANDARD_UNITS,
   resolveProductUnit,
+  resolveProductTax,
+  getProductTaxValues,
 } from '../validation/productValidation';
 import '../styles/product-form.css';
 import { useCategories } from '../services/categoryService';
 import { productService } from '../services/productService';
+import { ProductSelectField } from './ProductSelect';
+import { ProductEditableSelect } from './ProductEditableSelect';
+import { getCurrencyOptions, filterCurrencyOption, getCurrencySymbol } from '../../../utils/currencies.js';
+import { useReactHookFormDraft } from '../../../context/FormDraftContext';
 
-const getCurrencySymbol = (currency) => {
-  switch (currency) {
-    case 'USD':
-      return '$';
-    case 'EUR':
-      return '€';
-    case 'GBP':
-      return '£';
-    case 'INR':
-    default:
-      return '₹';
-  }
-};
 
 export const getProductInitialValues = (values) => {
   if (!values) return DEFAULT_PRODUCT_VALUES;
@@ -48,7 +40,7 @@ export const getProductInitialValues = (values) => {
     customUnit: values.unit && !STANDARD_UNITS.includes(values.unit) ? values.unit : '',
     price: values.price !== undefined && values.price !== null ? values.price : '',
     currency: values.currency || 'INR',
-    taxCategory: values.taxCategory ?? '',
+    ...getProductTaxValues(values.taxCategory),
     hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
     discountPercentage: values.discountPercentage !== undefined && values.discountPercentage !== null && values.discountPercentage !== ''
       ? values.discountPercentage
@@ -90,16 +82,12 @@ export function ProductForm({
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
+    context: { existingCurrency: initialValues?.currency },
     defaultValues: getProductInitialValues(initialValues),
     mode: 'onTouched',
   });
 
-  // Re-populate when initialValues change (edit mode async loading)
-  useEffect(() => {
-    if (initialValues) {
-      reset(getProductInitialValues(initialValues));
-    }
-  }, [initialValues, reset]);
+  const draft = useReactHookFormDraft(`product:${initialValues?.id || 'new'}`, { reset, watch }, getProductInitialValues(initialValues));
 
   // Auto-fetch next sequential product code for create mode
   useEffect(() => {
@@ -158,7 +146,7 @@ export function ProductForm({
       setError('categoryId', { message: 'Select an active category.' });
       return;
     }
-    const { customUnit, ...fields } = data;
+    const { customUnit, customTaxPercentage, ...fields } = data;
     const payload = {
       ...fields,
       ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
@@ -170,7 +158,7 @@ export function ProductForm({
       unit: resolveProductUnit(data),
       price: Number(data.price) || 0,
       currency: data.currency || 'INR',
-      taxCategory: data.taxCategory ?? '',
+      taxCategory: resolveProductTax(data),
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
       discountPercentage: data.discountAllowed ? Number(data.discountPercentage) : 0,
@@ -260,18 +248,8 @@ export function ProductForm({
               <label htmlFor="productType" className="product-field-label">
                 Product Type <span className="product-field-required">*</span>
               </label>
-              <select
-                id="productType"
-                className={`product-select ${errors.type ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.type)}
-                {...register('type', { onChange: () => trigger('hsnSac') })}
-              >
-                {PRODUCT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="type" id="productType" ariaLabel="Product Type"
+                error={Boolean(errors.type)} options={[{ value: '', label: 'Select Type' }, ...PRODUCT_TYPES.map(value => ({ value, label: value }))]} onValueChange={() => trigger('hsnSac')} />
               {errors.type && (
                 <span className="product-field-error" role="alert">
                   {errors.type.message}
@@ -284,21 +262,8 @@ export function ProductForm({
               <label htmlFor="productCategory" className="product-field-label">
                 Category <span className="product-field-required">*</span>
               </label>
-              <select
-                disabled={categoriesQuery.isPending || categoriesQuery.isError}
-                id="productCategory"
-                className={`product-select ${errors.categoryId ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.categoryId)}
-                aria-describedby={errors.categoryId ? 'productCategory-err' : undefined}
-                {...register('categoryId')}
-              >
-                <option value="">Select Category</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat.id} value={String(cat.id)} disabled={cat.status !== 'Active'}>
-                    {cat.name}{cat.status !== 'Active' ? ' (Inactive)' : ''}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="categoryId" id="productCategory" ariaLabel="Category"
+                error={Boolean(errors.categoryId)} options={[{ value: '', label: 'Select Category' }, ...categoryOptions.map(cat => ({ value: String(cat.id), label: `${cat.name}${cat.status !== 'Active' ? ' (Inactive)' : ''}`, disabled: cat.status !== 'Active' }))]} disabled={categoriesQuery.isPending || categoriesQuery.isError} aria-describedby={errors.categoryId ? 'productCategory-err' : undefined} />
               {errors.categoryId && (
                 <span id="productCategory-err" className="product-field-error" role="alert">
                   {errors.categoryId.message}
@@ -349,18 +314,8 @@ export function ProductForm({
               <label htmlFor="productUnit" className="product-field-label">
                 Unit of Measurement <span className="product-field-required">*</span>
               </label>
-              <select
-                id="productUnit"
-                className={`product-select ${errors.unit ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.unit)}
-                {...register('unit')}
-              >
-                {STANDARD_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
+              <ProductSelectField control={control} name="unit" id="productUnit" ariaLabel="Unit of Measurement"
+                error={Boolean(errors.unit)} options={STANDARD_UNITS.map(value => ({ value, label: value }))} />
               {errors.unit && (
                 <span className="product-field-error" role="alert">
                   {errors.unit.message}
@@ -411,19 +366,10 @@ export function ProductForm({
               <label htmlFor="productCurrency" className="product-field-label">
                 Billing Currency
               </label>
-              <div className="product-input-group">
-                <span className="product-input-prefix" aria-hidden="true">₹</span>
-                <input
-                  id="productCurrency"
-                  type="text"
-                  readOnly
-                  tabIndex={-1}
-                  value="INR (₹) - Indian Rupee"
-                  className="product-input has-prefix"
-                  style={{ backgroundColor: '#f8f6f3', cursor: 'not-allowed', color: '#5c534a', paddingLeft: '38px' }}
-                />
-                <input type="hidden" value="INR" {...register('currency')} />
-              </div>
+              <ProductEditableSelect control={control} name="currency" id="productCurrency" label="Billing Currency" popupTitle="Select Currency"
+                options={getCurrencyOptions(selectedCurrency)} filterOption={filterCurrencyOption}
+                error={errors.currency} disabled={isSubmitting} placeholder="Search country, currency or code" />
+              {errors.currency && <span id="productCurrency-err" className="product-field-error" role="alert">{errors.currency.message}</span>}
             </div>
 
             {/* Tax Category */}
@@ -431,24 +377,10 @@ export function ProductForm({
               <label htmlFor="productTaxCategory" className="product-field-label">
                 Tax Category
               </label>
-              <select
-                id="productTaxCategory"
-                className={`product-select ${errors.taxCategory ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.taxCategory)}
-                {...register('taxCategory')}
-              >
-                <option value="">Not set</option>
-                {TAX_CATEGORIES.map((tax) => (
-                  <option key={tax} value={tax}>
-                    {tax}
-                  </option>
-                ))}
-              </select>
-              {errors.taxCategory && (
-                <span className="product-field-error" role="alert">
-                  {errors.taxCategory.message}
-                </span>
-              )}
+              <ProductEditableSelect control={control} name="taxCategory" id="productTaxCategory" label="Tax Category" editable
+                options={TAX_CATEGORIES.map(value => ({ value, label: value === 'Other' ? 'Other / type custom tax' : value }))}
+                error={errors.taxCategory} disabled={isSubmitting} placeholder="Select or type a category, e.g. GST 7.5%" />
+              {errors.taxCategory && <span id="productTaxCategory-err" className="product-field-error" role="alert">{errors.taxCategory.message}</span>}
             </div>
 
             {/* HSN/SAC */}
@@ -541,15 +473,8 @@ export function ProductForm({
               <label htmlFor="productStatus" className="product-field-label">
                 Status
               </label>
-              <select
-                id="productStatus"
-                className={`product-select ${errors.status ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.status)}
-                {...register('status')}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+              <ProductSelectField control={control} name="status" id="productStatus" ariaLabel="Status"
+                error={Boolean(errors.status)} options={['Active', 'Inactive'].map(value => ({ value, label: value }))} />
               {errors.status && (
                 <span className="product-field-error" role="alert">
                   {errors.status.message}
@@ -564,7 +489,7 @@ export function ProductForm({
           <Button
             type="button"
             variant="outlined"
-            onClick={onCancel}
+            onClick={() => { draft.clear(); onCancel?.(); }}
             disabled={isSubmitting}
             className="product-btn-cancel"
             startIcon={<ArrowBack />}

@@ -42,6 +42,21 @@ public class AuditServiceTests
             var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
             return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
         }
+
+        public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
+        {
+            var tenantLogs = Logs.Where(l => l.TenantId == tenantId).ToList();
+            var entityNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.EntityName)).Select(l => l.EntityName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var actions = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.Action)).Select(l => l.Action.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var userNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.UserName)).Select(l => l.UserName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+
+            return Task.FromResult(new Billing.Contracts.AuditFilterOptionsResponse
+            {
+                EntityNames = entityNames,
+                Actions = actions,
+                UserNames = userNames
+            });
+        }
     }
 
     [Fact]
@@ -128,5 +143,38 @@ public class AuditServiceTests
             Assert.Equal(1, h.TenantId);
             Assert.Equal(100, h.CustomerId);
         });
+    }
+
+    [Fact]
+    public async Task GetTenantFilterOptionsAsync_ReturnsDistinctSortedOptionsScopedToTenant()
+    {
+        var repo = new FakeAuditLogRepository();
+        var service = new AuditService(repo, NullLogger<AuditService>.Instance);
+
+        // Seed logs for Tenant 1
+        await repo.AddAsync(new AuditLog { TenantId = 1, EntityName = "Customer", Action = "CREATE", UserName = "Alice" });
+        await repo.AddAsync(new AuditLog { TenantId = 1, EntityName = "Invoice", Action = "ISSUE", UserName = "Bob" });
+        await repo.AddAsync(new AuditLog { TenantId = 1, EntityName = "Customer", Action = "UPDATE", UserName = "Alice" });
+        await repo.AddAsync(new AuditLog { TenantId = 1, EntityName = "Quotation", Action = "CREATE", UserName = "Alice" });
+
+        // Seed logs for Tenant 2 (must be isolated)
+        await repo.AddAsync(new AuditLog { TenantId = 2, EntityName = "Tenant2Entity", Action = "TENANT2_ACTION", UserName = "Tenant2User" });
+
+        var options = await service.GetTenantFilterOptionsAsync(1);
+
+        Assert.NotNull(options);
+        Assert.Equal(new List<string> { "Customer", "Invoice", "Quotation" }, options.EntityNames);
+        Assert.Equal(new List<string> { "CREATE", "ISSUE", "UPDATE" }, options.Actions);
+        Assert.Equal(new List<string> { "Alice", "Bob" }, options.UserNames);
+
+        // Verify convenient aliases match
+        Assert.Equal(options.EntityNames, options.Modules);
+        Assert.Equal(options.Actions, options.EventNames);
+        Assert.Equal(options.UserNames, options.PerformedBy);
+
+        // Ensure Tenant 2 data is strictly excluded
+        Assert.DoesNotContain("Tenant2Entity", options.EntityNames);
+        Assert.DoesNotContain("TENANT2_ACTION", options.Actions);
+        Assert.DoesNotContain("Tenant2User", options.UserNames);
     }
 }

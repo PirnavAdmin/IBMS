@@ -1,11 +1,18 @@
 import * as yup from 'yup';
+import { CURRENCY_CODES } from '../../../utils/currencies.js';
 
 const CODE_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 
-export const PRODUCT_TYPES = ['Product', 'Service','E-Commerce',];
-export const CURRENCIES = ['INR', 'USD', 'EUR'];
-export const TAX_CATEGORIES = ['GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'GST 0%', 'Exempt'];
+export function normalizeProductTax(value) {
+  const text = String(value ?? '').trim();
+  const rate = text.match(/^(?:GST\s*)?(-?\d+(?:\.\d+)?)\s*%?$/i);
+  return rate ? `GST ${rate[1]}%` : text;
+}
+
+export const PRODUCT_TYPES = ['Product', 'Service'];
+export const CURRENCIES = CURRENCY_CODES;
+export const TAX_CATEGORIES = ['Not Applicable', 'GST 5%', 'GST 12%', 'GST 18%', 'GST 28%', 'Other'];
 export const STANDARD_UNITS = ['Piece', 'Set', 'Others'];
 
 export const productValidationSchema = yup.object({
@@ -28,8 +35,9 @@ export const productValidationSchema = yup.object({
 
   type: yup
     .string()
-    .oneOf(PRODUCT_TYPES, 'Select a valid product type')
-    .default('Product'),
+    .transform(value => value === '' ? undefined : value)
+    .required('Please select a product type.')
+    .oneOf(PRODUCT_TYPES, 'Select a valid product type'),
 
   categoryId: yup
     .string()
@@ -68,13 +76,28 @@ export const productValidationSchema = yup.object({
 
   currency: yup
     .string()
-    .oneOf(CURRENCIES, 'Select a valid currency')
+    .required('Select a currency')
+    .matches(/^[A-Z]{3}$/, 'Select a valid currency code')
+    .test('supported-currency', 'Select a valid currency', function (value) {
+      return CURRENCIES.includes(value) || value === this.options.context?.existingCurrency;
+    })
     .default('INR'),
 
   taxCategory: yup
     .string()
-    .oneOf(['', ...TAX_CATEGORIES], 'Select a valid tax category')
-    .default('GST 18%'),
+    .transform(normalizeProductTax)
+    .trim()
+    .required('Select or enter a tax category')
+    .max(64, 'Tax category must not exceed 64 characters')
+    .notOneOf(['Other'], 'Enter your custom tax category in this field')
+    .test('tax-percentage', 'Tax percentage must be between 0 and 100%', value => {
+      if (!value?.includes('%')) return true;
+      const percentages = [...value.matchAll(/(-?\d+(?:\.\d+)?)\s*%/g)];
+      return percentages.length > 0 && percentages.every(match => Number(match[1]) >= 0 && Number(match[1]) <= 100);
+    })
+    .default('Not Applicable'),
+
+  customTaxPercentage: yup.mixed().strip(),
 
   hsnSac: yup
     .string()
@@ -117,14 +140,14 @@ export const productValidationSchema = yup.object({
 export const DEFAULT_PRODUCT_VALUES = {
   productCode: '',
   name: '',
-  type: 'Product',
+  type: '',
   categoryId: '',
   description: '',
   unit: 'Piece',
   customUnit: '',
   price: '',
   currency: 'INR',
-  taxCategory: 'GST 18%',
+  taxCategory: 'Not Applicable',
   hsnSac: '',
   discountPercentage: '',
   discountAllowed: false,
@@ -133,4 +156,12 @@ export const DEFAULT_PRODUCT_VALUES = {
 
 export function resolveProductUnit({ unit, customUnit }) {
   return (unit === 'Others' ? customUnit : unit)?.trim();
+}
+
+export function resolveProductTax({ taxCategory }) {
+  return normalizeProductTax(taxCategory);
+}
+
+export function getProductTaxValues(taxCategory) {
+  return { taxCategory: normalizeProductTax(taxCategory) || 'Not Applicable' };
 }

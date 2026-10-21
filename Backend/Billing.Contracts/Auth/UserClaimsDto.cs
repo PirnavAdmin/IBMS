@@ -13,6 +13,10 @@ public class UserClaimsDto
     public string? TenantId { get; set; }
     public string? TenantCode { get; set; }
     public string? TenantName { get; set; }
+    public string? TenantCompanyEmail { get; set; }
+    public string? TenantPhone { get; set; }
+    public string? TenantTaxId { get; set; }
+    public string? TenantAddress { get; set; }
     public string Role { get; set; } = string.Empty;
 
     public string ApplicationId { get; set; } = string.Empty;

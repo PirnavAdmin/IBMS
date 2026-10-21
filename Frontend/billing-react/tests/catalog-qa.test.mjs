@@ -10,7 +10,7 @@ import { categoryService, normalizeCategory, validateCategory, categoryError } f
 import { productValidationSchema, DEFAULT_PRODUCT_VALUES, PRODUCT_TYPES, resolveProductUnit } from '../src/pages/Products/validation/productValidation.js';
 import { formatProductPrice } from '../src/pages/Products/utils/formatProductPrice.js';
 
-const valid = { ...DEFAULT_PRODUCT_VALUES, name: 'QA product', categoryId: '7', price: 10 };
+const valid = { ...DEFAULT_PRODUCT_VALUES, name: 'QA product', type: 'Product', categoryId: '7', price: 10 };
 const page = { items: [{ id: 1, name: 'Example', type: 'Service', price: 10 }], totalCount: 21, pageNumber: 2, pageSize: 10, totalPages: 3 };
 
 test('PQA routes: static category routes outrank product detail routes', () => {
@@ -138,7 +138,7 @@ test('PQA currency: INR, USD, EUR, zero, large and missing amounts are not relab
   assert.match(formatProductPrice(999999999.99, 'INR'), /₹99,99,99,999\.99/);
   assert.equal(formatProductPrice(null), '-'); assert.equal(formatProductPrice('bad'), '-');
   assert.match(formatProductPrice(12, 'invalid'), /invalid 12\.00/);
-  assert.equal(productValidationSchema.validateSync({ ...valid, taxCategory: '' }).taxCategory, '');
+  assert.equal(productValidationSchema.validateSync({ ...valid, taxCategory: 'Not Applicable' }).taxCategory, 'Not Applicable');
 });
 
 test('PQA product errors: preserve validation but never expose server exception details', async () => {
@@ -199,4 +199,13 @@ test('PQA custom unit validation and actual API unit value', () => {
     assert.equal(resolveProductUnit(data), unit);
     assert.equal(Object.hasOwn(data, 'customUnit'), false);
   }
+});
+
+ test('PQA type selection is required and only Product/Service can be submitted', () => {
+  assert.equal(DEFAULT_PRODUCT_VALUES.type, '');
+  assert.deepEqual(PRODUCT_TYPES, ['Product', 'Service']);
+  for (const type of ['', undefined, null]) {
+    assert.throws(() => productValidationSchema.validateSync({ ...valid, type }), /Please select a product type\./);
+  }
+  assert.throws(() => productValidationSchema.validateSync({ ...valid, type: 'E-Commerce' }), /Select a valid product type/);
 });

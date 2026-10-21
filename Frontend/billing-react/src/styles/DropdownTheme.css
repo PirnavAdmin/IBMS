@@ -1,0 +1,36 @@
+/* One palette for workspace dropdowns, including menus portaled to body.
+   Scope to options: action menus, status badges and pagination keep their colors. */
+body:has(.app-layout) {
+  --dropdown-surface: #FFFDF9;
+  --dropdown-text: #35271F;
+  --dropdown-border: #DCD1C6;
+  --dropdown-hover: #F9F1E6;
+  --dropdown-selected: #F0E2D0;
+  --dropdown-accent: #4B2E1E;
+  --dropdown-focus: #795137;
+}
+body:has(.app-layout) :is(.MuiMenu-paper:has([role="listbox"]), .MuiAutocomplete-paper, .ant-select-dropdown, [role="listbox"]) {
+  background: var(--dropdown-surface) !important;
+  color: var(--dropdown-text) !important;
+  border-color: var(--dropdown-border) !important;
+}
+body:has(.app-layout) :is([role="option"], .ant-select-item-option, .quote-picker-menu > button, .quote-themed-select-menu > button) {
+  background: transparent !important;
+  color: var(--dropdown-text) !important;
+}
+body:has(.app-layout) :is([role="option"], .ant-select-item-option, .quote-picker-menu > button, .quote-themed-select-menu > button):not([aria-disabled="true"]):not(:disabled):not(.Mui-disabled):not(.ant-select-item-option-disabled):is(:hover, :focus-visible, .Mui-focusVisible, .Mui-focused, .ant-select-item-option-active) {
+  background: var(--dropdown-hover) !important;
+  color: var(--dropdown-accent) !important;
+}
+body:has(.app-layout) :is([role="option"][aria-selected="true"], [role="option"].Mui-selected, .ant-select-item-option-selected, .quote-picker-menu > button.selected, .quote-themed-select-menu > button.selected):not([aria-disabled="true"]):not(:disabled):not(.Mui-disabled):not(.ant-select-item-option-disabled) {
+  background: var(--dropdown-selected) !important;
+  color: var(--dropdown-accent) !important;
+  font-weight: 600;
+}
+body:has(.app-layout) :is([role="option"], .quote-picker-menu > button, .quote-themed-select-menu > button):focus-visible {
+  outline: 2px solid var(--dropdown-focus);
+  outline-offset: -2px;
+}
+body:has(.app-layout) .ant-select-item-option-state { color: var(--dropdown-accent); }
+body:has(.app-layout) select option { background: var(--dropdown-surface); color: var(--dropdown-text); }
+body:has(.app-layout) select option:checked { background: var(--dropdown-selected); color: var(--dropdown-accent); }

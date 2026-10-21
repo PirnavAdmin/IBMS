@@ -28,13 +28,18 @@ import {
   LockOutlined,
   Visibility,
   VisibilityOff,
-  SendOutlined,
   VpnKeyOutlined,
   LockResetOutlined,
+  ErrorOutline,
+  SendOutlined,
+  EditOutlined,
+  VerifiedUserOutlined,
 } from '@mui/icons-material';
 
 import { authApi } from 'billing-api-client';
 import { OtpInputGroup } from '../../components/OtpInputGroup';
+import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
+import { workEmailSchema } from '../../utils/authValidation';
 
 import '../../styles/Login.css';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
@@ -51,11 +56,7 @@ import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 
 const loginSchema = yup
   .object({
-    email: yup
-      .string()
-      .trim()
-      .email('Please enter a valid work email')
-      .required('Work email is required'),
+    email: workEmailSchema(),
 
     password: yup
       .string()
@@ -83,7 +84,7 @@ export const Login = () => {
   // ==========================================================
 
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'Your session has timed out. Please log in again.' : null);
 
   // ==========================================================
@@ -147,7 +148,7 @@ export const Login = () => {
       password: '',
     },
 
-    mode: 'onTouched',
+    mode: 'onChange',
   });
 
   const openRegister = (event) => {
@@ -784,7 +785,7 @@ export const Login = () => {
       <Box className="billing-auth-form-side">
 
         <div className="login-form-stack">
-          {authStep !== 'login' && (
+          {authStep === 'reset' && (
             <button
               type="button"
               onClick={() => {
@@ -807,16 +808,16 @@ export const Login = () => {
                 : 'Back to sign in'}
             </button>
           )}
-        <div className="billing-auth-card">
+        <div className={`billing-auth-card ${authStep === 'login' ? 'billing-login-card' : authStep === 'forgot' ? 'billing-recovery-card' : authStep === 'otp' ? 'billing-otp-card' : ''}`}>
 
           {/* ==================================================
               CARD ICON
           ================================================== */}
 
-          <div className={`billing-auth-card-badge ${authStep === 'login' ? 'billing-auth-logo-badge' : ''}`}>
+          <div className={`billing-auth-card-badge ${authStep === 'login' ? 'billing-login-lock-badge' : ''}`}>
 
             {authStep === 'login' && (
-              <InvoiceBillingLogo tone="auth" size={20} />
+              <LockOutlined aria-hidden="true" />
             )}
 
             {authStep === 'forgot' && (
@@ -863,7 +864,7 @@ export const Login = () => {
             className="billing-auth-form-title"
           >
             {authStep === 'login' &&
-              'Welcome back'}
+              'Welcome Back!'}
 
             {authStep === 'forgot' &&
               'Reset password'}
@@ -970,13 +971,14 @@ export const Login = () => {
                     className="billing-auth-input-label"
                     htmlFor="email"
                   >
-                    Work email
+                    Work email<span className="billing-auth-required" aria-hidden="true"> *</span>
                   </label>
 
                   <TextField
                     fullWidth
                     size="small"
                     id="email"
+                    required
                     type="email"
                     placeholder="name@company.com"
                     autoComplete="email"
@@ -984,8 +986,10 @@ export const Login = () => {
                     {...register('email')}
                     error={Boolean(errors.email)}
                     helperText={errors.email?.message}
+                    FormHelperTextProps={{ role: errors.email ? 'alert' : undefined }}
                     className="billing-auth-input"
                     InputProps={{
+                      endAdornment: errors.email ? <InputAdornment position="end"><ErrorOutline className="billing-auth-field-warning" aria-hidden="true" fontSize="small" /></InputAdornment> : undefined,
                       startAdornment: (
                         <InputAdornment position="start">
                           <MailOutline
@@ -1009,18 +1013,15 @@ export const Login = () => {
                     className="billing-auth-input-label"
                     htmlFor="password"
                   >
-                    Password
+                    Password<span className="billing-auth-required" aria-hidden="true"> *</span>
                   </label>
 
                   <TextField
                     fullWidth
                     size="small"
                     id="password"
-                    type={
-                      showPassword
-                        ? 'text'
-                        : 'password'
-                    }
+                    required
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     disabled={isSubmitting}
@@ -1043,29 +1044,7 @@ export const Login = () => {
                       endAdornment: (
                         <InputAdornment position="end">
 
-                          <IconButton
-                            type="button"
-                            onClick={() =>
-                              setShowPassword(
-                                (current) => !current
-                              )
-                            }
-                            edge="end"
-                            size="small"
-                            sx={{
-                              color: '#7D6E66',
-                            }}
-                          >
-                            {showPassword ? (
-                              <VisibilityOff
-                                fontSize="small"
-                              />
-                            ) : (
-                              <Visibility
-                                fontSize="small"
-                              />
-                            )}
-                          </IconButton>
+                          <PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword(current => !current)} inputId="password" disabled={isSubmitting} />
 
                         </InputAdornment>
                       ),
@@ -1079,6 +1058,7 @@ export const Login = () => {
                 <div className="billing-auth-options-row">
 
                   <FormControlLabel
+                    className="billing-auth-remember-control"
                     control={
                       <Checkbox
                         checked={rememberMe}
@@ -1100,7 +1080,7 @@ export const Login = () => {
                     }
                     label={
                       <span className="billing-auth-remember-label">
-                        Remember me 
+                        Remember me
                       </span>
                     }
                     sx={{
@@ -1175,7 +1155,7 @@ export const Login = () => {
                     className="billing-auth-input-label"
                     htmlFor="forgot-email"
                   >
-                    Work email
+                    Work email<span className="billing-auth-required" aria-hidden="true"> *</span>
                   </label>
 
                   <TextField
@@ -1209,6 +1189,8 @@ export const Login = () => {
 
                 </Box>
 
+                <div className="billing-auth-recovery-nav"><RouterLink to="/login" onClick={event => { event.preventDefault(); setRecoveryError(null); setRecoverySuccess(null); setAuthStep('login'); }}>Back to Login</RouterLink></div>
+
                 <Button
                   type="submit"
                   fullWidth
@@ -1218,15 +1200,7 @@ export const Login = () => {
                     !forgotEmail.trim()
                   }
                   className="billing-auth-submit-btn"
-                  endIcon={
-                    !recoveryLoading && (
-                      <SendOutlined
-                        sx={{
-                          fontSize: 16,
-                        }}
-                      />
-                    )
-                  }
+                  endIcon={!recoveryLoading && <SendOutlined fontSize="small" />}
                   sx={{
                     mt: 1,
                   }}
@@ -1237,7 +1211,7 @@ export const Login = () => {
                       color="inherit"
                     />
                   ) : (
-                    'Send recovery OTP →'
+                    'Send OTP'
                   )}
                 </Button>
 
@@ -1263,6 +1237,8 @@ export const Login = () => {
                 disabled={recoveryLoading}
                 autoFocus
               />
+
+              <div className="billing-auth-recovery-nav"><Button type="button" startIcon={<EditOutlined fontSize="small" />} disabled={recoveryLoading} onClick={() => { setRecoveryError(null); setRecoverySuccess(null); setAuthStep('forgot'); }}>Change email</Button></div>
 
               <div className="otp-timer-row">
 
@@ -1295,6 +1271,7 @@ export const Login = () => {
                   otp.join('').trim().length < 6
                 }
                 className="billing-auth-submit-btn"
+                endIcon={!recoveryLoading && <VerifiedUserOutlined fontSize="small" />}
               >
                 {recoveryLoading ? (
                   <CircularProgress
@@ -1302,7 +1279,7 @@ export const Login = () => {
                     color="inherit"
                   />
                 ) : (
-                  'Verify code →'
+                  'Verify code'
                 )}
               </Button>
 
@@ -1369,6 +1346,9 @@ export const Login = () => {
 
                           <IconButton
                             type="button"
+                            aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                            aria-pressed={showNewPassword}
+                            onMouseDown={event => event.preventDefault()}
                             onClick={() =>
                               setShowNewPassword(
                                 (current) => !current
@@ -1444,6 +1424,9 @@ export const Login = () => {
 
                           <IconButton
                             type="button"
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-pressed={showConfirmPassword}
+                            onMouseDown={event => event.preventDefault()}
                             onClick={() =>
                               setShowConfirmPassword(
                                 (current) => !current

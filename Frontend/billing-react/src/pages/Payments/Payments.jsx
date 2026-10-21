@@ -1,30 +1,112 @@
+import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { useState } from 'react';
-import { Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
-import { Add, Refresh } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
-import { PaymentShell, PaymentState, usePaymentRequest } from './PaymentShared';
-import { paymentService } from './paymentService';
+import { Button, IconButton, InputAdornment, Pagination, MenuItem, Menu, ListItemIcon, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
+import { Add, Refresh, Search, VisibilityOutlined, UndoOutlined, ReceiptLongOutlined, LocalPrintshopOutlined, MoreVert } from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchCommit } from '../../hooks/useSearchDebounce';
+import { PaymentShell, PaymentState, PaymentStatus, usePaymentUser } from './PaymentShared';
+import { paymentService, PAYMENT_METHODS, PAYMENT_STATUSES, methodLabel, money, displayDate, paymentError } from './paymentService';
+import { PaymentReversal } from './PaymentReversal';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from './paymentReports';
+
+const columns = [['paymentNumber','Payment Number / ID'],['paymentDate','Date'],['','Customer'],['','Invoice'],['method','Method'],['amount','Amount'],['','Allocated'],['status','Status'],['','Actions']];
+
+const PaymentRowActions = ({ payment: p, user, onReverse }) => {
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState(null);
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
+  const printReceipt = async () => {
+    if (printing) return;
+    handleClose(); setPrinting(true); setPrintError('');
+    try { printPaymentDocument(buildPaymentReceiptReport(await paymentService.getPaymentById(p.id))); }
+    catch (error) { setPrintError(paymentError(error)); }
+    finally { setPrinting(false); }
+  };
+  const open = Boolean(anchor);
+  const handleOpen = event => setAnchor(event.currentTarget);
+  const handleClose = () => setAnchor(null);
+
+  return (
+    <div className="payment-row-actions"><FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity="error" />
+      <IconButton
+        className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={open}
+        aria-label={`Actions for payment ${p.paymentNumber || p.id}`}
+
+        size="small"
+        onClick={handleOpen} disabled={printing}
+      >
+        <MoreVert fontSize="small" />
+      </IconButton>
+      <Menu
+        anchorEl={anchor}
+        open={open}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{ className: 'payment-actions-menu ibms-row-actions-menu' }}
+      >
+        <MenuItem onClick={() => { handleClose(); navigate(`/payments/${encodeURIComponent(p.id)}`); }}>
+          <ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>
+          View Details
+        </MenuItem>
+        <MenuItem onClick={printReceipt} disabled={printing}>
+          <ListItemIcon><LocalPrintshopOutlined fontSize="small" /></ListItemIcon>
+          Print Receipt
+        </MenuItem>
+        {p.isReversible && p.status !== 'Reversed' && user.permissions.reverse && (
+          <MenuItem className="is-destructive" onClick={() => { handleClose(); onReverse(p); }}>
+            <ListItemIcon><UndoOutlined fontSize="small" /></ListItemIcon>
+            Reverse Payment
+          </MenuItem>
+        )}
+      </Menu>
+    </div>
+  );
+};
 
 export const Payments = () => {
-  const [filters, setFilters] = useState({ search: '', status: '', method: '', from: '', to: '' });
-  const [pageSize, setPageSize] = useState(10);
-  const request = usePaymentRequest();
-  const change = key => event => setFilters(previous => ({ ...previous, [key]: event.target.value }));
-  const dateError = filters.from && filters.to && filters.from > filters.to;
-  const refresh = () => request.run(() => paymentService.getPayments({ ...filters, pageSize, page: 1 }));
-  return <PaymentShell title="Payment Management" actions={<><Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button><Button onClick={refresh} disabled={request.loading || Boolean(dateError)} startIcon={<Refresh />}>Refresh</Button></>}>
+  const [filters, setFilters] = useState({ search: '', status: '', method: '', from: '', to: '', pageSize: 10, pageNumber: 1, sortBy: 'createdAtUtc', sortOrder: 'desc' });
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
+  const [search, setSearch] = useState(''); const [reverse, setReverse] = useState(null);
+  const user = usePaymentUser();
+  useSearchCommit(search, value => setFilters(previous => ({ ...previous, search: value, pageNumber: 1 })));
+  const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));
+  const dateError = Boolean(filters.from && filters.to && filters.from > filters.to);
+  const query = useQuery({ queryKey: ['payments', 'list', filters], queryFn: ({ signal }) => paymentService.getPayments(filters, { signal }), enabled: !dateError, retry: false });
+  const loadError = query.error || user.error;
+  const items = dateError ? [] : query.data?.items || [];
+  const printList = async () => {
+    if (printing) return;
+    setPrinting(true); setPrintError('');
+    try { printPaymentDocument(buildPaymentListReport(await getPaymentReportRows(filters))); }
+    catch (error) { setPrintError(error.message || 'Unable to prepare the payments report.'); }
+    finally { setPrinting(false); }
+  };
+  return <PaymentShell title="Payment Management" actions={<>{user.permissions.create && <Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button>}<Button aria-label="Refresh payments" variant="outlined"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label="Print all filtered payments" variant="outlined"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button></>}>
+    <FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity="error" />
     <section className="payment-panel payment-filters" aria-label="Payment filters">
-      <TextField label="Search payments" placeholder="Payment number, invoice, customer or method" value={filters.search} onChange={change('search')} />
-      <TextField select disabled label="Status" value="" SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }}><MenuItem value="">Awaiting backend options</MenuItem></TextField>
-      <TextField select disabled label="Payment Method" value="" SelectProps={{ displayEmpty: true }} InputLabelProps={{ shrink: true }}><MenuItem value="">Awaiting backend options</MenuItem></TextField>
-      <TextField type="date" label="From Date" InputLabelProps={{ shrink: true }} value={filters.from} onChange={change('from')} />
-      <TextField type="date" label="To Date" InputLabelProps={{ shrink: true }} value={filters.to} onChange={change('to')} error={Boolean(dateError)} helperText={dateError ? 'To Date must be on or after From Date.' : ''} />
+      <TextField size="small" className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} label="Search payments" placeholder="Payment number, invoice or customer" value={search} onChange={event => setSearch(event.target.value)} />
+      <TextField size="small" select label="Status" value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>
+      <TextField size="small" select label="Payment Method" value={filters.method} onChange={event => change({ method: event.target.value })}><MenuItem value="">All methods</MenuItem>{PAYMENT_METHODS.map(method => <MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</TextField>
+      <div className="payment-filter-actions"><DateRangeFilter startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => change({ from: startDate, to: endDate })} />
+      <Button className="payment-clear" variant="outlined" onClick={() => { setSearch(''); change({ search: '', status: '', method: '', from: '', to: '', sortBy: 'createdAtUtc', sortOrder: 'desc' }); }}>Clear Filters</Button></div>
     </section>
-    <PaymentState {...request} onRetry={refresh} />
-    <section className="payment-panel"><TableContainer><Table aria-label="Payments"><TableHead><TableRow>{['Payment Number / ID', 'Date', 'Customer', 'Invoice', 'Method', 'Amount', 'Allocated', 'Status', 'Actions'].map(label => <TableCell key={label} align={['Amount', 'Allocated'].includes(label) ? 'right' : 'left'}>{label}</TableCell>)}</TableRow></TableHead>
-      <TableBody><TableRow><TableCell colSpan={9}><div className="payments-state">{request.loading ? 'Loading payments...' : 'No payments available. Payment integration is pending.'}</div></TableCell></TableRow></TableBody></Table></TableContainer>
-      <footer className="payment-actions"><TextField select size="small" label="Rows per page" value={pageSize} onChange={event => setPageSize(Number(event.target.value))}>{[5, 10, 20, 50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField><Button disabled>Previous</Button><Button disabled>Next</Button></footer>
-    </section>
+    <section className="payment-panel payment-table-card"><header className="payment-card-heading"><div><h2>Payments</h2><p>All recorded customer payments</p></div>{query.data?.totalCount > 0 && <span className="payment-count">{query.data.totalCount} payments</span>}</header>
+      {query.isFetching && !dateError && <PaymentState loading />}
+      <TableContainer className="ibms-table-frame payment-list-table" tabIndex={0} role="region" aria-label="Payments table"><Table aria-label="Payments"><TableHead><TableRow>{columns.map(([key,label]) => <TableCell key={label} align="left" sortDirection={filters.sortBy === key ? filters.sortOrder : false}>{key ? <TableSortLabel active={filters.sortBy === key} direction={filters.sortBy === key ? filters.sortOrder : 'asc'} onClick={() => change({ sortBy: key, sortOrder: filters.sortBy === key && filters.sortOrder === 'asc' ? 'desc' : 'asc' })}>{label}</TableSortLabel> : label}</TableCell>)}</TableRow></TableHead>
+      <TableBody>
+      {loadError && !dateError && <TableRow><TableCell colSpan={columns.length}><PaymentState error={loadError} onRetry={() => { user.refetch(); query.refetch(); }} /></TableCell></TableRow>}
+      {items.map(p => <TableRow key={p.id} hover><TableCell className="payment-number">{p.paymentNumber || p.id}</TableCell><TableCell>{displayDate(p.paymentDate)}</TableCell><TableCell>{p.customerName}</TableCell><TableCell>{p.invoiceDisplay}</TableCell><TableCell>{p.methodDisplay}</TableCell><TableCell className="payment-amount" align="left">{money(p.amount,p.currency)}</TableCell><TableCell className="payment-amount" align="left">{money(p.allocatedAmount,p.currency)}</TableCell><TableCell align="left"><PaymentStatus status={p.status} /></TableCell><TableCell align="left"><PaymentRowActions payment={p} user={user} onReverse={setReverse} /></TableCell></TableRow>)}
+      {!items.length && (dateError || !loadError) && <TableRow><TableCell colSpan={columns.length}><div className="payments-state">{dateError ? 'Choose a valid date range.' : query.isFetching ? 'Loading payments...' : <><ReceiptLongOutlined className="payment-empty-icon" /><strong>No payments found</strong><p>Recorded payments will appear here.</p></>}</div></TableCell></TableRow>}</TableBody></Table></TableContainer>
+      {query.data && <footer className="payment-pagination"><span>Showing {items.length ? (query.data.pageNumber - 1) * query.data.pageSize + 1 : 0}&ndash;{items.length ? (query.data.pageNumber - 1) * query.data.pageSize + items.length : 0} of {query.data.totalCount} payments</span><div className="payment-pagination-controls">
+        <TextField select size="small" label="Rows per page" value={filters.pageSize} onChange={event => change({ pageSize: Number(event.target.value) })}>{[5,10,20,50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField>
+        <Pagination count={Math.max(1, Math.ceil(query.data.totalCount / query.data.pageSize))} page={filters.pageNumber} disabled={query.isFetching || dateError} onChange={(_, pageNumber) => setFilters(previous => ({ ...previous, pageNumber }))} shape="rounded" siblingCount={0} />
+      </div></footer>}
+    </section><PaymentReversal open={Boolean(reverse)} onClose={() => setReverse(null)} paymentId={reverse?.id} />
   </PaymentShell>;
 };
 export default Payments;

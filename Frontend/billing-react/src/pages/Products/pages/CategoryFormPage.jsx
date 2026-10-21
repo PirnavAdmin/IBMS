@@ -1,3 +1,4 @@
+import { ProductSelect } from '../components/ProductSelect';
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,12 +8,15 @@ import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog
 import '../styles/products.css';
 import '../styles/product-form.css';
 import '../styles/categories.css';
+import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 
 function CategoryForm({ category, categories }) {
+  const draftKey = `category:${category?.id || 'new'}`;
+  const draft = useFormDraft(draftKey);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
-  const [values, setValues] = useState(category || { name: '', description: '', status: 'Active' });
+  const [values, setValues] = useDraftState(draftKey, 'values', category || { name: '', description: '', status: 'Active' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(false);
@@ -26,6 +30,7 @@ function CategoryForm({ category, categories }) {
     setError('');
     try {
       await categoryService.save(values, category?.id, categories);
+      draft.clear();
       await invalidateCategories(queryClient);
       navigate('/products/categories', { replace: true, state: { categoryNotice: `Category "${values.name.trim()}" ${category ? 'updated' : 'created'} successfully.` } });
     } catch (err) { setConfirm(false); setError(categoryError(err, 'Unable to save category. Please try again.')); }
@@ -44,11 +49,11 @@ function CategoryForm({ category, categories }) {
       <div className="product-form-section"><h2 className="product-section-title">Category Information</h2>
         <div className="product-form-grid">
           <div className="product-form-field"><label htmlFor="category-name" className="product-field-label">Category Name <span className="product-field-required">*</span></label><input disabled={busy} autoFocus id="category-name" name="name" className={`product-input ${error ? 'has-error' : ''}`} value={values.name} onChange={change} maxLength={128} required aria-invalid={Boolean(error)} aria-describedby={error ? 'category-error' : undefined} />{error && <span id="category-error" className="product-field-error" role="alert">{error}</span>}</div>
-          <div className="product-form-field"><label htmlFor="category-status" className="product-field-label">Status</label><select disabled={busy} id="category-status" name="status" className="product-select" value={values.status} onChange={change}><option>Active</option><option>Inactive</option></select></div>
+          <div className="product-form-field"><label htmlFor="category-status" className="product-field-label">Status</label><ProductSelect disabled={busy} id="category-status" name="status" ariaLabel="Status" value={values.status} onChange={change} options={["Active", "Inactive"].map(value => ({ value, label: value }))} /></div>
           <div className="product-form-field product-form-full"><label htmlFor="category-description" className="product-field-label">Description</label><textarea disabled={busy} id="category-description" name="description" className="product-textarea" rows={4} value={values.description} onChange={change} /></div>
         </div>
       </div>
-      <div className="category-form-actions"><Button disabled={busy} component={Link} to="/products/categories" variant="outlined">Cancel</Button><Button disabled={busy} type="submit" variant="contained">{busy ? 'Saving...' : category ? 'Save Changes' : 'Save Category'}</Button></div>
+      <div className="category-form-actions"><Button disabled={busy} component={Link} to="/products/categories" onClick={() => draft.clear()} variant="outlined">Cancel</Button><Button disabled={busy} type="submit" variant="contained">{busy ? 'Saving...' : category ? 'Save Changes' : 'Save Category'}</Button></div>
     </form>
     <DeactivateCategoryDialog busy={busy} open={confirm} activating={values.status === 'Active'} onClose={() => setConfirm(false)} onConfirm={save} />
   </div>;

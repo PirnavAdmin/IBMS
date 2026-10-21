@@ -1,3 +1,4 @@
+import { printCustomerDetails } from '../utils/customerReports';
 import { useEffect, useRef } from "react";
 import { InactivityReason } from "../components/CustomerCardDetails";
 import { Breadcrumbs, Button, Link, Tab, Tabs } from "@mui/material";
@@ -128,8 +129,7 @@ export function CustomerDetailsPage() {
               </Button>
               <Button
                 variant="outlined"
-                component={RouterLink}
-                to={`/customers/${encodeURIComponent(customerId)}/print`}
+                onClick={() => printCustomerDetails(query.data)} disabled={!query.data || query.isFetching}
                 startIcon={<PrintOutlined />}
               >
                 Print Details

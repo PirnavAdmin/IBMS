@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { hasRecognizedEmailDomain, hasExcessiveNameRepetition } from '../../../utils/authValidation.js';
 
 function parsePhoneNumberFromString(value) {
   const text = String(value || '').trim();
@@ -18,7 +19,7 @@ function parsePhoneNumberFromString(value) {
   };
 }
 
-const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
 const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
 const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
@@ -37,6 +38,26 @@ export const COUNTRY_PHONE_CONFIG = {
   '+33': { country: 'France', code: 'FR', min: 9, max: 9, example: '6 12 34 56 78', label: '9 digits' },
   '+81': { country: 'Japan', code: 'JP', min: 10, max: 10, example: '90 1234 5678', label: '10 digits' },
   '+966': { country: 'Saudi Arabia', code: 'SA', min: 9, max: 9, example: '50 123 4567', label: '9 digits' },
+  '+64': { country: 'New Zealand', code: 'NZ', min: 9, max: 10, example: '21 123 4567', label: '9-10 digits' },
+  '+27': { country: 'South Africa', code: 'ZA', min: 9, max: 9, example: '71 123 4567', label: '9 digits' },
+  '+353': { country: 'Ireland', code: 'IE', min: 9, max: 9, example: '85 123 4567', label: '9 digits' },
+  '+39': { country: 'Italy', code: 'IT', min: 9, max: 10, example: '312 345 6789', label: '9-10 digits' },
+  '+34': { country: 'Spain', code: 'ES', min: 9, max: 9, example: '612 345 678', label: '9 digits' },
+  '+31': { country: 'Netherlands', code: 'NL', min: 9, max: 9, example: '6 12345678', label: '9 digits' },
+  '+41': { country: 'Switzerland', code: 'CH', min: 9, max: 9, example: '78 123 4567', label: '9 digits' },
+  '+46': { country: 'Sweden', code: 'SE', min: 9, max: 9, example: '70 123 4567', label: '9 digits' },
+  '+47': { country: 'Norway', code: 'NO', min: 8, max: 8, example: '412 34 567', label: '8 digits' },
+  '+45': { country: 'Denmark', code: 'DK', min: 8, max: 8, example: '20 12 34 56', label: '8 digits' },
+  '+60': { country: 'Malaysia', code: 'MY', min: 9, max: 10, example: '12 345 6789', label: '9-10 digits' },
+  '+62': { country: 'Indonesia', code: 'ID', min: 9, max: 12, example: '812 3456 7890', label: '9-12 digits' },
+  '+63': { country: 'Philippines', code: 'PH', min: 10, max: 10, example: '917 123 4567', label: '10 digits' },
+  '+66': { country: 'Thailand', code: 'TH', min: 9, max: 9, example: '81 234 5678', label: '9 digits' },
+  '+55': { country: 'Brazil', code: 'BR', min: 10, max: 11, example: '11 91234 5678', label: '10-11 digits' },
+  '+52': { country: 'Mexico', code: 'MX', min: 10, max: 10, example: '55 1234 5678', label: '10 digits' },
+  '+974': { country: 'Qatar', code: 'QA', min: 8, max: 8, example: '3312 3456', label: '8 digits' },
+  '+965': { country: 'Kuwait', code: 'KW', min: 8, max: 8, example: '9123 4567', label: '8 digits' },
+  '+86': { country: 'China', code: 'CN', min: 11, max: 11, example: '138 0013 8000', label: '11 digits' },
+  '+82': { country: 'South Korea', code: 'KR', min: 9, max: 10, example: '10 1234 5678', label: '9-10 digits' },
 };
 
 export const customerValidationSchema = yup.object({
@@ -44,9 +65,21 @@ export const customerValidationSchema = yup.object({
   name: yup
     .string()
     .trim()
-    .required('Contact / Customer name is required')
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Customer name must not exceed 100 characters'),
+    .required('Customer name is required')
+    .min(2, 'Customer name must be at least 2 characters')
+    .max(100, 'Customer name must not exceed 100 characters')
+    .test('no-numbers', 'Customer name must not contain numbers', (val) => {
+      if (!val) return true;
+      return !/\d/.test(val);
+    })
+    .matches(
+      /^[\p{L}\p{M}][\p{L}\p{M}\s.'’ʼ\-&,]*$/u,
+      'Customer name should contain only alphabetic characters and valid special characters'
+    )
+    .test('name-repetition', 'Customer name contains invalid repeated characters', (val) => {
+      if (!val) return true;
+      return !hasExcessiveNameRepetition(val);
+    }),
   customerCode: yup
     .string()
     .trim()
@@ -76,18 +109,30 @@ export const customerValidationSchema = yup.object({
     })
     .oneOf(['business', 'individual', 'organization'])
     .default('business'),
+  customerCategory: yup
+    .string()
+    .nullable()
+    .default('Enterprise'),
 
   // 2. Contact Information
   email: yup
     .string()
     .trim()
     .required('Email address is required')
+    .max(256, 'Email must not exceed 256 characters')
     .matches(EMAIL_REGEX, 'Enter a valid email address')
-    .max(256, 'Email must not exceed 256 characters'),
+    .test(
+      'recognized-email-domain',
+      'Enter a valid email address with a valid domain',
+      (val) => {
+        if (!val || val.trim() === '') return true;
+        return hasRecognizedEmailDomain(val.trim());
+      }
+    ),
   phoneCountryCode: yup
     .string()
     .trim()
-    .default('+91'),
+    .default(''),
   phone: yup
     .string()
     .trim()
@@ -98,8 +143,8 @@ export const customerValidationSchema = yup.object({
     })
     .test('phone-length', 'Enter a complete phone number', function (val) {
       if (!val) return true;
-      const code = this.parent.phoneCountryCode || '+91';
-      const config = COUNTRY_PHONE_CONFIG[code];
+      const code = this.parent.phoneCountryCode;
+      const config = code ? COUNTRY_PHONE_CONFIG[code] : null;
       const digits = val.length;
 
       if (code === '+91') {
@@ -141,13 +186,20 @@ export const customerValidationSchema = yup.object({
   // 3. Tax Information
   taxRegistrationType: yup
     .string()
+    .trim()
     .required('Tax registration status is required')
-    .oneOf(['gst', 'pan', 'non-gst'])
-    .default('gst'),
-  taxId: yup
+    .oneOf(['gst', 'non-gst', 'pan'], 'Please select a valid tax registration status'),
+  pan: yup
     .string()
     .trim()
-    .max(64, 'Tax ID must not exceed 64 characters')
+    .required('PAN is required')
+    .test('pan-format', 'Enter a valid 10-character PAN (e.g. ABCDE1234F)', (val) => {
+      if (!val || val.trim() === '') return false;
+      return PAN_REGEX.test(val.trim().toUpperCase());
+    }),
+  gstin: yup
+    .string()
+    .trim()
     .when('taxRegistrationType', ([type], schema) => {
       if (type === 'gst') {
         return schema
@@ -157,21 +209,14 @@ export const customerValidationSchema = yup.object({
             return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(val.trim());
           });
       }
-      if (type === 'pan') {
-        return schema
-          .required('PAN is required')
-          .test('pan-format', 'Enter a valid 10-character PAN (e.g. ABCDE1234F)', (val) => {
-            if (!val || val.trim() === '') return false;
-            return PAN_REGEX.test(val.trim());
-          });
-      }
-      return schema
-        .test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
-          if (!val || val.trim() === '') return true;
-          return TAX_ID_REGEX.test(val.trim());
-        })
-        .nullable();
+      return schema.nullable();
     })
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+  taxId: yup
+    .string()
+    .trim()
+    .max(64, 'Tax ID must not exceed 64 characters')
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
 
@@ -213,8 +258,7 @@ export const customerValidationSchema = yup.object({
       .string()
       .trim()
       .required('Billing country is required')
-      .max(128, 'Country must not exceed 128 characters')
-      .default('India'),
+      .max(128, 'Country must not exceed 128 characters'),
   }).required(),
 
   // 5. Shipping Address
@@ -259,8 +303,7 @@ export const customerValidationSchema = yup.object({
           .string()
           .trim()
           .required('Shipping country is required')
-          .max(128, 'Country must not exceed 128 characters')
-          .default('India'),
+          .max(128, 'Country must not exceed 128 characters'),
       }),
     otherwise: (schema) => schema.notRequired(),
   }),
@@ -269,8 +312,8 @@ export const customerValidationSchema = yup.object({
   currency: yup
     .string()
     .trim()
-    .max(10, 'Currency code must not exceed 10 characters')
-    .default('INR'),
+    .required('Currency is required')
+    .max(10, 'Currency code must not exceed 10 characters'),
   paymentTerms: yup
     .string()
     .trim()
@@ -302,17 +345,19 @@ export const DEFAULT_CUSTOMER_VALUES = {
   name: '',
   customerCode: '',
   customerType: 'business',
+  customerCategory: 'Enterprise',
   companyName: '',
   status: 'Active',
   email: '',
-  phoneCountryCode: '+91',
+  phoneCountryCode: '',
   phone: '',
   website: '',
-  taxRegistrationType: 'gst',
-  taxId: '',
+  taxRegistrationType: '',
+  pan: '',
   gstin: '',
-  currency: 'INR',
-  paymentTerms: 'Net 30',
+  taxId: '',
+  currency: '',
+  paymentTerms: '',
   creditLimit: '',
   openingBalance: '',
   notes: '',
@@ -323,7 +368,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
     city: '',
     state: '',
     postalCode: '',
-    country: 'India',
+    country: '',
   },
   shippingAddress: {
     street: '',
@@ -331,15 +376,15 @@ export const DEFAULT_CUSTOMER_VALUES = {
     city: '',
     state: '',
     postalCode: '',
-    country: 'India',
+    country: '',
   },
 };
 
 export const STEP_FIELDS = {
-  0: ['name', 'customerCode', 'companyName', 'customerType', 'status'],
+  0: ['name', 'customerCode', 'companyName', 'customerType', 'status', 'currency'],
   1: ['email', 'phoneCountryCode', 'phone', 'website'],
-  2: ['taxRegistrationType', 'taxId', 'currency', 'paymentTerms', 'creditLimit', 'openingBalance'],
-  3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling', 'shippingAddress.street', 'shippingAddress.city', 'shippingAddress.state', 'shippingAddress.postalCode', 'shippingAddress.country'],
+  2: ['taxRegistrationType', 'pan', 'gstin', 'paymentTerms', 'openingBalance'],
+  3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling'],
   4: ['notes'],
 };
 

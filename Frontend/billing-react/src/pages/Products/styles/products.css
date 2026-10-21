@@ -91,39 +91,51 @@
 
 .product-heading .product-row-actions { flex-wrap: wrap; }
 
-/* Scope both native selects and MUI's portaled menus to the catalog. */
-.product-page .product-select,
+/* Shared catalog controls and their portaled menus. */
 .product-page .MuiInputBase-root:has(.MuiSelect-select),
-.product-select-menu.MuiPaper-root {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
+.product-form-container .product-themed-select,
+.product-select-menu.MuiPaper-root,
+.product-actions-menu.MuiPaper-root {
+  background: var(--bg-main, #fffaf2);
+  color: var(--text-primary, #2f2523);
   border-radius: 8px;
 }
-.product-page .product-select { border-color: var(--border); }
-.product-page .product-select option {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-}
-.product-page .product-select:focus { border-color: var(--secondary); }
-.product-page .product-select option:checked,
-.product-page .product-select option:hover,
-.product-select-menu .MuiMenuItem-root.Mui-selected,
-.product-select-menu .MuiMenuItem-root.Mui-selected:hover,
+.product-themed-select .MuiSelect-select { font-size: 13.5px; padding: 10px 14px; }
+.product-page .MuiOutlinedInput-notchedOutline,
+.product-form-container .product-themed-select .MuiOutlinedInput-notchedOutline { border-color: var(--border, #dcd1c6); }
+.product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.product-form-container .product-themed-select.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: var(--secondary, #8d6e63); }
+.product-form-container .product-themed-select.Mui-focused { box-shadow: 0 0 0 3px #8d6e6324; }
+.product-form-container .product-themed-select.Mui-error .MuiOutlinedInput-notchedOutline { border-color: #b33927; }
+.product-select-menu.MuiPaper-root,
+.product-actions-menu.MuiPaper-root { border: 1px solid var(--border, #dcd1c6); box-shadow: var(--shadow-card, 0 6px 20px #4a2c2a22); }
+.product-select-menu .MuiMenuItem-root,
+.product-actions-menu .MuiMenuItem-root { transition: background-color 180ms ease; font-size: 13.5px; }
 .product-select-menu .MuiMenuItem-root:hover,
-.product-select-menu .MuiMenuItem-root.Mui-focusVisible {
-  background-color: var(--border);
-  color: var(--primary);
-}
-.product-select-menu.MuiPaper-root { border: 1px solid var(--border); box-shadow: var(--shadow-card); }
-.product-select-menu .MuiMenuItem-root.Mui-focusVisible { outline: 2px solid var(--secondary); outline-offset: -2px; }
-.product-page .product-select:disabled,
-.product-page .product-select option:disabled { color: var(--text-secondary); }
-
-/* Native popup painting remains browser/OS controlled where option CSS is ignored. */
-.product-page .product-select option:checked,
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible,
+.product-actions-menu .MuiMenuItem-root:hover,
+.product-actions-menu .MuiMenuItem-root.Mui-focusVisible { background: #eadcc9; }
 .product-select-menu .MuiMenuItem-root.Mui-selected,
 .product-select-menu .MuiMenuItem-root.Mui-selected:hover,
-.product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible {
-  background-color: var(--primary);
-  color: var(--surface);
+.product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible { background: var(--primary, #4a2c2a); color: #fff; }
+.product-select-menu .MuiMenuItem-root.Mui-focusVisible,
+.product-actions-menu .MuiMenuItem-root.Mui-focusVisible { outline: 2px solid var(--secondary, #8d6e63); outline-offset: -2px; }
+.product-actions-menu .MuiMenuItem-root { color: var(--text-primary, #2f2523); min-width: 140px; }
+.product-actions-menu .MuiListItemIcon-root { color: var(--primary, #4a2c2a); }
+.product-page .product-table .MuiTableRow-hover:hover { background: #f1e5d4; }
+.product-page .product-summary-card { transition: background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; }
+.product-page .product-summary-card:hover { background: #f1e5d4; border-color: #c5a98a; box-shadow: 0 4px 12px #4a2c2a16; }
+.product-page .MuiButton-root,
+.product-page .MuiIconButton-root,
+.product-form-container .MuiButton-root,
+.product-form-container .product-themed-select { transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.product-page .MuiButton-text:hover,
+.product-page .MuiButton-outlined:hover,
+.product-page .product-action-overflow:hover,
+.product-form-container .MuiButton-outlined:hover,
+.product-form-container .product-themed-select:not(.Mui-disabled):hover { background: #eadcc9; border-color: #bfa58b; }
+.product-page .product-action-overflow { color: var(--primary, #4a2c2a); }
+.product-page .product-name:hover { background: #eadcc9; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .product-select-menu *, .product-actions-menu *, .product-form-container * { transition: none !important; }
 }

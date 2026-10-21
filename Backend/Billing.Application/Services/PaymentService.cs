@@ -38,6 +38,8 @@ public class PaymentService : IPaymentService
     private readonly INumberGenerationService _numberGenerationService;
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOutboxService? _outboxService;
+    private readonly INotificationService? _notificationService;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -45,7 +47,9 @@ public class PaymentService : IPaymentService
         ICustomerRepository customerRepository,
         INumberGenerationService numberGenerationService,
         IAuditLogRepository auditLogRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IOutboxService? outboxService = null,
+        INotificationService? notificationService = null)
     {
         _paymentRepository = paymentRepository;
         _invoiceRepository = invoiceRepository;
@@ -53,6 +57,8 @@ public class PaymentService : IPaymentService
         _numberGenerationService = numberGenerationService;
         _auditLogRepository = auditLogRepository;
         _unitOfWork = unitOfWork;
+        _outboxService = outboxService;
+        _notificationService = notificationService;
     }
 
     public async Task<PaymentOperationResult<PaymentDetailDto>> CreatePaymentAsync(
@@ -403,7 +409,40 @@ public class PaymentService : IPaymentService
                     Changes = statusEventPayload
                 });
 
+                if (_outboxService != null)
+                {
+                    var eventType = savedPayment.Status == PaymentStatus.Completed ? "payment.received" : "payment.created";
+                    await _outboxService.PublishEventAsync(tenantId, eventType, new
+                    {
+                        PaymentId = savedPayment.Id,
+                        PaymentNumber = savedPayment.PaymentNumber,
+                        CustomerId = savedPayment.CustomerId,
+                        Amount = savedPayment.Amount,
+                        AllocatedAmount = savedPayment.AllocatedAmount,
+                        Currency = savedPayment.Currency,
+                        Method = savedPayment.Method.ToString(),
+                        Status = savedPayment.Status.ToString(),
+                        CreatedAtUtc = nowUtc
+                    });
+                }
+
                 await _unitOfWork.CommitTransactionAsync();
+
+                if (_notificationService != null && savedPayment.Status == PaymentStatus.Completed)
+                {
+                    try
+                    {
+                        await _notificationService.SendPaymentNotificationAsync(
+                            savedPayment.Id,
+                            tenantId,
+                            "PaymentReceived",
+                            actor);
+                    }
+                    catch
+                    {
+                        // Notification failure must not affect the committed payment transaction
+                    }
+                }
 
                 savedPayment.Customer = customer;
                 var detailDto = await BuildPaymentDetailDtoAsync(tenantId, savedPayment);
@@ -702,6 +741,21 @@ public class PaymentService : IPaymentService
                         Changes = statusChangePayload
                     });
 
+                    if (_outboxService != null)
+                    {
+                        await _outboxService.PublishEventAsync(tenantId, "payment.refunded", new
+                        {
+                            PaymentId = payment.Id,
+                            PaymentNumber = payment.PaymentNumber,
+                            CustomerId = payment.CustomerId,
+                            Amount = payment.Amount,
+                            Currency = payment.Currency,
+                            Reason = trimmedReason,
+                            ReversedBy = actor,
+                            ReversedAtUtc = nowUtc
+                        });
+                    }
+
                     await _unitOfWork.CommitTransactionAsync();
 
                     var detailDto = await BuildPaymentDetailDtoAsync(tenantId, payment);
@@ -924,7 +978,41 @@ public class PaymentService : IPaymentService
                         Changes = statusChangePayload
                     });
 
+                    if (_outboxService != null)
+                    {
+                        var eventType = targetStatus == PaymentStatus.Completed ? "payment.received" : "payment.failed";
+                        await _outboxService.PublishEventAsync(tenantId, eventType, new
+                        {
+                            PaymentId = payment.Id,
+                            PaymentNumber = payment.PaymentNumber,
+                            CustomerId = payment.CustomerId,
+                            Amount = payment.Amount,
+                            Currency = payment.Currency,
+                            Status = payment.Status.ToString(),
+                            ClearingStatus = payment.ClearingStatus,
+                            CallbackStatus = payment.CallbackStatus,
+                            TimestampUtc = nowUtc
+                        });
+                    }
+
                     await _unitOfWork.CommitTransactionAsync();
+
+                    if (_notificationService != null && (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed))
+                    {
+                        try
+                        {
+                            var notificationEventType = targetStatus == PaymentStatus.Completed ? "PaymentReceived" : "PaymentFailed";
+                            await _notificationService.SendPaymentNotificationAsync(
+                                payment.Id,
+                                tenantId,
+                                notificationEventType,
+                                performedBy);
+                        }
+                        catch
+                        {
+                            // Notification failure must not affect the committed status change
+                        }
+                    }
 
                     var dto = await BuildPaymentDetailDtoAsync(tenantId, payment);
                     return PaymentOperationResult<PaymentDetailDto>.Success(dto, 200);

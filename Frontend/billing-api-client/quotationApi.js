@@ -42,7 +42,7 @@ export function normalizeQuotation(q) {
     items: (q.items || []).map(i => ({ ...i, productId: i.productId == null ? '' : String(i.productId),
       productName: i.productName || i.description || '', description: i.description || '',
       discountType: i.discountType?.toLowerCase() || 'percentage', discountRate: i.discountRate || 0,
-      discountAmount: i.discountAmount || 0, taxType: i.taxType || 'GST', taxRate: i.taxRate || 0, hsnSac: i.hsnsac || i.hsnSac || '' })),
+      discountAmount: i.discountAmount || 0, taxType: i.taxType || '', taxRate: i.taxRate || 0, hsnSac: i.hsnsac || i.hsnSac || '' })),
     communications: (q.communications || []).map(normalizeCommunication), auditLogs: [] };
 }
 export function normalizeQuotationProduct(p) {

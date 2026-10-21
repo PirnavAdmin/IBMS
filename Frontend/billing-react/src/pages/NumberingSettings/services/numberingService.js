@@ -1,5 +1,6 @@
 import { RESET_POLICIES } from '../validation/numberingValidation.js';
 import { numberingApi } from '../../../../../billing-api-client/numberingApi.js';
+import { apiClient } from '../../../../../billing-api-client/apiClient.js';
 
 const mapSettings = settings => {
   if (!settings || typeof settings.documentType !== 'string' || !Number.isInteger(settings.sequenceLength) || !Number.isSafeInteger(settings.nextNumber)) throw new Error('The backend returned invalid numbering settings. Please retry.');
@@ -32,6 +33,21 @@ export const numberingService = {
   },
   async updateSettings(payload) {
     return mapSettings(await numberingApi.updateNumberingSettings(toRequest(payload)));
+  },
+  async preview(values) {
+    const response = await apiClient.post('/api/v1/settings/numbering/preview', {
+      documentType: values.documentType,
+      prefix: values.prefix,
+      suffix: values.suffix,
+      tokens: values.tokens,
+      sequenceLength: Number(values.sequenceLength),
+      nextNumber: Number(values.nextNumber),
+      ...(values.date ? { date: values.date } : {}),
+    });
+    if (response?.success !== true || typeof response.data?.fullPreview !== 'string') {
+      throw new Error(response?.message || 'Invalid numbering preview response.');
+    }
+    return response.data;
   },
 };
 

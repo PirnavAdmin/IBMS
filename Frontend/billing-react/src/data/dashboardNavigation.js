@@ -31,7 +31,8 @@ export const dashboardNavigation = [
     items: [
       { id: 'templates', label: 'Templates & Branding', icon: 'template' },
       { id: 'activity', label: 'Audit Activity', icon: 'activity' },
-      { id: 'integrations', label: 'Integration Settings', icon: 'integration' },
+      { id: 'integrations', label: 'Integration Settings', icon: 'integration', route: '/integrations' },
+      { id: 'webhooks', label: 'Webhook Configuration', icon: 'integration', route: '/webhooks' },
       { id: 'settings', label: 'Settings / Administration', icon: 'settings', route: '/settings' },
     ],
   },

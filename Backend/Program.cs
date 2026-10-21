@@ -10,6 +10,7 @@ using Billing.Application.Services;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
 using Billing.Infrastructure.Services;
+using Billing.Infrastructure.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -138,6 +139,7 @@ builder.Services.AddScoped<ICurrentUserService, Billing.API.Services.CurrentUser
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -155,11 +157,49 @@ builder.Services.AddScoped<LandingPageService>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
+builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
+builder.Services.AddSingleton<IQuotationPdfEngine, QuestPdfQuotationEngine>();
+builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
+builder.Services.AddScoped<ICreditNoteService, CreditNoteService>();
+builder.Services.AddScoped<ITemplateEngineService, TemplateEngineService>();
+builder.Services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserAdministrationService, UserAdministrationService>();
+builder.Services.AddScoped<IRoleAdministrationService, RoleAdministrationService>();
+
+// ============================================================
+// Webhook & Integration Services (Module 15)
+// ============================================================
+builder.Services.AddSingleton<IWebhookSecurityService, WebhookSecurityService>();
+builder.Services.AddHttpClient<IWebhookDispatcher, WebhookDispatcher>();
+builder.Services.AddScoped<IOutboxService, OutboxService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<IWebhookDeliveryService, WebhookDeliveryService>();
+builder.Services.AddScoped<IIntegrationApplicationService, IntegrationApplicationService>();
+
+// ============================================================
+// Background Worker & Jobs (Module 16)
+// ============================================================
+builder.Services.AddScoped<IOverdueInvoiceJobService, OverdueInvoiceJobService>();
+builder.Services.AddScoped<IReminderJobService, ReminderJobService>();
+builder.Services.AddScoped<IPdfGenerationJobService, PdfGenerationJobService>();
+builder.Services.AddScoped<IEmailNotificationJobService, EmailNotificationJobService>();
+builder.Services.AddScoped<IWebhookDeliveryJobService, WebhookDeliveryJobService>();
+builder.Services.AddScoped<IExportJobService, ExportJobService>();
+builder.Services.AddScoped<IOperationalCleanupJobService, OperationalCleanupJobService>();
+builder.Services.AddScoped<IBackgroundJobCoordinator, BackgroundJobCoordinator>();
+if (builder.Configuration.GetValue<bool>("BackgroundWorker:Enabled", true))
+{
+    builder.Services.AddHostedService<BackgroundWorkerHostedService>();
+}
 
 // ============================================================
 // Repositories
 // ============================================================
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
@@ -173,9 +213,20 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IInvoiceCommunicationRepository, InvoiceCommunicationRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IInvoiceTemplateRepository, InvoiceTemplateRepository>();
+builder.Services.AddScoped<IInvoiceSnapshotRepository, InvoiceSnapshotRepository>();
+builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
+builder.Services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
+builder.Services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
+builder.Services.AddScoped<INotificationLogRepository, NotificationLogRepository>();
+builder.Services.AddScoped<IWebhookRepository, WebhookRepository>();
+builder.Services.AddScoped<IWebhookDeliveryRepository, WebhookDeliveryRepository>();
+builder.Services.AddScoped<IIntegrationApplicationRepository, IntegrationApplicationRepository>();
+builder.Services.AddScoped<IOutboxRepository, OutboxRepository>();
+builder.Services.AddScoped<IExportJobRepository, ExportJobRepository>();
+builder.Services.AddScoped<IOperationalCleanupRepository, OperationalCleanupRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // ============================================================
@@ -479,4 +530,6 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 // Run
 // ============================================================
 app.Run();
+
+
 

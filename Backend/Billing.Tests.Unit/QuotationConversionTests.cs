@@ -35,7 +35,8 @@ public class QuotationConversionTests
             _mockUow.Object,
             _mockFinanceEngine.Object,
             _mockNumberGen.Object,
-            _mockAudit.Object
+            _mockAudit.Object,
+            new Mock<IEmailService>().Object
         );
     }
 

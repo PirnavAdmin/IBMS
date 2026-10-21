@@ -6,8 +6,10 @@ import { ArrowBack } from '@mui/icons-material';
 import { productService } from '../services/productService';
 import { ProductForm } from '../components/ProductForm';
 import '../styles/product-form.css';
+import { useFormDraft } from '../../../context/FormDraftContext';
 
 export function CreateProduct() {
+  const draft = useFormDraft('product:new');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
@@ -22,6 +24,7 @@ export function CreateProduct() {
 
     try {
       await productService.createProduct(formData);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'none' });
       navigate('/products', {
         replace: true,

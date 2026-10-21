@@ -265,3 +265,22 @@ export const numberingValidationSchema = yup.object().shape({
     .required('Reset Policy is required')
     .oneOf(RESET_POLICIES, 'Select a valid Reset Policy'),
 });
+
+export const BRACE_SUPPORTED_TOKENS = [
+  '{YEAR}',
+  '{YYYY}',
+  '{YY}',
+  '{MONTH}',
+  '{MM}',
+  '{DD}',
+  '{FY}',
+  '{QUARTER}',
+];
+
+export function validTokens(value = '') {
+  const tokens = value.match(/\{[^{}]*\}/g) || [];
+  if (tokens.some((token) => !BRACE_SUPPORTED_TOKENS.includes(token.toUpperCase())))
+    return false;
+  return !/[{}()]/.test(value.replace(/\{[^{}]*\}/g, ''));
+}
+

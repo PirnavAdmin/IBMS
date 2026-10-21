@@ -2,6 +2,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import { lookupIndiaPincode } from '../../../services/postalService';
 import { CheckCircleOutline, SyncOutlined } from '@mui/icons-material';
 import { CustomerSelectField } from './CustomerSelectField';
+import { useRegionalSettings } from '../../../services/regionalSettingsService';
+import { CountryFlag } from '../../../components/CountryFlag';
 
 export const AddressSection = ({
   prefix,
@@ -14,10 +16,11 @@ export const AddressSection = ({
   watch,
   errors = {},
   disabled = false,
-  country = 'India',
+  country = '',
   values = {},
   onChange,
 }) => {
+  const { selectedCountries, availableCountries } = useRegionalSettings();
   const [lookupState, setLookupState] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
   const [lookupMessage, setLookupMessage] = useState('');
   const [availableLocations, setAvailableLocations] = useState([]);
@@ -40,11 +43,28 @@ export const AddressSection = ({
   const postalCodeError = getError('postalCode');
   const countryError = getError('country');
 
-  const currentCountry = (watch ? watch(`${prefix}.country`) : values.country) || country || 'India';
+  const currentCountry = (watch ? watch(`${prefix}.country`) : values.country) || country || '';
   const currentAddressLine2 = (watch ? watch(`${prefix}.addressLine2`) : values.addressLine2) || '';
+  const currentPostalCode = (watch ? watch(`${prefix}.postalCode`) : values.postalCode) || '';
+  const isIndia = !currentCountry || currentCountry.trim().toLowerCase() === 'india';
+
+  const baseCountries = selectedCountries.length > 0 ? selectedCountries : availableCountries;
+  const currentCountryExists = !currentCountry || baseCountries.some(
+    (c) => c.name.toLowerCase() === currentCountry.toLowerCase()
+  );
+  const countryOptions = [
+    { value: '', label: 'Select Country' },
+    ...baseCountries.map((c) => ({
+      value: c.name,
+      label: c.name,
+      icon: <CountryFlag code={c.code} name={c.name} width={18} height={13} />,
+    })),
+    ...(!currentCountryExists && currentCountry ? [{ value: currentCountry, label: currentCountry }] : []),
+  ];
 
   const performPincodeLookup = useCallback(
     async (pin, { autoFill = true } = {}) => {
+      if (disabled) return;
       const cleanPin = String(pin || '').trim().replace(/\D/g, '');
       if (cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
         return;
@@ -68,26 +88,37 @@ export const AddressSection = ({
 
         if (autoFill) {
           if (setValue) {
-            // Auto-fill City (e.g. Visakhapatnam)
+            // Auto-fill City (e.g. Hyderabad, Visakhapatnam)
             if (result.city) {
               setValue(`${prefix}.city`, result.city, { shouldValidate: true, shouldDirty: true });
             }
-            // Auto-fill State (e.g. Andhra Pradesh)
+            // Auto-fill State (e.g. Telangana, Andhra Pradesh)
             if (result.state) {
               setValue(`${prefix}.state`, result.state, { shouldValidate: true, shouldDirty: true });
             }
-            // Auto-fill Address Line 2 (Locality, e.g. Madhurawada)
+            // Auto-fill Address Line 2 (Locality, e.g. Begumpet, Madhurawada)
             if (result.location) {
               setValue(`${prefix}.addressLine2`, result.location, { shouldValidate: true, shouldDirty: true });
             }
+            // Auto-fill Country to India if unselected or default
+            if (result.country || !currentCountry) {
+              setValue(`${prefix}.country`, result.country || 'India', { shouldValidate: true, shouldDirty: true });
+            }
             // Auto-refresh validation on touched fields
             if (trigger) {
-              trigger([`${prefix}.city`, `${prefix}.state`, `${prefix}.postalCode`, `${prefix}.addressLine2`]);
+              trigger([
+                `${prefix}.city`,
+                `${prefix}.state`,
+                `${prefix}.postalCode`,
+                `${prefix}.addressLine2`,
+                `${prefix}.country`,
+              ]);
             }
           } else if (onChange) {
             if (result.city) onChange('city', result.city);
             if (result.state) onChange('state', result.state);
             if (result.location) onChange('addressLine2', result.location);
+            if (result.country || !currentCountry) onChange('country', result.country || 'India');
           }
         }
       } else {
@@ -96,12 +127,13 @@ export const AddressSection = ({
         setAvailableLocations([]);
       }
     },
-    [prefix, setValue, trigger, onChange]
+    [prefix, setValue, trigger, onChange, currentCountry]
   );
 
   const handlePostalCodeChange = (e) => {
+    if (disabled) return;
     const rawVal = e.target.value;
-    if (currentCountry === 'India') {
+    if (isIndia) {
       const cleanPin = rawVal.replace(/\D/g, '').slice(0, 6);
       if (setValue) {
         setValue(`${prefix}.postalCode`, cleanPin, { shouldValidate: true, shouldDirty: true });
@@ -124,6 +156,18 @@ export const AddressSection = ({
       }
     }
   };
+
+  // Auto-trigger lookup if 6 digits are already present (e.g. from state or paste) but not yet looked up
+  React.useEffect(() => {
+    if (disabled) return;
+    if (!isIndia) return;
+    const cleanPin = String(currentPostalCode || '').trim().replace(/\D/g, '');
+    if (cleanPin.length === 6 && /^[1-9][0-9]{5}$/.test(cleanPin)) {
+      if (lastQueriedPinRef.current !== cleanPin) {
+        performPincodeLookup(cleanPin, { autoFill: true });
+      }
+    }
+  }, [disabled, isIndia, currentPostalCode, performPincodeLookup]);
 
   const handleSelectLocality = (locality) => {
     if (!locality || disabled) return;
@@ -149,11 +193,13 @@ export const AddressSection = ({
           <input
             id={getFieldId('street')}
             type="text"
-            placeholder="e.g. Plot 14, Software Units Layout"
+            placeholder={disabled ? 'Same as billing address' : 'e.g. Plot 14, Software Units Layout'}
             disabled={disabled}
             aria-invalid={Boolean(streetError)}
             aria-describedby={streetError ? `${getFieldId('street')}-err` : undefined}
-            {...(register
+            {...(disabled && watch
+              ? { value: watch(`${prefix}.street`) || '', readOnly: true }
+              : register
               ? register(`${prefix}.street`)
               : {
                   value: values.street || '',
@@ -176,11 +222,13 @@ export const AddressSection = ({
             id={getFieldId('addressLine2')}
             type="text"
             list={`${getFieldId('addressLine2')}-list`}
-            placeholder="e.g. Madhurawada, Shaikpet, etc."
+            placeholder={disabled ? 'Same as billing address' : 'e.g. Madhurawada, Shaikpet, etc.'}
             disabled={disabled}
             aria-invalid={Boolean(addressLine2Error)}
             aria-describedby={addressLine2Error ? `${getFieldId('addressLine2')}-err` : undefined}
-            {...(register
+            {...(disabled && watch
+              ? { value: watch(`${prefix}.addressLine2`) || '', readOnly: true }
+              : register
               ? register(`${prefix}.addressLine2`)
               : {
                   value: values.addressLine2 || '',
@@ -227,10 +275,10 @@ export const AddressSection = ({
             <input
               id={getFieldId('postalCode')}
               type="text"
-              inputMode={currentCountry === 'India' ? 'numeric' : 'text'}
-              maxLength={currentCountry === 'India' ? 6 : 32}
+              inputMode={isIndia ? 'numeric' : 'text'}
+              maxLength={isIndia ? 6 : 32}
               autoComplete="postal-code"
-              placeholder={currentCountry === 'India' ? 'e.g. 530048 or 500081' : 'Postal code'}
+              placeholder={isIndia ? 'e.g. 500016 or 530048' : 'Postal code'}
               disabled={disabled}
               aria-invalid={Boolean(postalCodeError)}
               aria-describedby={
@@ -238,7 +286,9 @@ export const AddressSection = ({
                   ? `${getFieldId('postalCode')}-err`
                   : `${getFieldId('postalCode')}-status`
               }
-              {...(register
+              {...(disabled && watch
+                ? { value: watch(`${prefix}.postalCode`) || '', readOnly: true }
+                : register
                 ? register(`${prefix}.postalCode`, {
                     onChange: handlePostalCodeChange,
                   })
@@ -246,8 +296,18 @@ export const AddressSection = ({
                     value: values.postalCode || '',
                     onChange: handlePostalCodeChange,
                   })}
+              onBlur={() => {
+                if (isIndia) {
+                  const cleanPin = String(currentPostalCode || '').trim().replace(/\D/g, '');
+                  if (cleanPin.length === 6 && /^[1-9][0-9]{5}$/.test(cleanPin)) {
+                    if (lastQueriedPinRef.current !== cleanPin || lookupState !== 'success') {
+                      performPincodeLookup(cleanPin, { autoFill: true });
+                    }
+                  }
+                }
+              }}
               onKeyDown={(e) => {
-                if (currentCountry === 'India') {
+                if (isIndia) {
                   const allowed = [
                     'Backspace',
                     'Tab',
@@ -275,7 +335,7 @@ export const AddressSection = ({
                 }
               }}
               onPaste={(e) => {
-                if (currentCountry === 'India') {
+                if (isIndia) {
                   e.preventDefault();
                   const pasted = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6);
                   if (!pasted) return;
@@ -290,12 +350,12 @@ export const AddressSection = ({
                 }
               }}
             />
-            {lookupState === 'loading' && (
+            {!disabled && lookupState === 'loading' && (
               <span className="cust-input-status-icon cust-spin" aria-label="Looking up PIN details">
                 <SyncOutlined fontSize="small" />
               </span>
             )}
-            {lookupState === 'success' && (
+            {!disabled && lookupState === 'success' && (
               <span className="cust-input-status-icon cust-success" aria-label="Location verified">
                 <CheckCircleOutline fontSize="small" />
               </span>
@@ -307,15 +367,15 @@ export const AddressSection = ({
             <span id={`${getFieldId('postalCode')}-err`} className="cust-field-error" role="alert">
               {postalCodeError}
             </span>
-          ) : lookupState === 'success' ? (
+          ) : !disabled && lookupState === 'success' ? (
             <span id={`${getFieldId('postalCode')}-status`} className="cust-pin-status cust-pin-success">
               ✓ Auto-filled: {lookupMessage}
             </span>
-          ) : lookupState === 'loading' ? (
+          ) : !disabled && lookupState === 'loading' ? (
             <span id={`${getFieldId('postalCode')}-status`} className="cust-pin-status cust-pin-loading">
               Finding city, state & locality...
             </span>
-          ) : lookupState === 'error' ? (
+          ) : !disabled && lookupState === 'error' ? (
             <span id={`${getFieldId('postalCode')}-status`} className="cust-pin-status cust-pin-warning">
               ℹ {lookupMessage} (Enter details manually)
             </span>
@@ -330,11 +390,13 @@ export const AddressSection = ({
           <input
             id={getFieldId('city')}
             type="text"
-            placeholder="e.g. Visakhapatnam"
+            placeholder={disabled ? 'Same as billing address' : 'e.g. Visakhapatnam'}
             disabled={disabled}
             aria-invalid={Boolean(cityError)}
             aria-describedby={cityError ? `${getFieldId('city')}-err` : undefined}
-            {...(register
+            {...(disabled && watch
+              ? { value: watch(`${prefix}.city`) || '', readOnly: true }
+              : register
               ? register(`${prefix}.city`)
               : {
                   value: values.city || '',
@@ -356,11 +418,13 @@ export const AddressSection = ({
           <input
             id={getFieldId('state')}
             type="text"
-            placeholder="e.g. Andhra Pradesh"
+            placeholder={disabled ? 'Same as billing address' : 'e.g. Andhra Pradesh'}
             disabled={disabled}
             aria-invalid={Boolean(stateError)}
             aria-describedby={stateError ? `${getFieldId('state')}-err` : undefined}
-            {...(register
+            {...(disabled && watch
+              ? { value: watch(`${prefix}.state`) || '', readOnly: true }
+              : register
               ? register(`${prefix}.state`)
               : {
                   value: values.state || '',
@@ -392,14 +456,7 @@ export const AddressSection = ({
                 setLookupMessage('');
                 setAvailableLocations([]);
               }}
-              options={[
-                { value: 'India', label: 'India' },
-                { value: 'United States', label: 'United States' },
-                { value: 'United Kingdom', label: 'United Kingdom' },
-                { value: 'Singapore', label: 'Singapore' },
-                { value: 'United Arab Emirates', label: 'United Arab Emirates' },
-                { value: 'Australia', label: 'Australia' },
-              ]}
+              options={countryOptions}
             />
           ) : (
             <select
@@ -416,7 +473,7 @@ export const AddressSection = ({
                     },
                   })
                 : {
-                    value: values.country || 'India',
+                    value: currentCountry || '',
                     onChange: (e) => {
                       setLookupState('idle');
                       setLookupMessage('');
@@ -425,12 +482,11 @@ export const AddressSection = ({
                     },
                   })}
             >
-              <option value="India">India</option>
-              <option value="United States">United States</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="Singapore">Singapore</option>
-              <option value="United Arab Emirates">United Arab Emirates</option>
-              <option value="Australia">Australia</option>
+              {countryOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           )}
           {countryError && (

@@ -31,4 +31,6 @@ public class InvoiceItem
     public decimal TotalAmount { get; set; }
 
     public string? HSNSAC { get; set; }
+    
+    public int SortOrder { get; set; }
 }

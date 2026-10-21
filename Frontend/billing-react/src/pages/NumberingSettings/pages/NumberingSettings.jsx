@@ -26,8 +26,11 @@ import { DocumentTypeSelector } from '../components/DocumentTypeSelector';
 import { FormatBuilder } from '../components/FormatBuilder';
 import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
 import '../styles/numbering-settings.css';
+import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 
 export function NumberingSettings() {
+  const drafts = useFormDraft('settings:numbering');
+  const [selectedDocType, setSelectedDocType] = useDraftState('settings:numbering', 'selectedType', 'Invoice');
   const requestLock = useRef(false);
   const loadRevision = useRef(0);
   const savedSettings = useRef(null);
@@ -50,7 +53,7 @@ export function NumberingSettings() {
     mode: 'onTouched',
   });
 
-  const currentDocType = watch('documentType') || 'Invoice';
+  const currentDocType = selectedDocType;
   const currentPrefix = watch('prefix') || '';
   const currentSuffix = watch('suffix') || '';
   const currentTokens = watch('tokens') || '';
@@ -74,31 +77,37 @@ export function NumberingSettings() {
         tokens: data.tokens.replace(/\{/g, '(').replace(/\}/g, ')'),
       };
       savedSettings.current = settings;
-      reset(settings);
+      reset(drafts.read(docType) || settings);
       setLoaded(true);
     } catch (err) {
       if (revision === loadRevision.current) setApiError(err.userMessage || err.message || 'Unable to load numbering settings. Please retry.');
     } finally {
       if (revision === loadRevision.current) setIsLoading(false);
     }
-  }, [reset]);
+  }, [reset, drafts]);
 
   useEffect(() => {
-    loadSettingsForType('Invoice');
+    loadSettingsForType(selectedDocType);
     return () => { loadRevision.current += 1; };
-  }, [loadSettingsForType]);
+  }, [loadSettingsForType, selectedDocType]);
+
+  useEffect(() => {
+    if (!loaded || isLoading) return;
+    const subscription = watch(values => drafts.write(structuredClone(values), values.documentType));
+    return () => subscription.unsubscribe();
+  }, [loaded, isLoading, watch, drafts]);
 
   // Handle switching document type
   const handleSelectDocType = (docType) => {
     if (requestLock.current) return;
-    setValue('documentType', docType);
-    loadSettingsForType(docType);
+    setSelectedDocType(docType);
   };
 
   // Restore the last successful GET/PUT, including its sequence counter.
   const handleResetChanges = () => {
     if (!savedSettings.current || requestLock.current) return;
     reset(savedSettings.current);
+    drafts.clear(currentDocType);
     setApiError('');
     setToastSeverity('info');
     setToast(`Restored saved settings for ${currentDocType}.`);
@@ -154,6 +163,7 @@ export function NumberingSettings() {
         };
         savedSettings.current = settings;
         reset(settings);
+        drafts.clear(currentDocType);
       }
       setToastSeverity('success');
       setToast(
@@ -338,11 +348,11 @@ export function NumberingSettings() {
                 <h2>Build Your Format</h2>
                 <p>Drag and drop tokens to build your numbering format.</p>
               </div>
-              <button
+              <button aria-label="Clear all tokens"
                 type="button"
                 className="panel-clear-btn"
                 onClick={handleClearTokens}
-                title="Clear all tokens"
+
               >
                 <DeleteOutline style={{ fontSize: '1.05rem' }} />
                 Clear All

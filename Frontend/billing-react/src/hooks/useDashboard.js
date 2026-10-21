@@ -1,35 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getDashboardData } from '../services/dashboardService';
-
-export const useDashboard = () => {
-  const [state, setState] = useState({ data: null, isLoading: true, error: null });
-  const inFlight = useRef(null);
-  const mounted = useRef(false);
-  const loadDashboardData = useCallback(() => {
-    if (inFlight.current) return inFlight.current;
-    setState((previous) => ({ ...previous, isLoading: true, error: null }));
-    const request = (async () => {
-      try {
-        const data = await getDashboardData();
-        if (!data) throw new Error('dashboard-load-failed');
-        if (mounted.current) setState({ data, isLoading: false, error: null });
-      } catch {
-        if (mounted.current) setState({ data: null, isLoading: false, error: 'dashboard-load-failed' });
-      } finally {
-        inFlight.current = null;
-      }
-    })();
-    inFlight.current = request;
-    return request;
-  }, []);
-  useEffect(() => {
-    mounted.current = true;
-    loadDashboardData();
-    return () => { mounted.current = false; };
-  }, [loadDashboardData]);
-  const isEmpty = !state.isLoading && !state.error && (!state.data || (
-    !Object.keys(state.data.summary || {}).length &&
-    !state.data.recentInvoices?.length && !state.data.recentPayments?.length
-  ));
-  return { ...state, isEmpty, loadDashboardData, retry: loadDashboardData };
+import { useQuery } from '@tanstack/react-query';
+import { authApi } from 'billing-api-client';
+import { getDashboardInvoices, getDashboardPayments } from '../services/dashboardService';
+import { invoicePermissions } from '../pages/Invoices/services/invoiceService';
+import { paymentPermissions } from '../pages/Payments/paymentService';
+export const useDashboard = filters => {
+  const user = authApi.getCurrentUser();
+  const scope = [user?.tenantId, user?.id, user?.email];
+  const invoicesAllowed = invoicePermissions(user).view;
+  const paymentsAllowed = paymentPermissions(user).view;
+  const invoices = useQuery({ queryKey: ['dashboard', ...scope, 'invoices', filters], queryFn: ({ signal }) => getDashboardInvoices(filters, signal), enabled: invoicesAllowed, retry: false, staleTime: 60000 });
+  const payments = useQuery({ queryKey: ['dashboard', ...scope, 'payments', filters], queryFn: ({ signal }) => getDashboardPayments(filters, signal), enabled: paymentsAllowed, retry: false, staleTime: 60000 });
+  return { invoices, payments, invoicesAllowed, paymentsAllowed, refresh: () => Promise.all([invoicesAllowed && invoices.refetch(), paymentsAllowed && payments.refetch()]) };
 };

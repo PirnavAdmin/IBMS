@@ -94,6 +94,54 @@ public class AuditLogRepository : IAuditLogRepository
         items.ForEach(SanitizeChanges);
         return (items, totalCount);
     }
+
+    public async Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
+    {
+        var baseQuery = _context.AuditLogs
+            .AsNoTracking()
+            .Where(a => a.TenantId == tenantId);
+
+        var rawEntityNames = await baseQuery
+            .Where(a => !string.IsNullOrEmpty(a.EntityName))
+            .Select(a => a.EntityName)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var rawActions = await baseQuery
+            .Where(a => !string.IsNullOrEmpty(a.Action))
+            .Select(a => a.Action)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var rawUserNames = await baseQuery
+            .Where(a => !string.IsNullOrEmpty(a.UserName))
+            .Select(a => a.UserName)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return new Billing.Contracts.AuditFilterOptionsResponse
+        {
+            EntityNames = rawEntityNames
+                .Where(e => !string.IsNullOrWhiteSpace(e))
+                .Select(e => e.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(e => e, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            Actions = rawActions
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Select(a => a.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(a => a, StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            UserNames = rawUserNames
+                .Where(u => !string.IsNullOrWhiteSpace(u))
+                .Select(u => u.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(u => u, StringComparer.OrdinalIgnoreCase)
+                .ToList()
+        };
+    }
+
     private static void SanitizeChanges(AuditLog log)
     {
         if (!string.IsNullOrEmpty(log.Changes))

@@ -147,16 +147,18 @@ public class ProductRepository : IProductRepository
         {
             ("name", false) => queryable.OrderBy(p => p.Name),
             ("name", true) => queryable.OrderByDescending(p => p.Name),
-            ("price", false) => queryable.OrderBy(p => p.Price),
-            ("price", true) => queryable.OrderByDescending(p => p.Price),
+            ("price" or "unitprice" or "finalprice" or "finalunitprice", false) => queryable.OrderBy(p => p.Price),
+            ("price" or "unitprice" or "finalprice" or "finalunitprice", true) => queryable.OrderByDescending(p => p.Price),
             ("productcode" or "code", false) => queryable.OrderBy(p => p.ProductCode.Length).ThenBy(p => p.ProductCode),
             ("productcode" or "code", true) => queryable.OrderByDescending(p => p.ProductCode.Length).ThenByDescending(p => p.ProductCode),
+            ("discount" or "discountpercent" or "discountpercentage", false) => queryable.OrderBy(p => p.DiscountPercent),
+            ("discount" or "discountpercent" or "discountpercentage", true) => queryable.OrderByDescending(p => p.DiscountPercent),
             ("category", false) => queryable.OrderBy(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("category", true) => queryable.OrderByDescending(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("updatedat", false) => queryable.OrderBy(p => p.UpdatedAtUtc),
             ("updatedat", true) => queryable.OrderByDescending(p => p.UpdatedAtUtc),
-            ("createdat", false) => queryable.OrderBy(p => p.CreatedAtUtc),
-            _ => queryable.OrderByDescending(p => p.CreatedAtUtc)
+            ("createdat" or "recentlyadded", false) => queryable.OrderBy(p => p.CreatedAtUtc),
+            _ => isDescending ? queryable.OrderByDescending(p => p.CreatedAtUtc) : queryable.OrderBy(p => p.CreatedAtUtc)
         };
 
         var totalCount = await queryable.CountAsync();

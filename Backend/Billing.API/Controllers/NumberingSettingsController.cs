@@ -49,8 +49,49 @@ public class NumberingSettingsController : ControllerBase
         if (!tenantId.HasValue) return Forbid();
 
         var result = await _numberingSettingService.UpdateSettingAsync(request, tenantId.Value);
-        if (!result.Success) return BadRequest(result);
+        if (!result.Success)
+        {
+            if (result.Message != null && result.Message.Contains("Concurrency error"))
+                return Conflict(result);
+            return BadRequest(result);
+        }
 
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPost("reset")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetSequence([FromBody] ResetNumberingSequenceRequest request)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _numberingSettingService.ResetSequenceAsync(
+            request?.DocumentType ?? "Invoice",
+            tenantId.Value,
+            request?.ResetTo ?? 1,
+            User.Identity?.Name);
+
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [HttpPost("{documentType}/reset")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetSequenceByDocType(string documentType)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _numberingSettingService.ResetSequenceAsync(
+            documentType,
+            tenantId.Value,
+            1,
+            User.Identity?.Name);
+
+        if (!result.Success) return BadRequest(result);
         return Ok(result);
     }
 

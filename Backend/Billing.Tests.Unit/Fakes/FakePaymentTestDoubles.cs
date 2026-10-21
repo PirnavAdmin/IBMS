@@ -154,7 +154,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
         }
     }
 
-    public Task<InvoiceSummaryDto> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
+    public Task<List<InvoiceSummaryDto>> GetSummaryAsync(int tenantId, CancellationToken cancellationToken = default)
     {
         lock (_lock)
         {
@@ -166,7 +166,7 @@ public class FakeInvoiceRepository : IInvoiceRepository
                 TotalOutstanding = list.Sum(i => i.BalanceAmount),
                 OverdueCount = list.Count(i => i.DueDate < DateTime.UtcNow && i.BalanceAmount > 0)
             };
-            return Task.FromResult(summary);
+            return Task.FromResult(new List<InvoiceSummaryDto> { summary });
         }
     }
 
@@ -189,13 +189,32 @@ public class FakeInvoiceRepository : IInvoiceRepository
             ChargesAmount = src.ChargesAmount,
             TotalAmount = src.TotalAmount,
             PaidAmount = src.PaidAmount,
+            CreditedAmount = src.CreditedAmount,
             BalanceAmount = src.BalanceAmount,
             Notes = src.Notes,
             TermsAndConditions = src.TermsAndConditions,
             QuotationId = src.QuotationId,
             CreatedAtUtc = src.CreatedAtUtc,
             UpdatedAtUtc = src.UpdatedAtUtc,
-            RowVersion = src.RowVersion
+            RowVersion = src.RowVersion,
+            Items = src.Items.Select(i => new InvoiceItem
+            {
+                Id = i.Id,
+                InvoiceId = i.InvoiceId,
+                ProductId = i.ProductId,
+                Description = i.Description,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                DiscountType = i.DiscountType,
+                DiscountRate = i.DiscountRate,
+                DiscountAmount = i.DiscountAmount,
+                TaxType = i.TaxType,
+                TaxRate = i.TaxRate,
+                TaxAmount = i.TaxAmount,
+                TotalAmount = i.TotalAmount,
+                HSNSAC = i.HSNSAC
+            }).ToList(),
+            PaymentAllocations = src.PaymentAllocations.ToList()
         };
     }
 }
@@ -559,6 +578,24 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
             return Task.FromResult((items, tenantLogs.Count));
         }
     }
+
+    public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var tenantLogs = _logs.Where(l => l.TenantId == tenantId).ToList();
+            var entityNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.EntityName)).Select(l => l.EntityName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var actions = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.Action)).Select(l => l.Action.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+            var userNames = tenantLogs.Where(l => !string.IsNullOrWhiteSpace(l.UserName)).Select(l => l.UserName.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+
+            return Task.FromResult(new Billing.Contracts.AuditFilterOptionsResponse
+            {
+                EntityNames = entityNames,
+                Actions = actions,
+                UserNames = userNames
+            });
+        }
+    }
 }
 
 public class FakeTransactionalUnitOfWork : IUnitOfWork
@@ -630,3 +667,4 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
     {
     }
 }
+

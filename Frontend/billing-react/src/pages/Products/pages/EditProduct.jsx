@@ -6,9 +6,11 @@ import { ArrowBack, Inventory2Outlined } from '@mui/icons-material';
 import { productService } from '../services/productService';
 import { ProductForm } from '../components/ProductForm';
 import '../styles/product-form.css';
+import { useFormDraft } from '../../../context/FormDraftContext';
 
 export function EditProduct() {
   const { id } = useParams();
+  const draft = useFormDraft(`product:${id}`);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -33,6 +35,7 @@ export function EditProduct() {
 
     try {
       await productService.updateProduct(id, formData);
+      draft.clear();
       await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'none' });
       navigate('/products', {
         state: { productNotice: `Product "${formData.name}" updated successfully.` },

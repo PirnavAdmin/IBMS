@@ -10,7 +10,7 @@ import vm from 'node:vm';
 async function harness(loadFailure = null) {
   const slots = []; let cursor = 0; const effects = []; const calls = [];
   let record = { id: 1, customerId: '1', customer: {}, status: 'Draft', items: [], communications: [], auditLogs: [], rowVersion: 'v1' };
-  let failGet = false, failAudit = false, failSave = false, saveGate;
+  let failGet = false, failAudit = false, failSave = false, saveGate, chargeLoads = 0;
   const api = {
     list: async () => { if (loadFailure) throw loadFailure; return {items:[record],totalCount:1}; },
     get: async () => { calls.push('get'); if (failGet) throw new Error('Refresh failed'); return { ...record }; },
@@ -25,14 +25,35 @@ async function harness(loadFailure = null) {
     useRef: initial => { const i = cursor++; return slots[i] ||= { current: initial }; },
     useEffect: fn => { const i = cursor++; if (!(i in slots)) { slots[i] = true; effects.push(fn); } },
   };
+  const router = { useLocation: () => ({ state: null }) };
   const source = await readFile(new URL('../src/pages/Quotations/QuotationManagement.jsx', import.meta.url), 'utf8');
   const compiled = await transform(source, { loader: 'jsx', format: 'cjs', jsx: 'transform' });
   const module = { exports: {} };
   vm.runInNewContext(compiled.code, { module, exports: module.exports, React: react, setTimeout, clearTimeout, require: id => {
     if (id === 'react') return react;
+    if (id === 'react-router-dom') return router;
+    if (id.includes('FormDraftContext')) return { useFormDraft: () => ({ clear: () => calls.push('clearDraft') }) };
     if (id.includes('quotationQuery')) return queries;
     if (id.includes('quotationDiscount')) return {validateQuotationDiscounts:async()=>{}};
-    if (id.includes('quotationApi')) return { quotationApi: api, normalizeQuotation: q => q, normalizeCommunication: q => q, unwrap: q => q };
+    if (id.includes('quotationApi')) return {
+      quotationApi: api,
+      normalizeQuotation: q => q,
+      normalizeQuotationProduct: q => q,
+      normalizeCommunication: q => q,
+      unwrap: q => q,
+      fetchAllPages: async fetchPage => {
+        const page = await fetchPage({ pageNumber: 1, pageSize: 100 });
+        return Array.isArray(page) ? page : page.items;
+      },
+    };
+    if (id.includes('phase5Api')) return { phase5Api: { getCharges: async () => {
+      chargeLoads += 1;
+      return [
+        { id: 12, name: 'Delivery Fee', code: 'DELIVERY', value: 25, calculationType: 'Fixed', status: 'Active' },
+        { id: 13, name: 'Inactive Fee', code: 'INACTIVE', value: 50, calculationType: 'Fixed', status: 'Inactive' },
+      ];
+    } } };
+    if (id.includes('templateApi')) return { templateApi: { list: async () => [] } };
     if (id.includes('apiClient')) return { apiClient: { get: async () => { if (loadFailure) throw loadFailure; return []; } } };
     if (id.includes('customer.contracts')) return { parseCustomerResponse: q => q };
     if (id.includes('quotationErrors')) return { quotationErrorMessage: e => e.message };
@@ -47,17 +68,19 @@ async function harness(loadFailure = null) {
   const props = type => find(render(), type);
   render(); effects.forEach(fn => fn());
   await new Promise(resolve => setImmediate(resolve));
-  return { props, calls, api, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
+  return { props, calls, api, get chargeLoads() { return chargeLoads; }, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
 }
 
 test('create and edit refresh details/history and update the list without reloading', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate();
+  const h = await harness(); await h.props('QuotationList').onCreate();
+  assert.deepEqual(h.props('QuotationForm').configuredCharges, [{ id: 12, name: 'Delivery Fee', code: 'DELIVERY', value: 25, calculationType: 'Fixed', status: 'Active' }]);
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Created' });
   assert.equal(h.props('QuotationDetails').quotation.id, 2);
   assert.equal(h.props('QuotationDetails').quotation.auditLogs.length, 1);
-  assert.deepEqual(h.calls, ['save', 'get', 'communication', 'audit']);
+  assert.deepEqual(h.calls, ['save', 'clearDraft', 'get', 'communication', 'audit']);
   await h.props('QuotationDetails').onEdit({ id: 2 });
   assert.equal(h.props('QuotationForm').initial.rowVersion, 'v2');
+  assert.equal(h.chargeLoads, 3);
   await h.props('QuotationForm').onSave({ id: 2, reference: 'Edited' });
   h.props('QuotationDetails').onBack();
   await new Promise(resolve=>setImmediate(resolve));
@@ -87,7 +110,7 @@ for (const action of ['send', 'approve', 'cancel', 'convert']) {
 }
 
 test('successful save survives refresh failure and retry loads history', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate(); h.setFailGet(true);
+  const h = await harness(); await h.props('QuotationList').onCreate(); h.setFailGet(true);
   await h.props('QuotationForm').onSave({ id: 2 });
   assert.equal(h.props('QuotationDetails').quotation.id, 2);
   assert.match(h.props('Alert').children.join(''), /Quotation saved, but details/);
@@ -104,9 +127,10 @@ test('history failure reports an error and can be retried', async () => {
 });
 
 test('failed save keeps form open; concurrent saves only submit once', async () => {
-  const h = await harness(); h.props('QuotationList').onCreate(); h.setFailSave(true);
+  const h = await harness(); await h.props('QuotationList').onCreate(); h.setFailSave(true);
   await h.props('QuotationForm').onSave({ reference: 'Keep input' });
   assert.ok(h.props('QuotationForm'));
+  assert.equal(h.calls.includes('clearDraft'), false);
   h.setFailSave(false); let release; h.setSaveGate(new Promise(resolve => { release = resolve; }));
   const save = h.props('QuotationForm').onSave;
   const pending = save({ id: 2 }); await save({ id: 2 }); release(); await pending;
@@ -153,41 +177,51 @@ test('simultaneous loading failures show one message in the customer-style error
   assert.equal(typeof list.onRetry, 'function');
 });
 
-// Public callbacks allow the same response races as a real server, without DOM dependencies.
-test('server paging sends query parameters and stale responses cannot replace newer results', async () => {
-  const h=await harness();
+test('refresh loads server pages and stale responses cannot replace newer results', async () => {
+  const h = await harness();
   let resolveOld;
-  h.api.list=async params=>new Promise(resolve=>{resolveOld=()=>resolve({items:[{id:99}],totalCount:99});});
-  const old=h.props('QuotationList').onRetry();
-  h.props('QuotationList').onParams({pageNumber:3,pageSize:25,status:'Sent',sortBy:'totalAmount',sortOrder:'asc'});
+  h.api.list = params => new Promise(resolve => {
+    resolveOld = () => resolve({ items: [{ ...h.api.record, id: 99 }], totalCount: 1 });
+  });
+  const old = h.props('QuotationList').onRetry();
   let received;
-  h.api.list=async params=>{received=params;return {items:[{id:3}],totalCount:60};};
+  h.api.list = async params => {
+    received = params;
+    return { items: [{ ...h.api.record, id: 3 }], totalCount: 1 };
+  };
   await h.props('QuotationList').onRetry();
-  resolveOld();await old;
-  assert.equal(received.pageNumber,3);assert.equal(received.pageSize,25);assert.equal(received.status,'Sent');
-  assert.equal(h.props('QuotationList').quotations[0].id,3);
-  assert.equal(h.props('QuotationList').totalCount,60);
+  resolveOld();
+  await old;
+  assert.equal(received.pageNumber, 1);
+  assert.equal(received.pageSize, 100);
+  assert.equal(h.props('QuotationList').quotations[0].id, 3);
 });
-test('changing filters resets the server page and non-Draft editing is rejected', async()=>{
-  const h=await harness();
-  h.props('QuotationList').onParams({pageNumber:4});
-  h.props('QuotationList').onParams({customerId:'9'});
-  assert.equal(h.props('QuotationList').params.pageNumber,1);
-  await h.api.action(1,'send');
-  await h.props('QuotationList').onEdit({id:1});
-  assert.equal(h.props('QuotationForm'),undefined);
-  assert.match(h.props('Alert').children.join(''),/Only Draft/);
+test('editing a non-Draft quotation is rejected', async () => {
+  const h = await harness();
+  await h.api.action(1, 'send');
+  await h.props('QuotationList').onEdit({ id: 1 });
+  assert.equal(h.props('QuotationForm'), undefined);
+  assert.match(h.props('Alert').children.join(''), /Only Draft/);
 });
 
 
-test('converted quotation cannot start another conversion and duplicate confirmation is locked',async()=>{
-  const h=await harness();await h.api.action(1,'send');await h.api.action(1,'approve');
-  await h.props('QuotationList').onAction('convert',{id:1});
-  let release;const original=h.api.action;
-  h.api.action=async(...args)=>{await new Promise(resolve=>{release=resolve;});return original(...args);};
-  const confirm=h.props('QuotationDialog').onConfirm;
-  const pending=confirm();await confirm();release();await pending;
-  assert.equal(h.calls.filter(call=>call==='convert').length,1);
-  await h.props('QuotationDetails').onAction('convert',{id:1});
-  assert.match(h.props('Alert').children.join(''),/no longer available/);
+test('converted quotation rejects repeat conversion and duplicate confirmation is locked', async () => {
+  const h = await harness();
+  await h.api.action(1, 'send');
+  await h.api.action(1, 'approve');
+  await h.props('QuotationList').onAction('convert', { id: 1 });
+  let release;
+  const original = h.api.action;
+  h.api.action = async (...args) => {
+    await new Promise(resolve => { release = resolve; });
+    return original(...args);
+  };
+  const confirm = h.props('QuotationDialog').onConfirm;
+  const pending = confirm();
+  await confirm();
+  release();
+  await pending;
+  assert.equal(h.calls.filter(call => call === 'convert').length, 1);
+  await h.props('QuotationList').onAction('convert', { id: 1 });
+  assert.match(h.props('Alert').children.join(''), /no longer available/);
 });

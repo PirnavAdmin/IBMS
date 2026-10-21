@@ -37,4 +37,8 @@ public interface IAuditService
         int tenantId,
         Billing.Contracts.AuditLogFilterRequest filter,
         CancellationToken cancellationToken = default);
+
+    Task<Billing.Contracts.AuditFilterOptionsResponse> GetTenantFilterOptionsAsync(
+        int tenantId,
+        CancellationToken cancellationToken = default);
 }

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "TenantAdmin,SuperAdmin")]
 [ApiController]
 [Route("api/v1/quotations")]
 [Consumes("application/json")]
@@ -17,18 +17,27 @@ public class QuotationsController : ControllerBase
     private readonly IQuotationService _quotationService;
     private readonly IQuotationActionService _actionService;
     private readonly IAuditLogRepository? _auditLogRepo;
+    private readonly IQuotationPdfEngine? _quotationPdfEngine;
+    private readonly IQuotationRepository? _quotationRepository;
+    private readonly ITenantRepository? _tenantRepository;
     private readonly ILogger<QuotationsController> _logger;
 
     public QuotationsController(
         IQuotationService quotationService,
         IQuotationActionService actionService,
         ILogger<QuotationsController> logger,
-        IAuditLogRepository? auditLogRepo = null)
+        IAuditLogRepository? auditLogRepo = null,
+        IQuotationPdfEngine? quotationPdfEngine = null,
+        IQuotationRepository? quotationRepository = null,
+        ITenantRepository? tenantRepository = null)
     {
         _quotationService = quotationService;
         _actionService = actionService;
         _logger = logger;
         _auditLogRepo = auditLogRepo;
+        _quotationPdfEngine = quotationPdfEngine;
+        _quotationRepository = quotationRepository;
+        _tenantRepository = tenantRepository;
     }
 
     /// <summary>
@@ -63,6 +72,29 @@ public class QuotationsController : ControllerBase
     }
 
     /// <summary>
+    /// Download or preview official Quotation PDF document.
+    /// </summary>
+    [HttpGet("{id:int}/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetQuotationPdf([FromRoute] int id)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        if (_quotationRepository == null || _quotationPdfEngine == null)
+            return StatusCode(StatusCodes.Status501NotImplemented, "PDF generation engine is unavailable.");
+
+        var quotation = await _quotationRepository.GetByIdAsync(id, tenantId.Value);
+        if (quotation == null) return NotFound("Quotation not found.");
+
+        var tenant = quotation.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId.Value) : null);
+        var pdfBytes = _quotationPdfEngine.GenerateQuotationPdf(quotation, tenant);
+
+        return File(pdfBytes, "application/pdf", $"{quotation.QuoteNumber}.pdf");
+    }
+
+    /// <summary>
     /// Create a new draft quotation.
     /// </summary>
     [HttpPost]
@@ -73,8 +105,8 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var userId = GetUserId();
-        var result = await _quotationService.CreateDraftAsync(request, tenantId.Value, userId);
+        var userName = GetUserName();
+        var result = await _quotationService.CreateDraftAsync(request, tenantId.Value, userName);
 
         if (!result.Success) return BadRequest(result);
 
@@ -94,7 +126,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, GetUserId());
+        var result = await _quotationService.UpdateDraftAsync(id, request, tenantId.Value, GetUserName());
 
         if (!result.Success)
         {
@@ -112,7 +144,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.SendQuotationAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.SendQuotationAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -123,18 +155,19 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.ApproveQuotationAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
     public async Task<IActionResult> CancelQuotation([FromRoute] int id, [FromBody] CancelQuotationRequest request)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.CancelQuotationAsync(id, tenantId.Value, request?.Reason ?? string.Empty, GetUserId());
+        var result = await _actionService.CancelQuotationAsync(id, tenantId.Value, request?.Reason ?? string.Empty, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -145,7 +178,7 @@ public class QuotationsController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _actionService.ConvertToInvoiceAsync(id, tenantId.Value, GetUserId());
+        var result = await _actionService.ConvertToInvoiceAsync(id, tenantId.Value, GetUserName());
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
@@ -194,9 +227,16 @@ public class QuotationsController : ControllerBase
         return null;
     }
 
-    private string GetUserId()
+    private string GetUserName()
     {
-        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? "system";
+        // These service arguments are stored in audit UserName and communication SentBy.
+        return User.FindFirst(ClaimTypes.Name)?.Value
+            ?? User.FindFirst("name")?.Value
+            ?? User.FindFirst(ClaimTypes.Email)?.Value
+            ?? User.FindFirst("email")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? "system";
     }
 }
 
@@ -204,3 +244,5 @@ public class CancelQuotationRequest
 {
     public string? Reason { get; set; }
 }
+
+
