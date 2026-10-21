@@ -60,9 +60,22 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                 JobName = def.Name,
                 Description = def.Description,
                 Status = "Idle",
-                LastRunSuccess = true
+                LastRunSuccess = true,
+                NextScheduledRunUtc = DateTime.UtcNow.Add(GetJobInterval(def.Name))
             });
         }
+    }
+
+    private static TimeSpan GetJobInterval(string jobName)
+    {
+        return (jobName ?? "").Trim().ToLowerInvariant() switch
+        {
+            "overdueinvoicejob" or "overdue" => TimeSpan.FromHours(1),
+            "reminderjob" or "reminder" or "reminders" => TimeSpan.FromHours(1),
+            "pdfgenerationjob" or "pdf" or "pdfgeneration" => TimeSpan.FromMinutes(5),
+            "operationalcleanupjob" or "cleanup" => TimeSpan.FromHours(6),
+            _ => TimeSpan.FromSeconds(5)
+        };
     }
 
     public List<BackgroundJobStatusDto> GetAllJobStatuses()
@@ -149,7 +162,9 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                     break;
             }
 
-            statusDto.LastRunAtUtc = DateTime.UtcNow;
+            var completedAt = DateTime.UtcNow;
+            statusDto.LastRunAtUtc = completedAt;
+            statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
             statusDto.LastRunSuccess = result.Success;
             statusDto.LastRunMessage = result.Message;
             statusDto.LastProcessedCount = result.ProcessedCount;
@@ -161,7 +176,9 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed running background job {JobName}", jobName);
-            statusDto.LastRunAtUtc = DateTime.UtcNow;
+            var completedAt = DateTime.UtcNow;
+            statusDto.LastRunAtUtc = completedAt;
+            statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
             statusDto.LastRunSuccess = false;
             statusDto.LastRunMessage = ex.Message;
             statusDto.Status = "Failed";
@@ -171,7 +188,7 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                 JobName = jobName ?? "Unknown",
                 Success = false,
                 Message = $"Job failed with exception: {ex.Message}",
-                ExecutedAtUtc = DateTime.UtcNow
+                ExecutedAtUtc = completedAt
             };
         }
     }

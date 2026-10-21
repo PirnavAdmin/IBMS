@@ -154,7 +154,18 @@ public class BillingDbContext : DbContext
             AuditLogs.AddRange(auditLogs);
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            foreach (var auditLog in auditLogs)
+            {
+                Entry(auditLog).State = EntityState.Detached;
+            }
+            throw;
+        }
     }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -75,8 +75,20 @@ public class ExportJobRepository : IExportJobRepository
 
     public async Task DeleteAsync(ExportJob job, CancellationToken cancellationToken = default)
     {
-        _context.ExportJobs.Remove(job);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _context.ExportJobs.Remove(job);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _context.Entry(job).State = EntityState.Detached;
+        }
+        catch
+        {
+            _context.Entry(job).State = EntityState.Detached;
+            throw;
+        }
     }
 
     public async Task<List<ExportJob>> GetOldCompletedJobsAsync(DateTime olderThanUtc, int limit = 100, CancellationToken cancellationToken = default)
