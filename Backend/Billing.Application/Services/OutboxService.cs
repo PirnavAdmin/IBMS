@@ -45,19 +45,6 @@ public class OutboxService : IOutboxService
         var saved = await _outboxRepository.AddAsync(message);
         _logger.LogInformation("Outbox event {EventType} ({EventId}) published for Tenant {TenantId}", eventType, resolvedEventId, tenantId);
 
-        // Immediate opportunistic dispatch
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await DispatchSingleMessageAsync(saved);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Background opportunistic dispatch failed for Outbox message {MessageId}", saved.Id);
-            }
-        });
-
         return saved;
     }
 

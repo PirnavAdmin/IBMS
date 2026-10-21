@@ -1,5 +1,6 @@
 import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
 import { useEffect, useRef, useState } from 'react';
+import { apiClient } from 'billing-api-client/apiClient.js';
 import { currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
 
@@ -223,13 +224,35 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
     setSignatureStrokes(strokes => strokes.slice(0, -1));
   };
   const downloadInvoice = async () => {
+    setPdfBusy(true);
+    setPdfError('');
+    const fileName = `${String(quotation.quoteNumber || 'quotation').replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`;
+
+    if (quotation.id) {
+      try {
+        const response = await apiClient.get(`/api/v1/quotations/${quotation.id}/pdf`, { responseType: 'blob' });
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        setPdfBusy(false);
+        return;
+      } catch (err) {
+        console.warn('Server PDF download failed, falling back to client-side renderer', err);
+      }
+    }
+
     if (!invoiceRef.current) {
       setPdfError('The invoice is not ready to download.');
+      setPdfBusy(false);
       return;
     }
 
-    setPdfBusy(true);
-    setPdfError('');
     const invoice = invoiceRef.current;
     const originalStyle = invoice.getAttribute('style');
     try {
@@ -312,8 +335,8 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
       </dl><h3>Notes</h3><p>{quotation.notes || '—'}</p><h3>Terms & Conditions</h3><p>{quotation.termsAndConditions || '—'}</p></div>
       <section className="quotation-financial-summary"><h2>Financial summary</h2>{[['Subtotal', totals.subtotal], ['Discount', -totals.discountAmount], ['Taxable Amount', totals.taxableAmount], ['Tax', totals.taxAmount], ['Charges', totals.chargesAmount]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{currency(value)}</strong></div>)}<div className="quote-grand-total"><span>Grand Total</span><strong>{currency(totals.totalAmount)}</strong></div></section>
     </section>}
-    {tab === 'Items' && <section className="quote-card"><div className="quote-table-wrap"><table className="quote-list-table"><thead><tr><th>Product</th><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Discount</th><th>Tax</th><th>Total</th></tr></thead><tbody>{quotation.items.map(item => <tr key={item.id}><td>{item.productName}</td><td>{item.description}</td><td>{item.quantity}</td><td>{currency(item.unitPrice)}</td><td>{currency(item.discountAmount)}</td><td>{item.taxType} {item.taxRate}% ({currency(item.taxAmount)})</td><td>{currency(item.totalAmount)}</td></tr>)}</tbody></table></div>{quotation.charges?.length > 0 && <div className="quote-item-charges"><h2>Additional charges</h2><div className="quote-table-wrap"><table className="quote-list-table"><thead><tr><th>Charge</th><th>Type</th><th>Amount</th></tr></thead><tbody>{quotation.charges.map((charge, index) => { const amount = Number(charge.amount || 0); const total = charge.type === 'percentage' ? quotationTotals(quotation.items, quotation.invoiceDiscount, [charge]).chargesAmount : amount; return <tr key={charge.id || `${charge.name}-${index}`}><td>{charge.name || 'Additional charge'}</td><td>{charge.type === 'percentage' ? 'Percentage' : 'Fixed'}</td><td>{charge.type === 'percentage' ? `${amount}% (${currency(total)})` : currency(total)}</td></tr>; })}</tbody></table></div></div>}</section>}
-    {tab === 'Communication' && <section className="quote-card"><h2>Communication history</h2>{quotation.communications?.length ? <div className="quote-table-wrap"><table className="quote-list-table"><thead><tr><th>Date</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Sent By</th><th>Message</th></tr></thead><tbody>{quotation.communications.map((entry, index) => <tr key={index}><td style={{ whiteSpace: 'nowrap' }}>{formatCommunicationDate(entry.date)}</td><td>{entry.type}</td><td>{entry.recipient}</td><td>{entry.subject}</td><td><QuotationStatusBadge status={entry.status} /></td><td>{entry.sentBy}</td><td>{entry.message}</td></tr>)}</tbody></table></div> : <p className="quote-state">No communication has been sent yet.</p>}</section>}
+    {tab === 'Items' && <section className="quote-card"><div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Product</th><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Discount</th><th>Tax</th><th>Total</th></tr></thead><tbody>{quotation.items.map(item => <tr key={item.id}><td>{item.productName}</td><td>{item.description}</td><td>{item.quantity}</td><td>{currency(item.unitPrice)}</td><td>{currency(item.discountAmount)}</td><td>{item.taxType} {item.taxRate}% ({currency(item.taxAmount)})</td><td>{currency(item.totalAmount)}</td></tr>)}</tbody></table></div>{quotation.charges?.length > 0 && <div className="quote-item-charges"><h2>Additional charges</h2><div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Charge</th><th>Type</th><th>Amount</th></tr></thead><tbody>{quotation.charges.map((charge, index) => { const amount = Number(charge.amount || 0); const total = charge.type === 'percentage' ? quotationTotals(quotation.items, quotation.invoiceDiscount, [charge]).chargesAmount : amount; return <tr key={charge.id || `${charge.name}-${index}`}><td>{charge.name || 'Additional charge'}</td><td>{charge.type === 'percentage' ? 'Percentage' : 'Fixed'}</td><td>{charge.type === 'percentage' ? `${amount}% (${currency(total)})` : currency(total)}</td></tr>; })}</tbody></table></div></div>}</section>}
+    {tab === 'Communication' && <section className="quote-card"><h2>Communication history</h2>{quotation.communications?.length ? <div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Date</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Sent By</th><th>Message</th></tr></thead><tbody>{quotation.communications.map((entry, index) => <tr key={index}><td style={{ whiteSpace: 'nowrap' }}>{formatCommunicationDate(entry.date)}</td><td>{entry.type}</td><td>{entry.recipient}</td><td>{entry.subject}</td><td><QuotationStatusBadge status={entry.status} /></td><td>{entry.sentBy}</td><td>{entry.message}</td></tr>)}</tbody></table></div> : <p className="quote-state">No communication has been sent yet.</p>}</section>}
     <article ref={invoiceRef} className="quotation-print-sheet invoice-design-sheet" aria-label="Quotation document">
       <header className="invoice-brand-header">
         <div className="invoice-brand-block">

@@ -9,6 +9,7 @@ using Billing.Domain.Enums;
 using Billing.Tests.Unit.Fakes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace Billing.Tests.Unit;
 
@@ -864,5 +865,44 @@ public class PaymentManagementTests
         Assert.Equal(750.00m, balanceEnvelope.Data!.PaidAmount);
         Assert.Equal(1250.00m, balanceEnvelope.Data.BalanceAmount);
         Assert.Equal("Partially Paid", balanceEnvelope.Data.Status);
+    }
+
+    [Fact]
+    public async Task CreatePayment_WhenNotificationServiceProvided_DispatchesPaymentReceivedNotification()
+    {
+        var context = new TestContext();
+        var customer = await context.SeedCustomerAsync();
+        var invoice = await context.SeedInvoiceAsync(Tenant1, customer.Id, totalAmount: 1000m, paidAmount: 0m);
+
+        var notificationServiceMock = new Moq.Mock<INotificationService>();
+        notificationServiceMock
+            .Setup(s => s.SendPaymentNotificationAsync(Moq.It.IsAny<int>(), Tenant1, "PaymentReceived", "Admin"))
+            .ReturnsAsync(ApiResponse<Billing.Contracts.Notification.NotificationLogDto>.Ok(new Billing.Contracts.Notification.NotificationLogDto { Id = 1, Status = "Sent" }));
+
+        var paymentService = new PaymentService(
+            context.PaymentRepo,
+            context.InvoiceRepo,
+            context.CustomerRepo,
+            context.NumberGenService,
+            context.AuditRepo,
+            context.UnitOfWork,
+            outboxService: null,
+            notificationService: notificationServiceMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            InvoiceId = invoice.Id,
+            CustomerId = customer.Id,
+            Amount = 500m,
+            Method = "Cash",
+            PaymentDate = DateTime.UtcNow
+        };
+
+        var result = await paymentService.CreatePaymentAsync(Tenant1, request, "Admin");
+
+        Assert.True(result.IsSuccess);
+        notificationServiceMock.Verify(
+            s => s.SendPaymentNotificationAsync(Moq.It.IsAny<int>(), Tenant1, "PaymentReceived", "Admin"),
+            Moq.Times.Once);
     }
 }

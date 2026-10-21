@@ -1,8 +1,9 @@
+import { displayDateTime as formatDateTime } from '../../utils/localDate';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, Snackbar, TextField, Tooltip } from '@mui/material';
+import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, Snackbar, TextField} from '@mui/material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 
 import { Add, ArrowBack, EditOutlined, ImageOutlined, MoreVert, StarOutline, ToggleOff, ToggleOn, VisibilityOutlined } from '@mui/icons-material';
@@ -37,15 +38,6 @@ const invoiceSnapshotFromInvoice = (invoice) => ({
   amountPaid: Number(invoice.paidAmount) || 0,
   balanceDue: Number(invoice.balanceAmount) || 0,
 });
-const formatDateTime = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en-IN', {
-    timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZoneName: 'short',
-  }).format(date);
-};
 const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const version = preferActiveVersion
     ? template.activeVersion || template.ActiveVersion || template.versions?.[0] || template.Versions?.[0] || {}
@@ -110,17 +102,17 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
   const close = () => setAnchor(null);
   const select = (action) => { close(); action(); };
   return <div className="template-row-actions">
-    <Tooltip title="Template actions"><IconButton id={`${menuId}-button`} size="small"
+    <IconButton id={`${menuId}-button`} className="ibms-row-actions-trigger" size="small"
       aria-label={`Actions for ${template.name || template.Name}`} aria-haspopup="menu"
       aria-expanded={Boolean(anchor)} aria-controls={anchor ? menuId : undefined}
-      onClick={(event) => setAnchor(event.currentTarget)}><MoreVert fontSize="small" /></IconButton></Tooltip>
+      onClick={(event) => setAnchor(event.currentTarget)}><MoreVert fontSize="small" /></IconButton>
     <Menu id={menuId} anchorEl={anchor} open={Boolean(anchor)} onClose={close}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      PaperProps={{ className: 'template-actions-menu' }} MenuListProps={{ 'aria-labelledby': `${menuId}-button` }}>
+      PaperProps={{ className: 'template-actions-menu ibms-row-actions-menu' }} MenuListProps={{ 'aria-labelledby': `${menuId}-button` }}>
       <MenuItem onClick={() => select(onView)}><ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>View</MenuItem>
       {isDraft && <MenuItem onClick={() => select(onEdit)}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem>}
       {isActive && !isDefault && <MenuItem disabled={busy} onClick={() => select(onDefault)}><ListItemIcon><StarOutline fontSize="small" /></ListItemIcon>Make default</MenuItem>}
-      <MenuItem disabled={busy} onClick={() => select(onStatus)}><ListItemIcon>{isActive ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>{isActive ? 'Deactivate' : 'Activate'}</MenuItem>
+      <MenuItem className={isActive ? 'is-destructive' : undefined} disabled={busy} onClick={() => select(onStatus)}><ListItemIcon>{isActive ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>{isActive ? 'Deactivate' : 'Activate'}</MenuItem>
     </Menu>
   </div>;
 }
@@ -219,7 +211,7 @@ export function InvoiceTemplates() {
         <TextField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField>
       </div>
 
-      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap">
+      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap ibms-table-frame">
         <table className="template-table">
           <caption className="sr-only">Invoice templates with version and status</caption>
           <thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead>
@@ -774,7 +766,7 @@ export function TemplateVersionHistory() {
 
       <p className="template-version-helper">Select a template to view its version history.</p>
       <div className="template-preview-controls template-version-selector"><TextField size="small" label="Select Template" select value={templateId} onChange={selectTemplate} disabled={templatesLoading} helperText={templatesLoading ? 'Loading templates…' : undefined} sx={{ minWidth: 360 }}><MenuItem value="">Select a template</MenuItem>{templates.map((template) => <MenuItem key={template.id || template.Id} value={String(template.id || template.Id)}>{template.name || template.Name}</MenuItem>)}</TextField></div>
-      {templatesError && <Alert severity="error">Unable to load templates: {templatesError}</Alert>}{error && <Alert severity="error">{error}</Alert>}{!templatesLoading && !templatesError && !templates.length && <Alert severity="info">No templates available.</Alert>}{templatesLoading || loading ? <div className="template-empty"><CircularProgress size={24} /></div> : !templateId ? <div className="template-empty template-version-empty"><strong>Select a template to view version history</strong><span>Choose a saved invoice template from the list above.</span></div> : <div className="template-table-wrap"><table className="template-table template-version-table"><thead><tr><th>Version</th><th>Status</th><th>Modified Date</th><th>Modified By</th><th>Changes</th><th>View</th></tr></thead><tbody>{versions.map((version) => <tr key={version.id || version.Id}><td><span className="template-version-cell"><span>{version.version || `v${version.versionNumber}`}</span>{isCurrentVersion(version) && <span className="template-current-badge">Current</span>}</span></td><td>{STATUS_LABELS[version.status] || version.status}</td><td>{formatDateTime(version.createdAtUtc || version.createdDate)}</td><td>{version.createdBy || '—'}</td><td>{version.versionDescription || version.changeDescription || '—'}</td><td className="template-version-actions"><Tooltip title="View version"><IconButton size="small" aria-label={`View ${version.version || `v${version.versionNumber}`} version`} onClick={() => openVersionPreview(version)}><VisibilityOutlined fontSize="small" /></IconButton></Tooltip></td></tr>)}{!versions.length && !error && <tr><td colSpan="6"><div className="template-empty"><strong>No version history available for this template.</strong></div></td></tr>}</tbody></table></div>}
+      {templatesError && <Alert severity="error">Unable to load templates: {templatesError}</Alert>}{error && <Alert severity="error">{error}</Alert>}{!templatesLoading && !templatesError && !templates.length && <Alert severity="info">No templates available.</Alert>}{templatesLoading || loading ? <div className="template-empty"><CircularProgress size={24} /></div> : !templateId ? <div className="template-empty template-version-empty"><strong>Select a template to view version history</strong><span>Choose a saved invoice template from the list above.</span></div> : <div className="template-table-wrap ibms-table-frame"><table className="template-table template-version-table"><thead><tr><th>Version</th><th>Status</th><th>Modified Date</th><th>Modified By</th><th>Changes</th><th>View</th></tr></thead><tbody>{versions.map((version) => <tr key={version.id || version.Id}><td><span className="template-version-cell"><span>{version.version || `v${version.versionNumber}`}</span>{isCurrentVersion(version) && <span className="template-current-badge">Current</span>}</span></td><td>{STATUS_LABELS[version.status] || version.status}</td><td>{formatDateTime(version.createdAtUtc || version.createdDate)}</td><td>{version.createdBy || '—'}</td><td>{version.versionDescription || version.changeDescription || '—'}</td><td className="template-version-actions"><IconButton size="small" aria-label={`View ${version.version || `v${version.versionNumber}`} version`} onClick={() => openVersionPreview(version)}><VisibilityOutlined fontSize="small" /></IconButton></td></tr>)}{!versions.length && !error && <tr><td colSpan="6"><div className="template-empty"><strong>No version history available for this template.</strong></div></td></tr>}</tbody></table></div>}
     </section>
     <Dialog open={Boolean(versionPreview)} onClose={() => setVersionPreview(null)} maxWidth="lg" fullWidth>
       <DialogTitle>{versionPreview ? `${selectedTemplate?.name || selectedTemplate?.Name || 'Template'} ${versionPreview.label} preview` : 'Version preview'}</DialogTitle>
@@ -798,7 +790,7 @@ export function TemplateAuditHistory() {
   return <TemplatePage title="Audit & traceability" description="">
     <section className="template-list-card" aria-labelledby="template-audit-heading">
       <div className="template-section-title"><div><h2 id="template-audit-heading">Template and document activity</h2></div></div>
-      {error && <DashboardErrorState title="Unable to load template activity" message={error} onRetry={() => setLoadAttempt(attempt => attempt + 1)} />}<div className="template-table-wrap"><table className="template-table"><caption className="sr-only">Template and invoice document audit history</caption><thead><tr><th scope="col">Event</th><th scope="col">Date and time</th><th scope="col">Performed by</th><th scope="col">Changes / result</th><th scope="col">Template version / document</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id || log.Id}><td>{log.event}</td><td>{formatDateTime(log.dateAndTime || log.DateAndTime)}</td><td>{log.performedBy}</td><td>{log.changesOrResult}</td><td>{log.templateVersionOrDocument}</td></tr>)}{!logs.length && !loading && !error && <tr><td colSpan="5"><div className="template-empty"><strong>No template activity available</strong></div></td></tr>}{loading && <tr><td colSpan="5"><div className="template-empty"><CircularProgress size={24} /></div></td></tr>}</tbody></table></div>
+      {error && <DashboardErrorState title="Unable to load template activity" message={error} onRetry={() => setLoadAttempt(attempt => attempt + 1)} />}<div className="template-table-wrap ibms-table-frame"><table className="template-table"><caption className="sr-only">Template and invoice document audit history</caption><thead><tr><th scope="col">Event</th><th scope="col">Date and time</th><th scope="col">Performed by</th><th scope="col">Changes / result</th><th scope="col">Template version / document</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id || log.Id}><td>{log.event}</td><td>{formatDateTime(log.dateAndTime || log.DateAndTime)}</td><td>{log.performedBy}</td><td>{log.changesOrResult}</td><td>{log.templateVersionOrDocument}</td></tr>)}{!logs.length && !loading && !error && <tr><td colSpan="5"><div className="template-empty"><strong>No template activity available</strong></div></td></tr>}{loading && <tr><td colSpan="5"><div className="template-empty"><CircularProgress size={24} /></div></td></tr>}</tbody></table></div>
     </section>
   </TemplatePage>;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Button,
@@ -20,6 +20,7 @@ import {
   MonetizationOnOutlined,
 } from '@mui/icons-material';
 import { SettingsPageHeader } from './SettingsPageHeader';
+import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import {
@@ -39,6 +40,7 @@ export function CountryConfiguration() {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const saveLock = useRef(false);
 
   // Sync with persisted settings on mount / change
   useEffect(() => {
@@ -85,13 +87,16 @@ export function CountryConfiguration() {
   };
 
   const handleSave = async () => {
+    if (saveLock.current) return;
+    saveLock.current = true;
     setSaving(true);
     try {
       const result = await saveCountries(selectedCountries);
-      setToast(result.message || 'Country configuration saved successfully.');
+      navigate('/settings', { state: { countrySaved: result.message || 'Country configuration saved successfully.' } });
     } catch (err) {
-      setToast('Country settings saved locally.');
+      setToast(errorPresentation(err.userMessage || err.message));
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   };
@@ -159,7 +164,7 @@ export function CountryConfiguration() {
                   </div>
                 </div>
                 {index === 0 && (
-                  <span className="country-primary-badge" title="Default Country">
+                  <span className="country-primary-badge" >
                     Default
                   </span>
                 )}
@@ -434,7 +439,7 @@ export function CountryConfiguration() {
         </aside>
       </div>
 
-      <FeedbackSnackbar message={toast} onClose={() => setToast('')} />
+      <FeedbackSnackbar severity="error" message={toast} onClose={() => setToast('')} />
     </main>
   );
 }

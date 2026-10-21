@@ -13,7 +13,7 @@ import { RecordPayment } from '../src/pages/Payments/RecordPayment';
 import { PaymentDetails } from '../src/pages/Payments/PaymentDetails';
 import { PaymentReversalContent } from '../src/pages/Payments/PaymentReversal';
 import { PaymentState } from '../src/pages/Payments/PaymentShared';
-import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money } from '../src/pages/Payments/paymentService';
+import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money, displayDate } from '../src/pages/Payments/paymentService';
 import { paymentSchema, reversalSchema } from '../src/pages/Payments/paymentValidation';
 import { localCalendarDate } from '../src/utils/localDate';
 import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from '../src/pages/Payments/paymentReports';
@@ -30,7 +30,7 @@ const render = (path,c=cache()) => renderToStaticMarkup(<StaticRouter location={
 test('Payments list: real mapped row, controls, actions and server page totals',()=>{
  const c=cache();c.setQueryData(['payments','list',params],{items:[mapPayment(payment)],totalCount:21,pageNumber:1,pageSize:10});
  const html=render('/payments',c);
- for(const value of ['Payment Management','Search payments','From Date','To Date','Rows per page','QA-PAY-9','QA Customer','Actions for payment QA-PAY-9','21 payments']) assert.ok(html.includes(value),value);
+ for(const value of ['Payment Management','Search payments','Date Range','Rows per page','QA-PAY-9','QA Customer','Actions for payment QA-PAY-9','21 payments']) assert.ok(html.includes(value),value);
  assert.match(html,/href="\/payments\/new"/);
  assert.doesNotMatch(html,/MuiTableCell-alignRight|MuiTableCell-alignCenter/);
  const headings = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[\s\S]*?<\/style>|<svg\b[\s\S]*?<\/svg>|<[^>]*>/g, '').trim());
@@ -42,11 +42,28 @@ test('Payments list and details: empty, loading and API failure states',()=>{
  c.getQueryCache().build(c,{queryKey:['payments','detail','9']}).setState({status:'error',fetchStatus:'idle',error:{response:{status:404}}});
  assert.match(render('/payments/9',c),/Payment resource not found/);
 });
+
+test('Payments load failures render once inside the table across all columns', () => {
+ const c = cache();
+ const error = { message: 'Network Error' };
+ c.getQueryCache().build(c, {queryKey:['payments','list',params]}).setState({status:'error',fetchStatus:'idle',error});
+ c.getQueryCache().find({queryKey:['payment-user']}).setState({status:'error',fetchStatus:'idle',error});
+ const html = render('/payments', c);
+ const body = html.match(/<tbody\b[^>]*>([\s\S]*?)<\/tbody>/)?.[1];
+ assert.ok(body);
+ assert.match(body, /colSpan="9"/i);
+ assert.match(body, /Unable to load payment data/);
+ assert.match(body, /Retry/);
+ assert.equal(html.split('Unable to load payment data').length - 1, 1);
+ assert.equal(html.split(paymentError(error)).length - 1, 1);
+ assert.doesNotMatch(html, /Payments could not be loaded\.|No payments found/);
+});
 test('Record screen renders fields and read-only authoritative values',()=>{
  const c=cache();c.setQueryData(['payment-invoices'],[invoice]);const html=render('/payments/new',c);
  for(const label of ['Invoice Search / Select','Invoice Total','Previously Paid','Current Outstanding','Payment Date','Payment Amount','Payment Method','Notes','Review Payment'])assert.ok(html.includes(label),label);
  const fields=(html.match(/<input\b[^>]*>/g)||[]).filter(x=>x.includes('placeholder="Select an eligible invoice"'));assert.equal(fields.length,4);assert.ok(fields.every(x=>/readonly=""/i.test(x)));
- assert.match(html, new RegExp(`type="date"[^>]*value="${localCalendarDate()}"`));
+ assert.match(html, /aria-label="Open calendar for Payment Date"/);
+ assert.ok(html.includes(`value="${displayDate(localCalendarDate())}"`));
 });
 test('new payment default uses local calendar getters, not UTC serialization',()=>{
  assert.equal(localCalendarDate({getFullYear:()=>2026,getMonth:()=>9,getDate:()=>9,toISOString:()=>{throw new Error('UTC conversion is not allowed');}}),'2026-10-09');

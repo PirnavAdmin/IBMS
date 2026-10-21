@@ -1,6 +1,7 @@
 import {
   BrandingWatermarkOutlined,
   FormatListNumberedOutlined,
+  FileDownloadOutlined,
   IntegrationInstructionsOutlined,
   AssessmentOutlined,
   AutorenewOutlined,
@@ -15,7 +16,9 @@ import {
   ReceiptOutlined,
   RequestQuoteOutlined,
   SettingsOutlined,
+  ScheduleOutlined,
   SupportAgentOutlined,
+  NotificationsOutlined,
 } from '@mui/icons-material';
 import { InvoiceBillingLogo } from '../InvoiceBillingLogo';
 import { dashboardNavigation } from '../../data/dashboardNavigation';
@@ -37,13 +40,16 @@ const iconMap = {
   tax: ReceiptOutlined,
   report: AssessmentOutlined,
   activity: HistoryOutlined,
+  notification: NotificationsOutlined,
+  jobs: ScheduleOutlined,
+  exports: FileDownloadOutlined,
 };
 
 export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClose }) => (
   <>
     <button className={`bd-sidebar-backdrop ${open ? 'is-open' : ''}`} onClick={onClose} aria-label="Close navigation" />
     <aside id="app-primary-navigation" className={`bd-sidebar ${open ? 'is-open' : ''}`} aria-label="Primary navigation">
-      <button className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')} aria-label="Go to dashboard" title="Dashboard">
+      <button className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')} aria-label="Go to dashboard" >
         <InvoiceBillingLogo size={20} />
         <strong>INVOICE<span>.</span>BILLING</strong>
       </button>
@@ -60,7 +66,7 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
         </div>)}
       </nav>
       <div className="bd-sidebar-footer">
-        <button onClick={() => onSelect('support')} aria-label="Help & Support" title="Help & Support"><SupportAgentOutlined /><span>Help & Support</span></button>
+        <button onClick={() => onSelect('support')} aria-label="Help & Support" ><SupportAgentOutlined /><span>Help & Support</span></button>
         <p>Workspace</p><strong>Acme Business India</strong>
       </div>
       </div>

@@ -19,16 +19,28 @@ public class EmailService : IEmailService
     {
         var email = new MimeMessage();
 
-        var fromEmail = _configuration["EmailSettings:Email"] 
-            ?? throw new InvalidOperationException("EmailSettings:Email is not configured.");
-        var appPassword = _configuration["EmailSettings:AppPassword"] 
-            ?? throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
+        var fromEmail = _configuration["EmailSettings:Email"]?.Trim();
+        if (string.IsNullOrWhiteSpace(fromEmail))
+            throw new InvalidOperationException("EmailSettings:Email is not configured.");
+
+        var configuredAppPassword = _configuration["EmailSettings:AppPassword"];
+        if (string.IsNullOrWhiteSpace(configuredAppPassword))
+            throw new InvalidOperationException("EmailSettings:AppPassword is not configured.");
+        var appPassword = string.Concat(configuredAppPassword.Where(character => !char.IsWhiteSpace(character)));
 
         email.From.Add(MailboxAddress.Parse(fromEmail));
         email.To.Add(MailboxAddress.Parse(toEmail));
         email.Subject = subject;
 
-        var builder = new BodyBuilder { TextBody = body };
+        var builder = new BodyBuilder();
+        if (!string.IsNullOrWhiteSpace(body) && (body.Contains("<html", StringComparison.OrdinalIgnoreCase) || body.Contains("<div", StringComparison.OrdinalIgnoreCase) || body.Contains("<p", StringComparison.OrdinalIgnoreCase) || body.Contains("<table", StringComparison.OrdinalIgnoreCase)))
+        {
+            builder.HtmlBody = body;
+        }
+        else
+        {
+            builder.TextBody = body;
+        }
 
         if (attachmentBytes != null && !string.IsNullOrWhiteSpace(attachmentName))
         {

@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { Spin } from 'antd';
 import { apiClient } from 'billing-api-client';
 import { queryClient } from '../queryClient';
 import './protected-route.css';
@@ -55,9 +56,9 @@ export function ProtectedRoute({ children }) {
   if (status === 'invalid') return <Navigate to="/login" replace state={{ from: location }} />;
   return <main className="protected-route-state">
     {status === 'error' ? <section role="alert">
-      <h1>Unable to verify your session</h1>
+      <h1>Unable to load</h1>
       <p>Please check your connection and try again.</p>
       <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>
-    </section> : <p role="status" aria-live="polite">Verifying your session...</p>}
+    </section> : <div role="status" aria-live="polite" className="protected-route-loading"><Spin size="large" /><span>Loading...</span></div>}
   </main>;
 }

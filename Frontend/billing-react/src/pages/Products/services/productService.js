@@ -4,6 +4,25 @@ export function normalizeProduct(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.id == null) throw new Error('Invalid product response.');
   const category = raw.category;
   const name = [raw.categoryName, typeof category === 'string' ? category : category?.name].find(value => typeof value === 'string' && value.trim());
+
+  const unitPrice = Number(raw.price ?? raw.unitPrice ?? 0);
+  const discountAllowed = Boolean(raw.discountAllowed);
+  const discountPercent = Number(raw.discountPercent ?? raw.DiscountPercent ?? raw.discountPercentage ?? 0);
+  const discountAmount = (discountAllowed && discountPercent > 0) ? Math.round(unitPrice * (discountPercent / 100) * 100) / 100 : 0;
+  const netUnitPrice = unitPrice - discountAmount;
+
+  let taxRate = Number(raw.taxRate ?? 0);
+  if (!taxRate && raw.taxCategory) {
+    const match = String(raw.taxCategory).match(/(\d+(?:\.\d+)?)/);
+    if (match) taxRate = parseFloat(match[1]);
+  }
+  const taxAmount = taxRate > 0 ? Math.round(netUnitPrice * (taxRate / 100) * 100) / 100 : 0;
+  const calculatedFinalPrice = Math.round((netUnitPrice + taxAmount) * 100) / 100;
+  const rawFinalPrice = raw.defaultFinalPrice ?? raw.DefaultFinalPrice ?? raw.finalUnitPrice ?? raw.FinalUnitPrice;
+  const defaultFinalPrice = (rawFinalPrice != null && Math.abs(Number(rawFinalPrice) - netUnitPrice) < 0.01 && taxAmount > 0)
+    ? calculatedFinalPrice
+    : (rawFinalPrice != null ? Number(rawFinalPrice) : calculatedFinalPrice);
+
   return {
     ...raw,
     categoryId: raw.categoryId ?? (typeof category === 'object' ? category?.id : null),
@@ -12,6 +31,8 @@ export function normalizeProduct(raw) {
     status: typeof raw.isActive === 'boolean' ? (raw.isActive ? 'Active' : 'Inactive') : raw.status || 'Unknown',
     hsnSac: raw.hsnSacCode ?? raw.hsnSac ?? '',
     discountPercentage: raw.discountPercent ?? raw.DiscountPercent ?? raw.discountPercentage ?? '',
+    defaultFinalPrice,
+    finalUnitPrice: defaultFinalPrice,
   };
 }
 

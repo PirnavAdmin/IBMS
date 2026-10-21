@@ -114,15 +114,66 @@ public class InvoiceRepository : IInvoiceRepository
     public async Task<Invoice> UpdateAsync(Invoice invoice, CancellationToken cancellationToken = default)
     {
         invoice.UpdatedAtUtc = DateTime.UtcNow;
-        invoice.RowVersion = DateTime.UtcNow;
 
         var entry = _dbContext.Entry(invoice);
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Invoice> targetEntry;
+
         if (entry.State == EntityState.Detached)
         {
-            _dbContext.Invoices.Update(invoice);
+            var existing = _dbContext.Invoices.Local.FirstOrDefault(i => i.Id == invoice.Id)
+                ?? await _dbContext.Invoices.FirstOrDefaultAsync(i => i.Id == invoice.Id && i.TenantId == invoice.TenantId, cancellationToken);
+
+            if (existing != null)
+            {
+                targetEntry = _dbContext.Entry(existing);
+                var originalRowVersion = targetEntry.Property(i => i.RowVersion).OriginalValue;
+                invoice.RowVersion = DateTime.UtcNow;
+                targetEntry.CurrentValues.SetValues(invoice);
+                targetEntry.Property(i => i.RowVersion).OriginalValue = originalRowVersion;
+            }
+            else
+            {
+                invoice.RowVersion = DateTime.UtcNow;
+                _dbContext.Invoices.Attach(invoice);
+                entry.State = EntityState.Modified;
+                targetEntry = entry;
+            }
+        }
+        else
+        {
+            invoice.RowVersion = DateTime.UtcNow;
+            targetEntry = entry;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            foreach (var failedEntry in ex.Entries)
+            {
+                var currentDbValues = await failedEntry.GetDatabaseValuesAsync(cancellationToken);
+                if (currentDbValues == null)
+                {
+                    failedEntry.State = EntityState.Detached;
+                    throw;
+                }
+
+                failedEntry.OriginalValues.SetValues(currentDbValues);
+            }
+
+            var retryValues = await targetEntry.GetDatabaseValuesAsync(cancellationToken);
+            if (retryValues == null)
+            {
+                targetEntry.State = EntityState.Detached;
+                throw;
+            }
+
+            targetEntry.OriginalValues.SetValues(retryValues);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         return invoice;
     }
 

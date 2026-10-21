@@ -8,7 +8,6 @@ import {
   InputAdornment,
   MenuItem,
   TextField,
-  Tooltip,
 } from "@mui/material";
 import {
   Add,
@@ -751,7 +750,7 @@ export function InvoiceForm() {
               </Button>
             </div>
             <InvoiceState error={taxes.error} retry={() => taxes.refetch()} />
-            <div className="invoice-table-scroll">
+            <div className="invoice-table-scroll ibms-table-frame">
               <table className="invoice-table invoice-edit-table">
                 <thead>
                   <tr>
@@ -992,7 +991,7 @@ export function InvoiceForm() {
                       </td>
                       <td>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-                          <Tooltip title="Move line up">
+
                             <span>
                               <IconButton
                                 size="small"
@@ -1003,8 +1002,8 @@ export function InvoiceForm() {
                                 <ArrowUpward fontSize="small" />
                               </IconButton>
                             </span>
-                          </Tooltip>
-                          <Tooltip title="Move line down">
+
+
                             <span>
                               <IconButton
                                 size="small"
@@ -1015,8 +1014,8 @@ export function InvoiceForm() {
                                 <ArrowDownward fontSize="small" />
                               </IconButton>
                             </span>
-                          </Tooltip>
-                          <Tooltip title="Delete line">
+
+
                             <span>
                               <IconButton
                                 size="small"
@@ -1035,7 +1034,7 @@ export function InvoiceForm() {
                                 <DeleteOutline fontSize="small" />
                               </IconButton>
                             </span>
-                          </Tooltip>
+
                         </div>
                       </td>
                     </tr>

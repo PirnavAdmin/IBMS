@@ -12,7 +12,7 @@ return (      <article className="customer-print-sheet">
         <header className="customer-print-header">
           <div className="customer-print-brand">CUSTOMER PROFILE</div>
           <div className="customer-print-title-row"><div><h1>{value(customer.name)}</h1><p>{value(customer.companyName)}</p></div><span className={`customer-print-status ${customer.isActive === false ? "inactive" : "active"}`}>{value(customer.status)}</span></div>
-          <div className="customer-print-meta"><span>Customer ID <strong>{value(customer.customerCode)}</strong></span><span>Prepared {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span></div>
+          <div className="customer-print-meta"><span>Customer ID <strong>{value(customer.customerCode)}</strong></span><span>Prepared {displayDate(new Date())}</span></div>
         </header>
 
         <PrintSection title="Contact & Account">

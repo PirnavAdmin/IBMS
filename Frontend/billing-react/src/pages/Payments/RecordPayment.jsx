@@ -1,3 +1,5 @@
+import { Button as AntButton } from 'antd';
+import { ArrowBack } from '@mui/icons-material';
 import { DateInput } from '../../components/DateField';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
@@ -70,9 +72,9 @@ export function RecordPayment() {
       {options && [<MenuItem key="none" value="">Select status</MenuItem>,...options.map(option=><MenuItem key={option} value={option}>{option}</MenuItem>)]}
     </TextField>;
   };
-  return <PaymentShell title="Record Payment" actions={<Button component={Link} to="/payments">Back to Payments</Button>}>
+  return <PaymentShell title="Record Payment" actions={<AntButton className="workspace-back-button" icon={<ArrowBack fontSize="small" />} disabled={busy} onClick={() => navigate('/payments')}>Back to Payments</AntButton>}>
     <PaymentState loading={invoices.isPending || user.isPending} error={invoices.error || user.error} onRetry={()=>{invoices.refetch();user.refetch();}} />
-    <form className="payment-panel" onSubmit={review} noValidate><fieldset disabled={busy || Boolean(retryRequest)} className="payment-fieldset">
+    <form className="payment-panel payment-entry-form" onSubmit={review} noValidate><fieldset disabled={busy || Boolean(retryRequest)} className="payment-fieldset">
       <h2>Invoice &amp; balance</h2><div className="payment-form-grid">
         <Autocomplete options={invoices.data || []} value={selected} inputValue={search} onInputChange={(_,value)=>setSearch(value)} loading={invoices.isFetching} getOptionLabel={option=>`${option.invoiceNumber} - ${option.customerName}`} isOptionEqualToValue={(a,b)=>a.invoiceId===b.invoiceId}
           noOptionsText={invoices.error?'Invoices could not be loaded.':'No eligible invoices available.'} onChange={(_,value)=>{setSelected(value);setForm(previous=>({...previous,invoice:value?String(value.invoiceId):''}));setConfirmation(null);setMessage('');}}

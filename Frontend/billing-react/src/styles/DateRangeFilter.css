@@ -1,0 +1,12 @@
+.date-range-filter.ant-btn { min-height: 40px; height: 40px; border-radius: 8px; border-color: var(--border, #e4d8c8); background: #fffdf9; color: #715238; padding: 0 14px; font-family: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.date-range-filter.ant-btn:hover { background: #f5ebe0; border-color: #ba9774; color: #715238; }
+.date-range-filter.ant-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
+.date-range-filter svg { font-size: 18px; flex-shrink: 0; }
+.date-range-form { display: grid; gap: 16px; width: min(20rem, calc(100vw - 64px)); padding: 8px 4px 4px; color: #715238; font: 13px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.date-range-form label { display: grid; gap: 6px; }
+.date-range-form input { min-height: 40px; border-radius: 8px; font-family: inherit; }
+.date-range-form input:hover { border-color: #ba9774; }
+.date-range-form input:focus { border-color: #96704e; box-shadow: 0 0 0 3px #cba57b26; }
+.date-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.date-range-error { color: #b44336; }
+.notification-range { display: grid; gap: 6px; }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -12,243 +12,107 @@ namespace Billing.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Payments_BranchId",
-                table: "Payments");
+            migrationBuilder.Sql(@"
+                SET @idx_exists = (SELECT COUNT(1) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'Payments' AND index_name = 'IX_Payments_BranchId');
+                SET @sql = IF(@idx_exists > 0, 'DROP INDEX `IX_Payments_BranchId` ON `Payments`', 'SELECT 1');
+                PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "CreditedAmount",
-                table: "Invoices",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(1) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'Invoices' AND column_name = 'CreditedAmount');
+                SET @sql = IF(@col_exists = 0, 'ALTER TABLE `Invoices` ADD `CreditedAmount` decimal(18,2) NOT NULL DEFAULT 0.0', 'SELECT 1');
+                PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "Currency",
-                table: "Invoices",
-                type: "longtext",
-                nullable: false)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(1) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'Invoices' AND column_name = 'Currency');
+                SET @sql = IF(@col_exists = 0, 'ALTER TABLE `Invoices` ADD `Currency` longtext CHARACTER SET utf8mb4 NOT NULL', 'SELECT 1');
+                PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.CreateTable(
-                name: "CreditNotes",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    CreditNoteNumber = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    InvoiceId = table.Column<int>(type: "int", nullable: false),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    CreditDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Type = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, defaultValue: "Full")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    TaxAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    RefundedAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    RemainingRefundableAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    Status = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false, defaultValue: "Draft")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Reason = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Notes = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    ApprovedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    ApprovedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    RejectionReason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    RejectedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    RejectedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    IssuedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    IssuedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    CancelledBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CancelledAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    CancellationReason = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    RowVersion = table.Column<DateTime>(type: "datetime(6)", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CreditNotes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CreditNotes_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_CreditNotes_Invoices_InvoiceId",
-                        column: x => x.InvoiceId,
-                        principalTable: "Invoices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_CreditNotes_Tenants_TenantId",
-                        column: x => x.TenantId,
-                        principalTable: "Tenants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS `CreditNotes` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `TenantId` int NOT NULL,
+                    `CreditNoteNumber` varchar(64) CHARACTER SET utf8mb4 NOT NULL,
+                    `InvoiceId` int NOT NULL,
+                    `CustomerId` int NOT NULL,
+                    `CreditDate` datetime(6) NOT NULL,
+                    `Type` varchar(32) CHARACTER SET utf8mb4 NOT NULL DEFAULT 'Full',
+                    `Subtotal` decimal(18,2) NOT NULL,
+                    `TaxAmount` decimal(18,2) NOT NULL,
+                    `TotalAmount` decimal(18,2) NOT NULL,
+                    `RefundedAmount` decimal(18,2) NOT NULL,
+                    `RemainingRefundableAmount` decimal(18,2) NOT NULL,
+                    `Status` varchar(32) CHARACTER SET utf8mb4 NOT NULL DEFAULT 'Draft',
+                    `Reason` varchar(250) CHARACTER SET utf8mb4 NOT NULL,
+                    `Notes` varchar(1000) CHARACTER SET utf8mb4 NULL,
+                    `CreatedBy` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                    `CreatedAtUtc` datetime(6) NOT NULL,
+                    `ApprovedBy` varchar(200) CHARACTER SET utf8mb4 NULL,
+                    `ApprovedAtUtc` datetime(6) NULL,
+                    `RejectionReason` varchar(500) CHARACTER SET utf8mb4 NULL,
+                    `RejectedBy` varchar(200) CHARACTER SET utf8mb4 NULL,
+                    `RejectedAtUtc` datetime(6) NULL,
+                    `IssuedBy` varchar(200) CHARACTER SET utf8mb4 NULL,
+                    `IssuedAtUtc` datetime(6) NULL,
+                    `CancelledBy` varchar(200) CHARACTER SET utf8mb4 NULL,
+                    `CancelledAtUtc` datetime(6) NULL,
+                    `CancellationReason` varchar(500) CHARACTER SET utf8mb4 NULL,
+                    `UpdatedAtUtc` datetime(6) NULL,
+                    `RowVersion` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                    CONSTRAINT `PK_CreditNotes` PRIMARY KEY (`Id`),
+                    CONSTRAINT `FK_CreditNotes_Customers_CustomerId` FOREIGN KEY (`CustomerId`) REFERENCES `Customers` (`Id`) ON DELETE RESTRICT,
+                    CONSTRAINT `FK_CreditNotes_Invoices_InvoiceId` FOREIGN KEY (`InvoiceId`) REFERENCES `Invoices` (`Id`) ON DELETE RESTRICT,
+                    CONSTRAINT `FK_CreditNotes_Tenants_TenantId` FOREIGN KEY (`TenantId`) REFERENCES `Tenants` (`Id`) ON DELETE RESTRICT
+                ) CHARACTER SET=utf8mb4;
+            ");
 
-            migrationBuilder.CreateTable(
-                name: "CreditNoteItems",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    CreditNoteId = table.Column<int>(type: "int", nullable: false),
-                    InvoiceItemId = table.Column<int>(type: "int", nullable: true),
-                    ProductId = table.Column<int>(type: "int", nullable: true),
-                    Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Quantity = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    TaxType = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    TaxRate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
-                    TaxAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    HSNSAC = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CreditNoteItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CreditNoteItems_CreditNotes_CreditNoteId",
-                        column: x => x.CreditNoteId,
-                        principalTable: "CreditNotes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CreditNoteItems_InvoiceItems_InvoiceItemId",
-                        column: x => x.InvoiceItemId,
-                        principalTable: "InvoiceItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_CreditNoteItems_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS `CreditNoteItems` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `CreditNoteId` int NOT NULL,
+                    `InvoiceItemId` int NULL,
+                    `ProductId` int NULL,
+                    `Description` varchar(500) CHARACTER SET utf8mb4 NOT NULL,
+                    `Quantity` decimal(18,4) NOT NULL,
+                    `UnitPrice` decimal(18,2) NOT NULL,
+                    `DiscountAmount` decimal(18,2) NOT NULL,
+                    `TaxType` varchar(32) CHARACTER SET utf8mb4 NULL,
+                    `TaxRate` decimal(18,2) NULL,
+                    `TaxAmount` decimal(18,2) NOT NULL,
+                    `TotalAmount` decimal(18,2) NOT NULL,
+                    `HSNSAC` varchar(64) CHARACTER SET utf8mb4 NULL,
+                    CONSTRAINT `PK_CreditNoteItems` PRIMARY KEY (`Id`),
+                    CONSTRAINT `FK_CreditNoteItems_CreditNotes_CreditNoteId` FOREIGN KEY (`CreditNoteId`) REFERENCES `CreditNotes` (`Id`) ON DELETE CASCADE,
+                    CONSTRAINT `FK_CreditNoteItems_InvoiceItems_InvoiceItemId` FOREIGN KEY (`InvoiceItemId`) REFERENCES `InvoiceItems` (`Id`) ON DELETE SET NULL,
+                    CONSTRAINT `FK_CreditNoteItems_Products_ProductId` FOREIGN KEY (`ProductId`) REFERENCES `Products` (`Id`) ON DELETE SET NULL
+                ) CHARACTER SET=utf8mb4;
+            ");
 
-            migrationBuilder.CreateTable(
-                name: "CreditNoteRefunds",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    TenantId = table.Column<int>(type: "int", nullable: false),
-                    CreditNoteId = table.Column<int>(type: "int", nullable: false),
-                    RefundNumber = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    RefundDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    RefundAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    PaymentMethod = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    ReferenceNumber = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Notes = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    ProcessedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CreditNoteRefunds", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CreditNoteRefunds_CreditNotes_CreditNoteId",
-                        column: x => x.CreditNoteId,
-                        principalTable: "CreditNotes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
+            migrationBuilder.Sql(@"
+                CREATE TABLE IF NOT EXISTS `CreditNoteRefunds` (
+                    `Id` int NOT NULL AUTO_INCREMENT,
+                    `TenantId` int NOT NULL,
+                    `CreditNoteId` int NOT NULL,
+                    `RefundNumber` varchar(64) CHARACTER SET utf8mb4 NOT NULL,
+                    `RefundDate` datetime(6) NOT NULL,
+                    `RefundAmount` decimal(18,2) NOT NULL,
+                    `PaymentMethod` varchar(50) CHARACTER SET utf8mb4 NOT NULL,
+                    `ReferenceNumber` varchar(100) CHARACTER SET utf8mb4 NULL,
+                    `Notes` varchar(500) CHARACTER SET utf8mb4 NULL,
+                    `ProcessedBy` varchar(200) CHARACTER SET utf8mb4 NOT NULL,
+                    `CreatedAtUtc` datetime(6) NOT NULL,
+                    CONSTRAINT `PK_CreditNoteRefunds` PRIMARY KEY (`Id`),
+                    CONSTRAINT `FK_CreditNoteRefunds_CreditNotes_CreditNoteId` FOREIGN KEY (`CreditNoteId`) REFERENCES `CreditNotes` (`Id`) ON DELETE CASCADE
+                ) CHARACTER SET=utf8mb4;
+            ");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteItems_CreditNoteId",
-                table: "CreditNoteItems",
-                column: "CreditNoteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteItems_InvoiceItemId",
-                table: "CreditNoteItems",
-                column: "InvoiceItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteItems_ProductId",
-                table: "CreditNoteItems",
-                column: "ProductId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteRefunds_CreditNoteId",
-                table: "CreditNoteRefunds",
-                column: "CreditNoteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteRefunds_TenantId_CreditNoteId",
-                table: "CreditNoteRefunds",
-                columns: new[] { "TenantId", "CreditNoteId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNoteRefunds_TenantId_RefundNumber",
-                table: "CreditNoteRefunds",
-                columns: new[] { "TenantId", "RefundNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_CustomerId",
-                table: "CreditNotes",
-                column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_InvoiceId",
-                table: "CreditNotes",
-                column: "InvoiceId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_TenantId_CreditDate",
-                table: "CreditNotes",
-                columns: new[] { "TenantId", "CreditDate" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_TenantId_CreditNoteNumber",
-                table: "CreditNotes",
-                columns: new[] { "TenantId", "CreditNoteNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_TenantId_CustomerId",
-                table: "CreditNotes",
-                columns: new[] { "TenantId", "CustomerId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_TenantId_InvoiceId",
-                table: "CreditNotes",
-                columns: new[] { "TenantId", "InvoiceId" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CreditNotes_TenantId_Status",
-                table: "CreditNotes",
-                columns: new[] { "TenantId", "Status" });
+            migrationBuilder.Sql(@"
+                SET @idx_exists = (SELECT COUNT(1) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'CreditNoteRefunds' AND index_name = 'IX_CreditNoteRefunds_CreditNoteId');
+                SET @sql = IF(@idx_exists = 0, 'CREATE INDEX `IX_CreditNoteRefunds_CreditNoteId` ON `CreditNoteRefunds` (`CreditNoteId`)', 'SELECT 1');
+                PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+            ");
         }
 
         /// <inheritdoc />

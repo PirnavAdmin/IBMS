@@ -42,7 +42,7 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
         <AmountRing label="Invoiced" value={invoiced} currency={currency} tone="invoiced" percentage={cohort?.invoicedPercent} />
         <AmountRing label="Collected" value={collected} currency={currency} tone="collected" percentage={cohort?.collectedPercent} />
       </div>
-      <details className="premium-chart-data"><summary>Monthly breakdown</summary><div className="premium-table-scroll"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
+      <details className="premium-chart-data"><summary>Monthly breakdown</summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
     </>}
   </article>;
 };
@@ -65,7 +65,7 @@ export const OutstandingAging = ({ data, currency }) => {
         </svg>
         <div className="premium-ring-value"><small>Outstanding</small><strong>{money(total, currency)}</strong><span className="premium-current-share">{currentShare.toFixed(1)}% <small>Current</small></span></div>
       </div>
-      <div className="premium-aging-legend">{buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => <div key={row.label}><i style={{ background: row.color }} /><span>{row.label}</span><small>{row.share.toFixed(1)}%</small><strong>{money(row.value, currency)}</strong></div>)}</div>
+      <div className="premium-aging-legend">{buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => <div key={row.label}><span className="premium-aging-bucket"><i aria-hidden="true" style={{ background: row.color }} />{row.label}</span><small>{row.share.toFixed(1)}%</small><strong>{money(row.value, currency)}</strong></div>)}</div>
     </div>}
   </article>;
 };

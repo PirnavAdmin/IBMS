@@ -45,7 +45,7 @@ test('private content waits for backend validation; normal navigation preserves 
   let resolve;
   const view = await mount(() => new Promise(done => { resolve = done; }), 'valid-token');
   try {
-    assert.match(view.host.textContent, /Verifying your session/);
+    assert.match(view.host.textContent, /Loading\.\.\./);
     assert.equal(view.mounts, 0);
     assert.equal(view.calls[0][0], '/api/Auth/me');
     assert.equal(view.calls[0][1].skipAuthRedirect, true);
@@ -73,7 +73,7 @@ test('network failure blocks content without losing the token and supports retry
   let failed = true;
   const view = await mount(() => failed ? Promise.reject(new Error('Network error')) : Promise.resolve({ userId: 1 }), 'valid-token');
   try {
-    assert.match(view.host.textContent, /Unable to verify your session/); assert.equal(view.mounts, 0);
+    assert.match(view.host.textContent, /Unable to load/); assert.equal(view.mounts, 0);
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     failed = false;
     await act(async () => Simulate.click(view.host.querySelector('button')));
@@ -83,7 +83,7 @@ test('network failure blocks content without losing the token and supports retry
 
 test('malformed successful responses never unlock protected content', async () => {
   const view = await mount(() => Promise.resolve('<html>Offline tunnel</html>'), 'unverified-token');
-  try { assert.match(view.host.textContent, /Unable to verify your session/); assert.equal(view.mounts, 0); } finally { await view.close(); }
+  try { assert.match(view.host.textContent, /Unable to load/); assert.equal(view.mounts, 0); } finally { await view.close(); }
 });
 
 test('logout in another tab immediately removes access', async () => {

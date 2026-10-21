@@ -86,27 +86,27 @@ public class WebhookDispatcher : IWebhookDispatcher
             }
             else
             {
-                HandleFailure(delivery, webhook, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+                await HandleFailureAsync(delivery, webhook, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
             }
         }
         catch (OperationCanceledException)
         {
             stopwatch.Stop();
             delivery.ExecutionDurationMs = stopwatch.ElapsedMilliseconds;
-            HandleFailure(delivery, webhook, "Request timed out after 10 seconds.");
+            await HandleFailureAsync(delivery, webhook, "Request timed out after 10 seconds.");
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             delivery.ExecutionDurationMs = stopwatch.ElapsedMilliseconds;
-            HandleFailure(delivery, webhook, ex.Message);
+            await HandleFailureAsync(delivery, webhook, ex.Message);
         }
 
         await _deliveryRepository.UpdateAsync(delivery);
         return delivery;
     }
 
-    private void HandleFailure(WebhookDelivery delivery, Webhook webhook, string failureReason)
+    private async Task HandleFailureAsync(WebhookDelivery delivery, Webhook webhook, string failureReason)
     {
         delivery.FailureReason = failureReason;
 
@@ -137,7 +137,7 @@ public class WebhookDispatcher : IWebhookDispatcher
                 webhook.Id, webhook.Name);
         }
 
-        _ = _webhookRepository.UpdateAsync(webhook);
+        await _webhookRepository.UpdateAsync(webhook);
     }
 
     private static TimeSpan CalculateExponentialBackoff(int attempt)

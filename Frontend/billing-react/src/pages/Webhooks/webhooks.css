@@ -1,0 +1,34 @@
+.webhook-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.webhook-summary > div { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.webhook-summary span { display: block; color: var(--text-secondary); font-size: 13px; }
+.webhook-summary strong { display: block; margin-top: 6px; font-size: 24px; color: var(--primary); }
+.webhook-toolbar > .MuiTextField-root:nth-child(3) { flex: 0 1 14rem; min-width: 10rem; }
+.webhooks-table { min-width: 68rem; }
+.webhooks-table th:nth-child(1) { width: 15%; }
+.webhooks-table th:nth-child(2) { width: 20%; }
+.webhooks-table th:nth-child(3) { width: 12%; }
+.webhooks-table th:nth-child(4) { width: 11%; }
+.webhooks-table th:nth-child(5) { width: 11%; }
+.webhooks-table th:nth-child(6) { width: 10%; }
+.webhooks-table th:nth-child(7) { width: 13%; }
+.webhooks-table th:nth-child(8) { width: 8%; }
+.webhooks-table :is(th, td):nth-child(4) { text-align: left; }
+.webhooks-table :is(th, td):nth-child(6) { text-align: center; white-space: normal; }
+.webhook-truncated, .webhook-event-summary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.webhook-url { font-size: 12px; }
+.webhook-time span, .webhook-time small { display: block; white-space: nowrap; }
+.webhook-time small { color: var(--text-secondary); margin-top: 2px; }
+.webhook-status-active.MuiChip-root { background: #eaf6ee; color: #247044; }
+.webhook-status-disabled.MuiChip-root { background: var(--bg-main); color: var(--secondary); }
+.webhook-status-suspended.MuiChip-root { background: #fff3d6; color: #805400; }
+.webhook-event-fieldset { padding: 12px; border: 1px solid var(--border); border-radius: 10px; min-width: 0; }
+.webhook-event-fieldset legend { padding: 0 6px; color: var(--secondary); font-size: 14px; }
+.webhook-event-group h3 { color: var(--primary); font-size: 14px; margin: 12px 0 6px; }
+.webhook-event-group .MuiFormControlLabel-root { display: flex; align-items: flex-start; margin: 0; }
+.webhook-event-group .MuiFormControlLabel-label { padding-top: 9px; min-width: 0; overflow-wrap: anywhere; }
+.webhook-event-group strong, .webhook-event-group small { display: block; }
+.webhook-event-group strong { font-size: 13px; font-weight: 600; }
+.webhook-event-group small { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.webhook-validation { color: var(--danger); font-size: 13px; margin-top: 8px; }
+@container integrations (max-width: 40rem) { .webhook-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container integrations (max-width: 24rem) { .webhook-summary { grid-template-columns: minmax(0, 1fr); } .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex-basis: 100%; } }

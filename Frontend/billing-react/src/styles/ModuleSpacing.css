@@ -14,13 +14,15 @@
     .customer-print-page,
     .invoice-page,
     .payments-page,
+    .notification-page,
     .product-page,
     .cn-page,
     .quotation-page,
     .template-page,
     .numbering-page-root,
     .settings-page,
-    .module-placeholder
+    .module-placeholder,
+    .background-jobs-page
   ),
   .app-layout > .app-layout-main > .app-layout-content > :is(.bd-shell, .tax-module) > main,
   .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {
@@ -55,13 +57,15 @@
     .customer-print-page,
     .invoice-page,
     .payments-page,
+    .notification-page,
     .product-page,
     .cn-page,
     .quotation-page,
     .template-page,
     .numbering-page-root,
     .settings-page,
-    .module-placeholder
+    .module-placeholder,
+    .background-jobs-page
   ),
   .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {
     min-height: 100%;

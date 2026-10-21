@@ -20,8 +20,11 @@ export const AuthCardLayout = ({
   cardDescription = null,
   alerts = null,
   onBack,
+  hideBack = false,
+  header = null,
+  className = '',
 }) => (
-  <Box className={`login-root ${isExiting ? 'page-exit-active' : 'page-enter-active'}`}>
+  <Box className={`login-root ${className} ${isExiting ? 'page-exit-active' : 'page-enter-active'}`}>
     <BackgroundLayers />
     <Box className="login-page-wrapper">
       <Container maxWidth={maxWidth}>
@@ -34,12 +37,12 @@ export const AuthCardLayout = ({
               <div className="login-showcase-container">
                 <HoverboardCard>
                   <div className="glass-card-header">
-                    <Button onClick={onBack} startIcon={<ArrowBack sx={{ fontSize: 15 }} />} className="auth-back-btn">
+                    {!hideBack && <Button onClick={onBack} startIcon={<ArrowBack sx={{ fontSize: 15 }} />} className="auth-back-btn">
                       {backLabel}
-                    </Button>
+                    </Button>}
                     <WindowDots label={tagLabel} version={version} />
                   </div>
-                  <BrandHeader title={brandTitle} subtitle={brandSubtitle} icon={brandIcon} />
+                  {header || <BrandHeader title={brandTitle} subtitle={brandSubtitle} icon={brandIcon} />}
                   {cardDescription && (
                     <Typography variant="body2" className="card-mode-desc">
                       {cardDescription}
@@ -62,12 +65,12 @@ export const AuthCardLayout = ({
         ) : (
           <HoverboardCard>
             <div className="glass-card-header">
-              <Button onClick={onBack} startIcon={<ArrowBack sx={{ fontSize: 15 }} />} className="auth-back-btn">
+              {!hideBack && <Button onClick={onBack} startIcon={<ArrowBack sx={{ fontSize: 15 }} />} className="auth-back-btn">
                 {backLabel}
-              </Button>
+              </Button>}
               <WindowDots label={tagLabel} version={version} />
             </div>
-            <BrandHeader title={brandTitle} subtitle={brandSubtitle} icon={brandIcon} />
+            {header || <BrandHeader title={brandTitle} subtitle={brandSubtitle} icon={brandIcon} />}
             {cardDescription && (
               <Typography variant="body2" className="card-mode-desc">
                 {cardDescription}

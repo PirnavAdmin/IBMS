@@ -10,6 +10,8 @@ import '../styles/ModuleSpacing.css';
 import '../styles/AppTheme.css';
 import '../styles/WorkspaceResponsive.css';
 import '../styles/DropdownTheme.css';
+import '../styles/RowActions.css';
+import '../styles/WorkspaceUI.css';
 
 const routeModules = {
   '/dashboard': 'dashboard',
@@ -25,6 +27,10 @@ const routeModules = {
   '/reports': 'reports',
   '/audit-activity': 'activity',
   '/templates-branding': 'templates',
+  '/integrations': 'integrations',
+  '/webhooks': 'webhooks',
+  '/background-jobs': 'background-jobs',
+  '/export-jobs': 'export-jobs',
   '/integration-settings': 'integrations',
   '/user-role-administration': 'user-role-administration',
   '/settings': 'settings',
@@ -63,7 +69,7 @@ export const AppLayout = () => {
   };
 
   return <div className={`app-layout${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
-    <button type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'} title={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
+    <button type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'}  aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
     <DashboardSidebar activeItem={activeItem} open={sidebarOpen} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => setSidebarOpen(false)} />
     <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={searchQuery} onSearch={onSearch} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery, onSearch }} /></div></div>
   </div>;

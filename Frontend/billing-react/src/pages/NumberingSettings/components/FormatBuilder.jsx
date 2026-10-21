@@ -86,12 +86,12 @@ export const FormatBuilder = ({
         <span className="available-tokens-label">Available Tokens</span>
         <div className="available-tokens-list">
           {SUPPORTED_TOKENS.map((item) => (
-            <button
+            <button aria-label={`Click to add ${item.token} (${item.desc})`}
               type="button"
               key={item.token}
               className="available-token-chip"
               onClick={() => onAddToken(item.token)}
-              title={`Click to add ${item.token} (${item.desc})`}
+
             >
               {item.token}
             </button>

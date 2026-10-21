@@ -652,36 +652,6 @@
   border-color: #dfcdbb;
 }
 
-.invoice-date-range-popover.MuiPaper-root {
-  width: min(22rem, calc(100vw - 32px));
-  padding: 20px 16px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface, #ffffff);
-  color: var(--text-primary);
-}
-
-.invoice-date-range-form {
-  display: grid;
-  gap: 16px;
-}
-
-.invoice-date-range-form .MuiOutlinedInput-root {
-  min-height: 40px;
-  border-radius: 8px;
-  font-size: 13.5px;
-}
-
-.invoice-date-range-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.invoice-date-range-actions .MuiButton-root {
-  text-transform: none;
-}
-
 /* --------------------------------------------------------------------------
    6. Table Card & Data Grid
    -------------------------------------------------------------------------- */
@@ -703,6 +673,20 @@
   background: #ffffff;
 }
 
+.invoice-table-card > .invoice-table-heading {
+  box-sizing: border-box;
+  min-height: 54px;
+  padding: 0 16px;
+  align-items: center;
+}
+
+.invoice-list-heading-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  transform: translateY(6px);
+}
+
 .invoice-table-heading h2 {
   font-size: 18px;
   font-weight: 700;
@@ -711,10 +695,25 @@
   letter-spacing: -0.015em;
 }
 
+.invoice-list-heading-title h2 {
+  line-height: 1.25;
+  margin: 0 !important;
+}
+
 .invoice-table-heading p {
   font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+.invoice-list-heading-title > span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.invoice-table-card > .invoice-table-heading .invoice-count-badge {
+  padding: 4px 10px;
 }
 
 .invoice-count-badge {
@@ -825,7 +824,7 @@
 /* Individual column widths for neat, balanced spacing */
 .invoice-list-table th:nth-child(1),
 .invoice-list-table td:nth-child(1) {
-  min-width: 175px; /* Invoice Number */
+  min-width: 220px; /* Invoice Number */
 }
 
 .invoice-list-table th:nth-child(2),

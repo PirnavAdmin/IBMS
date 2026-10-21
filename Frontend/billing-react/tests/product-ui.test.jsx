@@ -19,12 +19,12 @@ const client = () => new QueryClient({ defaultOptions: { queries: { retry: false
 const render = (element, cache = client(), location = '/products') => renderToStaticMarkup(<StaticRouter location={location}><QueryClientProvider client={cache}>{element}</QueryClientProvider></StaticRouter>);
 const table = props => <ProductTable items={[product]} loading={false} error={null} params={{ sortBy: 'price', sortOrder: 'desc' }} onSort={() => {}} onRetry={() => {}} onClear={() => {}} {...props} />;
 
-test('PQA table: twelve columns, actual currency, long names, inactive badge and numeric action URLs', () => {
+test('PQA table: eleven columns, actual currency, long names, inactive badge and numeric action URLs', () => {
   const html = render(table());
-  const labels = ['Product Code', 'Product Name', 'Type', 'Category', 'Unit', 'Unit Price', 'Discount', 'Tax', 'Final Price', 'Tax Category', 'Status', 'Actions'];
+  const labels = ['Product Code', 'Product Name', 'Type', 'Category', 'Unit', 'Unit Price', 'Discount', 'Tax', 'Final Price', 'Status', 'Actions'];
   const headers = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, '').replace(/<[^>]*>/g, ''));
   assert.deepEqual(headers, labels);
-  assert.equal((html.match(/<td\b/g) || []).length, 12);
+  assert.equal((html.match(/<td\b/g) || []).length, 11);
   assert.doesNotMatch(html, /MuiTableCell-alignRight|MuiTableCell-alignCenter/);
   assert.match(html, /\$1,234\.50/); assert.doesNotMatch(html, /₹1,234/);
   assert.match(html, /href="\/products\/7"/); assert.doesNotMatch(html, /href="\/products\/7\/edit"/);
@@ -49,9 +49,8 @@ test('PQA pricing columns show saved percentages and explicit unavailable financ
   const discounted = cells({ ...product, currency: 'INR', price: 40000, discountAllowed: true, discountPercent: 7.5, taxCategory: 'GST 18%' });
   assert.equal(discounted[5], '₹40,000.00');
   assert.equal(discounted[6], '7.5%');
-  assert.equal(discounted[7], 'Unavailable');
+  assert.equal(discounted[7], 'GST 18%');
   assert.equal(discounted[8], 'Unavailable');
-  assert.equal(discounted[9], 'GST 18%');
   for (const taxCategory of ['Exempt', 'Not Applicable']) {
     const untaxed = cells({ ...product, discountPercent: 50, taxCategory });
     assert.equal(untaxed[6], 'Not Applicable');
@@ -67,11 +66,11 @@ test('PQA pricing columns show saved percentages and explicit unavailable financ
   }
 });
 
-test('PQA expanded table states span all twelve columns', () => {
+test('PQA expanded table states span all eleven columns', () => {
   for (const state of [{ items: [] }, { items: [], filtered: true }, { error: new Error('Unavailable') }]) {
-    assert.match(render(table(state)), /colspan="12"/i);
+    assert.match(render(table(state)), /colspan="11"/i);
   }
-  assert.equal((render(table({ loading: true })).match(/<td\b/g) || []).length, 7 * 12);
+  assert.equal((render(table({ loading: true })).match(/<td\b/g) || []).length, 7 * 11);
 });
 
 test('PQA pagination: first, middle, last and empty bounds', () => {

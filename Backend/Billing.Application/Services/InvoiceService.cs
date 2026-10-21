@@ -17,6 +17,8 @@ public class InvoiceService : IInvoiceService
     private readonly IInvoiceCommunicationRepository _communicationRepository;
     private readonly IInvoiceTemplateService _templateService;
     private readonly IOutboxService? _outboxService;
+    private readonly INotificationLogRepository? _notificationLogRepository;
+    private readonly INotificationService? _notificationService;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
@@ -27,7 +29,9 @@ public class InvoiceService : IInvoiceService
         IEmailService emailService,
         IInvoiceCommunicationRepository communicationRepository,
         IInvoiceTemplateService templateService,
-        IOutboxService? outboxService = null)
+        IOutboxService? outboxService = null,
+        INotificationLogRepository? notificationLogRepository = null,
+        INotificationService? notificationService = null)
     {
         _invoiceRepository = invoiceRepository;
         _numberGenerationService = numberGenerationService;
@@ -38,6 +42,8 @@ public class InvoiceService : IInvoiceService
         _communicationRepository = communicationRepository;
         _templateService = templateService;
         _outboxService = outboxService;
+        _notificationLogRepository = notificationLogRepository;
+        _notificationService = notificationService;
     }
 
     private async Task RecalculateInvoiceTotalsAsync(Invoice invoice, int tenantId)
@@ -363,14 +369,91 @@ public class InvoiceService : IInvoiceService
         string subject = $"Invoice {invoice.InvoiceNumber} from {invoice.Tenant?.Name ?? "Our Company"}";
         string body = $"Dear {invoice.Customer.Name},\n\nPlease find attached the invoice {invoice.InvoiceNumber} for the amount of {invoice.TotalAmount} {invoice.GetCurrency()}.\n\nThank you for your business!";
 
-        // Send Email
-        try
+        if (_notificationService != null)
         {
-            await _emailService.SendEmailAsync(invoice.Customer.Email, subject, body, pdfBytes, fileName);
+            var notifResult = await _notificationService.SendInvoiceNotificationAsync(
+                invoice.Id,
+                tenantId,
+                "InvoiceSent",
+                userName,
+                pdfBytes,
+                fileName);
+
+            if (!notifResult.Success)
+            {
+                return ApiResponse<bool>.Fail(notifResult.Message);
+            }
+
+            if (notifResult.Data != null)
+            {
+                subject = notifResult.Data.Subject;
+                body = notifResult.Data.Message;
+            }
         }
-        catch (Exception ex)
+        else
         {
-            return ApiResponse<bool>.Fail($"Failed to send email: {ex.Message}");
+            // Send Email fallback if notification service not provided
+            try
+            {
+                await _emailService.SendEmailAsync(invoice.Customer.Email, subject, body, pdfBytes, fileName);
+
+                if (_notificationLogRepository != null)
+                {
+                    try
+                    {
+                        await _notificationLogRepository.AddAsync(new NotificationLog
+                        {
+                            TenantId = tenantId,
+                            EventType = "InvoiceSent",
+                            EntityType = "Invoice",
+                            EntityId = invoice.Id,
+                            Channel = "Email",
+                            Recipient = invoice.Customer.Email,
+                            Subject = subject,
+                            Message = body,
+                            Status = "Sent",
+                            SentAtUtc = DateTime.UtcNow,
+                            SentBy = userName ?? "System",
+                            RetryCount = 0
+                        });
+                    }
+                    catch
+                    {
+                        // Non-blocking log persistence
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_notificationLogRepository != null)
+                {
+                    try
+                    {
+                        await _notificationLogRepository.AddAsync(new NotificationLog
+                        {
+                            TenantId = tenantId,
+                            EventType = "InvoiceSent",
+                            EntityType = "Invoice",
+                            EntityId = invoice.Id,
+                            Channel = "Email",
+                            Recipient = invoice.Customer.Email,
+                            Subject = subject,
+                            Message = body,
+                            Status = "Failed",
+                            FailureReason = ex.Message,
+                            NextRetryAtUtc = DateTime.UtcNow.AddMinutes(5),
+                            SentAtUtc = DateTime.UtcNow,
+                            SentBy = userName ?? "System",
+                            RetryCount = 0
+                        });
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                return ApiResponse<bool>.Fail($"Failed to send email: {ex.Message}");
+            }
         }
 
         // Log Delivery History

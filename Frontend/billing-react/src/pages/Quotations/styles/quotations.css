@@ -64,11 +64,10 @@
 .quote-summary-inline .quote-summary-rows .quote-grand-total span, .quote-summary-inline .quote-summary-rows .quote-grand-total strong { color: var(--primary); font-size: 1.08rem; }
 @media (max-width: 800px) { .quote-summary-inline .quote-summary-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* Keep the authenticated shell and sidebar steady while only the long create/edit form scrolls. */
-.quotation-form-page { height: calc(100vh - 72px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+/* Let the authenticated workspace provide the page's single vertical scrollbar. */
+.quotation-form-page { min-height: 100%; overflow: visible; }
 .quotation-form-page .quotation-header { position: static; padding: 4px 0 18px; background: transparent; }
-@media (max-width: 1179px) { .quotation-form-page { height: calc(100vh - 72px); } }
-@media (max-width: 700px) { .quotation-form-page { height: auto; min-height: calc(100vh - 72px); overflow: visible; } .quotation-form-page .quotation-header { position: static; } }
+@media (max-width: 700px) { .quotation-form-page { min-height: 100%; } .quotation-form-page .quotation-header { position: static; } }
 
 /* No element inside the create/edit form is sticky: header and summary scroll with the form. */
 .quotation-form-page .quote-summary,
@@ -94,6 +93,7 @@
 .quotation-form-page .quotation-header h1 { font-size: clamp(1.45rem, 2vw, 1.8rem); line-height: 1.2; }
 .quotation-form-page .quotation-header p { margin-top: 4px; font-size: .92rem; line-height: 1.4; }
 .quotation-form-page .quote-header-actions .quote-btn { min-height: 38px; padding: 7px 14px; }
+.quotation-form-page .quote-footer-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* Compact quotation-list heading. */
 .quotation-list-header { margin-bottom: 16px; padding: 0 10px; }
@@ -1458,3 +1458,5 @@
 .quote-items-table th:nth-child(5),.quote-items-table td:nth-child(5){width:10%}
 .quote-items-table th:nth-child(6),.quote-items-table td:nth-child(6){width:10%;min-width:100px}
 .quote-items-table td.quote-item-discount{min-width:100px}
+.app-layout .quote-table-wrap .quote-items-table thead th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric){text-align:center;vertical-align:middle}
+.app-layout .quote-table-wrap.ibms-table-frame tbody tr:hover>td{background:transparent}

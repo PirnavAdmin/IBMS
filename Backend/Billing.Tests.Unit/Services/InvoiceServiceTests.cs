@@ -173,6 +173,54 @@ public class InvoiceServiceTests
         Assert.Equal(30m, result.Data!.DiscountAmount);
         Assert.Equal(70m, result.Data.TotalAmount);
     }
+
+    [Fact]
+    public async Task DeliverInvoiceAsync_WhenNotificationLogRepoProvided_LogsSentStatusToNotificationLogs()
+    {
+        // Arrange
+        int invoiceId = 1;
+        int tenantId = 1;
+        var invoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-2026-001",
+            Status = "Issued",
+            TotalAmount = 500m,
+            Customer = new Customer { Id = 10, Name = "Test Customer", Email = "customer@example.com" }
+        };
+
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(invoiceId, tenantId, default)).ReturnsAsync(invoice);
+        _templateMock.Setup(t => t.GenerateInvoicePdfAsync(It.IsAny<Billing.Contracts.InvoiceTemplate.GenerateInvoicePdfRequest>(), tenantId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Billing.Contracts.InvoiceTemplate.InvoicePdfResponse { InvoiceId = invoiceId });
+        _templateMock.Setup(t => t.GetInvoicePdfAsync(invoiceId, tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new byte[] { 1, 2, 3 }, "INV-2026-001.pdf", "application/pdf"));
+
+        var logRepoMock = new Mock<INotificationLogRepository>();
+
+        var sut = new InvoiceService(
+            _invoiceRepoMock.Object,
+            _numberGenMock.Object,
+            _calcEngineMock.Object,
+            _uowMock.Object,
+            _auditMock.Object,
+            _emailMock.Object,
+            _commMock.Object,
+            _templateMock.Object,
+            outboxService: null,
+            notificationLogRepository: logRepoMock.Object);
+
+        // Act
+        var result = await sut.DeliverInvoiceAsync(invoiceId, tenantId, "Admin");
+
+        // Assert
+        Assert.True(result.Success);
+        logRepoMock.Verify(r => r.AddAsync(It.Is<NotificationLog>(l =>
+            l.EventType == "InvoiceSent" &&
+            l.EntityId == invoiceId &&
+            l.Status == "Sent" &&
+            l.Recipient == "customer@example.com")), Times.Once);
+    }
 }
 
 

@@ -20,7 +20,6 @@ import {
   DialogTitle,
   IconButton,
   InputAdornment,
-  Tooltip,
   ListItemIcon,
   Menu,
   MenuItem,
@@ -173,8 +172,9 @@ export const CustomerRowActions = ({
   return (
     <div className="customer-row-actions">
       <IconButton
+        className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={open}
         aria-label={`Actions for customer ${customer.name || customer.customerCode || customer.id}`}
-        title="More actions"
+
         size="small"
         onClick={handleOpen}
       >
@@ -186,7 +186,7 @@ export const CustomerRowActions = ({
         onClose={handleClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{ className: "customer-actions-menu" }}
+        PaperProps={{ className: "customer-actions-menu ibms-row-actions-menu" }}
       >
         <MenuItem
           onClick={() => {
@@ -211,7 +211,7 @@ export const CustomerRowActions = ({
           Edit Customer
         </MenuItem>
         {customer.status === "active" && (
-          <MenuItem
+          <MenuItem className="is-destructive"
             onClick={() => {
               handleClose();
               onDeactivate(customer);
@@ -346,7 +346,7 @@ export function CustomerListPage() {
           </p>
         </div>
         <div className="customers-heading-actions">
-          <Tooltip title="Print current customer page">
+
             <Button
               aria-label="Print current customer page"
               onClick={() => printCustomerList(visibleCustomers)}
@@ -355,7 +355,7 @@ export function CustomerListPage() {
             >
               Print
             </Button>
-          </Tooltip>
+
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -577,7 +577,7 @@ export function CustomerListPage() {
           </div>
         ) : (
           <>
-            <TableContainer className={`customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
+            <TableContainer className={`ibms-table-frame customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
               <Table size="small" aria-label="Customer directory">
                 <TableHead>
                   <TableRow>

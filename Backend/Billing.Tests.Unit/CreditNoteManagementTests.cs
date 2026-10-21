@@ -8,6 +8,7 @@ using Billing.Domain.Entities;
 using Billing.Tests.Unit.Fakes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace Billing.Tests.Unit;
 
@@ -600,5 +601,46 @@ public class CreditNoteManagementTests
         Assert.Equal(590m, summaryAfter.Data.RemainingCreditableAmount);
         Assert.Equal(1m, summaryAfter.Data.Items.First().RemainingEligibleQuantity);
         Assert.Equal(1m, summaryAfter.Data.Items.First().PreviouslyCreditedQuantity);
+    }
+
+    [Fact]
+    public async Task IssueCreditNote_WhenNotificationServiceProvided_DispatchesCreditNoteNotification()
+    {
+        var ctx = new TestContext();
+        var customer = await ctx.SeedCustomerAsync();
+        var invoice = await ctx.SeedInvoiceAsync(customerId: customer.Id);
+
+        var notificationServiceMock = new Moq.Mock<INotificationService>();
+        notificationServiceMock
+            .Setup(s => s.SendCreditNoteNotificationAsync(Moq.It.IsAny<int>(), Tenant1, "Manager", null, null))
+            .ReturnsAsync(ApiResponse<Billing.Contracts.Notification.NotificationLogDto>.Ok(new Billing.Contracts.Notification.NotificationLogDto { Status = "Sent" }));
+
+        var creditNoteService = new CreditNoteService(
+            ctx.CreditNoteRepo,
+            ctx.InvoiceRepo,
+            ctx.CustomerRepo,
+            ctx.NumberGenService,
+            ctx.AuditRepo,
+            ctx.UnitOfWork,
+            outboxService: null,
+            notificationService: notificationServiceMock.Object);
+
+        var createResult = await creditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = invoice.Id,
+                Type = "Full",
+                Reason = "Overcharge correction"
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+
+        var cnId = createResult.Data!.Id;
+        await creditNoteService.SubmitForApprovalAsync(Tenant1, cnId, "Staff", new List<string> { "Staff" }, new List<string>());
+        await creditNoteService.ApproveCreditNoteAsync(Tenant1, cnId, "Manager", new List<string> { "FinanceAdmin" }, new List<string>());
+        var issueResult = await creditNoteService.IssueCreditNoteAsync(Tenant1, cnId, "Manager", new List<string> { "FinanceAdmin" }, new List<string>());
+
+        Assert.True(issueResult.Success);
+        notificationServiceMock.Verify(s => s.SendCreditNoteNotificationAsync(cnId, Tenant1, "Manager", null, null), Moq.Times.Once);
     }
 }
