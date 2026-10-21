@@ -62,10 +62,12 @@ public class OverdueInvoiceJobService : IOverdueInvoiceJobService
                 var overdueInvoices = invoices.Where(i =>
                     i.DueDate.HasValue &&
                     i.DueDate.Value.Date < today &&
+                    !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Paid", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Voided", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Overdue", StringComparison.OrdinalIgnoreCase) &&
                     i.GetEffectiveBalance() > 0
                 ).ToList();

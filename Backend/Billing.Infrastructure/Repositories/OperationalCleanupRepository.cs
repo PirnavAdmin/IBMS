@@ -25,10 +25,10 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
         if (expiredSessions.Count > 0)
         {
             _context.UserSessions.RemoveRange(expiredSessions);
-            await _context.SaveChangesAsync(ct);
+            return await SaveCleanupChangesSafeAsync(expiredSessions, ct);
         }
 
-        return expiredSessions.Count;
+        return 0;
     }
 
     public async Task<int> CleanupOldOutboxMessagesAsync(DateTime processedBeforeUtc, CancellationToken ct = default)
@@ -43,10 +43,10 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
         if (oldMessages.Count > 0)
         {
             _context.OutboxMessages.RemoveRange(oldMessages);
-            await _context.SaveChangesAsync(ct);
+            return await SaveCleanupChangesSafeAsync(oldMessages, ct);
         }
 
-        return oldMessages.Count;
+        return 0;
     }
 
     public async Task<int> CleanupOldWebhookDeliveriesAsync(DateTime createdBeforeUtc, CancellationToken ct = default)
@@ -60,10 +60,10 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
         if (oldDeliveries.Count > 0)
         {
             _context.WebhookDeliveries.RemoveRange(oldDeliveries);
-            await _context.SaveChangesAsync(ct);
+            return await SaveCleanupChangesSafeAsync(oldDeliveries, ct);
         }
 
-        return oldDeliveries.Count;
+        return 0;
     }
 
     public async Task<int> CleanupOldPaymentIdempotencyKeysAsync(DateTime createdBeforeUtc, CancellationToken ct = default)
@@ -76,13 +76,55 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
         foreach (var payment in oldPayments)
         {
             payment.IdempotencyKey = string.Empty;
+            payment.UpdatedAtUtc = DateTime.UtcNow;
+            payment.RowVersion = DateTime.UtcNow;
         }
 
         if (oldPayments.Count > 0)
         {
-            await _context.SaveChangesAsync(ct);
+            return await SaveCleanupChangesSafeAsync(oldPayments, ct);
         }
 
-        return oldPayments.Count;
+        return 0;
+    }
+
+    private async Task<int> SaveCleanupChangesSafeAsync<TEntity>(List<TEntity> entities, CancellationToken ct)
+        where TEntity : class
+    {
+        var detachedCount = 0;
+
+        while (true)
+        {
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return Math.Max(0, entities.Count - detachedCount);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                if (ex.Entries.Count == 0)
+                {
+                    foreach (var item in entities)
+                    {
+                        _context.Entry(item).State = EntityState.Detached;
+                    }
+                    return 0;
+                }
+
+                foreach (var entry in ex.Entries)
+                {
+                    entry.State = EntityState.Detached;
+                    detachedCount++;
+                }
+            }
+            catch
+            {
+                foreach (var item in entities)
+                {
+                    _context.Entry(item).State = EntityState.Detached;
+                }
+                throw;
+            }
+        }
     }
 }

@@ -28,44 +28,41 @@ public class Worker : BackgroundService
 
             try
             {
-                using var scope = _serviceProvider.CreateScope();
-                var coordinator = scope.ServiceProvider.GetRequiredService<IBackgroundJobCoordinator>();
-
                 // 1. Webhook deliveries & Outbox
-                await coordinator.RunJobByNameAsync("WebhookDeliveryJob", cancellationToken: stoppingToken);
+                await RunJobInIsolatedScopeAsync("WebhookDeliveryJob", stoppingToken);
 
                 // 2. Report exports
-                await coordinator.RunJobByNameAsync("ExportJob", cancellationToken: stoppingToken);
+                await RunJobInIsolatedScopeAsync("ExportJob", stoppingToken);
 
                 // 3. Email notifications
-                await coordinator.RunJobByNameAsync("EmailNotificationJob", cancellationToken: stoppingToken);
+                await RunJobInIsolatedScopeAsync("EmailNotificationJob", stoppingToken);
 
                 // 4. PDF pre-generation (every 5 minutes)
                 if (now - _lastPdfGenerationCheckUtc > TimeSpan.FromMinutes(5))
                 {
                     _lastPdfGenerationCheckUtc = now;
-                    await coordinator.RunJobByNameAsync("PdfGenerationJob", cancellationToken: stoppingToken);
+                    await RunJobInIsolatedScopeAsync("PdfGenerationJob", stoppingToken);
                 }
 
                 // 5. Overdue invoice processing (every hour)
                 if (now - _lastOverdueCheckUtc > TimeSpan.FromHours(1))
                 {
                     _lastOverdueCheckUtc = now;
-                    await coordinator.RunJobByNameAsync("OverdueInvoiceJob", cancellationToken: stoppingToken);
+                    await RunJobInIsolatedScopeAsync("OverdueInvoiceJob", stoppingToken);
                 }
 
                 // 6. Payment reminders (every hour)
                 if (now - _lastReminderCheckUtc > TimeSpan.FromHours(1))
                 {
                     _lastReminderCheckUtc = now;
-                    await coordinator.RunJobByNameAsync("ReminderJob", cancellationToken: stoppingToken);
+                    await RunJobInIsolatedScopeAsync("ReminderJob", stoppingToken);
                 }
 
                 // 7. Operational cleanup (every 6 hours)
                 if (now - _lastCleanupCheckUtc > TimeSpan.FromHours(6))
                 {
                     _lastCleanupCheckUtc = now;
-                    await coordinator.RunJobByNameAsync("OperationalCleanupJob", cancellationToken: stoppingToken);
+                    await RunJobInIsolatedScopeAsync("OperationalCleanupJob", stoppingToken);
                 }
             }
             catch (Exception ex)
@@ -84,5 +81,12 @@ public class Worker : BackgroundService
         }
 
         _logger.LogInformation("Billing.Worker service stopping.");
+    }
+
+    private async Task RunJobInIsolatedScopeAsync(string jobName, CancellationToken stoppingToken)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var coordinator = scope.ServiceProvider.GetRequiredService<IBackgroundJobCoordinator>();
+        await coordinator.RunJobByNameAsync(jobName, cancellationToken: stoppingToken);
     }
 }
