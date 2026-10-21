@@ -9,6 +9,7 @@ import {
   HistoryOutlined,
   Inventory2Outlined,
   PaymentsOutlined,
+  ManageAccountsOutlined,
   PeopleOutline,
   ReceiptLongOutlined,
   ReceiptOutlined,
@@ -32,6 +33,7 @@ const iconMap = {
   numbering: FormatListNumberedOutlined,
   integration: IntegrationInstructionsOutlined,
   settings: SettingsOutlined,
+  'user-role': ManageAccountsOutlined,
   tax: ReceiptOutlined,
   report: AssessmentOutlined,
   activity: HistoryOutlined,
@@ -51,7 +53,7 @@ export const DashboardSidebar = ({ activeItem, open, onSelect, onNavigate, onClo
           <small>{section.label}</small>
           {section.items.map((item) => {
             const Icon = iconMap[item.icon] || DashboardOutlined;
-            return <button key={item.id} className={`bd-nav-item ${activeItem === item.id ? 'active' : ''}`} aria-label={item.label} title={item.label} aria-current={activeItem === item.id ? 'page' : undefined} onClick={() => item.route ? onNavigate(item.route) : onSelect(item.id)}>
+            return <button key={item.id} className={`bd-nav-item ${item.id === 'user-role-administration' ? 'bd-nav-item-user-role' : ''} ${activeItem === item.id ? 'active' : ''}`} aria-label={item.label} title={item.label} aria-current={activeItem === item.id ? 'page' : undefined} onClick={() => item.route ? onNavigate(item.route) : onSelect(item.id)}>
               <Icon /><span>{item.label}</span>{!item.route && <ChevronRight className="bd-nav-arrow" />}
             </button>;
           })}

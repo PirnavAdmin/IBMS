@@ -26,6 +26,7 @@ const routeModules = {
   '/audit-activity': 'activity',
   '/templates-branding': 'templates',
   '/integration-settings': 'integrations',
+  '/user-role-administration': 'user-role-administration',
   '/settings': 'settings',
   '/support': 'support',
 };

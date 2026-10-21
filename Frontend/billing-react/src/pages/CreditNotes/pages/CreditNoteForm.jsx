@@ -72,7 +72,7 @@ export function CreditNoteForm() {
 
   useEffect(() => {
     const note = noteQuery.data;
-    if (!note) return;
+    if (!note) return;suces
     if (note.status !== 'Draft') {
       navigate(`/credit-notes/${id}`, { replace: true });
       return;
@@ -88,7 +88,7 @@ export function CreditNoteForm() {
     setReason(note.reason);
     setReasonNote(note.reasonNote || '');
     setReference(note.reference || '');
-      setQuantities(Object.fromEntries(note.items.map((item) => [item.id, item.quantity])));
+    setQuantities(Object.fromEntries(note.items.map((item) => [item.id, item.quantity])));
   }, [noteQuery.data, selectedInvoice, invoiceId, id, navigate]);
 
   const selectInvoice = (value) => {

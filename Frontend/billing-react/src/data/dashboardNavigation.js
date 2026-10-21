@@ -32,6 +32,7 @@ export const dashboardNavigation = [
       { id: 'templates', label: 'Templates & Branding', icon: 'template' },
       { id: 'activity', label: 'Audit Activity', icon: 'activity' },
       { id: 'integrations', label: 'Integration Settings', icon: 'integration' },
+      { id: 'user-role-administration', label: 'User & Role Administration', icon: 'user-role', route: '/user-role-administration' },
       { id: 'settings', label: 'Settings / Administration', icon: 'settings', route: '/settings' },
     ],
   },

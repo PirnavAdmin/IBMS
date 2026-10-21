@@ -39,6 +39,7 @@ import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
 import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
+import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';
 
 // ==============================
 // CUSTOMER MODULE
@@ -147,6 +148,7 @@ export const AppRoutes = () => (
       <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/user-role-administration/*" element={<UserRoleAdministration />} />
       <Route path="/settings/countries" element={<CountryConfiguration />} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<Taxes />} />

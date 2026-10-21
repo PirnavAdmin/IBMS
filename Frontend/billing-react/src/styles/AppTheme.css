@@ -62,6 +62,8 @@
 }
 .app-layout .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #795137; color: #FFFFFF; }
 .app-layout .bd-nav-item.active .bd-nav-arrow { color: #4B2E1E; opacity: 1; }
+.app-layout .bd-nav-item-user-role { min-height: 50px; padding-block: 6px; }
+.app-layout .bd-nav-item-user-role > span { min-width: 0; font-size: .78rem; line-height: 1.2; letter-spacing: -.025em; white-space: normal; overflow-wrap: normal; }
 .app-layout .bd-sidebar-footer { background: #402D24; border-color: #604637; color: #F0E2D4; }
 .app-layout .bd-sidebar-footer button { color: #F0E2D4; }
 .app-layout .bd-sidebar-footer button:hover { color: #F3CCA0; }
