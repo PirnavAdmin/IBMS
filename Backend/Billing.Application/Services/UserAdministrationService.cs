@@ -124,6 +124,54 @@ public class UserAdministrationService : IUserAdministrationService
             return (false, "User not found.", null);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.IdentityType))
+        {
+            var identityType = request.IdentityType.Trim();
+            if (!string.Equals(identityType, "Platform", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(identityType, "Host", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Identity type must be Platform or Host.", null);
+            }
+
+            if (string.Equals(identityType, "Host", StringComparison.OrdinalIgnoreCase))
+            {
+                var provider = request.ExternalProvider?.Trim();
+                var subjectId = request.ExternalSubjectId?.Trim();
+
+                if (!string.Equals(user.IdentityType, "Host", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
+                }
+
+                user.IdentityType = "Host";
+                user.ExternalProvider = string.IsNullOrWhiteSpace(provider) ? null : provider;
+                user.ExternalSubjectId = string.IsNullOrWhiteSpace(subjectId) ? null : subjectId;
+                user.ExternalScopes = request.ExternalScopes?.Trim();
+            }
+            else
+            {
+                var switchingFromHost = string.Equals(user.IdentityType, "Host", StringComparison.OrdinalIgnoreCase);
+                if (switchingFromHost && string.IsNullOrWhiteSpace(request.Password))
+                {
+                    return (false, "A new password is required when changing a Host identity to Platform.", null);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Password) && request.Password.Length < 8)
+                {
+                    return (false, "Password must be at least 8 characters long.", null);
+                }
+
+                user.IdentityType = "Platform";
+                user.ExternalProvider = null;
+                user.ExternalSubjectId = null;
+                user.ExternalScopes = null;
+                if (!string.IsNullOrWhiteSpace(request.Password))
+                {
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                }
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
             user.Name = request.Name.Trim();
@@ -250,29 +298,30 @@ public class UserAdministrationService : IUserAdministrationService
             return (false, "Email is required for host identity mapping.", null);
         }
 
-        if (string.IsNullOrWhiteSpace(request.ExternalProvider) || string.IsNullOrWhiteSpace(request.ExternalSubjectId))
-        {
-            return (false, "ExternalProvider and ExternalSubjectId are required.", null);
-        }
-
         var normalizedEmail = request.Email.Trim().ToLower();
 
         // 1. Check if user already mapped by external provider & subject id
-        var user = await _userRepository.GetByExternalSubjectAsync(request.ExternalProvider.Trim(), request.ExternalSubjectId.Trim())
-                   ?? await _userRepository.GetByEmailAsync(normalizedEmail);
+        var provider = request.ExternalProvider?.Trim();
+        var subjectId = request.ExternalSubjectId?.Trim();
+        var user = !string.IsNullOrWhiteSpace(provider) && !string.IsNullOrWhiteSpace(subjectId)
+            ? await _userRepository.GetByExternalSubjectAsync(provider, subjectId)
+            : null;
+        user ??= await _userRepository.GetByEmailAsync(normalizedEmail);
 
         var roles = request.Roles != null && request.Roles.Any()
             ? request.Roles.Select(r => r.Trim()).Distinct().ToList()
             : new List<string> { "User" };
 
-        var permissions = await ResolvePermissionsForRolesAsync(roles);
+        var permissions = request.Permissions != null && request.Permissions.Any()
+            ? request.Permissions.Select(permission => permission.Trim()).Distinct().ToList()
+            : await ResolvePermissionsForRolesAsync(roles);
 
         if (user != null)
         {
             // Link existing user to host-owned identity
             user.IdentityType = "Host";
-            user.ExternalProvider = request.ExternalProvider.Trim();
-            user.ExternalSubjectId = request.ExternalSubjectId.Trim();
+            user.ExternalProvider = string.IsNullOrWhiteSpace(provider) ? null : provider;
+            user.ExternalSubjectId = string.IsNullOrWhiteSpace(subjectId) ? null : subjectId;
             user.ExternalScopes = request.ExternalScopes?.Trim();
             if (request.TenantId.HasValue) user.TenantId = request.TenantId.Value;
             if (!string.IsNullOrWhiteSpace(request.ApplicationId)) user.ApplicationId = request.ApplicationId.Trim();
@@ -296,8 +345,8 @@ public class UserAdministrationService : IUserAdministrationService
             Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
             IdentityType = "Host",
-            ExternalProvider = request.ExternalProvider.Trim(),
-            ExternalSubjectId = request.ExternalSubjectId.Trim(),
+            ExternalProvider = string.IsNullOrWhiteSpace(provider) ? null : provider,
+            ExternalSubjectId = string.IsNullOrWhiteSpace(subjectId) ? null : subjectId,
             ExternalScopes = request.ExternalScopes?.Trim(),
             TenantId = request.TenantId ?? 1,
             ApplicationId = string.IsNullOrWhiteSpace(request.ApplicationId) ? "IBMS" : request.ApplicationId.Trim(),

@@ -35,6 +35,7 @@ export const dashboardNavigation = [
       { id: 'activity', label: 'Audit Activity', icon: 'activity' },
       { id: 'integrations', label: 'Integration Settings', icon: 'integration', route: '/integrations' },
       { id: 'webhooks', label: 'Webhook Configuration', icon: 'integration', route: '/webhooks' },
+      { id: 'user-role-administration', label: 'User & Role Administration', icon: 'user-role', route: '/user-role-administration' },
       { id: 'settings', label: 'Settings / Administration', icon: 'settings', route: '/settings' },
     ],
   },

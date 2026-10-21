@@ -32,6 +32,7 @@ const routeModules = {
   '/background-jobs': 'background-jobs',
   '/export-jobs': 'export-jobs',
   '/integration-settings': 'integrations',
+  '/user-role-administration': 'user-role-administration',
   '/settings': 'settings',
   '/support': 'support',
 };

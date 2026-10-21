@@ -43,6 +43,7 @@ import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
 import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
 import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
 import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
+import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';
 import { Integrations } from '../pages/Integrations/Integrations';
 import { Webhooks } from '../pages/Webhooks/Webhooks';
 import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
@@ -163,6 +164,7 @@ export const AppRoutes = () => (
       <Route path="/export-jobs" element={<ExportJobStatus />} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
       <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/user-role-administration/*" element={<UserRoleAdministration />} />
       <Route path="/settings/notifications" element={<NotificationTemplates />} />
       <Route path="/settings/notifications/new" element={<NotificationTemplateForm />} />
       <Route path="/settings/notifications/:id/edit" element={<NotificationTemplateForm />} />

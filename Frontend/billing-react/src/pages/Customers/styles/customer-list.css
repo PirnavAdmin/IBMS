@@ -338,30 +338,31 @@
 .customers-page .customer-row-actions .MuiIconButton-root { width: 32px; height: 32px; }
 .customers-page .customer-pagination { padding: 16px 22px; }
 @container customer-directory (min-width: 769px) {
-  .customers-page .customer-table .MuiTable-root { width: 100%; min-width: 0; table-layout: fixed; }
-  .customers-page .customer-table .MuiTableCell-root { box-sizing: border-box; min-width: 0; padding: 12px 6px; font-size: .74rem; white-space: normal; overflow-wrap: anywhere; }
+  .customers-page .customer-table:not(.is-inactive-view) { overflow-x: auto; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTable-root { width: max(100%, 1280px); min-width: 1280px; table-layout: fixed; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-root { box-sizing: border-box; min-width: 0; padding: 12px 10px; font-size: .74rem; white-space: nowrap; overflow-wrap: normal; }
   .customers-page .customer-table .MuiTableCell-root:first-child { padding-left: 12px; }
   .customers-page .customer-table .MuiTableCell-root:last-child { padding-right: 12px; }
-  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head { white-space: normal; }
   .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head { font-size: .7rem; }
   .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(1) { width: 11%; }
-  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(2) { width: 18%; }
-  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(3) { width: 10%; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(2) { width: 17%; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(3) { width: 9%; }
   .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(4) { width: 12%; }
-  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(5) { width: 17%; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(5) { width: 24%; }
   .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(6) { width: 11%; }
   .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(7) { width: 8%; }
-  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(8) { width: 13%; }
+  .customers-page .customer-table:not(.is-inactive-view) .MuiTableCell-head:nth-child(8) { width: 8%; }
   .customers-page .customer-identity { min-width: 0; gap: 8px; }
   .customers-page .customer-avatar { flex-shrink: 0; }
   .customers-page .customer-identity > div { min-width: 0; overflow-wrap: anywhere; }
-  .customers-page .customer-contact { min-width: 0; overflow-wrap: anywhere; }
+  .customers-page .customer-contact { min-width: 0; overflow: hidden; }
+  .customers-page .customer-contact a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .customers-page .customer-contact small,
   .customers-page .customer-detail-link,
   .customers-page .customer-code,
   .customers-page .customer-tax,
   .customers-page .customer-type,
-  .customers-page .customer-balance { white-space: normal; overflow-wrap: anywhere; }
+  .customers-page .customer-balance { white-space: nowrap; overflow-wrap: normal; }
   .customers-page .customer-type { display: inline-block; max-width: 100%; box-sizing: border-box; }
   .customers-page .customer-table .MuiTableCell-root:last-child { position: static; box-shadow: none; }
   .customers-page .customer-row-actions { display: flex; flex-wrap: wrap; gap: 4px; white-space: normal; }

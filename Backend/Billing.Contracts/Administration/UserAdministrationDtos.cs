@@ -42,8 +42,13 @@ public class UpdateUserRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? Password { get; set; }
     public int? TenantId { get; set; }
     public string ApplicationId { get; set; } = "IBMS";
+    public string? IdentityType { get; set; }
+    public string? ExternalProvider { get; set; }
+    public string? ExternalSubjectId { get; set; }
+    public string? ExternalScopes { get; set; }
     public List<string>? Roles { get; set; }
     public List<string>? Permissions { get; set; }
     public string? Status { get; set; }
@@ -75,6 +80,7 @@ public class HostIdentityMappingRequest
     public int? TenantId { get; set; } = 1;
     public string ApplicationId { get; set; } = "IBMS";
     public List<string> Roles { get; set; } = new() { "User" };
+    public List<string>? Permissions { get; set; }
 }
 
 public class UserQueryParameters
