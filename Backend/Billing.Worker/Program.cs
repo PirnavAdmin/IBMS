@@ -10,12 +10,14 @@ var builder = Host.CreateApplicationBuilder(args);
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Port=3306;Database=invoice;User=root;Password=Pilli@1995;";
+    ?? "Server=localhost;Port=3306;Database=invoice;User=root;Password=Sandeep@21;";
+
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 45));
 
 builder.Services.AddDbContext<BillingDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString)
+        serverVersion
     )
     .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
 );

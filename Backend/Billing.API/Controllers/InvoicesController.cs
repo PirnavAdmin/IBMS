@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin")]
+[Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
 [ApiController]
 [Route("api/v1/invoices")]
 [Consumes("application/json")]
