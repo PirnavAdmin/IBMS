@@ -1,4 +1,32 @@
-.category-table table { min-width: 650px; }
+.category-table table { width: 100%; max-width: 1080px; min-width: 640px; margin-inline: auto; table-layout: fixed; }
+.category-table { width: 100%; overflow-x: auto; overflow-y: hidden; }
+.category-table-header { padding-right: 5px; }
+.category-table-body { max-height: min(48vh, 560px); overflow: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #9a7757 #f1e7dc; }
+.category-table-body::-webkit-scrollbar { width: 5px; height: 5px; }
+.category-table-body::-webkit-scrollbar-track { background: #f1e7dc; border-radius: 8px; }
+.category-table-body::-webkit-scrollbar-thumb { background: #9a7757; border: 1px solid #f1e7dc; border-radius: 8px; }
+.category-table-body::-webkit-scrollbar-thumb:hover { background: #795334; }
+.app-layout .ibms-table-frame.category-table th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric) { text-align: center; }
+.app-layout .category-table table > thead > tr > .MuiTableCell-head { vertical-align: middle; }
+.app-layout .category-table table > tbody > tr > .MuiTableCell-body { text-align: center; }
+.category-table .MuiTableCell-root:nth-child(1) { width: 22%; }
+.category-table .MuiTableCell-root:nth-child(2) { width: 33%; }
+.category-table .MuiTableCell-root:nth-child(3) { width: 15%; }
+.category-table .MuiTableCell-root:nth-child(4) { width: 15%; }
+.category-table .MuiTableCell-root:nth-child(5) { width: 96px; }
+.category-table::-webkit-scrollbar { height: 5px; }
+.category-table::-webkit-scrollbar-track { background: #f1e7dc; border-radius: 8px; }
+.category-table::-webkit-scrollbar-thumb { background: #9a7757; border: 1px solid #f1e7dc; border-radius: 8px; }
+.category-table::-webkit-scrollbar-thumb:hover { background: #795334; }
+.category-search-row { display: flex; justify-content: flex-start; padding: 12px 16px; border-bottom: 1px solid #f0e9e4; }
+.category-search { width: min(100%, 420px); }
+.category-search .MuiOutlinedInput-root { background: #fffdf9; }
+.category-search .MuiInputAdornment-root { color: #8a7767; }
+.category-pagination { min-height: 56px; border-top: 1px solid #eee6e1; color: #756763; }
+.category-pagination .MuiTablePagination-selectLabel,
+.category-pagination .MuiTablePagination-displayedRows { font-size: 12px; }
+.category-pagination .MuiTablePagination-actions button { color: #65472e; }
+.category-pagination .MuiTablePagination-actions button.Mui-disabled { color: #b9aa9b; }
 .category-table .category-description { white-space: normal; overflow-wrap: anywhere; max-width: 480px; color: #756763; }
 .category-table td:first-child { white-space: normal; overflow-wrap: anywhere; max-width: 240px; }
 .category-form { max-width: 100%; }
@@ -6,6 +34,6 @@
 .category-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-top: 1px solid #eee6e1; }
 @media (max-width: 600px) { .category-form-actions { padding: 16px; } }
 
-.category-table .MuiTableCell-root:last-child { text-align: left; padding-inline: 16px; width: 180px; }
-.category-table .product-row-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 8px; }
+.category-table .MuiTableCell-root:last-child { padding-inline: 8px; }
+.category-table .product-row-actions { display: flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 8px; }
 .category-table .product-row-actions .MuiButton-root { min-width: 0; padding: 4px 8px; white-space: nowrap; }

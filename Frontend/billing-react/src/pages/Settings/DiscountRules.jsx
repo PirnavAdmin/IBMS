@@ -1,7 +1,8 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, Menu, MenuItem, Paper, TextField } from '@mui/material';
+import { DeleteOutline, EditOutlined, MoreVert } from '@mui/icons-material';
 import { discountScopes, discountTypes, phase5Api, validateDiscountRule } from './services/phase5Api.js';
 
 const blank = { name: '', code: '', description: '', type: 'Percentage', scope: 'Invoice', value: '', minInvoiceAmount: '', maxDiscountAmount: '', startDateUtc: '', endDateUtc: '', applicableRole: '', status: 'Active' };
@@ -22,6 +23,7 @@ export function DiscountRules() {
   const lock = useRef(false);
   const [revision, setRevision] = useState(0);
   const [toast, setToast] = useState('');
+  const [actionsMenu, setActionsMenu] = useState(null);
   useEffect(() => {
     let active = true;
     setLoading(true); setError('');
@@ -54,9 +56,12 @@ export function DiscountRules() {
     {error && <Alert severity="error" action={<Button onClick={() => setRevision((value) => value + 1)}>Retry</Button>}>{error}</Alert>}
     {loading ? <div className="settings-empty">Loading discount rules...</div> : !error && (result.items.length ? <>
       <div className="settings-table-wrap ibms-table-frame"><table className="settings-table"><thead><tr><th>Name / Code</th><th>Type</th><th>Application Level</th><th>Value</th><th>Maximum Amount</th><th>Applicable Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-        {result.items.map((rule) => <tr key={rule.id}><td><strong>{rule.name}</strong><small className="settings-cell-note">{rule.code}</small></td><td>{discountTypes[rule.type] || rule.type}</td><td>{discountScopes[rule.scope] || rule.scope}</td><td>{rule.value}{rule.type === 'Percentage' ? '%' : ''}</td><td>{rule.maxDiscountAmount ?? 'Not set'}</td><td>{rule.applicableRole || 'Not restricted'}</td><td>{rule.status}</td><td><Button disabled={busy} onClick={() => open(rule)}>Edit</Button><Button color="error" disabled={busy} onClick={() => { setConfirm(rule); setFormError(''); }}>Delete</Button></td></tr>)}
+        {result.items.map((rule) => <tr key={rule.id}><td><strong>{rule.name}</strong><small className="settings-cell-note">{rule.code}</small></td><td>{discountTypes[rule.type] || rule.type}</td><td>{discountScopes[rule.scope] || rule.scope}</td><td>{rule.value}{rule.type === 'Percentage' ? '%' : ''}</td><td>{rule.maxDiscountAmount ?? 'Not set'}</td><td>{rule.applicableRole || 'Not restricted'}</td><td>{rule.status}</td><td><IconButton className="ibms-row-actions-trigger" size="small" aria-label={`Actions for ${rule.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.rule.id === rule.id} disabled={busy} onClick={(event) => setActionsMenu({ anchor: event.currentTarget, rule })}><MoreVert fontSize="small" /></IconButton></td></tr>)}
       </tbody></table></div><div className="settings-actions"><Button disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button><span>Page {page} of {result.totalPages}</span><Button disabled={page >= result.totalPages} onClick={() => setPage(page + 1)}>Next</Button></div>
     </> : <div className="settings-empty">No discount rules configured yet.</div>)}
+    <Menu anchorEl={actionsMenu?.anchor} open={Boolean(actionsMenu)} onClose={() => setActionsMenu(null)} PaperProps={{ className: 'ibms-row-actions-menu' }}>
+      {actionsMenu && <><MenuItem onClick={() => { open(actionsMenu.rule); setActionsMenu(null); }}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem><MenuItem className="is-destructive" onClick={() => { setConfirm(actionsMenu.rule); setFormError(''); setActionsMenu(null); }}><ListItemIcon><DeleteOutline fontSize="small" /></ListItemIcon>Delete</MenuItem></>}
+    </Menu>
     <Dialog open={Boolean(form)} onClose={() => { if (!busy) closeEditor(); }} fullWidth maxWidth="sm"><DialogTitle>{form?.id ? 'Edit Discount Rule' : 'Add Discount Rule'}</DialogTitle><DialogContent dividers>
       {form && <div className="settings-dialog-form">
         {['name', 'code'].map((key) => <TextField size="small" key={key} required label={key === 'name' ? 'Rule Name' : 'Rule Code'} value={form[key]} disabled={busy || (key === 'code' && Boolean(form.id))} onChange={(e) => update(key, e.target.value)} onBlur={() => touch(key)} error={Boolean(fieldError(key))} helperText={fieldError(key)} />)}
