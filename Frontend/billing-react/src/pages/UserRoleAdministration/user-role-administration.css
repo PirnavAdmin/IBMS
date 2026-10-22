@@ -203,6 +203,68 @@
 .ura-assignment-card .MuiChip-root { border-color: #dfd0bf; color: #80684f; font-size: .68rem; }
 .ura-assignment-card .MuiChip-icon { color: #9a7c5c; }
 .ura-workspace :is(button, [role="tab"]):focus-visible { outline: 2px solid #906846; outline-offset: 2px; }
+
+/* User account forms share the workspace palette, with distinct field groups. */
+.ura-user-form { width: 100%; max-width: 1060px; min-width: 0; margin-inline: auto; display: grid; gap: 18px; }
+.ura-user-form-intro { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border: 1px solid #e3ceb5; border-radius: 12px; background: linear-gradient(115deg, #f7ecdc, #fffbf5); }
+.ura-user-form-intro-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid #e1c5a3; border-radius: 12px; background: #fffaf1; color: #895a31; }
+.ura-user-form-intro > div { min-width: 0; }
+.ura-user-form-intro strong { color: #56351e; font-size: .96rem; font-weight: 700; }
+.ura-user-form-intro p { margin: 5px 0 0; color: #806850; font-size: .78rem; line-height: 1.5; }
+.ura-required-note { margin-left: auto; flex-shrink: 0; color: #806850; font-size: .72rem; white-space: nowrap; }
+.ura-required-note > span { color: #b43b2d; font-weight: 750; }
+.ura-user-form-section, .ura-user-form > .ura-user-permission-assignment { min-width: 0; padding: 20px 22px; border: 1px solid #e7d9ca; border-radius: 12px; background: #fffdf9; box-shadow: 0 2px 8px #67482d06; }
+.ura-user-section-heading { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 23px; border-bottom: 1px solid #eee3d6; }
+.ura-user-section-heading > span { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid #e4d1ba; border-radius: 9px; background: #f4e9d9; color: #855b35; font-size: .72rem; font-weight: 750; }
+.ura-user-section-heading > div { min-width: 0; }
+.ura-user-section-heading h3 { margin: 0; color: #513721; font-size: .92rem; font-weight: 750; }
+.ura-user-section-heading p { margin: 4px 0 0; color: #89735d; font-size: .74rem; line-height: 1.5; }
+.ura-user-section-heading > svg { margin-left: auto; color: #b19473; font-size: 21px; flex-shrink: 0; }
+.ura-user-form .ura-form-grid { max-width: none; gap: 20px 24px; }
+.ura-user-form .ura-form-grid .MuiInputBase-root { height: 48px; min-height: 48px; border-radius: 9px; background: #fff; }
+.ura-user-form .ura-form-grid :is(.MuiInputBase-input, .MuiSelect-select) { font-size: .86rem; }
+.ura-user-form .ura-form-grid .MuiInputLabel-root { color: #715943; font-size: .9rem; font-weight: 550; }
+.ura-user-form .ura-form-grid .MuiInputLabel-root.Mui-error { color: #b3261e; }
+.ura-user-form .ura-form-grid .MuiInputLabel-root.MuiInputLabel-shrink { background: #fffdf9; }
+.ura-user-form .ura-form-grid .MuiFormHelperText-root { margin: 5px 2px 0; font-size: .7rem; line-height: 1.5; }
+.ura-user-form .ura-form-grid .MuiFormLabel-asterisk { color: #b43b2d; }
+.ura-user-form .ura-form-grid .ura-field-error { margin-inline: 2px; }
+.ura-user-form .ura-user-permission-assignment > .ura-user-section-heading { margin-bottom: 14px; }
+.ura-user-form .ura-subheading { align-items: center; flex-wrap: wrap; gap: 12px; }
+.ura-user-form .ura-subheading > div:first-child { min-width: 0; flex: 1 1 230px; }
+.ura-user-form .ura-subheading p { max-width: 680px; line-height: 1.5; }
+.ura-permission-selection-count { display: inline-flex; align-items: center; gap: 6px; color: #695036; font-size: .76rem; font-weight: 700; }
+.ura-permission-selection-count::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7b8d64; }
+.ura-user-form .ura-permission-groups { gap: 10px; margin-top: 18px; }
+.ura-user-form .ura-permission-dropdown { background: #fff; transition: border-color 160ms, box-shadow 160ms; }
+.ura-user-form .ura-permission-dropdown:hover { border-color: #c5a27d; }
+.ura-user-form .ura-permission-dropdown[open] { border-color: #c3a07a; box-shadow: 0 3px 10px #67482d0a; }
+.ura-user-form .ura-permission-dropdown > summary { min-height: 54px; padding: 12px; gap: 8px; }
+.ura-user-form .ura-permission-dropdown[open] > summary { background: #f7efE3; }
+.ura-user-form .ura-permission-group-heading > svg { flex-shrink: 0; font-size: 18px; color: #9a7c5c; }
+.ura-user-form .ura-permission-group-heading h3 { min-width: 0; flex: 1; font-size: .79rem; line-height: 1.5; overflow-wrap: anywhere; }
+.ura-module-permission-count { flex-shrink: 0; padding: 3px 7px; border: 1px solid #eadccb; border-radius: 6px; background: #faf5ee; color: #8c7359; font-size: .66rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ura-user-form .ura-permission-dropdown > summary::after { flex-shrink: 0; margin-left: 4px; width: 6px; height: 6px; }
+.ura-user-form .ura-permission-select-group .MuiFormControlLabel-root { padding: 10px 5px; border-radius: 6px; transition: background 150ms; }
+.ura-user-form .ura-permission-select-group .MuiFormControlLabel-root:hover { background: #faf5ed; }
+.ura-user-form .ura-permission-select-group .MuiFormControlLabel-root:has(.Mui-checked) { background: #f6f1e6; }
+.ura-user-form .ura-permission-select-group .MuiFormControlLabel-label { min-width: 0; }
+.ura-user-form .ura-permission-select-group .MuiCheckbox-root { color: #aa9278; }
+.ura-user-form .ura-permission-select-group .MuiCheckbox-root.Mui-checked { color: #82603e; }
+.ura-user-form .ura-inline-alert { margin-bottom: 0; }
+.ura-user-form-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding: 17px 20px; border: 1px solid #e5d7c7; border-radius: 12px; background: #faf5ee; }
+.ura-user-form-footer > p { flex: 1 1 230px; margin: 0; color: #85705a; font-size: .74rem; line-height: 1.5; }
+.ura-user-form-footer .ura-form-actions { width: auto; max-width: none; margin: 0 0 0 auto; padding: 0; border: 0; }
+.ura-user-form-footer .MuiButton-contained { background: #70492f; box-shadow: 0 3px 7px #67482d20; }
+.ura-user-form-footer .MuiButton-contained:hover { background: #56351f; }
+.ura-user-form-footer .MuiButton-contained.Mui-disabled { background: #e5d9cb; box-shadow: none; }
+@container ura-workspace (max-width: 680px) {
+  .ura-user-form-intro { flex-wrap: wrap; padding: 15px; }
+  .ura-user-form-intro > div { flex: 1 1 160px; }
+  .ura-required-note { width: 100%; margin: 0; }
+  .ura-user-form-section, .ura-user-form > .ura-user-permission-assignment { padding: 17px 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .ura-user-form * { transition: none !important; } }
 @container ura-workspace (max-width: 800px) {
   .ura-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ura-user-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }

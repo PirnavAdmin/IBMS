@@ -333,6 +333,7 @@ function UserForm({ userId, onCancel, onSaved }) {
   const roles = rolesQuery.data ?? [];
   const permissions = permissionsQuery.data ?? [];
   const permissionGroups = useMemo(() => groupPermissionDefinitions(permissions), [permissions]);
+  const allPermissionGroupsOpen = permissionGroups.length > 0 && permissionGroups.every(([module]) => openPermissionGroups.has(module));
   const excludedPermissionCodes = useMemo(() => getExcludedPermissionCodes(permissions), [permissions]);
   const update = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
 const selectRole = (event) => {
@@ -393,15 +394,35 @@ const selectRole = (event) => {
     }
     mutation.mutate({ ...basePayload, Password: values.password, IdentityType: 'Platform' });
   };
-  const formContent = <>
+  const selectedPermissionCount = permissions.filter(permission => values.permissions.includes(recordValue(permission, 'code', 'Code')) && !excludedPermissionCodes.has(recordValue(permission, 'code', 'Code'))).length;
+  const formContent = <div className="ura-user-form">
+    <div className="ura-user-form-intro">
+      <span className="ura-user-form-intro-icon"><PersonAddAlt1Outlined /></span>
+      <div><strong>{editing ? 'Update team member access' : 'Welcome a new team member'}</strong><p>Add their details, choose a role and fine-tune their access.</p></div>
+      <span className="ura-required-note"><span>*</span> Required fields</span>
+    </div>
     {rolesQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load roles: {getError(rolesQuery.error)}</Alert>}
-    <div className="ura-form-grid">
-      <TextField label="Full Name" InputLabelProps={{ shrink: true }} required value={values.name} onChange={update('name')} error={attempted && !!errors.name} helperText={attempted ? errors.name : ' '} fullWidth />
-      <TextField label="Email" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={update('email')} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} fullWidth />
-      <TextField label="Username" InputLabelProps={{ shrink: true }} required value={values.username} onChange={update('username')} error={attempted && !!errors.username} helperText={attempted ? errors.username : 'Choose a unique username; this can be different from the email address.'} inputProps={{ maxLength: 256, autoComplete: 'off' }} fullWidth />
+    <section className="ura-user-form-section" aria-labelledby="ura-user-profile-heading">
+      <header className="ura-user-section-heading"><span>01</span><div><h3 id="ura-user-profile-heading">Personal details</h3><p>Who will be using this account?</p></div><BadgeOutlined /></header>
+      <div className="ura-form-grid">
+      <TextField label="Full Name" placeholder="e.g. Alex Kumar" InputLabelProps={{ shrink: true }} required value={values.name} onChange={update('name')} error={attempted && !!errors.name} helperText={attempted ? errors.name : ' '} fullWidth />
+      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={update('email')} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} fullWidth />
+      </div>
+    </section>
+    <section className="ura-user-form-section" aria-labelledby="ura-user-signin-heading">
+      <header className="ura-user-section-heading"><span>02</span><div><h3 id="ura-user-signin-heading">Sign-in details</h3><p>Set up how this person signs in.</p></div><VpnKeyOutlined /></header>
+      <div className="ura-form-grid">
+      <TextField label="Username" placeholder="e.g. alex.kumar" InputLabelProps={{ shrink: true }} required value={values.username} onChange={update('username')} error={attempted && !!errors.username} helperText={attempted ? errors.username : 'Choose a unique username; this can be different from the email address.'} inputProps={{ maxLength: 256, autoComplete: 'off' }} fullWidth />
       <FormControl fullWidth size="small"><InputLabel id="ura-identity-type-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-identity-type-label" label="Identity type" value={values.identityType} onChange={update('identityType')}><MenuItem value="Platform">Platform account</MenuItem><MenuItem value="Host">Host / SSO account</MenuItem></Select></FormControl>
       {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-temporary-password" label={editing ? 'New password' : 'Temporary password'} InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform.' : 'At least 8 characters.'} inputProps={{ autoComplete: 'new-password' }} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-temporary-password" label="temporary password" /></InputAdornment> }} fullWidth />}
       {values.identityType === 'Host' && <><TextField label="Identity provider (optional)" InputLabelProps={{ shrink: true }} placeholder="AzureAD, Google, HostPortal" value={values.externalProvider} onChange={update('externalProvider')} helperText="Can be added later when the identity provider is configured." fullWidth /><TextField label="External subject ID (optional)" InputLabelProps={{ shrink: true }} value={values.externalSubjectId} onChange={update('externalSubjectId')} helperText="Stable user identifier from the identity provider; can be added later." fullWidth /><TextField label="External scopes (optional)" InputLabelProps={{ shrink: true }} value={values.externalScopes} onChange={update('externalScopes')} helperText="Scopes returned by the host identity provider." fullWidth /></>}
+      </div>
+    </section>
+    <section className="ura-user-form-section" aria-labelledby="ura-user-workspace-heading">
+      <header className="ura-user-section-heading"><span>03</span><div><h3 id="ura-user-workspace-heading">Workspace &amp; role</h3><p>Choose the workspace and starting level of access.</p></div><AccountTreeOutlined /></header>
+      <div className="ura-form-grid">
+      <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Use an existing tenant ID.'} inputProps={{ min: 1, step: 1 }} fullWidth />
+      <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
       <FormControl fullWidth size="small" error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
 <Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={values.roles[0] ?? ''} onChange={selectRole} displayEmpty>
@@ -410,27 +431,25 @@ const selectRole = (event) => {
         </Select>
         {attempted && errors.roles && <span className="ura-field-error">{errors.roles}</span>}
       </FormControl>
+      {(editing || values.identityType === 'Platform') && <FormControl fullWidth size="small"><InputLabel id="ura-user-status-label" shrink>Account status</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-user-status-label" label="Account status" value={values.status} onChange={update('status')}><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl>}
+      </div>
+    </section>
       <section className="ura-permission-assignment ura-user-permission-assignment">
+        <header className="ura-user-section-heading"><span>04</span><div><h3>Permissions</h3><p>Review what this team member can access.</p></div><ShieldOutlined /></header>
         <div className="ura-subheading">
-          <VpnKeyOutlined />
           <div>
-            <h3>Permission assignment</h3>
-            <p>Choose only the access this user needs. The selected role’s default permissions are preselected; uncheck any access they should not have.</p>
+            <span className="ura-permission-selection-count">{permissionsQuery.isPending ? 'Loading permissions…' : permissionsQuery.isError ? 'Permissions unavailable' : `${selectedPermissionCount} permission${selectedPermissionCount === 1 ? '' : 's'} selected`}</span>
+            <p>{values.roles[0] ? `Starting with ${values.roles[0]} permissions. Uncheck any access this user should not have.` : 'Select a role above to start with its default permissions.'}</p>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set(permissionModuleOrder))}>Expand all</Button>
-            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set())}>Collapse all</Button>
+            <Button size="small" variant="outlined" sx={{ textTransform: 'none', whiteSpace: 'nowrap', flexShrink: 0, borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} disabled={permissionsQuery.isPending || permissionsQuery.isError || !permissionGroups.length} onClick={() => setOpenPermissionGroups(allPermissionGroupsOpen ? new Set() : new Set(permissionGroups.map(([module]) => module)))}>{allPermissionGroupsOpen ? 'Collapse all' : 'Expand all'}</Button>
           </div>
         </div>
-        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroups.has(module)}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); togglePermissionGroup(module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
+        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroups.has(module)}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); togglePermissionGroup(module); }}><VpnKeyOutlined /><h3>{module}</h3><span className="ura-module-permission-count" aria-label={`${entries.filter(permission => values.permissions.includes(recordValue(permission, 'code', 'Code'))).length} of ${entries.length} selected`}>{entries.filter(permission => values.permissions.includes(recordValue(permission, 'code', 'Code'))).length}/{entries.length}</span></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
       </section>
-      <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Use an existing tenant ID.'} inputProps={{ min: 1, step: 1 }} fullWidth />
-      <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
-      {(editing || values.identityType === 'Platform') && <FormControl fullWidth size="small"><InputLabel id="ura-user-status-label" shrink>Account status</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-user-status-label" label="Account status" value={values.status} onChange={update('status')}><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl>}
-    </div>
     {serverError && <Alert severity="error" className="ura-inline-alert">{serverError}</Alert>}
-    <FormActions busy={mutation.isPending} onCancel={onCancel} onSubmit={save} />
-  </>;
+    <div className="ura-user-form-footer"><p>{editing ? 'Review the changes before saving.' : 'The account is saved when you click Create user.'}</p><FormActions busy={mutation.isPending} onCancel={onCancel} onSubmit={save} saveLabel={editing ? 'Save changes' : 'Create user'} /></div>
+  </div>;
   if (editing && userQuery.isPending) return <QueryState query={userQuery} label="user" />;
   if (editing && userQuery.isError) return <QueryState query={userQuery} label="user" retry={() => userQuery.refetch()} />;
   return formContent;
@@ -625,7 +644,7 @@ export function UserRoleAdministration() {
           {activeTab === 'assignments' && <UserList assignmentMode onOpenUser={(id) => navigate(`${root}/users/${id}`)} onEditUser={(id) => navigate(`${root}/users/${id}/edit`)} />}
         </div>
       </> : <div className="ura-panel-content ura-form-screen">
-        <div className="ura-form-screen-heading"><BadgeOutlined /><div><h2>{pageTitle}</h2><p>{screen.includes('edit') || screen.includes('details') ? 'Record data is loaded from the backend API.' : 'Save changes through the connected administration API.'}</p></div></div>
+        <div className="ura-form-screen-heading"><BadgeOutlined /><div><h2>{pageTitle}</h2><p>{screen === 'create-user' ? 'Create an account and tailor access to your team.' : screen === 'edit-user' ? 'Update account details and permissions.' : screen.includes('edit') || screen.includes('details') ? 'Record data is loaded from the backend API.' : 'Save changes through the connected administration API.'}</p></div></div>
         {screen.includes('user') && (screen === 'user-details' ? <UserDetails userId={routeId} notice={locationState?.notice} onBack={navigateBack} onEdit={() => navigate(`${root}/users/${routeId}/edit`)} /> : <UserForm userId={screen === 'edit-user' ? routeId : null} onCancel={navigateBack} onSaved={savedUser} />)}
         {screen.includes('role') && (screen === 'role-details' ? <RoleDetails roleId={routeId} onBack={navigateBack} onEdit={() => navigate(`${root}/roles/${routeId}/edit`)} /> : <RoleForm roleId={screen === 'edit-role' ? routeId : null} onCancel={navigateBack} onSaved={(message) => saved(message, 'roles')} />)}
       </div>}

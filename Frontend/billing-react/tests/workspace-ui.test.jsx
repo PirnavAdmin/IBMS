@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs';
 import { DateRangeFilter } from '../src/components/DateRangeFilter';
 import { InvoiceDateRangeFilter } from '../src/pages/Invoices/components/InvoiceDateRangeFilter';
 import { DashboardFilters } from '../src/components/dashboard/DashboardFilters';
-import { OutstandingAging } from '../src/components/dashboard/DashboardCharts';
+import { OutstandingAging, RevenueChart } from '../src/components/dashboard/DashboardCharts';
+import { outstandingInvoiceDetails } from '../src/pages/Dashboard/dashboardRadial';
 import { DashboardRecords } from '../src/pages/Dashboard/Dashboard';
 import { CustomerFilters } from '../src/pages/Customers/components/CustomerTable';
 import { CustomerForm } from '../src/pages/Customers/components/CustomerForm';
@@ -27,6 +28,8 @@ import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
 import { regionalSettingsService, COUNTRIES_LIST } from '../src/services/regionalSettingsService';
 import { Login } from '../src/pages/Login/Login';
+import { UserRoleAdministration } from '../src/pages/UserRoleAdministration/UserRoleAdministration';
+import { userRoleAdministrationService as administrationService } from '../src/pages/UserRoleAdministration/userRoleAdministrationService';
 import { StatCard, summaryDestination } from '../src/components/dashboard/StatCard';
 import { displayDate, displayDateTime, localCalendarDate } from '../src/utils/localDate';
 
@@ -42,6 +45,40 @@ async function mount(children, path = '/') {
   return { host, close: async () => { await act(async () => root.unmount()); host.remove(); } };
 }
 const countries = <Routes><Route path="/settings/countries" element={<CountryConfiguration />} /><Route path="/settings" element={<SettingsLanding />} /></Routes>;
+
+test('Enhanced user form preserves validation, role defaults, permission toggles and create payload', async () => {
+  localStorage.clear();
+  localStorage.setItem('billing_auth_user', JSON.stringify({ tenantId: 1, applicationId: 'billing' }));
+  const originals = { listRoles: administrationService.listRoles, listPermissions: administrationService.listPermissions, createUser: administrationService.createUser, getUser: administrationService.getUser };
+  const calls = [];
+  administrationService.listRoles = async () => [{ name: 'Operator', permissions: ['invoices.view'] }];
+  administrationService.listPermissions = async () => [{ code: 'invoices.view', name: 'View invoices', module: 'Invoices' }, { code: 'customers.view', name: 'View customers', module: 'Customers' }];
+  administrationService.createUser = async payload => { calls.push(payload); return { message: 'User created', data: { id: 27 } }; };
+  administrationService.getUser = async () => ({ id: 27, name: 'Alex Kumar', roles: ['Operator'], permissions: ['invoices.view', 'customers.view'], status: 'Active' });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = await mount(<QueryClientProvider client={client}><UserRoleAdministration /></QueryClientProvider>, '/user-role-administration/users/new');
+  const input = name => document.getElementById([...ui.host.querySelectorAll('label')].find(label => label.textContent.startsWith(name))?.htmlFor);
+  try {
+    await click(button(ui.host, 'Create user'));
+    assert.equal(calls.length, 0);
+    assert.match(ui.host.textContent, /Enter a valid email address/);
+    for (const [name, value] of [['Full Name', 'Alex Kumar'], ['Email', 'alex@example.com'], ['Username', 'alex.kumar'], ['Temporary password', 'Temporary123!']]) await act(async () => Simulate.change(input(name), { target: { value } }));
+    await act(async () => Simulate.mouseDown(ui.host.querySelector('[aria-labelledby~="ura-user-roles-label"]'), { button: 0 }));
+    await click([...document.querySelectorAll('[role="option"]')].find(option => option.textContent === 'Operator'));
+    assert.match(ui.host.querySelector('.ura-permission-selection-count').textContent, /1 permission selected/);
+    await click(button(ui.host, 'Expand all'));
+    assert.ok([...ui.host.querySelectorAll('.ura-user-permission-assignment details')].every(details => details.open));
+    const checkbox = [...ui.host.querySelectorAll('.ura-user-permission-assignment label')].find(label => label.textContent.includes('View customers')).querySelector('input');
+    await act(async () => Simulate.change(checkbox, { target: { checked: true } }));
+    assert.match(ui.host.querySelector('.ura-permission-selection-count').textContent, /2 permissions selected/);
+    await click(button(ui.host, 'Collapse all'));
+    assert.ok([...ui.host.querySelectorAll('.ura-user-permission-assignment details')].every(details => !details.open));
+    await click(button(ui.host, 'Create user')); await settle();
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0], { Name: 'Alex Kumar', Username: 'alex.kumar', Email: 'alex@example.com', Password: 'Temporary123!', TenantId: 1, ApplicationId: 'billing', Roles: ['Operator'], Permissions: ['invoices.view', 'customers.view'], Status: 'Active', IdentityType: 'Platform' });
+    assert.equal(ui.host.querySelector('[data-location]').textContent, '/user-role-administration/users/27');
+  } finally { await ui.close(); client.clear(); Object.assign(administrationService, originals); localStorage.clear(); }
+});
 
 test('Country confirmation waits for server success, prevents duplicates and redirects with success feedback', async () => {
   localStorage.clear();
@@ -246,11 +283,51 @@ test('Aging keeps complete real currency values, zero buckets, and a separate No
   const ui = await mount(<OutstandingAging data={data} currency="INR" />);
   try {
     assert.match(ui.host.querySelector('.premium-ring-value > strong').textContent, /2,90,573.30/);
-    const rows = [...ui.host.querySelectorAll('.premium-aging-legend > div')];
+    const rows = [...ui.host.querySelectorAll('.premium-aging-legend > button')];
     assert.equal(rows.length, 6);
-    for (const row of rows) { assert.equal(row.children.length, 3); assert.ok(row.children[0].classList.contains('premium-aging-bucket')); assert.match(row.children[1].textContent, /%$/); }
+    for (const row of rows) { assert.ok(row.children[0].classList.contains('premium-aging-bucket')); assert.match(row.children[1].textContent, /%$/); }
     assert.match(rows[2].children[2].textContent, /0.00/); assert.match(rows[5].textContent, /No due date.*0.30/);
     assert.equal(JSON.stringify(data), before);
+  } finally { await ui.close(); }
+});
+
+test('Aging details exclude drafts and other currencies and classify every due date boundary', () => {
+  const dates = ['2026-10-23', '2026-10-22', '2026-10-21', '2026-09-22', '2026-09-21', '2026-08-23', '2026-08-22', '2026-07-24', '2026-07-23', null];
+  const invoices = dates.map((dueDate, id) => ({ id, dueDate, currency: 'INR', status: 'Issued', balanceAmount: 100 }));
+  const excluded = ['Draft', 'Cancelled', 'Voided'].map((status, id) => ({ ...invoices[0], id: id + 20, status }));
+  const rows = outstandingInvoiceDetails([...invoices, ...excluded, { ...invoices[0], currency: 'USD' }, { ...invoices[0], balanceAmount: 0 }], 'INR', new Date('2026-10-22T10:00:00Z'));
+  assert.deepEqual(rows.map(row => row.agingBucket), ['Current', 'Current', '1–30 Days', '1–30 Days', '31–60 Days', '31–60 Days', '61–90 Days', '61–90 Days', '90+ Days', 'No due date']);
+});
+
+test('Aging hover previews balances and selecting a bucket filters invoice details', async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const overdueDate = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+  const invoices = [{ id: 1, invoiceNumber: 'INV-CURRENT', customerName: 'Current Customer', currency: 'INR', status: 'Issued', balanceAmount: 400, dueDate: today }, { id: 2, invoiceNumber: 'INV-OVERDUE', customerName: 'Overdue Customer', currency: 'INR', status: 'Overdue', balanceAmount: 600, dueDate: overdueDate }];
+  const ui = await mount(<OutstandingAging data={[{ label: 'Current', value: 400 }, { label: '1?30 Days', value: 600 }]} invoices={invoices} currency="INR" />);
+  try {
+    const rows = ui.host.querySelectorAll('.premium-aging-legend > button');
+    await act(async () => Simulate.mouseEnter(rows[1]));
+    assert.match(ui.host.querySelector('.premium-ring-value > strong').textContent, /600.00/);
+    await act(async () => Simulate.mouseLeave(rows[1]));
+    assert.match(ui.host.querySelector('.premium-ring-value > strong').textContent, /1,000.00/);
+    await click(rows[1]);
+    assert.equal(rows[1].getAttribute('aria-pressed'), 'true');
+    assert.match(ui.host.querySelector('.premium-outstanding-details').textContent, /INV-OVERDUE.*Overdue Customer/);
+    assert.doesNotMatch(ui.host.querySelector('.premium-outstanding-details').textContent, /INV-CURRENT/);
+    assert.equal(ui.host.querySelector('.premium-outstanding-details a').getAttribute('href'), '/invoices/2');
+    await click(button(ui.host, 'Show all'));
+    assert.equal(ui.host.querySelectorAll('.premium-outstanding-details tbody tr').length, 2);
+    await click(ui.host.querySelector('.premium-details-toggle'));
+    assert.equal(ui.host.querySelector('.premium-details-toggle').getAttribute('aria-expanded'), 'false');
+  } finally { await ui.close(); }
+});
+
+test('Revenue hover content distinguishes invoice collections from monthly payment dates', async () => {
+  const ui = await mount(<RevenueChart currency="INR" data={[{ label: '2026-10', invoiced: 1000, collected: 300 }]} summary={[]} invoices={[{ currency: 'INR', status: 'Issued', totalAmount: 1000, paidAmount: 200 }]} />);
+  try {
+    assert.match(ui.host.querySelector('.premium-ring-collected').getAttribute('aria-label'), /20.0% collected against these same issued invoices/);
+    assert.match(ui.host.querySelector('.premium-month-column').getAttribute('aria-label'), /collected by payment date.*300.00/);
+    assert.match(ui.host.querySelector('.premium-month-column').textContent, /2026-10/);
   } finally { await ui.close(); }
 });
 
