@@ -151,7 +151,7 @@ public class InvoicesController : ControllerBase
 
     [HttpPost("{id:int}/issue")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
     public async Task<IActionResult> IssueInvoice(int id)
     {
         var tenantId = GetTenantId();
@@ -165,7 +165,7 @@ public class InvoicesController : ControllerBase
     [HttpPost("{id:int}/resend")]
     [HttpPost("{id:int}/deliver")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
     public async Task<IActionResult> SendInvoice(int id)
     {
         var tenantId = GetTenantId();
@@ -199,7 +199,7 @@ public class InvoicesController : ControllerBase
 
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
     public async Task<IActionResult> CancelInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
@@ -211,7 +211,7 @@ public class InvoicesController : ControllerBase
 
     [HttpPost("{id:int}/void")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
     public async Task<IActionResult> VoidInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
@@ -226,12 +226,12 @@ public class InvoicesController : ControllerBase
         var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
         if (int.TryParse(claim, out var tid) && tid > 0) return tid;
 
+        if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
+            return hId;
+
         if (User.IsInRole("SuperAdmin"))
-        {
-            if (Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
-                return hId;
             return 1;
-        }
+
         return null;
     }
 }

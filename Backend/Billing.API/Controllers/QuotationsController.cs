@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin")]
+[Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
 [ApiController]
 [Route("api/v1/quotations")]
 [Consumes("application/json")]
@@ -161,7 +161,7 @@ public class QuotationsController : ControllerBase
 
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
     public async Task<IActionResult> CancelQuotation([FromRoute] int id, [FromBody] CancelQuotationRequest request)
     {
         var tenantId = GetTenantId();

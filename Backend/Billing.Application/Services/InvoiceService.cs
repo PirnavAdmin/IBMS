@@ -114,9 +114,42 @@ public class InvoiceService : IInvoiceService
         invoice.CreatedAtUtc = DateTime.UtcNow;
         invoice.RowVersion = DateTime.UtcNow;
         
-        if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+        if (invoice.InvoiceDate == default)
         {
-            invoice.InvoiceNumber = $"DRAFT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+            invoice.InvoiceDate = DateTime.UtcNow.Date;
+        }
+        if (invoice.DueDate == default)
+        {
+            invoice.DueDate = invoice.InvoiceDate.AddDays(30);
+        }
+
+        if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber) || invoice.InvoiceNumber.StartsWith("DRAFT-", StringComparison.OrdinalIgnoreCase))
+        {
+            GenerateNumberResponseDto? numberData = null;
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                var numberRequest = new GenerateNumberRequest { DocumentType = "Invoice", TransactionDate = invoice.InvoiceDate };
+                var numberResponse = await _numberGenerationService.GenerateNextNumberAsync(numberRequest, tenantId);
+
+                if (!numberResponse.Success || numberResponse.Data == null)
+                {
+                    return ApiResponse<Invoice>.Fail("Failed to generate invoice number: " + numberResponse.Message);
+                }
+
+                var existingInvWithNum = await _invoiceRepository.GetByInvoiceNumberAsync(numberResponse.Data.GeneratedNumber, tenantId);
+                if (existingInvWithNum == null || existingInvWithNum.Id == invoice.Id)
+                {
+                    numberData = numberResponse.Data;
+                    break;
+                }
+            }
+
+            if (numberData == null)
+            {
+                return ApiResponse<Invoice>.Fail("Failed to allocate a unique invoice number.");
+            }
+
+            invoice.InvoiceNumber = numberData.GeneratedNumber;
         }
         
         int order = 1;
@@ -207,33 +240,36 @@ public class InvoiceService : IInvoiceService
 
             await RecalculateInvoiceTotalsAsync(invoice, tenantId);
 
-            GenerateNumberResponseDto? numberData = null;
-            for (int attempt = 0; attempt < 20; attempt++)
+            if (string.IsNullOrWhiteSpace(invoice.InvoiceNumber) || invoice.InvoiceNumber.StartsWith("DRAFT-", StringComparison.OrdinalIgnoreCase))
             {
-                var numberRequest = new GenerateNumberRequest { DocumentType = "Invoice", TransactionDate = invoice.InvoiceDate };
-                var numberResponse = await _numberGenerationService.GenerateNextNumberAsync(numberRequest, tenantId);
+                GenerateNumberResponseDto? numberData = null;
+                for (int attempt = 0; attempt < 20; attempt++)
+                {
+                    var numberRequest = new GenerateNumberRequest { DocumentType = "Invoice", TransactionDate = invoice.InvoiceDate };
+                    var numberResponse = await _numberGenerationService.GenerateNextNumberAsync(numberRequest, tenantId);
 
-                if (!numberResponse.Success || numberResponse.Data == null)
+                    if (!numberResponse.Success || numberResponse.Data == null)
+                    {
+                        await _unitOfWork.RollbackTransactionAsync();
+                        return ApiResponse<Invoice>.Fail("Failed to generate invoice number: " + numberResponse.Message);
+                    }
+
+                    var existingInvWithNum = await _invoiceRepository.GetByInvoiceNumberAsync(numberResponse.Data.GeneratedNumber, tenantId);
+                    if (existingInvWithNum == null || existingInvWithNum.Id == invoice.Id)
+                    {
+                        numberData = numberResponse.Data;
+                        break;
+                    }
+                }
+
+                if (numberData == null)
                 {
                     await _unitOfWork.RollbackTransactionAsync();
-                    return ApiResponse<Invoice>.Fail("Failed to generate invoice number: " + numberResponse.Message);
+                    return ApiResponse<Invoice>.Fail("Failed to allocate a unique invoice number.");
                 }
 
-                var existingInvWithNum = await _invoiceRepository.GetByInvoiceNumberAsync(numberResponse.Data.GeneratedNumber, tenantId);
-                if (existingInvWithNum == null || existingInvWithNum.Id == invoice.Id)
-                {
-                    numberData = numberResponse.Data;
-                    break;
-                }
+                invoice.InvoiceNumber = numberData.GeneratedNumber;
             }
-
-            if (numberData == null)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return ApiResponse<Invoice>.Fail("Failed to allocate a unique invoice number.");
-            }
-
-            invoice.InvoiceNumber = numberData.GeneratedNumber;
             invoice.Status = "Issued";
             invoice.UpdatedAtUtc = DateTime.UtcNow;
             invoice.RowVersion = DateTime.UtcNow;
