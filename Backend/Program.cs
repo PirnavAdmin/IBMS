@@ -123,10 +123,12 @@ var connectionString =
         "ConnectionStrings:DefaultConnection is not configured."
     );
 
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 45));
+
 builder.Services.AddDbContext<BillingDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString)
+        serverVersion
     )
     .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
 );

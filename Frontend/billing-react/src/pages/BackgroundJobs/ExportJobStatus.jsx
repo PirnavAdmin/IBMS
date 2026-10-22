@@ -56,7 +56,7 @@ export function ExportJobStatus() {
       setPage(1);
       setFilterJobType('');
       setStatus('');
-      setFeedback({ severity: 'success', message: `Export #${job.id} queued.` });
+      setFeedback({ severity: 'success', message: `${job.exportFormat} ${job.jobType} export #${job.id} queued.` });
       void client.invalidateQueries({ queryKey: ['export-jobs'] });
     },
     onError: error => setFeedback({ severity: 'error', message: backgroundJobError(error) }),
@@ -65,10 +65,16 @@ export function ExportJobStatus() {
   const download = async job => {
     try {
       const blob = await backgroundJobService.downloadExport(job.id);
-      const url = URL.createObjectURL(blob);
+      const extension = job.exportFormat.toLowerCase();
+      const contentType = extension === 'json' ? 'application/json' : 'text/csv';
+      const fileBlob = blob instanceof Blob && blob.type === contentType
+        ? blob
+        : new Blob([blob], { type: contentType });
+      const fileName = (job.fileName || `${job.jobType}_Export_${job.id}`).replace(/\.[^.]+$/, '');
+      const url = URL.createObjectURL(fileBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = job.fileName || `${job.jobType}_Export_${job.id}.${job.exportFormat.toLowerCase()}`;
+      link.download = `${fileName}.${extension}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
