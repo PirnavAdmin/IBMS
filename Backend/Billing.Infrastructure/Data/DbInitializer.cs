@@ -1,4 +1,5 @@
 using Billing.Domain.Entities;
+using Billing.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +35,15 @@ public static class DbInitializer
                 logger?.LogInformation("Created default tenant (TenantCode: default, Id: {Id})", defaultTenant.Id);
             }
 
-            // 2. Ensure Super Admin exists
+            // 2. Ensure Roles & Permissions and Super Admin exist
+            var roleRepo = scope.ServiceProvider.GetService<IRoleRepository>();
+            if (roleRepo != null)
+            {
+                await roleRepo.SeedDefaultRolesAndPermissionsAsync();
+            }
+
+            var allPermCodes = await context.Permissions.Select(p => p.Code).ToListAsync();
+
             var seedSection = configuration.GetSection("SuperAdminSeed");
             var adminEmail = seedSection["Email"] ?? "superadmin@ibms.com";
             var adminPassword = seedSection["Password"] ?? "SuperAdmin@123!";
@@ -55,23 +64,41 @@ public static class DbInitializer
                     PasswordHash = passwordHash,
                     TenantId = null,
                     ApplicationId = "IBMS-Billing",
-                    Roles = new List<string> { "SuperAdmin", "TenantAdmin" },
-                    Permissions = new List<string> { "all", "billing.admin", "billing.view", "billing.create", "billing.manage_customers" },
+                    Roles = new List<string> { "SuperAdmin", "TenantAdmin", "Admin" },
+                    Permissions = allPermCodes,
                     IsActive = true,
                     CreatedAtUtc = DateTime.UtcNow
                 };
 
                 await context.Users.AddAsync(superAdmin);
                 await context.SaveChangesAsync();
-                logger?.LogInformation("Seeded default Super Admin with email: {Email}", normalizedEmail);
+                logger?.LogInformation("Seeded default Super Admin with email: {Email} and {Count} permissions", normalizedEmail, allPermCodes.Count);
             }
-            else if (!existingSuperAdmin.Roles.Contains("SuperAdmin"))
+            else
             {
-                existingSuperAdmin.Roles = new List<string> { "SuperAdmin", "TenantAdmin" };
+                var rolesList = existingSuperAdmin.Roles;
+                if (!rolesList.Contains("SuperAdmin")) rolesList.Add("SuperAdmin");
+                if (!rolesList.Contains("TenantAdmin")) rolesList.Add("TenantAdmin");
+                existingSuperAdmin.Roles = rolesList;
+                existingSuperAdmin.Permissions = allPermCodes;
                 await context.SaveChangesAsync();
-                logger?.LogInformation("Updated existing user {Email} with SuperAdmin,TenantAdmin roles", normalizedEmail);
+                logger?.LogInformation("Updated existing Super Admin {Email} with full roles and permissions", normalizedEmail);
             }
 
+            // Sync all TenantAdmin and Admin users with full permission set
+            var adminUsers = await context.Users
+                .Where(u => u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin"))
+                .ToListAsync();
+
+            foreach (var au in adminUsers)
+            {
+                var combined = au.Permissions.Union(allPermCodes).Distinct().ToList();
+                if (combined.Count != au.Permissions.Count)
+                {
+                    au.Permissions = combined;
+                }
+            }
+            await context.SaveChangesAsync();
             // 3. Ensure default Tax Settings & Standard Rates exist for tenant 1
             var defaultSettings = await context.TaxSettings.FirstOrDefaultAsync(s => s.TenantId == 1);
             if (defaultSettings == null)

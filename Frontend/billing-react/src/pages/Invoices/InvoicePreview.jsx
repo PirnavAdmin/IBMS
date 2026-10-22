@@ -79,7 +79,7 @@ export function InvoicePreview() {
       {error && <Alert severity="error">{error}</Alert>}
       {!user.isPending && !user.permissions.view && (
         <Alert severity="warning">
-          Invoice access requires TenantAdmin or SuperAdmin.
+          You do not have permission to view invoices.
         </Alert>
       )}
       {url ? (

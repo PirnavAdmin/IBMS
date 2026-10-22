@@ -162,7 +162,7 @@ export function InvoiceList() {
           >
             Refresh
           </Button>
-          {user.permissions.manage !== false && (
+          {(user.permissions.create || user.permissions.canCreate || user.permissions.manage) && (
             <Button
               component={Link}
               to="/invoices/new"
@@ -178,7 +178,7 @@ export function InvoiceList() {
     >
       {!user.isPending && !user.permissions.view && (
         <Alert severity="warning">
-          Invoice access requires TenantAdmin or SuperAdmin.
+          You do not have permission to view invoices.
         </Alert>
       )}
       {billingCurrencyGroups(summary.data || []).map((group) => {

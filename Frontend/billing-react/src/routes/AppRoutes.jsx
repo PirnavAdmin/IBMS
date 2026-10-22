@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
+import { PermissionRoute } from './PermissionRoute';
 
 import { Landing } from '../pages/Landing/Landing';
 import { Login } from '../pages/Login/Login';
@@ -50,18 +51,10 @@ import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
 import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';
 import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';
 
-// ==============================
-// CUSTOMER MODULE
-// ==============================
-
-// Manikanta - Customer List
+// Customers
 import { CustomerListPage } from '../pages/Customers/pages/CustomerListPage';
-
-// Jayakrishna - Create & Edit Customer
 import { CreateCustomer } from '../pages/Customers/pages/CreateCustomer';
 import { EditCustomer } from '../pages/Customers/pages/EditCustomer';
-
-// Sumanth - Customer Details
 import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';
 import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';
 
@@ -81,103 +74,85 @@ export const AppRoutes = () => (
     <Route element={<ProtectedRoute><FormDraftProvider><AppLayout /></FormDraftProvider></ProtectedRoute>}>
       <Route path="/dashboard" element={<Dashboard />} />
 
-      <Route path="/invoices" element={<InvoiceList />} />
-      <Route path="/invoices/new" element={<InvoiceForm />} />
-      <Route path="/invoices/:id" element={<InvoiceDetails />} />
-      <Route path="/invoices/:id/edit" element={<InvoiceForm />} />
-      <Route path="/invoices/:id/preview" element={<InvoicePreview />} />
+      {/* Invoices */}
+      <Route path="/invoices" element={<PermissionRoute permission="invoices.view"><InvoiceList /></PermissionRoute>} />
+      <Route path="/invoices/new" element={<PermissionRoute permission="invoices.create"><InvoiceForm /></PermissionRoute>} />
+      <Route path="/invoices/:id" element={<PermissionRoute permission="invoices.view"><InvoiceDetails /></PermissionRoute>} />
+      <Route path="/invoices/:id/edit" element={<PermissionRoute permission="invoices.edit"><InvoiceForm /></PermissionRoute>} />
+      <Route path="/invoices/:id/preview" element={<PermissionRoute permission="invoices.view"><InvoicePreview /></PermissionRoute>} />
 
-      {/* Quotation Management — backend API integration */}
-      <Route path="/quotations" element={<QuotationManagement />} />
+      {/* Quotation Management */}
+      <Route path="/quotations" element={<PermissionRoute permission="quotations.view"><QuotationManagement /></PermissionRoute>} />
 
       {/* Payments */}
-      <Route path="/payments" element={<Payments />} />
-      <Route path="/payments/new" element={<RecordPayment />} />
-      <Route path="/payments/:id" element={<PaymentDetails />} />
+      <Route path="/payments" element={<PermissionRoute permission="payments.view"><Payments /></PermissionRoute>} />
+      <Route path="/payments/new" element={<PermissionRoute permission="payments.create"><RecordPayment /></PermissionRoute>} />
+      <Route path="/payments/:id" element={<PermissionRoute permission="payments.view"><PaymentDetails /></PermissionRoute>} />
 
-      {/* ==============================
-          CUSTOMER MODULE
-      ============================== */}
+      {/* Customers */}
+      <Route path="/customers" element={<PermissionRoute permission="customers.view"><CustomerListPage /></PermissionRoute>} />
+      <Route path="/customers/create" element={<PermissionRoute permission="customers.create"><CreateCustomer /></PermissionRoute>} />
+      <Route path="/customers/:customerId/edit" element={<PermissionRoute permission="customers.edit"><EditCustomer /></PermissionRoute>} />
+      <Route path="/customers/:customerId/print" element={<PermissionRoute permission="customers.view"><CustomerPrintPage /></PermissionRoute>} />
+      <Route path="/customers/:customerId" element={<PermissionRoute permission="customers.view"><CustomerDetailsPage /></PermissionRoute>} />
 
-      {/* Manikanta - Customer List */}
-      <Route
-        path="/customers"
-        element={<CustomerListPage />}
-      />
+      {/* Products & Services */}
+      <Route path="/products" element={<PermissionRoute permission="products.view"><ProductList /></PermissionRoute>} />
+      <Route path="/products/categories" element={<PermissionRoute permission="products.view"><CategoryList /></PermissionRoute>} />
+      <Route path="/products/categories/new" element={<PermissionRoute permission="products.create"><CategoryFormPage /></PermissionRoute>} />
+      <Route path="/products/categories/:categoryId/edit" element={<PermissionRoute permission="products.edit"><CategoryFormPage /></PermissionRoute>} />
+      <Route path="/products/new" element={<PermissionRoute permission="products.create"><CreateProduct /></PermissionRoute>} />
+      <Route path="/products/:id" element={<PermissionRoute permission="products.view"><ProductDetails /></PermissionRoute>} />
+      <Route path="/products/:id/edit" element={<PermissionRoute permission="products.edit"><EditProduct /></PermissionRoute>} />
 
-      {/* Jayakrishna - Create Customer */}
-      <Route
-        path="/customers/create"
-        element={<CreateCustomer />}
-      />
+      {/* Credit Notes */}
+      <Route path="/credit-notes" element={<PermissionRoute permission="creditnotes.view"><CreditNoteList /></PermissionRoute>} />
+      <Route path="/credit-notes/new" element={<PermissionRoute permission="creditnotes.create"><CreditNoteForm /></PermissionRoute>} />
+      <Route path="/credit-notes/:id/edit" element={<PermissionRoute permission="creditnotes.edit"><CreditNoteForm /></PermissionRoute>} />
+      <Route path="/credit-notes/:id/approve" element={<PermissionRoute permission="creditnotes.approve"><CreditNoteDetails /></PermissionRoute>} />
+      <Route path="/credit-notes/:id/refund" element={<PermissionRoute permission="creditnotes.manage"><CreditNoteDetails /></PermissionRoute>} />
+      <Route path="/credit-notes/:id/export" element={<PermissionRoute permission="creditnotes.view"><CreditNoteExportPage /></PermissionRoute>} />
+      <Route path="/credit-notes/:id/preview" element={<PermissionRoute permission="creditnotes.view"><CreditNoteDetails /></PermissionRoute>} />
+      <Route path="/credit-notes/:id" element={<PermissionRoute permission="creditnotes.view"><CreditNoteDetails /></PermissionRoute>} />
 
-      {/* Jayakrishna - Edit Customer */}
-      <Route
-        path="/customers/:customerId/edit"
-        element={<EditCustomer />}
-      />
+      {/* Operations & Insights */}
+      <Route path="/recurring-billing" element={<PermissionRoute permission="billing.view"><ModulePlaceholder /></PermissionRoute>} />
+      <Route path="/expenses" element={<PermissionRoute permission="billing.view"><ModulePlaceholder /></PermissionRoute>} />
+      <Route path="/reports" element={<PermissionRoute permission="reports.view"><ModulePlaceholder /></PermissionRoute>} />
+      <Route path="/audit-activity" element={<PermissionRoute permission="audit.view"><AuditActivity /></PermissionRoute>} />
 
-      {/* Sumanth - Customer Details */}
-      <Route
-        path="/customers/:customerId/print"
-        element={<CustomerPrintPage />}
-      />
-      <Route
-        path="/customers/:customerId"
-        element={<CustomerDetailsPage />}
-      />
-
-      {/* Other Modules */}
-      <Route path="/products" element={<ProductList />} />
-      <Route path="/products/categories" element={<CategoryList />} />
-      <Route path="/products/categories/new" element={<CategoryFormPage />} />
-      <Route path="/products/categories/:categoryId/edit" element={<CategoryFormPage />} />
-      <Route path="/products/new" element={<CreateProduct />} />
-      <Route path="/products/:id" element={<ProductDetails />} />
-      <Route path="/products/:id/edit" element={<EditProduct />} />
-      <Route path="/credit-notes" element={<CreditNoteList />} />
-      <Route path="/credit-notes/new" element={<CreditNoteForm />} />
-      <Route path="/credit-notes/:id/edit" element={<CreditNoteForm />} />
-      <Route path="/credit-notes/:id/approve" element={<CreditNoteDetails />} />
-      <Route path="/credit-notes/:id/refund" element={<CreditNoteDetails />} />
-      <Route path="/credit-notes/:id/export" element={<CreditNoteExportPage />} />
-      <Route path="/credit-notes/:id/preview" element={<CreditNoteDetails />} />
-      <Route path="/credit-notes/:id" element={<CreditNoteDetails />} />
-      <Route path="/recurring-billing" element={<ModulePlaceholder />} />
-      <Route path="/expenses" element={<ModulePlaceholder />} />
-      <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
-      <Route path="/reports" element={<ModulePlaceholder />} />
-      <Route path="/audit-activity" element={<AuditActivity />} />
-      <Route path="/templates-branding" element={<InvoiceTemplates />} />
-      <Route path="/templates-branding/new" element={<CreateTemplate />} />
-      <Route path="/templates-branding/branding" element={<BrandingSettings />} />
-      <Route path="/templates-branding/preview" element={<TemplatePreview />} />
-      <Route path="/templates-branding/versions" element={<TemplateVersionHistory />} />
-      <Route path="/templates-branding/audit" element={<TemplateAuditHistory />} />
-      <Route path="/templates-branding/:templateId/edit" element={<EditTemplate />} />
+      {/* Administration & Configuration */}
+      <Route path="/templates-branding" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'invoices.manage']}><InvoiceTemplates /></PermissionRoute>} />
+      <Route path="/templates-branding/new" element={<PermissionRoute permission="settings.manage"><CreateTemplate /></PermissionRoute>} />
+      <Route path="/templates-branding/branding" element={<PermissionRoute permission="settings.manage"><BrandingSettings /></PermissionRoute>} />
+      <Route path="/templates-branding/preview" element={<PermissionRoute permission="settings.view"><TemplatePreview /></PermissionRoute>} />
+      <Route path="/templates-branding/versions" element={<PermissionRoute permission="settings.view"><TemplateVersionHistory /></PermissionRoute>} />
+      <Route path="/templates-branding/audit" element={<PermissionRoute permission="audit.view"><TemplateAuditHistory /></PermissionRoute>} />
+      <Route path="/templates-branding/:templateId/edit" element={<PermissionRoute permission="settings.manage"><EditTemplate /></PermissionRoute>} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
-      <Route path="/settings/numbering" element={<NumberingSettings />} />
-      <Route path="/integrations" element={<Integrations />} />
-      <Route path="/webhooks" element={<Webhooks />} />
-      <Route path="/webhooks/deliveries" element={<DeliveryHistory />} />
-      <Route path="/background-jobs" element={<BackgroundJobStatus />} />
-      <Route path="/export-jobs" element={<ExportJobStatus />} />
+      <Route path="/settings/numbering" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NumberingSettings /></PermissionRoute>} />
+      <Route path="/integrations" element={<PermissionRoute permission="integrations.manage"><Integrations /></PermissionRoute>} />
+      <Route path="/webhooks" element={<PermissionRoute permission="integrations.manage"><Webhooks /></PermissionRoute>} />
+      <Route path="/webhooks/deliveries" element={<PermissionRoute permission="integrations.manage"><DeliveryHistory /></PermissionRoute>} />
+      <Route path="/background-jobs" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />
+      <Route path="/export-jobs" element={<PermissionRoute permission={['billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
-      <Route path="/settings" element={<SettingsLanding />} />
-      <Route path="/user-role-administration/*" element={<UserRoleAdministration />} />
-      <Route path="/settings/notifications" element={<NotificationTemplates />} />
-      <Route path="/settings/notifications/new" element={<NotificationTemplateForm />} />
-      <Route path="/settings/notifications/:id/edit" element={<NotificationTemplateForm />} />
-      <Route path="/settings/notifications/history" element={<NotificationHistory />} />
-      <Route path="/settings/countries" element={<CountryConfiguration />} />
+      <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsLanding /></PermissionRoute>} />
+      <Route path="/user-role-administration/*" element={<PermissionRoute permission={['users.view', 'roles.view', 'users.assign']}><UserRoleAdministration /></PermissionRoute>} />
+      <Route path="/settings/notifications" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationTemplates /></PermissionRoute>} />
+      <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
+      <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
+      <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationHistory /></PermissionRoute>} />
+      <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><CountryConfiguration /></PermissionRoute>} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
-      <Route path="/settings/taxes/*" element={<Taxes />} />
-      <Route path="/settings/discounts" element={<DiscountConfiguration />} />
+      <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><Taxes /></PermissionRoute>} />
+      <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
+      <Route path="/settings/discounts" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><DiscountConfiguration /></PermissionRoute>} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/settings/discount" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discounts" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
-      <Route path="/settings/charges" element={<ChargesConfiguration />} />
+      <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><ChargesConfiguration /></PermissionRoute>} />
       <Route path="/support" element={<ModulePlaceholder />} />
     </Route>
 

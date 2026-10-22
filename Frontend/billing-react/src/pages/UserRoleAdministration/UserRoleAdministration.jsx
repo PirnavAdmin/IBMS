@@ -66,14 +66,58 @@ const statusValue = (item) => item?.status ?? item?.Status ?? (item?.isActive ??
 const recordValue = (item, key, pascalKey) => item?.[key] ?? item?.[pascalKey];
 const permissionModuleOrder = [
   'Dashboard', 'Billing', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
-  'Products & Services', 'Credit Notes', 'Background Jobs', 'Export Jobs',
+  'Products & Services', 'Credit Notes', 'Reports', 'Background Jobs', 'Export Jobs',
   'Templates & Branding', 'Audit Activity', 'Integration Settings',
   'Webhook Configuration', 'User & Role Administration', 'Settings / Administration',
 ];
+const moduleMapping = {
+  dashboard: 'Dashboard',
+  billing: 'Billing',
+  invoices: 'Invoices',
+  invoice: 'Invoices',
+  quotations: 'Quotation Management',
+  quotation: 'Quotation Management',
+  quotationmanagement: 'Quotation Management',
+  payments: 'Payments',
+  payment: 'Payments',
+  customers: 'Customers',
+  customer: 'Customers',
+  products: 'Products & Services',
+  product: 'Products & Services',
+  productsandservices: 'Products & Services',
+  productsandcategories: 'Products & Services',
+  creditnotes: 'Credit Notes',
+  creditnote: 'Credit Notes',
+  reports: 'Reports',
+  report: 'Reports',
+  backgroundjobs: 'Background Jobs',
+  jobs: 'Background Jobs',
+  exportjobs: 'Export Jobs',
+  exports: 'Export Jobs',
+  templates: 'Templates & Branding',
+  template: 'Templates & Branding',
+  templatesandbranding: 'Templates & Branding',
+  templatesbranding: 'Templates & Branding',
+  audit: 'Audit Activity',
+  auditactivity: 'Audit Activity',
+  auditlogs: 'Audit Activity',
+  integrations: 'Integration Settings',
+  integration: 'Integration Settings',
+  integrationsettings: 'Integration Settings',
+  webhooks: 'Webhook Configuration',
+  webhook: 'Webhook Configuration',
+  webhookconfiguration: 'Webhook Configuration',
+  administration: 'User & Role Administration',
+  userroleadministration: 'User & Role Administration',
+  users: 'User & Role Administration',
+  roles: 'User & Role Administration',
+  settings: 'Settings / Administration',
+  settingsadministration: 'Settings / Administration',
+};
 const permissionModuleName = (value) => {
   const normalized = String(value || '').replace(/[^a-z]/gi, '').toLowerCase();
-  if (normalized === 'administration' || normalized === 'userroleadministration') return 'User & Role Administration';
-  if (normalized === 'recurring' || normalized === 'recurringbilling' || normalized === 'reports') return null;
+  if (normalized === 'recurring' || normalized === 'recurringbilling') return null;
+  if (moduleMapping[normalized]) return moduleMapping[normalized];
   return permissionModuleOrder.find((module) => module.replace(/[^a-z]/gi, '').toLowerCase() === normalized) || String(value || 'Other');
 };
 const groupPermissionDefinitions = (permissions = []) => {
@@ -251,7 +295,15 @@ function UserForm({ userId, onCancel, onSaved }) {
   const [attempted, setAttempted] = useState(false);
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [openPermissionGroup, setOpenPermissionGroup] = useState(null);
+  const [openPermissionGroups, setOpenPermissionGroups] = useState(() => new Set());
+  const togglePermissionGroup = (module) => {
+    setOpenPermissionGroups((current) => {
+      const next = new Set(current);
+      if (next.has(module)) next.delete(module);
+      else next.add(module);
+      return next;
+    });
+  };
   useEffect(() => {
     if (!userQuery.data) return;
     setValues({
@@ -283,7 +335,7 @@ function UserForm({ userId, onCancel, onSaved }) {
   const permissionGroups = useMemo(() => groupPermissionDefinitions(permissions), [permissions]);
   const excludedPermissionCodes = useMemo(() => getExcludedPermissionCodes(permissions), [permissions]);
   const update = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
-  const selectRole = (event) => {
+const selectRole = (event) => {
     const selectedName = event.target.value;
     const selectedRole = roles.find((item) => recordValue(item, 'name', 'Name') === selectedName);
     const rolePermissions = selectedRole && recordValue(selectedRole, 'permissions', 'Permissions');
@@ -352,15 +404,25 @@ function UserForm({ userId, onCancel, onSaved }) {
       {values.identityType === 'Host' && <><TextField label="Identity provider (optional)" InputLabelProps={{ shrink: true }} placeholder="AzureAD, Google, HostPortal" value={values.externalProvider} onChange={update('externalProvider')} helperText="Can be added later when the identity provider is configured." fullWidth /><TextField label="External subject ID (optional)" InputLabelProps={{ shrink: true }} value={values.externalSubjectId} onChange={update('externalSubjectId')} helperText="Stable user identifier from the identity provider; can be added later." fullWidth /><TextField label="External scopes (optional)" InputLabelProps={{ shrink: true }} value={values.externalScopes} onChange={update('externalScopes')} helperText="Scopes returned by the host identity provider." fullWidth /></>}
       <FormControl fullWidth size="small" error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
-        <Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={values.roles[0] ?? ''} onChange={selectRole} displayEmpty>
+<Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={values.roles[0] ?? ''} onChange={selectRole} displayEmpty>
           <MenuItem value="" disabled>Select one role</MenuItem>
           {roles.map((item) => { const name = recordValue(item, 'name', 'Name'); return <MenuItem key={name} value={name}><span>{name}</span></MenuItem>; })}
         </Select>
         {attempted && errors.roles && <span className="ura-field-error">{errors.roles}</span>}
       </FormControl>
       <section className="ura-permission-assignment ura-user-permission-assignment">
-        <div className="ura-subheading"><VpnKeyOutlined /><div><h3>Permission assignment</h3><p>Choose only the access this user needs. The selected role’s default permissions are preselected; uncheck any access they should not have.</p></div></div>
-        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroup === module}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); setOpenPermissionGroup((current) => current === module ? null : module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
+        <div className="ura-subheading">
+          <VpnKeyOutlined />
+          <div>
+            <h3>Permission assignment</h3>
+            <p>Choose only the access this user needs. The selected role’s default permissions are preselected; uncheck any access they should not have.</p>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set(permissionModuleOrder))}>Expand all</Button>
+            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set())}>Collapse all</Button>
+          </div>
+        </div>
+        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroups.has(module)}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); togglePermissionGroup(module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
       </section>
       <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Use an existing tenant ID.'} inputProps={{ min: 1, step: 1 }} fullWidth />
       <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
@@ -436,7 +498,15 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
   const [serverError, setServerError] = useState('');
-  const [openPermissionGroup, setOpenPermissionGroup] = useState(null);
+  const [openPermissionGroups, setOpenPermissionGroups] = useState(() => new Set());
+  const togglePermissionGroup = (module) => {
+    setOpenPermissionGroups((current) => {
+      const next = new Set(current);
+      if (next.has(module)) next.delete(module);
+      else next.add(module);
+      return next;
+    });
+  };
   useEffect(() => {
     if (!roleQuery.data) return;
     setValues({
@@ -477,8 +547,19 @@ function RoleForm({ roleId, onCancel, onSaved }) {
       <TextField label="Role Name" InputLabelProps={{ shrink: true }} required value={values.name} disabled={systemRole} onChange={change('name')} error={attempted && !!errors.name} helperText={systemRole ? 'System roles cannot be renamed by this API.' : attempted ? errors.name : ' '} fullWidth />
       {!editing && <TextField label="Tenant ID (optional)" InputLabelProps={{ shrink: true }} type="number" value={values.tenantId} onChange={change('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Enter an existing tenant ID to scope this role.'} inputProps={{ min: 1, step: 1 }} fullWidth />}
       <TextField className="ura-role-description" label="Description" InputLabelProps={{ shrink: true }} value={values.description} onChange={change('description')} helperText=" " multiline minRows={2} fullWidth />
-      <section className="ura-permission-assignment"><div className="ura-subheading"><VpnKeyOutlined /><div><h3>Permission assignment</h3><p>Select from permission definitions returned by the API.</p></div></div>
-        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">{getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{modules.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroup === module}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); setOpenPermissionGroup((current) => current === module ? null : module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
+      <section className="ura-permission-assignment">
+        <div className="ura-subheading">
+          <VpnKeyOutlined />
+          <div>
+            <h3>Permission assignment</h3>
+            <p>Select from permission definitions returned by the API.</p>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set(permissionModuleOrder))}>Expand all</Button>
+            <Button size="small" variant="outlined" sx={{ textTransform: 'none', borderColor: '#cdb9a5', color: '#65472e', fontSize: '0.74rem' }} onClick={() => setOpenPermissionGroups(new Set())}>Collapse all</Button>
+          </div>
+        </div>
+        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">{getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{modules.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroups.has(module)}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); togglePermissionGroup(module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
       </section>
     </div>
     {serverError && <Alert severity="error" className="ura-inline-alert">{serverError}</Alert>}

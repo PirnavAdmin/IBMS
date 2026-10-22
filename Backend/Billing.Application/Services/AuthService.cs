@@ -804,7 +804,20 @@ public class AuthService
             TenantId = tenant.Id > 0 ? tenant.Id : null,
             Tenant = tenant,
             Roles = new List<string> { "TenantAdmin" },
-            Permissions = new List<string> { "billing.admin", "billing.view", "billing.create", "billing.manage_customers" },
+            Permissions = new List<string>
+            {
+                "users.view", "users.create", "users.edit", "users.delete", "users.assign",
+                "roles.view", "roles.manage",
+                "billing.view", "billing.create", "billing.admin",
+                "invoices.view", "invoices.create", "invoices.edit", "invoices.delete", "invoices.manage", "invoices.approve",
+                "quotations.view", "quotations.create", "quotations.edit", "quotations.delete", "quotations.manage", "quotations.approve",
+                "payments.view", "payments.create", "payments.manage", "payments.refund",
+                "customers.view", "customers.create", "customers.edit", "customers.delete", "customers.manage",
+                "products.view", "products.create", "products.edit", "products.delete", "products.manage",
+                "creditnotes.view", "creditnotes.create", "creditnotes.edit", "creditnotes.delete", "creditnotes.manage", "creditnotes.approve",
+                "settings.view", "settings.manage", "integrations.manage",
+                "reports.view", "audit.view"
+            },
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
