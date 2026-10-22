@@ -7,6 +7,7 @@ export const dashboardPeriods = (now = new Date()) => {
     return localDate(date);
   };
   return [
+    { id: 'all', label: 'All time', start: '', end: '' },
     { id: 'month', label: 'This month', start: localDate(new Date(now.getFullYear(), now.getMonth(), 1)), end },
     { id: '30days', label: 'Last 30 days', start: daysAgo(29), end },
     { id: '90days', label: 'Last 90 days', start: daysAgo(89), end },

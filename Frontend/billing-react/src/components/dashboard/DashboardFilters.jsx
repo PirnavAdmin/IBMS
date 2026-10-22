@@ -4,7 +4,7 @@ import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
 
-export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, recordsSearch, onRecordsSearch }) => {
+export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, recordsSearch, onRecordsSearch, currencies = [], currency = '', onCurrencyChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const periods = dashboardPeriods();
@@ -38,7 +38,7 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
     setIsOpen(false);
   };
 
-  const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch(''); };
+  const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch(''); onCurrencyChange?.(''); };
 
   return <section className="premium-filters" aria-label="Dashboard filters">
     <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} /></div>
@@ -79,6 +79,12 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
       </div>
     </div>
 
+    {onCurrencyChange && <label>Currency
+      <select value={currency || ''} onChange={event => onCurrencyChange(event.target.value)} disabled={!currencies.length}>
+        {!currencies.length && <option value="">No currencies</option>}
+        {currencies.map(code => <option key={code} value={code}>{code}</option>)}
+      </select>
+    </label>}
     <label>
       Search recent records
       <input type="search" value={recordsSearch} onChange={event => onRecordsSearch(event.target.value)} placeholder="Invoice, payment or customer" />

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { CURRENCY_CODES, CURRENCY_OPTIONS, filterCurrencyOption, getCurrencyOptions, getCurrencySymbol } from '../src/utils/currencies.js';
+import { CURRENCY_CODES, CURRENCY_OPTIONS, filterCurrencyOption, getCurrencyOptions, getCurrencySymbol, billingCurrencies, billingCurrencyGroups } from '../src/utils/currencies.js';
 import { DEFAULT_PRODUCT_VALUES, productValidationSchema } from '../src/pages/Products/validation/productValidation.js';
 import { productApiService } from '../src/pages/Products/services/productService.js';
 import { productApi } from '../../billing-api-client/productApi.js';
@@ -28,6 +28,21 @@ test('currency search matches shared countries, names, codes and accents', () =>
   }
   assert.equal(getCurrencySymbol('INR'), '₹');
   assert.equal(getCurrencySymbol('JPY'), '¥');
+});
+
+test('AOA is unavailable for new products while historical saved currencies remain readable', async () => {
+  assert.ok(!CURRENCY_CODES.includes('AOA'));
+  assert.ok(!CURRENCY_OPTIONS.some(option => option.value === 'AOA'));
+  assert.equal(CURRENCY_OPTIONS.filter(option => filterCurrencyOption('Angola', option)).length, 0);
+  await assert.rejects(productValidationSchema.validateAt('currency', { currency: 'AOA' }));
+  assert.equal(await productValidationSchema.validateAt('currency', { currency: 'AOA' }, { context: { existingCurrency: 'AOA' } }), 'AOA');
+});
+
+test('API summary groups and dashboard currencies exclude AOA without changing other totals', () => {
+  const groups = [{ currency: 'INR', draftAmount: 123 }, { currency: 'AOA', draftAmount: 50350 }, { currency: 'USD', draftAmount: 20 }];
+  assert.deepEqual(billingCurrencyGroups(groups), [groups[0], groups[2]]);
+  assert.deepEqual(billingCurrencies([...groups, groups[0]]), ['INR', 'USD']);
+  assert.equal(groups[1].draftAmount, 50350);
 });
 
 test('Product and Service currency/custom tax values reach create and update payloads unchanged', async () => {

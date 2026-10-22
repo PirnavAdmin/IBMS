@@ -23,6 +23,9 @@ const displaySymbols = { AUD: 'A$', CAD: 'CA$', SGD: 'S$', NZD: 'NZ$' };
 const preferredOrder = ['INR', 'USD', 'GBP', 'AUD', 'SGD', 'AED', 'CAD', 'EUR', 'JPY', 'SAR', 'NZD', 'ZAR', 'CHF'];
 const currencyRank = code => { const index = preferredOrder.indexOf(code); return index < 0 ? preferredOrder.length : index; };
 export const CURRENCY_CODES = CURRENCY_REFERENCE.map(currency => currency.code);
+export const isCurrencyEnabled = code => String(code || '').trim().toUpperCase() !== 'AOA';
+export const billingCurrencyGroups = rows => rows.filter(row => isCurrencyEnabled(row.currency));
+export const billingCurrencies = rows => [...new Set(billingCurrencyGroups(rows).map(row => row.currency).filter(Boolean))].sort();
 export const CURRENCY_OPTIONS = CURRENCY_REFERENCE.map(({ code, name, countries }) => {
   const country = sharedLabels[code] || countryLabel(countries[0]);
   const symbol = displaySymbols[code] || getCurrencySymbol(code);

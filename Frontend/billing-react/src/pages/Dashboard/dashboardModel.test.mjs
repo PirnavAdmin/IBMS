@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { billingInsights, collectPages, defaultDashboardFilters } from './dashboardModel.js';
+import { billingInsights, collectPages, defaultDashboardFilters, selectDashboardCurrency } from './dashboardModel.js';
 const invoice = (id, patch = {}) => ({ id, currency: 'INR', status: 'Issued', totalAmount: 100, balanceAmount: 60, invoiceDate: '2026-10-02', dueDate: '2026-10-01', ...patch });
 const payment = (id, patch = {}) => ({ id, currency: 'INR', status: 'Completed', amount: 40, paymentDate: '2026-10-03', ...patch });
 const now = new Date('2026-10-06T12:00:00Z');
@@ -36,8 +36,25 @@ test('duplicate records and missing pages reject', async () => {
   await assert.rejects(collectPages(async () => ({ items: [], totalCount: 1, pageSize: 1 })), /Incomplete/);
 });
 test('service failure is propagated', async () => assert.rejects(collectPages(async () => { throw new Error('Unavailable'); }), /Unavailable/));
-test('default range is the current local calendar month', () => {
-  const filters = defaultDashboardFilters(); assert.equal(filters.start.slice(0, 7), filters.end.slice(0, 7)); assert.ok(filters.start.endsWith('-01')); assert.ok(filters.start <= filters.end);
+test('default range includes historical billing records without date bounds', () => {
+  assert.deepEqual(defaultDashboardFilters(), { start: '', end: '' });
+});
+
+test('historical INR activity remains visible alongside an AOA draft', () => {
+  const currencies = ['AOA', 'INR'];
+  const currency = selectDashboardCurrency(currencies, '');
+  assert.equal(currency, 'INR');
+  const data = billingInsights([
+    invoice(1, { invoiceDate: '2026-08-15' }),
+    invoice(2, { invoiceDate: '2026-09-15' }),
+    invoice(3, { currency: 'AOA', status: 'Draft' }),
+  ], [payment(1, { paymentDate: '2026-09-20' })], currency, now);
+  assert.deepEqual(data.summary.map(row => row.value), [200, 40, 120, 120, 0]);
+  assert.deepEqual(data.revenue.map(row => row.label), ['2026-08', '2026-09']);
+  assert.equal(selectDashboardCurrency(currencies, 'AOA'), 'INR');
+  assert.equal(selectDashboardCurrency(['AOA'], 'AOA'), undefined);
+  assert.equal(selectDashboardCurrency(['USD'], 'INR'), 'USD');
+  assert.equal(selectDashboardCurrency([], ''), undefined);
 });
 
 test('missing balances, currency and invalid dates reject rather than disappear', () => {

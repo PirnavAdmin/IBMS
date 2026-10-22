@@ -1,7 +1,8 @@
-export const defaultDashboardFilters = () => {
-  const today = new Date();
-  const local = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  return { start: local(new Date(today.getFullYear(), today.getMonth(), 1)), end: local(today) };
+import { isCurrencyEnabled } from '../../utils/currencies.js';
+export const defaultDashboardFilters = () => ({ start: '', end: '' });
+export const selectDashboardCurrency = (currencies, selected) => {
+  const enabled = currencies.filter(isCurrencyEnabled);
+  return enabled.includes(selected) ? selected : enabled.includes('INR') ? 'INR' : enabled[0];
 };
 export const money = (value, currency) => new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
 export async function collectPages(load, signal, limit = 2000) {

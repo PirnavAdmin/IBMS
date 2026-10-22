@@ -5,7 +5,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
-import { apiClient, invoiceApi, templateApi, customerApi } from "billing-api-client";
+import { apiClient, invoiceApi, templateApi, customerApi, authApi } from "billing-api-client";
+import { Dashboard } from '../src/pages/Dashboard/Dashboard';
+import { paymentService } from '../src/pages/Payments/paymentService';
 import { InvoiceList } from "../src/pages/Invoices/InvoiceList";
 import { InvoiceForm } from "../src/pages/Invoices/InvoiceForm";
 import { InvoiceDetails } from "../src/pages/Invoices/InvoiceDetails";
@@ -182,6 +184,35 @@ function button(text) {
       el.textContent.trim().startsWith(text + " "),
   );
 }
+
+test('Invoice summary hides AOA groups returned by the backend and preserves INR totals', async () => {
+  await mock(invoiceService, {
+    list: async () => page([invoice]),
+    customers: async () => ({ items: [] }),
+    summary: async () => ['INR', 'AOA'].map(currency => ({ currency, totalInvoiced: 100, totalPaid: 0, totalOutstanding: 100, overdueAmount: 0, overdueCount: 0, draftCount: 1, draftAmount: 50350 })),
+  }, async () => {
+    const mounted = await mount(<InvoiceList />);
+    try {
+      assert.ok(mounted.host.querySelector('[aria-label="INR invoice summary"]'));
+      assert.equal(mounted.host.querySelector('[aria-label="AOA invoice summary"]'), null);
+      assert.equal(mounted.host.querySelectorAll('.invoice-summary-group').length, 1);
+    } finally { await mounted.close(); }
+  });
+});
+
+test('Dashboard currency selector excludes saved AOA invoices while showing historical INR invoices', async () => {
+  await mock(authApi, { getCurrentUser: () => ({ role: 'TenantAdmin', tenantId: 1, id: 1 }) }, async () =>
+    mock(invoiceService, { list: async () => page([{ ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' }, { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' }]) }, async () =>
+      mock(paymentService, { getPayments: async () => page([]) }, async () => {
+        const mounted = await mount(<Dashboard />, '/dashboard');
+        try {
+          const currencies = [...mounted.host.querySelectorAll('.premium-filters select option')].map(option => option.value);
+          assert.deepEqual(currencies, ['INR']);
+          assert.match(mounted.host.textContent, /HISTORY-INR/);
+          assert.doesNotMatch(mounted.host.textContent, /AOA/);
+        } finally { await mounted.close(); }
+      })));
+});
 async function click(element) {
   assert.ok(element, "Expected element");
   await act(async () => element.click());

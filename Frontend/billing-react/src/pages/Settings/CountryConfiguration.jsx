@@ -25,7 +25,7 @@ import { CountryFlag } from '../../components/CountryFlag';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import {
   useRegionalSettings,
-  COUNTRIES_LIST,
+  BILLING_COUNTRIES_LIST as COUNTRIES_LIST,
 } from '../../services/regionalSettingsService';
 import './settings.css';
 

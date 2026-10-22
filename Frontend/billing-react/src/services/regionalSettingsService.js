@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { authApi, apiClient } from 'billing-api-client';
 
 import countries195Data from '../data/countries195.json';
+import { CURRENCY_CODES } from '../utils/currencies.js';
 
 export const COUNTRIES_LIST = countries195Data;
+export const BILLING_COUNTRIES_LIST = COUNTRIES_LIST.filter(country => CURRENCY_CODES.includes(country.currency));
+const isBillingCountry = country => Boolean(country && CURRENCY_CODES.includes(country.currency));
 
 export function findCountry(countryOrCode) {
   if (!countryOrCode) return null;
@@ -69,7 +72,7 @@ export const regionalSettingsService = {
         if (Array.isArray(parsed)) {
           return parsed
             .map((item) => (typeof item === 'object' ? findCountry(item?.name || item?.code) : findCountry(item)))
-            .filter(Boolean);
+            .filter(isBillingCountry);
         }
       }
     } catch (e) {
@@ -83,7 +86,7 @@ export const regionalSettingsService = {
     const list = Array.isArray(countries) ? countries : (countries ? [countries] : []);
     const normalized = list
       .map((item) => (typeof item === 'object' ? findCountry(item?.name || item?.code) : findCountry(item)))
-      .filter(Boolean);
+      .filter(isBillingCountry);
 
     // Filter unique by country code
     const unique = [];

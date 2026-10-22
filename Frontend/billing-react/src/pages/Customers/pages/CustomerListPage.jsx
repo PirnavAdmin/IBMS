@@ -587,7 +587,9 @@ export function CustomerListPage() {
                       <TableCell
                         key={index}
                         sortDirection={
-                          params.sortBy === key ? params.sortOrder : false
+                          Boolean(key) && params.sortBy === key
+                            ? params.sortOrder || "asc"
+                            : false
                         }
                         align={key === "outstandingBalance" ? "right" : "left"}
                       >
@@ -596,7 +598,7 @@ export function CustomerListPage() {
                             disabled={!customerCapabilities.sorting}
                             active={!!params.sortBy && params.sortBy === key}
                             direction={
-                              params.sortBy === key ? params.sortOrder : "asc"
+                              params.sortBy === key ? params.sortOrder || "asc" : "asc"
                             }
                             onClick={() =>
                               customerCapabilities.sorting &&
