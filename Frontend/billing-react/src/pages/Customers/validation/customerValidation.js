@@ -102,13 +102,10 @@ export const customerValidationSchema = yup.object({
     .default('Active'),
   customerType: yup
     .string()
-    .transform((val) => {
-      if (!val) return 'business';
-      const s = String(val).trim().toLowerCase();
-      return ['business', 'individual', 'organization'].includes(s) ? s : 'business';
-    })
-    .oneOf(['business', 'individual', 'organization'])
-    .default('business'),
+    .trim()
+    .lowercase()
+    .oneOf(['', 'business', 'individual', 'organization'])
+    .default(''),
   customerCategory: yup
     .string()
     .nullable()
@@ -267,7 +264,7 @@ export const customerValidationSchema = yup.object({
   }).required(),
 
   // 5. Shipping Address
-  isShippingSameAsBilling: yup.boolean().default(true),
+  isShippingSameAsBilling: yup.boolean().default(false),
   shippingAddress: yup.object().when('isShippingSameAsBilling', {
     is: false,
     then: (schema) =>
@@ -349,7 +346,7 @@ export const customerValidationSchema = yup.object({
 export const DEFAULT_CUSTOMER_VALUES = {
   name: '',
   customerCode: '',
-  customerType: 'business',
+  customerType: '',
   customerCategory: 'Enterprise',
   companyName: '',
   status: 'Active',
@@ -366,7 +363,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
   creditLimit: '',
   openingBalance: '',
   notes: '',
-  isShippingSameAsBilling: true,
+  isShippingSameAsBilling: false,
   billingAddress: {
     street: '',
     addressLine2: '',

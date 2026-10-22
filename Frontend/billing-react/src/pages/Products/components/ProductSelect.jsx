@@ -3,22 +3,25 @@ import { Controller } from 'react-hook-form';
 import { MenuItem, Select } from '@mui/material';
 import '../styles/products.css';
 
-// Constrain the portaled popup to the space below its control rather than
-// letting Popover move a tall category list up over the catalog heading.
+// Open toward available viewport space; short menus keep their content height.
 export function useProductSelectProps() {
   const ref = useRef(null);
-  const [maxHeight, setMaxHeight] = useState(280);
+  const [placement, setPlacement] = useState({ maxHeight: 280, above: false });
   return {
     ref,
     onOpen: () => {
-      const bottom = ref.current?.getBoundingClientRect().bottom ?? 0;
-      setMaxHeight(Math.max(0, Math.min(280, window.innerHeight - bottom - 16)));
+      const bounds = ref.current?.getBoundingClientRect();
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const below = Math.max(0, viewportHeight - (bounds?.bottom ?? 0) - 8);
+      const above = Math.max(0, (bounds?.top ?? 0) - 8);
+      const openAbove = below < 280 && above > below;
+      setPlacement({ maxHeight: Math.min(280, openAbove ? above : below), above: openAbove });
     },
     MenuProps: {
-      anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
-      transformOrigin: { vertical: 'top', horizontal: 'left' },
+      anchorOrigin: { vertical: placement.above ? 'top' : 'bottom', horizontal: 'left' },
+      transformOrigin: { vertical: placement.above ? 'bottom' : 'top', horizontal: 'left' },
       marginThreshold: 8,
-      PaperProps: { className: 'product-select-menu', style: { maxHeight } },
+      PaperProps: { className: 'product-select-menu', style: { maxHeight: placement.maxHeight, height: 'auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden' } },
     },
   };
 }

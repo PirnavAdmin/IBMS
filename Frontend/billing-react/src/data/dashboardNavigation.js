@@ -17,15 +17,8 @@ export const dashboardNavigation = [
   {
     label: 'Operations',
     items: [
-      { id: 'recurring', label: 'Recurring Billing', icon: 'recurring' },
       { id: 'background-jobs', label: 'Background Jobs', icon: 'jobs', route: '/background-jobs' },
       { id: 'export-jobs', label: 'Export Jobs', icon: 'exports', route: '/export-jobs' },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { id: 'reports', label: 'Reports', icon: 'report' },
     ],
   },
   {

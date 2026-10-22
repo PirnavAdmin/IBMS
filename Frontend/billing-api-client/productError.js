@@ -1,12 +1,14 @@
-// Product-only error presentation; shared authentication behavior is unchanged.
+import { transportErrorMessage } from './transportError.js';
+
+// Product-only validation and authorization messages.
 export function productRequestError(error, fallback) {
   const status = error?.response?.status ?? error?.status;
   let message = fallback;
-  if (status === 401) message = 'Please sign in to access products.';
+  const transportMessage = transportErrorMessage(error);
+  if (transportMessage) message = transportMessage;
+  else if (status === 401) message = 'Please sign in to access products.';
   else if (status === 403) message = 'You do not have permission to perform this product action.';
   else if (status === 404) message = 'Product or requested resource not found. Refresh and try again.';
-  else if (status >= 500) message = 'The product service is unavailable. Please try again.';
-  else if (!status && (error?.code === 'ERR_NETWORK' || error?.code === 'ECONNABORTED' || error?.message === 'Network Error')) message = 'Unable to reach the product service. Check your connection and try again.';
   else if ([400, 409, 422].includes(status)) {
     const data = error?.response?.data;
     const messages = [data?.errors && Object.values(data.errors).flat(), data?.message, data?.title].flat().filter(value =>

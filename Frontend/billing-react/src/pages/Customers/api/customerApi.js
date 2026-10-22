@@ -1,4 +1,5 @@
 import { apiClient } from "billing-api-client";
+import { transportErrorMessage } from '../../../../../billing-api-client/transportError.js';
 import { requireCustomerId } from "../../../../../billing-contracts/customer.contracts.js";
 import {
   customerPayload,
@@ -32,8 +33,8 @@ async function request(operation) {
       throw new Error(
         "Your account does not have access to these customer records."
       );
-    if (error?.message === "Network Error")
-      throw new Error("Please check your connection and try again.");
+    const transportMessage = transportErrorMessage(error);
+    if (transportMessage) throw new Error(transportMessage);
     throw error;
   }
 }

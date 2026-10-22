@@ -69,7 +69,7 @@ export const money = (value) =>
       });
 export const StatusChip = ({ status }) =>
   !["active", "inactive"].includes(status) ? (
-    <span>—</span>
+    <span>NA</span>
   ) : (
     <span className={`customer-status ${status}`}>
       <i />
@@ -77,16 +77,17 @@ export const StatusChip = ({ status }) =>
     </span>
   );
 const moneyWithCurrency = (value, currency) => {
-  if (value == null || !Number.isFinite(value) || !currency?.trim()) return "—";
+  if (value == null || !Number.isFinite(value) || !currency?.trim()) return "NA";
   try {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: currency.trim().toUpperCase(),
-      currencyDisplay: "code",
+      currencyDisplay: "symbol",
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
   } catch {
-    return "—";
+    return "NA";
   }
 };
 const filterOptions = {
@@ -591,8 +592,9 @@ export function CustomerListPage() {
                             ? params.sortOrder || "asc"
                             : false
                         }
-                        align={key === "outstandingBalance" ? "right" : "left"}
+                        align="center"
                       >
+                        <div className={key === 'name' ? 'customer-name-heading' : label === 'Contact' ? 'customer-contact-heading' : undefined}>
                         {["customerCode", "name"].includes(key) ? (
                           <TableSortLabel
                             disabled={!customerCapabilities.sorting}
@@ -620,6 +622,7 @@ export function CustomerListPage() {
                             <span className="customer-sr-only">Actions</span>
                           )
                         )}
+                        </div>
                       </TableCell>
                     ))}
                   </TableRow>
@@ -629,7 +632,7 @@ export function CustomerListPage() {
                     <TableRow hover key={customer.id}>
                       <TableCell data-label="Code">
                         <span className="customer-code">
-                          {(customer.customerCode || "").trim() || "—"}
+                          {(customer.customerCode || "").trim() || "NA"}
                         </span>
                       </TableCell>
                       <TableCell data-label="Customer">
@@ -646,19 +649,19 @@ export function CustomerListPage() {
                               .map((n) => n[0])
                               .join("")}
                           </Avatar>
-                          <div>
-                            <Link to={`/customers/${customer.id}`}>
-                              {(customer.name || "").trim() || "—"}
+                          <div className="customer-identity-copy">
+                            <Link to={`/customers/${customer.id}`} title={(customer.name || '').trim()}>
+                              {(customer.name || "").trim() || "NA"}
                             </Link>
-                            <small>
-                              {(customer.companyName || "").trim() || "—"}
+                            <small title={(customer.companyName || '').trim()}>
+                              {(customer.companyName || "").trim() || "NA"}
                             </small>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell data-label="Type">
                         <span className="customer-type">
-                          {customer.customerType || "—"}
+                          {(customer.customerType || "").trim() || "NA"}
                         </span>
                       </TableCell>
                       <TableCell data-label="Tax ID">
@@ -668,11 +671,11 @@ export function CustomerListPage() {
                               ? "GSTIN"
                               : (customer.taxId || "").trim()
                               ? "PAN / Tax ID"
-                              : "—"}
+                              : "NA"}
                           </small>
                           {(customer.gstin || "").trim() ||
                             (customer.taxId || "").trim() ||
-                            "—"}
+                            "NA"}
                         </div>
                       </TableCell>
                       <TableCell data-label="Contact">
@@ -680,12 +683,12 @@ export function CustomerListPage() {
                           {(customer.email || "").trim() ? (
                             <CustomerEmailLink email={customer.email} />
                           ) : (
-                            <span>—</span>
+                            <span>NA</span>
                           )}
-                          <small>{(customer.mobile || "").trim() || "—"}</small>
+                          <small>{(customer.mobile || "").trim() || "NA"}</small>
                         </div>
                       </TableCell>
-                      <TableCell data-label="Outstanding" align="right">
+                      <TableCell data-label="Outstanding" align="center">
                         <strong
                           className={
                             (customer.outstandingBalance ?? 0) > 0
@@ -698,7 +701,6 @@ export function CustomerListPage() {
                             customer.currency
                           )}
                         </strong>
-                        <Link className="customer-detail-link" to={`/customers/${customer.id}?tab=invoices`}>View invoices</Link>
                         {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
                       </TableCell>
                       <TableCell data-label="Status">

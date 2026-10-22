@@ -852,46 +852,46 @@ export function InvoiceForm() {
                         />
                       </td>
                       <td>
-                        <TextField
-                          size="small"
-                          type="number"
-                          label="Discount"
-                          placeholder="0"
-                          InputLabelProps={{ shrink: true }}
-                          value={item.discountRate ?? ""}
-                          onChange={(event) =>
-                            changeItem(index, "discountRate", event.target.value)
-                          }
-                          inputProps={{
-                            min: 0,
-                            max: item.discountType === "Percentage" ? 100 : 999999999,
-                            step: 0.01,
-                          }}
-                          InputProps={{
-                            endAdornment: (
-                              <InputAdornment position="end" sx={{ mr: -0.5 }}>
-                                <select
-                                  aria-label={`Discount type line ${index + 1}`}
-                                  value={item.discountType || "Percentage"}
-                                  onChange={(e) =>
-                                    changeItem(index, "discountType", e.target.value)
-                                  }
-                                  className="invoice-line-discount-select"
-                                >
-                                  <option value="Percentage">%</option>
-                                  <option value="Fixed">{form.currency || "Val"}</option>
-                                </select>
-                              </InputAdornment>
-                            ),
-                          }}
-                          error={Boolean(errors[`items.${index}.discountRate`])}
-                          helperText={
-                            errors[`items.${index}.discountRate`] ||
-                            (freshCalculation?.items?.[index]?.discountAmount > 0
-                              ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
-                              : "")
-                          }
-                        />
+                        <div className="invoice-line-discount-fields">
+                          <TextField
+                            id={`invoice-line-discount-${index + 1}`}
+                            size="small"
+                            type="number"
+                            label="Discount"
+                            placeholder="0"
+                            InputLabelProps={{ shrink: true }}
+                            value={item.discountRate ?? ""}
+                            onChange={(event) =>
+                              changeItem(index, "discountRate", event.target.value)
+                            }
+                            inputProps={{
+                              min: 0,
+                              max: item.discountType === "Percentage" ? 100 : 999999999,
+                              step: 0.01,
+                            }}
+                            error={Boolean(errors[`items.${index}.discountRate`])}
+                            helperText={
+                              errors[`items.${index}.discountRate`] ||
+                              (freshCalculation?.items?.[index]?.discountAmount > 0
+                                ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
+                                : "")
+                            }
+                          />
+                          <TextField
+                            select
+                            size="small"
+                            label="Discount type"
+                            InputLabelProps={{ shrink: true }}
+                            SelectProps={{ native: true }}
+                            id={`invoice-line-discount-type-${index + 1}`}
+                            inputProps={{ 'aria-label': `Discount type line ${index + 1}` }}
+                            value={item.discountType || "Percentage"}
+                            onChange={event => changeItem(index, "discountType", event.target.value)}
+                          >
+                            <option value="Percentage">Percentage (%)</option>
+                            <option value="Fixed">Fixed{form.currency ? ` (${form.currency})` : ''}</option>
+                          </TextField>
+                        </div>
                       </td>
                       <td>
                         <TextField

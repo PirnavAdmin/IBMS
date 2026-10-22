@@ -22,12 +22,11 @@ export const DashboardRecords = ({ title, query, allowed, rows, type }) => <arti
 export const Dashboard = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState(defaultDashboardFilters);
-  const [selectedCurrency, setSelectedCurrency] = useState('');
   const [recordsSearch, setRecordsSearch] = useState('');
   const { invoices, payments, invoicesAllowed, paymentsAllowed, refresh } = useDashboard(filters);
   const user = authApi.getCurrentUser();
   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);
-  const currency = selectDashboardCurrency(currencies, selectedCurrency);
+  const currency = selectDashboardCurrency(currencies, '');
   const result = useMemo(() => {
     if (!currency) return { data: null };
     try { return { data: billingInsights(invoices.isError ? [] : invoices.data || [], payments.isError ? [] : payments.data || [], currency) }; }
@@ -47,7 +46,7 @@ export const Dashboard = () => {
   ];
   return <div className="bd-shell premium-dashboard"><DashboardHeader searchQuery={recordsSearch} onSearch={setRecordsSearch} onSignOut={() => { authApi.logout(); navigate('/login'); }} /><main className="premium-main">
     <div className="premium-title"><div><span className="premium-eyebrow">BILLING OVERVIEW</span><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div><span className="premium-tag">Tenant-scoped data</span></div>
-    <DashboardFilters values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} recordsSearch={recordsSearch} onRecordsSearch={setRecordsSearch} currencies={currencies} currency={currency} onCurrencyChange={setSelectedCurrency} />
+    <DashboardFilters values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} recordsSearch={recordsSearch} onRecordsSearch={setRecordsSearch} />
     {loading ? <DashboardSkeleton /> : <>
       {!invoicesAllowed ? <Notice>Invoice analytics are unavailable for your role.</Notice> : invoices.isError && <Notice retry={invoices.refetch}>Invoice data could not be loaded. {invoices.error.message}</Notice>}
       {!paymentsAllowed ? <Notice>Payment analytics are unavailable for your role.</Notice> : payments.isError && <Notice retry={payments.refetch}>Payment data could not be loaded. {payments.error.message}</Notice>}

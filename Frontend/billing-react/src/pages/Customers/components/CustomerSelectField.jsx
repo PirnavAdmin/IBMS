@@ -1,5 +1,8 @@
+import { useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { MenuItem, Select } from '@mui/material';
+import { ListSubheader, MenuItem, Select } from '@mui/material';
+import { Search } from '@mui/icons-material';
+import '../../../components/CountryCallingCodeSelector.css';
 
 export function CustomerSelectField({
   control,
@@ -11,7 +14,15 @@ export function CustomerSelectField({
   ariaLabel,
   invalid = false,
   onValueChange,
+  searchable = false,
+  required = false,
 }) {
+  const [search, setSearch] = useState('');
+  const searchInput = useRef(null);
+  const query = search.trim().toLowerCase();
+  const filtered = searchable && query
+    ? options.filter(option => `${option.label} ${option.searchText || ''}`.toLowerCase().includes(query))
+    : options;
   return (
     <Controller
       name={name}
@@ -24,12 +35,15 @@ export function CustomerSelectField({
           fullWidth
           displayEmpty
           disabled={disabled}
+          required={required}
+          SelectDisplayProps={{ 'aria-required': required || undefined }}
           aria-invalid={invalid}
           value={field.value ?? ''}
           name={field.name}
           onBlur={field.onBlur}
           inputRef={field.ref}
-          inputProps={{ 'aria-label': ariaLabel, 'aria-invalid': invalid }}
+          inputProps={{ 'aria-label': ariaLabel, 'aria-invalid': invalid, 'aria-required': required }}
+          onOpen={() => setSearch('')}
           onChange={(event) => {
             field.onChange(event);
             onValueChange?.(event.target.value);
@@ -52,9 +66,31 @@ export function CustomerSelectField({
             }
             return match ? match.label : selectedVal;
           }}
-          MenuProps={{ classes: { paper: 'customer-dropdown-menu' } }}
+          MenuProps={{ classes: { paper: 'customer-dropdown-menu' }, ...(searchable ? { autoFocus: false } : {}) }}
         >
-          {options.map(({ value, label, icon }) => (
+          {searchable && <ListSubheader className="cust-select-search" onClick={event => event.stopPropagation()}>
+            <div className="calling-code-search-wrap">
+              <Search className="calling-code-search-icon" aria-hidden="true" />
+              <input
+                ref={searchInput}
+                autoFocus
+                type="text"
+                className="calling-code-search-input"
+                placeholder="Search currency or country..."
+                aria-label={`Search ${ariaLabel?.toLowerCase() || 'options'}`}
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                onKeyDown={event => { if (event.key !== 'Escape') event.stopPropagation(); }}
+              />
+              {search && <button
+                type="button"
+                className="calling-code-clear-btn"
+                aria-label="Clear currency search"
+                onClick={() => { setSearch(''); searchInput.current?.focus(); }}
+              >&times;</button>}
+            </div>
+          </ListSubheader>}
+          {filtered.map(({ value, label, icon }) => (
             <MenuItem key={value} value={value}>
               {icon ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -66,6 +102,7 @@ export function CustomerSelectField({
               )}
             </MenuItem>
           ))}
+          {searchable && !filtered.length && <MenuItem disabled>No currencies found</MenuItem>}
         </Select>
       )}
     />

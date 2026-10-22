@@ -200,14 +200,13 @@ test('Invoice summary hides AOA groups returned by the backend and preserves INR
   });
 });
 
-test('Dashboard currency selector excludes saved AOA invoices while showing historical INR invoices', async () => {
+test('Dashboard hides the currency selector while showing historical INR invoices', async () => {
   await mock(authApi, { getCurrentUser: () => ({ role: 'TenantAdmin', tenantId: 1, id: 1 }) }, async () =>
     mock(invoiceService, { list: async () => page([{ ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' }, { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' }]) }, async () =>
       mock(paymentService, { getPayments: async () => page([]) }, async () => {
         const mounted = await mount(<Dashboard />, '/dashboard');
         try {
-          const currencies = [...mounted.host.querySelectorAll('.premium-filters select option')].map(option => option.value);
-          assert.deepEqual(currencies, ['INR']);
+          assert.equal(mounted.host.querySelector('.premium-filters select'), null);
           assert.match(mounted.host.textContent, /HISTORY-INR/);
           assert.doesNotMatch(mounted.host.textContent, /AOA/);
         } finally { await mounted.close(); }

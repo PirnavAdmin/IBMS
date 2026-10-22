@@ -369,6 +369,7 @@
 .cust-field {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 6px;
   position: relative;
 }
@@ -628,6 +629,21 @@
   align-items: center !important;
   gap: 8px !important;
   width: 100% !important;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.cust-phone-group .cust-phone-number {
+  flex: 1 1 180px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.cust-phone-group .cust-phone-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .cust-phone-group .cust-themed-select.cust-phone-code-select,
@@ -1517,6 +1533,21 @@ body.dark-mode .cust-input-status-icon.cust-spin svg,
 body.dark-mode .cust-pin-warning,
 [data-theme="dark"] .cust-pin-warning {
   color: #f0b757;
+}
+
+.cust-draft-notice {
+  margin: 0 0 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--border, #e4d8c8);
+  border-radius: 8px;
+  background: var(--bg-main, #faf5ee);
+  color: var(--text-secondary, #715b48);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.customer-dropdown-menu .cust-select-search {
+  padding: 10px 12px;
+  background: var(--surface, #fffdf9);
 }
 
 

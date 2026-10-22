@@ -693,6 +693,71 @@ const chooseCustomerCurrency = async (host, value) => {
   await settle();
 };
 
+test('Customer creation starts with a type placeholder and marks currency as required', async () => {
+  const ui = await mount(<CustomerForm initialValues={{ customerCode: 'CUST-044' }} />);
+  try {
+    assert.match(ui.host.querySelector('#customer-type').textContent, /Select Customer Type/);
+    assert.match(ui.host.querySelector('label[for="customer-currency"]').textContent, /Currency\s*\*/);
+    assert.equal(ui.host.querySelector('#customer-currency').getAttribute('aria-required'), 'true');
+    assert.match(ui.host.querySelector('.cust-draft-notice').textContent, /automatically kept as a draft/);
+    await act(async () => Simulate.mouseDown(ui.host.querySelector('#customer-currency'), { button: 0 }));
+    const search = document.body.querySelector('[aria-label="Search currency"]');
+    assert.ok(search);
+    assert.ok(search.classList.contains('calling-code-search-input'));
+    assert.ok(search.closest('.calling-code-search-wrap').querySelector('.calling-code-search-icon'));
+    await changeInput(search, 'India');
+    await click(document.body.querySelector('[aria-label="Clear currency search"]'));
+    assert.equal(search.value, '');
+    await changeInput(search, 'India');
+    let options = [...document.body.querySelectorAll('[role="option"]')];
+    assert.ok(options.some(option => option.textContent.includes('INR')));
+    assert.ok(!options.some(option => option.textContent.includes('USD')));
+    await changeInput(search, 'zzzz-no-currency');
+    assert.match(document.body.textContent, /No currencies found/);
+    await changeInput(search, 'INR');
+    await click([...document.body.querySelectorAll('[role="option"]')].find(option => option.getAttribute('data-value') === 'INR'));
+    assert.match(ui.host.querySelector('#customer-currency').textContent, /INR/);
+    assert.match(ui.host.querySelector('#customer-type').textContent, /Select Customer Type/);
+  } finally { await ui.close(); }
+});
+
+test('Customer contact values survive Back and Next with a visible draft explanation and no submit', async () => {
+  let submitted = 0;
+  const ui = await mount(<CustomerForm initialValues={{ customerCode: 'CUST-044', name: 'Venkat Rao', currency: 'INR' }} onSubmit={() => submitted++} />);
+  try {
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    await changeInput(ui.host.querySelector('#customer-email'), 'venkat@example.com');
+    await changeInput(ui.host.querySelector('#customer-phone'), '9876543210');
+    await click(button(ui.host, 'Back')); await settle();
+    assert.match(ui.host.querySelector('.cust-draft-notice').textContent, /Back or Next/);
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    assert.equal(ui.host.querySelector('#customer-email').value, 'venkat@example.com');
+    assert.equal(ui.host.querySelector('#customer-phone').value, '9876543210');
+    assert.equal(submitted, 0);
+  } finally { await ui.close(); }
+});
+
+test('Customer address checkbox starts unchecked and copies billing only after manual selection', async () => {
+  const initial = { customerCode: 'CUST-044', name: 'Venkat Rao', currency: 'INR', email: 'venkat@example.com', phoneCountryCode: '+91', phone: '9876543210', taxRegistrationType: 'non-gst', pan: 'ABCDE1234F', billingAddress: { street: '12 Main Road', city: 'Bengaluru', state: 'Karnataka', postalCode: '560001', country: 'India' } };
+  for (const existing of [false, true]) {
+    const ui = await mount(<CustomerForm mode={existing ? 'edit' : 'create'} initialValues={existing ? { ...initial, id: 44, isShippingSameAsBilling: true } : initial} />);
+    try {
+      for (let step = 0; step < 3; step++) { await click(ui.host.querySelector('[data-customer-action="next"]')); await settle(); }
+      assert.match(ui.host.querySelector('.cust-step-title').textContent, /Address Information/);
+      const checkbox = ui.host.querySelector('#same-as-billing');
+      assert.equal(checkbox.checked, existing);
+      if (!existing) {
+        assert.equal(ui.host.querySelector('#shippingAddress-street').value, '');
+        await act(async () => checkbox.click()); await settle();
+        assert.equal(checkbox.checked, true);
+        assert.equal(ui.host.querySelector('#shippingAddress-street'), null);
+        await act(async () => checkbox.click()); await settle();
+        assert.equal(ui.host.querySelector('#shippingAddress-street').value, '');
+      }
+    } finally { await ui.close(); }
+  }
+});
+
 test('Customer Basic Info Next stays disabled until the existing step rules pass and updates as fields are cleared', async () => {
   let submitted = 0;
   const ui = await mount(<CustomerForm initialValues={{ customerCode: 'CUST-044' }} onSubmit={() => submitted++} />, '/customers/create');

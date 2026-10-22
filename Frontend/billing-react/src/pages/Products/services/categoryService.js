@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { categoryApi } from '../../../../../billing-api-client/categoryApi.js';
+import { transportErrorMessage } from '../../../../../billing-api-client/transportError.js';
 
 export function categoryError(error, fallback = 'Unable to load categories. Please try again.') {
+  const transportMessage = transportErrorMessage(error);
+  if (transportMessage) return transportMessage;
   const status = error?.response?.status ?? error?.status;
   if (status === 401) return 'Please sign in to access categories.';
   if (status === 403) return 'You do not have permission to manage categories.';

@@ -312,7 +312,7 @@ export function InvoiceList() {
             aria-label={`${group.currency} invoice summary`}
           >
             <h2>{group.currency} / All invoices</h2>
-            <div className="invoice-summary-grid">
+            <div className="invoice-summary-grid" tabIndex={0} role="region" aria-label={`${group.currency} invoice summary cards`}>
               {kpiCards.map(
                 ({
                   label,

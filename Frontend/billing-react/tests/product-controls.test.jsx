@@ -1,4 +1,4 @@
-import React, { act } from 'react';
+import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import test from 'node:test';
@@ -6,6 +6,9 @@ import assert from 'node:assert/strict';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProductForm } from '../src/pages/Products/components/ProductForm';
 import { ProductList } from '../src/pages/Products/ProductList';
+import { ProductFilters } from '../src/pages/Products/components/ProductFilters';
+import { ProductPagination } from '../src/pages/Products/components/ProductPagination';
+import { ProductSelect } from '../src/pages/Products/components/ProductSelect';
 import { apiClient } from 'billing-api-client';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -17,6 +20,59 @@ const choose = async text => {
   await act(async () => option.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   await flush();
 };
+
+test('Empty Category and Status labels return inside the field on dismissal or selecting All', async () => {
+  function Filters() {
+    const [params, setParams] = useState({ category: '', status: '' });
+    return <ProductFilters search="" onSearch={() => {}} params={params} onChange={patch => setParams(previous => ({ ...previous, ...patch }))} categories={[{ id: 1, name: 'Electronics' }]} onClear={() => {}} />;
+  }
+  const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<Filters />)); await flush();
+    for (const [label, choice, all] of [['Category', 'Electronics', 'All Categories'], ['Status', 'Active', 'All Status']]) {
+      const field = [...host.querySelectorAll('.MuiTextField-root')].find(element => element.querySelector('label')?.textContent === label);
+      const open = async () => { await act(async () => Simulate.mouseDown(field.querySelector('[role="combobox"]'), { button: 0 })); await flush(); };
+      const select = async text => { await open(); await act(async () => [...document.querySelectorAll('[role="option"]')].find(option => option.textContent === text).click()); await flush(); };
+      await open();
+      await act(async () => Simulate.keyDown(document.querySelector('[role="listbox"]'), { key: 'Escape' })); await flush();
+      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'false');
+      assert.equal(field.querySelector('[role="combobox"]').getAttribute('aria-expanded'), 'false');
+      await select(choice);
+      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'true');
+      await select(all);
+      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'false');
+    }
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+test('Rows per page near the viewport bottom uses space above and exposes every size', async () => {
+  const host = document.createElement('div'); document.body.append(host); const root = createRoot(host); const selected = [];
+  try {
+    await act(async () => root.render(<ProductPagination data={{ pageNumber: 1, pageSize: 50, totalCount: 100, totalPages: 2 }} onPage={() => {}} onPageSize={value => selected.push(value)} />)); await flush();
+    const control = host.querySelector('.MuiInputBase-root');
+    control.getBoundingClientRect = () => ({ x: 20, y: window.innerHeight - 60, top: window.innerHeight - 60, bottom: window.innerHeight - 20, left: 20, right: 160, width: 140, height: 40 });
+    await act(async () => Simulate.mouseDown(control.querySelector('[role="combobox"]'), { button: 0 })); await flush();
+    const menu = document.querySelector('.product-select-menu');
+    assert.equal(menu.style.maxHeight, '280px');
+    assert.equal(menu.style.height, 'auto');
+    const options = [...document.querySelectorAll('[role="option"]')];
+    assert.deepEqual(options.map(option => option.textContent), ['5', '10', '20', '50']);
+    await act(async () => options[1].click()); await flush();
+    assert.deepEqual(selected, [10]);
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+test('Product Type menu sizes to its three options without a forced minimum height', async () => {
+  const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<ProductSelect value="Service" onChange={() => {}} ariaLabel="Product Type" options={[{ value: '', label: 'Select Type' }, { value: 'Product', label: 'Product' }, { value: 'Service', label: 'Service' }]} />)); await flush();
+    await act(async () => Simulate.mouseDown(host.querySelector('[role="combobox"]'), { button: 0 })); await flush();
+    const menu = document.querySelector('.product-select-menu');
+    assert.equal(menu.style.height, 'auto');
+    assert.equal(menu.style.minHeight, '0');
+    assert.deepEqual([...document.querySelectorAll('[role="option"]')].map(option => option.textContent), ['Select Type', 'Product', 'Service']);
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
 
 // Isolated test fixtures exercise controls; no live records are created.
 for (const mode of ['create', 'edit']) for (const type of ['Product', 'Service']) {
@@ -96,9 +152,9 @@ test('Catalog All Categories and All Status independently clear filters and rese
   };
   try {
     await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter><ProductList /></MemoryRouter></QueryClientProvider>)); await flush();
-    assert.match(filter('Category').querySelector('[role="combobox"]').textContent, /All Categories/);
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
     assert.equal('categoryId' in calls.at(-1), false);
-    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
     await input(host.querySelector('.product-search input'), 'Catalog');
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 330)); }); await flush();
     await selectOption('Status', 'Active');
@@ -114,7 +170,7 @@ test('Catalog All Categories and All Status independently clear filters and rese
     assert.equal('categoryId' in request, false); assert.equal('category' in request, false);
     assert.equal(request.pageNumber, 1); assert.equal(request.search, 'Catalog');
     assert.equal(request.status, 'Active'); assert.equal(request.sortBy, 'price'); assert.equal(request.sortOrder, 'asc');
-    assert.match(filter('Category').querySelector('[role="combobox"]').textContent, /All Categories/);
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item/);
     assert.match(host.querySelector('.product-table').textContent, /Catalog Furniture Item/);
     await selectOption('Category', 'Furniture'); assert.equal(calls.at(-1).categoryId, 2);
@@ -126,7 +182,7 @@ test('Catalog All Categories and All Status independently clear filters and rese
     assert.equal(calls.at(-1).status, ''); assert.equal(calls.at(-1).pageNumber, 1);
     assert.equal(calls.at(-1).categoryId, 1); assert.equal(calls.at(-1).search, 'Catalog');
     assert.equal(calls.at(-1).sortBy, 'price'); assert.equal(calls.at(-1).sortOrder, 'asc');
-    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Active/);
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Inactive/);
     await selectOption('Status', 'Inactive'); assert.equal(calls.at(-1).status, 'Inactive');
@@ -134,8 +190,8 @@ test('Catalog All Categories and All Status independently clear filters and rese
     await selectOption('Status', 'All Status'); assert.equal(calls.at(-1).status, '');
     const clear = [...host.querySelectorAll('button')].find(node => node.textContent === 'Clear Filters');
     await act(async () => clear.dispatchEvent(new MouseEvent('click', { bubbles: true }))); await flush();
-    assert.match(filter('Category').querySelector('[role="combobox"]').textContent, /All Categories/);
-    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
     assert.equal(calls.at(-1).status, ''); assert.equal('categoryId' in calls.at(-1), false);
 
   } finally { await act(async () => root.unmount()); host.remove(); cache.clear(); apiClient.get = original; }

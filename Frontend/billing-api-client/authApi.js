@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient.js';
+import { transportErrorMessage } from './transportError.js';
 import { API_ENDPOINTS } from './endpoints.js';
 import {
   createRegisterRequest,
@@ -16,7 +17,7 @@ export const authApi = {
       const payload = createRegisterRequest(data);
       return await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, payload);
     } catch (err) {
-      throw new Error(parseAuthError(err, 'Failed to complete registration.'));
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Failed to complete registration.'));
     }
   },
 
@@ -32,7 +33,7 @@ export const authApi = {
       }
       return response;
     } catch (err) {
-      throw new Error(parseAuthError(err, 'Login failed. Please check your credentials and try again.'));
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Login failed. Please check your credentials and try again.'));
     }
   },
 
@@ -42,7 +43,7 @@ export const authApi = {
       const payload = createForgotPasswordRequest(data);
       return await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, payload);
     } catch (err) {
-      throw new Error(parseAuthError(err, 'Unable to send recovery code. Please check your email.'));
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Unable to send recovery code. Please check your email.'));
     }
   },
 
@@ -51,7 +52,7 @@ export const authApi = {
       const payload = createVerifyOtpRequest(data);
       return await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_OTP, payload);
     } catch (err) {
-      throw new Error(parseAuthError(err, 'Invalid or expired OTP code.'));
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Invalid or expired OTP code.'));
     }
   },
 
@@ -60,7 +61,7 @@ export const authApi = {
       const payload = createResetPasswordRequest(data);
       return await apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, payload);
     } catch (err) {
-      throw new Error(parseAuthError(err, 'Failed to reset password. Please try again.'));
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Failed to reset password. Please try again.'));
     }
   },
 

@@ -109,6 +109,8 @@
 .product-form-container .product-themed-select.Mui-error .MuiOutlinedInput-notchedOutline { border-color: #b33927; }
 .product-select-menu.MuiPaper-root,
 .product-actions-menu.MuiPaper-root { border: 1px solid var(--border, #dcd1c6); box-shadow: var(--shadow-card, 0 6px 20px #4a2c2a22); }
+.product-select-menu .MuiMenu-list { padding-block: 4px; }
+.product-select-menu .MuiMenuItem-root { min-height: 36px; box-sizing: border-box; }
 .product-select-menu .MuiMenuItem-root,
 .product-actions-menu .MuiMenuItem-root { transition: background-color 180ms ease; font-size: 13.5px; }
 .product-select-menu .MuiMenuItem-root:hover,

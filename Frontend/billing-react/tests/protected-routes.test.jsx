@@ -74,10 +74,51 @@ test('network failure blocks content without losing the token and supports retry
   const view = await mount(() => failed ? Promise.reject(new Error('Network error')) : Promise.resolve({ userId: 1 }), 'valid-token');
   try {
     assert.match(view.host.textContent, /Unable to load/); assert.equal(view.mounts, 0);
+    assert.match(view.host.textContent, /Unable to reach the server/);
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     failed = false;
     await act(async () => Simulate.click(view.host.querySelector('button')));
     assert.match(view.host.textContent, /Private billing data/); assert.equal(view.calls.length, 2);
+  } finally { await view.close(); }
+});
+
+test('an offline browser gets a network message while retaining its session for retry', async () => {
+  const original = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+  Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+  let view;
+  try {
+    view = await mount(() => Promise.reject({ code: 'ERR_NETWORK', message: 'Network Error' }), 'valid-token');
+    assert.match(view.host.textContent, /No internet connection/);
+    assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
+    assert.equal(view.mounts, 0);
+  } finally {
+    if (view) await view.close();
+    if (original) Object.defineProperty(navigator, 'onLine', original); else delete navigator.onLine;
+  }
+});
+
+for (const status of [500, 502, 503, 504]) test(`server ${status} shows server unavailable without logging out`, async () => {
+  const view = await mount(() => Promise.reject({ response: { status } }), 'valid-token');
+  try {
+    assert.match(view.host.textContent, /Server is currently unavailable/);
+    assert.doesNotMatch(view.host.textContent, /check your connection/i);
+    assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
+    assert.equal(view.mounts, 0);
+  } finally { await view.close(); }
+});
+
+test('session verification timeout shows a slow-server message', async () => {
+  const view = await mount(() => Promise.reject({ code: 'ECONNABORTED' }), 'valid-token');
+  try { assert.match(view.host.textContent, /server is taking too long/); }
+  finally { await view.close(); }
+});
+
+test('offline tunnel HTML is a server failure even when the gateway returns 404', async () => {
+  const view = await mount(() => Promise.reject({ response: { status: 404, data: '<html>ERR_NGROK_3200: tunnel offline</html>' } }), 'valid-token');
+  try {
+    assert.match(view.host.textContent, /Server is currently unavailable/);
+    assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
+    assert.equal(view.mounts, 0);
   } finally { await view.close(); }
 });
 

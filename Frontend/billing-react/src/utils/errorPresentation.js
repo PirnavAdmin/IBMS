@@ -1,8 +1,8 @@
-export const connectionErrorMessage = 'Please check your connection and try again.';
+import { connectionFailureMessage, SERVER_UNREACHABLE_MESSAGE, transportErrorMessage } from '../../../billing-api-client/transportError.js';
+
+export const connectionErrorMessage = SERVER_UNREACHABLE_MESSAGE;
 
 // Keep infrastructure details out of business-facing error states.
 export function errorPresentation(message) {
-  return !message || /backend unavailable|ngrok|network error|failed to fetch|err_network/i.test(message)
-    ? connectionErrorMessage
-    : message;
+  return transportErrorMessage(message) || (typeof message === 'string' ? message : message?.userMessage || message?.message) || connectionFailureMessage();
 }

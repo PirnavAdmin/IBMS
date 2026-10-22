@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 
 import { authApi } from 'billing-api-client';
+import { errorPresentation } from '../../utils/errorPresentation';
 import { OtpInputGroup } from '../../components/OtpInputGroup';
 import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
 import { workEmailSchema } from '../../utils/authValidation';
@@ -266,7 +267,7 @@ export const Login = () => {
       console.error('Login failed:', error);
 
       if (error?.userMessage === 'Network Error' || error?.message === 'Network Error') {
-        setApiError('Network Error');
+        setApiError(errorPresentation(error));
         return;
       }
 
@@ -328,7 +329,7 @@ export const Login = () => {
       // ------------------------------------------------------
 
       if (status >= 500) {
-        setApiError('Network Error');
+        setApiError(errorPresentation(error));
 
         return;
       }

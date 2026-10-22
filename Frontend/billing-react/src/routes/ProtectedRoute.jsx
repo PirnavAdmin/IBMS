@@ -3,6 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { apiClient } from 'billing-api-client';
 import { queryClient } from '../queryClient';
+import { errorPresentation } from '../utils/errorPresentation';
+import { transportErrorMessage } from '../../../billing-api-client/transportError.js';
 import './protected-route.css';
 
 const readToken = () => localStorage.getItem('billing_auth_token')?.replace(/^(?:Bearer\s+)+/i, '').trim() || '';
@@ -31,20 +33,20 @@ export function ProtectedRoute({ children }) {
         if (!current()) return;
         const profile = response?.data ?? response;
         if (!profile || typeof profile !== 'object' || !(profile.userId ?? profile.UserId)) {
-          throw new Error('Invalid session response');
+          throw new Error('The server returned an invalid session response. Please try again.');
         }
         localStorage.setItem('billing_auth_user', JSON.stringify(profile));
         setValidation({ token, attempt, status: 'authenticated' });
       })
       .catch(error => {
         if (!current()) return;
-        if ([401, 403, 404].includes(error?.response?.status)) {
+        if (!transportErrorMessage(error) && [401, 403, 404].includes(error?.response?.status)) {
           localStorage.removeItem('billing_auth_token');
           localStorage.removeItem('billing_auth_user');
           queryClient.clear();
           setValidation({ token, attempt, status: 'invalid' });
         } else {
-          setValidation({ token, attempt, status: 'error' });
+          setValidation({ token, attempt, status: 'error', error });
         }
       });
     return () => controller.abort();
@@ -57,7 +59,7 @@ export function ProtectedRoute({ children }) {
   return <main className="protected-route-state">
     {status === 'error' ? <section role="alert">
       <h1>Unable to load</h1>
-      <p>Please check your connection and try again.</p>
+      <p>{errorPresentation(validation.error)}</p>
       <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>
     </section> : <div role="status" aria-live="polite" className="protected-route-loading"><Spin size="large" /><span>Loading...</span></div>}
   </main>;

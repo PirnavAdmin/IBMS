@@ -325,7 +325,7 @@
 /* Compact directory with warm filters and readable contact columns. */
 .customers-page .customer-panel-heading { padding: 20px 22px 16px; }
 .customers-page .customer-filters { padding: 16px 22px 12px; background: #faf5ee; gap: 16px; border-top: 1px solid #eee1d3; }
-.customers-page .customer-search { max-width: none; }
+.customers-page .customer-search { width: 100%; max-width: 420px; }
 .customers-page .customer-filter-row { gap: 12px; align-items: center; }
 .customers-page .customer-panel-heading h2 { color: #513a2b; }
 .customers-page .customer-panel-heading h2 span { background: #eee0cf; color: #65472f; border-radius: 20px; padding: 3px 10px; }
@@ -534,4 +534,97 @@
 .product-select-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible {
   background: var(--primary, #4a2c2a);
   color: #fff;
+}
+
+/* Keep identifiers, currency amounts and short labels intact at every zoom. */
+@media screen {
+  .customers-page .customer-panel .customer-table :is(.customer-balance, .customer-type, .customer-status, .customer-detail-link),
+  .customers-page .customer-panel .customer-table .MuiTableCell-head {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .customers-page .customer-panel .customer-table :is(.customer-balance, .customer-type) {
+    display: inline-block;
+    max-width: none;
+  }
+  @container customer-directory (min-width: 769px) {
+    .customers-page .customer-panel .customer-table { overflow-x: auto; }
+    .customers-page .customer-panel .customer-table .MuiTable-root {
+      width: 100%;
+      min-width: 1360px;
+      table-layout: fixed;
+    }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(1) { width: 11%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(2) { width: 20%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(3) { width: 9%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(4) { width: 12%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(5) { width: 20%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(6) { width: 12%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(7) { width: 8%; }
+    .customers-page .customer-panel .customer-table .MuiTableCell-head:nth-child(8) { width: 8%; }
+    .customers-page .customer-panel .customer-table :is(.customer-identity, .customer-tax) { white-space: normal; overflow-wrap: anywhere; }
+  }
+  .customers-page .customer-panel .customer-table .MuiTableCell-body .customer-contact {
+    width: 200px;
+    max-width: 100%;
+    min-width: 0;
+    margin-inline: auto;
+    text-align: left;
+  }
+  .customers-page .customer-panel .customer-table .customer-contact .customer-email-link {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .customers-page .customer-panel .customer-table .customer-contact small {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+  .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-head,
+  .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-body {
+    text-align: center;
+    vertical-align: middle;
+  }
+  .customers-page .customer-panel .customer-table .customer-identity {
+    display: grid;
+    grid-template-columns: 35px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: 240px;
+    max-width: 100%;
+    min-width: 0;
+    margin-inline: auto;
+    text-align: left;
+  }
+  .customers-page .customer-panel .customer-table .customer-identity-copy {
+    min-width: 0;
+  }
+  .customers-page .customer-panel .customer-table :is(.customer-name-heading, .customer-contact-heading) {
+    box-sizing: border-box;
+    max-width: 100%;
+    margin-inline: auto;
+    text-align: left;
+  }
+  .customers-page .customer-panel .customer-table .customer-name-heading {
+    width: 240px;
+    padding-left: 45px;
+  }
+  .customers-page .customer-panel .customer-table .customer-contact-heading {
+    width: 200px;
+  }
+  .customers-page .customer-panel .customer-table .customer-identity-copy :is(a, small) {
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .customers-page .customer-panel .customer-table .customer-row-actions {
+    justify-content: center;
+  }
+  .customers-page .customer-panel .customer-table .customer-status-details {
+    align-items: center;
+  }
 }

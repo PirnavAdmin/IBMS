@@ -237,6 +237,16 @@
   width: 100%;
 }
 
+/* Keep all seven list metrics in one row across browser zoom breakpoints. */
+.invoice-summary-group > .invoice-summary-grid {
+  grid-template-columns: repeat(7, minmax(160px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+}
+
 .invoice-summary-grid.invoice-detail-kpis,
 .invoice-detail-kpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -598,9 +608,8 @@
 
 .invoice-filters .MuiInputLabel-root {
   font-size: 13px;
-  background: #faf4ed;
-  padding: 0 4px;
-  border-radius: 2px;
+  background: transparent;
+  padding: 0;
 }
 
 .invoice-filters .MuiFormHelperText-root {
@@ -2240,8 +2249,8 @@
 /* 6. Discount */
 .invoice-edit-table th:nth-child(6),
 .invoice-edit-table td:nth-child(6) {
-  width: 145px;
-  min-width: 135px;
+  width: 245px;
+  min-width: 235px;
   text-align: left !important;
 }
 
@@ -2331,28 +2340,11 @@
   margin-top: 6px;
 }
 
-.invoice-line-discount-select {
-  border: 1px solid var(--border, #e2d9cf);
-  background: var(--surface-secondary, #faf7f4);
-  border-radius: 4px;
-  padding: 2px 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary, #8b4513);
-  cursor: pointer;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.15s ease;
-}
-
-.invoice-line-discount-select:hover {
-  background: #ede8e1;
-  border-color: var(--primary, #8b4513);
-}
-
-.invoice-line-discount-select:focus {
-  border-color: var(--primary, #8b4513);
-  box-shadow: 0 0 0 2px rgba(139, 69, 19, 0.15);
+.invoice-line-discount-fields {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(125px, 1.4fr);
+  align-items: start;
+  gap: 8px;
 }
 
 @media (max-width: 899px) {

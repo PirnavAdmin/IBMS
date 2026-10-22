@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { connectionFailureMessage, transportErrorMessage } from './transportError.js';
     import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
 
 export const BACKEND_URL = 'https://pediatric-astrology-outrank.ngrok-free.dev';
@@ -58,26 +59,26 @@ const backendProblemMessage = (data) => data?.message || data?.detail || data?.t
   (data?.errors && typeof data.errors === 'object' ? Object.values(data.errors).flat().filter(Boolean).join(' ') : null);
 
 export const getUserFriendlyError = (error) => {
+  const transportMessage = transportErrorMessage(error);
+  if (transportMessage) return transportMessage;
   // Scope Customer error policy to Customer calls; other modules retain their behavior.
   if (/\/api\/v1\/customers(?:[/?]|$)/i.test(error?.config?.url || '')) return parseCustomerError(error);
   const status = error?.response?.status;
-  const responseText = typeof error?.response?.data === 'string' ? error.response.data : '';
-  if (!error?.response || responseText.includes('ERR_NGROK') || responseText.toLowerCase().includes('ngrok') || responseText.toLowerCase().includes('offline')) return 'Backend unavailable. Check the network connection and ngrok tunnel.';
+  if (!error?.response) return connectionFailureMessage();
   if (status === 401) return 'Your session has expired. Please sign in again.';
   if (status === 403) return 'You do not have permission to perform this action.';
   if (status === 404) return backendProblemMessage(error.response.data) || 'The requested record or endpoint was not found.';
   if (status === 409) return backendProblemMessage(error.response.data) || 'The record changed state. Refresh it and try again.';
   if (status === 422) return safeValidationMessage(error.response.data) || 'The request did not pass validation.';
-  if (status >= 500) return status === 502 || status === 503 || status === 504
-    ? 'Backend unavailable. The ngrok tunnel may be offline.'
-    : backendProblemMessage(error.response.data) || 'The billing server encountered an error.';
   return safeValidationMessage(error.response.data);
 };
 
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    const transportMessage = transportErrorMessage(error);
     if (
+      !transportMessage &&
       error?.response?.status === 401 &&
       error.config?.headers?.Authorization &&
       !error.config?.url?.toLowerCase().includes('/auth/') &&
@@ -91,7 +92,7 @@ apiClient.interceptors.response.use(
         window.location.replace('/login?reason=session-expired');
       }
     }
-    const message = getUserFriendlyError(error);
+    const message = transportMessage || getUserFriendlyError(error);
     const normalizedError = new Error(message);
     normalizedError.userMessage = message;
     normalizedError.code = error?.code;

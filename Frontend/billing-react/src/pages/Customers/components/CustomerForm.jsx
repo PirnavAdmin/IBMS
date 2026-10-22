@@ -15,6 +15,7 @@ import {
   COUNTRY_PHONE_CONFIG,
 } from '../validation/customerValidation';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
+import { isCurrencyEnabled } from '../../../utils/currencies';
 import {
   PersonOutline,
   LocalOfferOutlined,
@@ -187,11 +188,11 @@ export const CustomerForm = ({
     }
 
     const rawCustomerType = String(
-      values?.customerType ?? values?.CustomerType ?? values?.type ?? values?.Type ?? 'business'
+      values?.customerType ?? values?.CustomerType ?? values?.type ?? values?.Type ?? ''
     ).trim().toLowerCase();
     const customerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
       ? rawCustomerType
-      : 'business';
+      : '';
 
     const rawCurrency = String(
       values?.currency ??
@@ -239,7 +240,7 @@ export const CustomerForm = ({
         ...DEFAULT_CUSTOMER_VALUES.shippingAddress,
         ...(values?.shippingAddress || {}),
       },
-      isShippingSameAsBilling: values?.isShippingSameAsBilling ?? true,
+      isShippingSameAsBilling: values?.isShippingSameAsBilling ?? false,
     };
   };
 
@@ -373,11 +374,12 @@ export const CustomerForm = ({
   const activeCurrenciesList = [];
   const seenCurrencies = new Set();
   for (const c of activeCountriesList) {
-    if (c.currency && !seenCurrencies.has(c.currency)) {
+    if (c.currency && isCurrencyEnabled(c.currency) && !seenCurrencies.has(c.currency)) {
       seenCurrencies.add(c.currency);
       activeCurrenciesList.push({
         value: c.currency,
         label: `${c.currency} (${c.currencySymbol || c.currency})`,
+        searchText: `${c.currency} ${c.name} ${c.currencySymbol || ''}`,
       });
     }
   }
@@ -664,6 +666,11 @@ export const CustomerForm = ({
               </div>
             </div>
 
+            <p className="cust-draft-notice" role="status">
+              Your entries are automatically kept as a draft for this app session, including when you go Back or Next.
+              {' '}The customer is saved only when you click {mode === 'edit' ? 'Save Changes' : 'Create Customer'}.
+            </p>
+
             <div key={currentStep} className={`cust-step-panel slide-${slideDirection}`}>
               {/* STEP 0: Basic Information */}
               {currentStep === 0 && (
@@ -754,6 +761,7 @@ export const CustomerForm = ({
                       ariaLabel="Customer Type"
                       invalid={Boolean(errors.customerType)}
                       options={[
+                        { value: '', label: 'Select Customer Type' },
                         { value: 'business', label: 'Business (B2B)' },
                         { value: 'individual', label: 'Individual (B2C)' },
                         { value: 'organization', label: 'Organization / Non-Profit' },
@@ -803,12 +811,14 @@ export const CustomerForm = ({
                   </div>
 
                   <div className="cust-field">
-                    <label htmlFor="customer-currency">Currency</label>
+                    <label htmlFor="customer-currency">Currency <span className="cust-required">*</span></label>
                     <CustomerSelectField
                       control={control}
                       name="currency"
                       id="customer-currency"
                       ariaLabel="Currency"
+                      searchable
+                      required
                       invalid={Boolean(errors.currency)}
                       options={currencyOptions}
                     />
@@ -871,7 +881,7 @@ export const CustomerForm = ({
                         }
                       }}
                     />
-                    <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
+                    <div className="cust-input-with-icon cust-phone-number">
                       <span className="cust-input-icon" aria-hidden="true">
                         <PhoneOutlined />
                       </span>
@@ -1214,7 +1224,7 @@ export const CustomerForm = ({
                     <div className="cust-review-row">
                       <span className="cust-review-label">Customer Type</span>
                       <span className="cust-review-value" style={{ textTransform: 'capitalize' }}>
-                        {watchedValues.customerType || 'Business'}
+                        {watchedValues.customerType || 'Not selected'}
                       </span>
                     </div>
                     <div className="cust-review-row">

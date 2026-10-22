@@ -2,8 +2,8 @@ import { useProductSelectProps } from './ProductSelect';
 import { Button, IconButton, InputAdornment, MenuItem, TextField } from '@mui/material';
 import { Close, Search } from '@mui/icons-material';
 
-const ALL_CATEGORIES = 'all';
-const ALL_STATUSES = 'all';
+const ALL_CATEGORIES = '';
+const ALL_STATUSES = '';
 
 const SORT_OPTIONS = [
   { label: 'Recently Added', sortBy: 'createdAt', sortOrder: 'desc' },
@@ -41,10 +41,10 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
       endAdornment: search ? <InputAdornment position="end"><IconButton size="small" aria-label="Clear search" onClick={() => onSearch('')}><Close fontSize="small" /></IconButton></InputAdornment> : null,
     }} />
-    <TextField disabled={categoriesLoading} select SelectProps={categorySelectProps} label="Category" size="small" value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
+    <TextField disabled={categoriesLoading} select SelectProps={categorySelectProps} InputLabelProps={{ shrink: Boolean(params.category) }} label="Category" size="small" value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
       <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </TextField>
-    <TextField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
+    <TextField select SelectProps={statusSelectProps} InputLabelProps={{ shrink: Boolean(params.status) }} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
       <MenuItem value={ALL_STATUSES}>All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </TextField>
     <TextField
