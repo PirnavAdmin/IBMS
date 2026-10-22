@@ -313,4 +313,44 @@ public class UserAndRoleAdministrationTests
         Assert.True(total >= 1);
         Assert.All(users, u => Assert.Contains("Admin", u.Roles));
     }
+
+[Fact]
+    public async Task CreateUserAsync_ShouldDefaultTenantIdAndApplicationId_WhenNotProvided()
+    {
+        var request = new CreateUserRequest
+        {
+            Name = "Default Scope User",
+            Email = "defaultscope@test.com",
+            Password = "Password@123",
+            TenantId = null,
+            ApplicationId = ""
+        };
+
+        var (success, _, user) = await _userService.CreateUserAsync(request);
+
+        Assert.True(success);
+        Assert.NotNull(user);
+        Assert.Equal(1, user.TenantId);
+        Assert.Equal("IBMS", user.ApplicationId);
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_TenantAdmin_ShouldReceiveAllSystemPermissions()
+    {
+        var request = new CreateUserRequest
+        {
+            Name = "Tenant Admin User",
+            Email = "tenantadmin@test.com",
+            Password = "Password@123",
+            Roles = new List<string> { "TenantAdmin" }
+        };
+
+        var (success, _, user) = await _userService.CreateUserAsync(request);
+
+        Assert.True(success);
+        Assert.NotNull(user);
+        Assert.NotEmpty(user.Permissions);
+        Assert.Contains("billing.view", user.Permissions);
+        Assert.Contains("invoices.manage", user.Permissions);
+    }
 }

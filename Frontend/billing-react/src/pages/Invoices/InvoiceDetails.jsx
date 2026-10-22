@@ -1,3 +1,4 @@
+import { hasPermission } from "../../utils/permissionUtils";
 import { useState } from "react";
 import {
   Alert,
@@ -113,19 +114,19 @@ export function InvoiceDetails() {
     staleTime: 0,
   });
 
-  const canEdit = row?.status === "Draft" && user.permissions.manage;
-  const canIssue = row?.status === "Draft" && user.permissions.manage;
+  const canEdit = row?.status === "Draft" && (user.permissions.edit || user.permissions.canEdit || user.permissions.manage);
+  const canIssue = row?.status === "Draft" && (user.permissions.issue || user.permissions.canIssue || user.permissions.manage);
   const canRecordPayment =
     ["Issued", "Sent", "Overdue", "Partially Paid"].includes(row?.status) &&
     Number(row?.balanceAmount) > 0 &&
-    user.permissions.manage;
+    (user.permissions.manage || hasPermission('payments.create'));
   const canCreateCredit =
     ["Issued", "Sent", "Overdue", "Partially Paid", "Paid"].includes(
       row?.status,
     ) &&
     Number(row?.totalAmount) > 0 &&
     Number(row?.creditedAmount || 0) < Number(row?.totalAmount) &&
-    user.permissions.manage;
+    (user.permissions.manage || hasPermission('creditnotes.create'));
   const canDownloadPdf = row?.status !== "Draft";
   const canSendInvoice =
     !invoiceEmailSent &&
@@ -252,7 +253,7 @@ export function InvoiceDetails() {
 
       {!user.isPending && !user.permissions.view && (
         <Alert severity="warning">
-          Invoice access requires TenantAdmin or SuperAdmin.
+          You do not have permission to view this invoice.
         </Alert>
       )}
 

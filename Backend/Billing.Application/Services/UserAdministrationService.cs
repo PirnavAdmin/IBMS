@@ -83,7 +83,7 @@ public class UserAdministrationService : IUserAdministrationService
             : new List<string> { "User" };
 
         List<string> permissions;
-        if (request.Permissions != null && request.Permissions.Any())
+        if (request.Permissions != null)
         {
             permissions = request.Permissions.Select(p => p.Trim()).Distinct().ToList();
         }
@@ -211,7 +211,7 @@ public class UserAdministrationService : IUserAdministrationService
         if (request.Roles != null && request.Roles.Any())
         {
             user.Roles = request.Roles.Select(r => r.Trim()).Distinct().ToList();
-            if (request.Permissions == null || !request.Permissions.Any())
+            if (request.Permissions == null)
             {
                 user.Permissions = await ResolvePermissionsForRolesAsync(user.Roles);
             }
@@ -312,7 +312,7 @@ public class UserAdministrationService : IUserAdministrationService
             ? request.Roles.Select(r => r.Trim()).Distinct().ToList()
             : new List<string> { "User" };
 
-        var permissions = request.Permissions != null && request.Permissions.Any()
+        var permissions = request.Permissions != null
             ? request.Permissions.Select(permission => permission.Trim()).Distinct().ToList()
             : await ResolvePermissionsForRolesAsync(roles);
 
@@ -375,7 +375,17 @@ public class UserAdministrationService : IUserAdministrationService
 
     private async Task<List<string>> ResolvePermissionsForRolesAsync(List<string> roleNames)
     {
+        await _roleRepository.SeedDefaultRolesAndPermissionsAsync();
         var resolvedPermissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Admins and TenantAdmins have full access across the system
+        if (roleNames.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                               r.Equals("TenantAdmin", StringComparison.OrdinalIgnoreCase) ||
+                               r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+        {
+            var allSystemPerms = await _roleRepository.GetAllPermissionsAsync();
+            return allSystemPerms.Select(p => p.Code).Distinct().ToList();
+        }
 
         var allRoles = await _roleRepository.GetAllAsync();
         foreach (var roleName in roleNames)
@@ -402,7 +412,6 @@ public class UserAdministrationService : IUserAdministrationService
 
         return resolvedPermissions.ToList();
     }
-
     private static UserDto MapToUserDto(User user)
     {
         return new UserDto

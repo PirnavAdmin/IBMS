@@ -79,8 +79,15 @@ export { displayDate } from '../../utils/localDate';
 export const formatIndianDateTime = (value, includeSeconds = true) => displayDateTime(value, { includeSeconds, includeZone: false });
 export function paymentPermissions(user) {
   const list = value => (Array.isArray(value) ? value : [value]).filter(Boolean).flatMap(v => String(v).split(',')).map(v => v.trim().toLowerCase());
-  const roles = list(user?.roles ?? user?.role); const permissions = list(user?.permissions);
-  return { view: Boolean(user), create: Boolean(user), reverse: roles.some(role => ['superadmin','tenantadmin','admin','billingmanager','finance','financeadmin','accountant'].includes(role)) || permissions.some(permission => ['all','billing.admin','payment.reverse','payments.reverse'].includes(permission)) };
+  const roles = list(user?.roles ?? user?.role);
+  const permissions = list(user?.permissions ?? user?.Permissions);
+  const isAdmin = roles.some(role => ['superadmin','tenantadmin','admin','billingmanager','finance','financeadmin','accountant'].includes(role)) || permissions.some(permission => ['all','billing.admin'].includes(permission));
+
+  const canView = isAdmin || permissions.includes('payments.view') || permissions.includes('payments.manage');
+  const canCreate = isAdmin || permissions.includes('payments.create') || permissions.includes('payments.manage');
+  const canReverse = isAdmin || permissions.some(p => ['payment.reverse','payments.reverse','payments.refund','payments.manage'].includes(p));
+
+  return { view: canView, create: canCreate, reverse: canReverse };
 }
 
 export function createSubmissionGuard() {

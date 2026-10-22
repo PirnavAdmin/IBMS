@@ -9,6 +9,7 @@ import {
 } from "billing-api-client";
 import { mapPayment, unwrapPayment } from "../../Payments/paymentService";
 import { phase5Api } from "../../Settings/services/phase5Api";
+import { hasPermission } from "../../../utils/permissionUtils";
 export const INVOICE_STATUSES = [
   "Draft",
   "Issued",
@@ -145,46 +146,32 @@ export function resolveCurrentUser(user) {
 }
 
 export function invoicePermissions(user) {
-  const resolved =
-    user?.role || user?.roles || user?.Role || user?.Roles
-      ? user
-      : resolveCurrentUser(user);
-  const rawRoles =
-    resolved?.roles ||
-    resolved?.Roles ||
-    resolved?.role ||
-    resolved?.Role ||
-    [];
-  const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
-    .filter(Boolean)
-    .flatMap((v) => String(v).split(","))
-    .map((v) => v.trim().toLowerCase());
+  const resolved = resolveCurrentUser(user);
 
-  if (roles.includes("customer")) {
-    return { view: false, manage: false };
-  }
+  const canView = hasPermission('invoices.view', resolved) || hasPermission('invoices.manage', resolved);
+  const canCreate = hasPermission('invoices.create', resolved) || hasPermission('invoices.manage', resolved);
+  const canEdit = hasPermission('invoices.edit', resolved) || hasPermission('invoices.manage', resolved);
+  const canIssue = hasPermission('invoices.approve', resolved) || hasPermission('invoices.issue', resolved) || hasPermission('invoices.manage', resolved);
+  const canDelete = hasPermission('invoices.delete', resolved) || hasPermission('invoices.cancel', resolved) || hasPermission('invoices.manage', resolved);
+  const canCancel = hasPermission('invoices.cancel', resolved) || hasPermission('invoices.delete', resolved) || hasPermission('invoices.manage', resolved);
+  const canManage = hasPermission('invoices.manage', resolved);
 
-  const hasAdminRole = roles.some((role) =>
-    [
-      "tenantadmin",
-      "superadmin",
-      "admin",
-      "billingmanager",
-      "billingadmin",
-      "manager",
-      "finance",
-      "accountant",
-    ].includes(role),
-  );
-
-  const hasToken =
-    typeof localStorage !== "undefined" &&
-    Boolean(localStorage.getItem("billing_auth_token"));
-
-  const canManage = hasAdminRole || hasToken;
-  const canView = hasAdminRole || hasToken;
-
-  return { view: canView, manage: canManage };
+  return {
+    view: canView,
+    create: canCreate,
+    edit: canEdit,
+    issue: canIssue,
+    delete: canDelete,
+    cancel: canDelete,
+    manage: canManage,
+    canView,
+    canCreate,
+    canEdit,
+    canIssue,
+    canDelete,
+    canCancel,
+    canManage,
+  };
 }
 export function financialBlockers(invoice) {
   const blockers = [];
@@ -200,32 +187,49 @@ export function financialBlockers(invoice) {
     );
   return blockers;
 }
-export function invoiceActions(invoice, permissions) {
-  if (!permissions.view) return [];
+export function invoiceActions(invoice, permissions = {}) {
+  const canView = permissions.view ?? permissions.canView ?? true;
+  if (!canView) return [];
   const actions = ["view", "preview"];
   if (invoice.status !== "Draft") actions.push("pdf");
-  if (!permissions.manage) return actions;
-  if (invoice.status === "Draft" && !financialBlockers(invoice).length)
-    actions.push("edit", "issue");
+
+  const canEdit = permissions.edit || permissions.canEdit || permissions.manage || permissions.canManage;
+  const canIssue = permissions.issue || permissions.canIssue || permissions.manage || permissions.canManage;
+  const canDelete = permissions.delete || permissions.canDelete || permissions.cancel || permissions.canCancel || permissions.manage || permissions.canManage;
+  const canRecordPayment = permissions.manage || permissions.canManage || hasPermission('payments.create');
+  const canCreateCredit = permissions.manage || permissions.canManage || hasPermission('creditnotes.create');
+
+  if (invoice.status === "Draft" && !financialBlockers(invoice).length) {
+    if (canEdit) actions.push("edit");
+    if (canIssue) actions.push("issue");
+  }
+
   if (
     ["Issued", "Sent", "Overdue", "Partially Paid"].includes(invoice.status) &&
-    Number(invoice.balanceAmount) > 0
-  )
+    Number(invoice.balanceAmount) > 0 &&
+    canRecordPayment
+  ) {
     actions.push("payment");
+  }
+
   if (
-    ["Issued", "Sent", "Overdue", "Partially Paid", "Paid"].includes(
-      invoice.status,
-    ) &&
+    ["Issued", "Sent", "Overdue", "Partially Paid", "Paid"].includes(invoice.status) &&
     Number(invoice.totalAmount) > 0 &&
-    Number(invoice.creditedAmount) < Number(invoice.totalAmount)
-  )
+    Number(invoice.creditedAmount) < Number(invoice.totalAmount) &&
+    canCreateCredit
+  ) {
     actions.push("credit");
+  }
+
   if (
     ["Issued", "Sent", "Overdue"].includes(invoice.status) &&
     Number(invoice.paidAmount) === 0 &&
-    !invoice.paymentAllocations?.some((p) => !p.isReversed)
-  )
+    !invoice.paymentAllocations?.some((p) => !p.isReversed) &&
+    canDelete
+  ) {
     actions.push("cancel", "void");
+  }
+
   return actions;
 }
 export const invalidateInvoices = (client) =>

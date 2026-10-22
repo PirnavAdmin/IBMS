@@ -1,3 +1,4 @@
+import { hasPermission } from "../../../utils/permissionUtils";
 import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { CustomerEmailLink } from "../components/CustomerEmailLink";
@@ -202,7 +203,7 @@ export const CustomerRowActions = ({
           </ListItemIcon>
           View Details
         </MenuItem>
-        <MenuItem
+        {(hasPermission('customers.edit') || hasPermission('customers.manage')) && <MenuItem
           onClick={() => {
             handleClose();
             navigate(`/customers/${customer.id}/edit`);
@@ -212,8 +213,8 @@ export const CustomerRowActions = ({
             <EditOutlined fontSize="small" />
           </ListItemIcon>
           Edit Customer
-        </MenuItem>
-        {customer.status === "active" && (
+        </MenuItem>}
+        {customer.status === "active" && (hasPermission('customers.delete') || hasPermission('customers.manage')) && (
           <MenuItem className="is-destructive"
             onClick={() => {
               handleClose();
@@ -359,13 +360,13 @@ export function CustomerListPage() {
               Print
             </Button>
 
-          <Button
+          {(hasPermission('customers.create') || hasPermission('customers.manage')) && <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => navigate("/customers/create")}
           >
             Create Customer
-          </Button>
+          </Button>}
         </div>
       </header>
       <section className="customer-stats" aria-label="Customer summary">

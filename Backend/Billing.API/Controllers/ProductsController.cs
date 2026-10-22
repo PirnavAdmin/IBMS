@@ -26,7 +26,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Create a new product or service record scoped to current tenant. (IBMSBE-001)
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
@@ -158,7 +158,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Update existing product information. (IBMSBE-004)
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateProduct([FromRoute] int id, [FromBody] UpdateProductRequest request)
@@ -186,7 +186,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Deactivate product record safely without physical deletion to protect historical invoice integrity. (IBMSBE-012)
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPatch("{id:int}/deactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateProduct([FromRoute] int id)
@@ -209,7 +209,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Deactivate product record to preserve financial and historical invoice records. (IBMSBE-012)
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteProduct([FromRoute] int id)

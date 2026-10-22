@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin,Customer")]
+[Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
 [ApiController]
 [Route("api/v1/customers")]
 [Consumes("application/json")]
@@ -30,7 +30,7 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Create a new customer record scoped to current tenant.
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest request)
@@ -106,7 +106,7 @@ public class CustomersController : ControllerBase
     /// <param name="outstanding">Filter by outstanding balance status</param>
     /// <param name="sortBy">Sort field: createdAt, name, email, companyName, code, updatedAt</param>
     /// <param name="sortOrder">Sort direction: asc or desc (Default: desc)</param>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomers(
@@ -209,7 +209,7 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Retrieve customer directory KPI summary metrics (total, active, inactive, total outstanding).
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpGet("summary")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomerSummary()
@@ -255,7 +255,7 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Update existing customer profile information.
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateCustomer([FromRoute] int id, [FromBody] UpdateCustomerRequest request)
@@ -375,7 +375,7 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Deactivate customer record without physical deletion.
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpPatch("{id:int}/deactivate")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeactivateCustomer([FromRoute] int id, [FromQuery, System.ComponentModel.DataAnnotations.StringLength(500)] string? reason = null)
@@ -407,7 +407,7 @@ public class CustomersController : ControllerBase
     /// <summary>
     /// Deactivate customer record to preserve business and transaction history.
     /// </summary>
-    [Authorize(Roles = "TenantAdmin,SuperAdmin")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteCustomer([FromRoute] int id)

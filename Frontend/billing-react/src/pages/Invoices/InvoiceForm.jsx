@@ -196,7 +196,7 @@ export function InvoiceForm() {
     loaded &&
     (!id || persisted.data?.status === "Draft") &&
     !blockers.length &&
-    user.permissions.manage !== false;
+    (id ? (user.permissions.edit || user.permissions.canEdit || user.permissions.manage) : (user.permissions.create || user.permissions.canCreate || user.permissions.manage));
   const valid = Object.keys(validateInvoice(form)).length === 0;
   const debounceForm = useDebounced(form, 350);
   const calculation = useQuery({
@@ -541,9 +541,9 @@ export function InvoiceForm() {
           {text}
         </Alert>
       ))}
-      {!user.isPending && !user.permissions.manage && (
+      {!user.isPending && !(id ? (user.permissions.edit || user.permissions.canEdit || user.permissions.manage) : (user.permissions.create || user.permissions.canCreate || user.permissions.manage)) && (
         <Alert severity="warning">
-          Invoice creation and editing require TenantAdmin or SuperAdmin.
+          You do not have permission to {id ? 'edit' : 'create'} invoices.
         </Alert>
       )}
       <form onSubmit={(e) => submitForm(e, false)} noValidate>

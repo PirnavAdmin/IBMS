@@ -221,6 +221,87 @@ public class InvoiceServiceTests
             l.Status == "Sent" &&
             l.Recipient == "customer@example.com")), Times.Once);
     }
+    [Fact]
+    public async Task CreateDraftAsync_ShouldGenerateSequentialInvoiceNumber()
+    {
+        // Arrange
+        int tenantId = 1;
+        var invoice = new Invoice
+        {
+            TenantId = tenantId,
+            InvoiceDate = new DateTime(2026, 10, 22),
+            Items = new List<InvoiceItem>
+            {
+                new InvoiceItem { UnitPrice = 100, Quantity = 1 }
+            }
+        };
+
+        _calcEngineMock.Setup(c => c.CalculateAsync(It.IsAny<FinancialCalculationRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<FinancialCalculationResultDto>.Ok(new FinancialCalculationResultDto
+            {
+                GrandTotal = 100,
+                GrossSubtotal = 100,
+                Items = new List<CalculatedFinancialLineDto> { new CalculatedFinancialLineDto { LineTotal = 100 } }
+            }));
+
+        _numberGenMock.Setup(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto { GeneratedNumber = "INV-2026-10-000036" }));
+
+        _invoiceRepoMock.Setup(r => r.GetByInvoiceNumberAsync("INV-2026-10-000036", tenantId))
+            .ReturnsAsync((Invoice?)null);
+
+        _invoiceRepoMock.Setup(r => r.AddAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync((Invoice inv) => { inv.Id = 42; return inv; });
+
+        // Act
+        var result = await _sut.CreateDraftAsync(invoice, tenantId, "TestUser");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Draft", result.Data!.Status);
+        Assert.Equal("INV-2026-10-000036", result.Data.InvoiceNumber);
+        _numberGenMock.Verify(n => n.GenerateNextNumberAsync(It.Is<GenerateNumberRequest>(req => req.DocumentType == "Invoice"), tenantId), Times.Once);
+        _invoiceRepoMock.Verify(r => r.AddAsync(It.Is<Invoice>(i => i.InvoiceNumber == "INV-2026-10-000036")), Times.Once);
+    }
+
+    [Fact]
+    public async Task IssueInvoiceAsync_WhenAlreadyHasSequentialInvoiceNumber_PreservesExistingInvoiceNumber()
+    {
+        // Arrange
+        int invoiceId = 10;
+        int tenantId = 1;
+        var draftInvoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            Status = "Draft",
+            InvoiceNumber = "INV-2026-10-000036",
+            Items = new List<InvoiceItem>
+            {
+                new InvoiceItem { UnitPrice = 100, Quantity = 1 }
+            }
+        };
+
+        _invoiceRepoMock.Setup(r => r.GetByIdForUpdateAsync(invoiceId, tenantId))
+            .ReturnsAsync(draftInvoice);
+
+        _calcEngineMock.Setup(c => c.CalculateAsync(It.IsAny<FinancialCalculationRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<FinancialCalculationResultDto>.Ok(new FinancialCalculationResultDto
+            {
+                GrandTotal = 100,
+                GrossSubtotal = 100,
+                Items = new List<CalculatedFinancialLineDto> { new CalculatedFinancialLineDto { LineTotal = 100 } }
+            }));
+
+        // Act
+        var result = await _sut.IssueInvoiceAsync(invoiceId, tenantId);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Issued", result.Data!.Status);
+        Assert.Equal("INV-2026-10-000036", result.Data.InvoiceNumber);
+
+        // Verify that number generator was NOT called because it already had a valid invoice number
+        _numberGenMock.Verify(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId), Times.Never);
+    }
 }
-
-
