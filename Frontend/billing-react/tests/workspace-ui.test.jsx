@@ -13,6 +13,7 @@ import { OutstandingAging } from '../src/components/dashboard/DashboardCharts';
 import { DashboardRecords } from '../src/pages/Dashboard/Dashboard';
 import { CustomerFilters } from '../src/pages/Customers/components/CustomerTable';
 import { CustomerForm } from '../src/pages/Customers/components/CustomerForm';
+import { CustomerEmailLink } from '../src/pages/Customers/components/CustomerEmailLink';
 import { defaultDashboardFilters } from '../src/pages/Dashboard/dashboardModel';
 import { historyParams } from '../src/pages/Notifications/notificationService';
 import { auditQuery } from '../src/pages/AuditActivity/auditModel';
@@ -753,4 +754,69 @@ test('Customer Basic Info validity follows restored drafts and existing edit val
   } finally { await ui.close(); }
   const busy = await mount(<CustomerForm mode="edit" initialValues={initial} isSubmitting />);
   try { assert.equal(busy.host.querySelector('[data-customer-action="next"]').disabled, true); } finally { await busy.close(); }
+});
+
+
+for (const mode of ['create', 'edit']) test(`Customer ${mode} shows Indian prefix errors, blocks Contact Info progression and clears corrected errors`, async () => {
+  let submitted = 0;
+  const ui = await mount(<CustomerForm mode={mode} initialValues={{ id: mode === 'edit' ? 44 : undefined, customerCode: 'CUST-044', name: 'Venkat Rao', currency: 'INR', email: 'venkat@example.com', phoneCountryCode: '+91' }} onSubmit={() => submitted++} />);
+  try {
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    const phone = ui.host.querySelector('#customer-phone'); assert.ok(phone);
+    assert.match(ui.host.querySelector('#customer-phone-code').textContent, /[+]91/);
+    for (const prefix of ['0', '1', '2', '3', '4', '5']) {
+      await changeInput(phone, prefix + '234556666'); await settle();
+      assert.match(ui.host.querySelector('#customer-phone-err').textContent, /must start with 6, 7, 8 or 9/);
+      assert.equal(phone.getAttribute('aria-invalid'), 'true');
+    }
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    assert.match(ui.host.querySelector('.cust-step-title').textContent, /Contact Information/); assert.equal(submitted, 0);
+    for (const prefix of ['6', '7', '8', '9']) {
+      await changeInput(phone, prefix + '234556666'); await settle();
+      assert.equal(ui.host.querySelector('#customer-phone-err'), null);
+      assert.equal(phone.getAttribute('aria-invalid'), 'false');
+    }
+    await changeInput(phone, '1234556666'); await settle();
+    await click(ui.host.querySelector('#customer-phone-code'));
+    await click([...ui.host.querySelectorAll('[role="option"]')].find(node => node.textContent.includes('United States'))); await settle();
+    assert.equal(phone.value, '1234556666'); assert.equal(ui.host.querySelector('#customer-phone-err'), null);
+    await click(ui.host.querySelector('#customer-phone-code'));
+    await click([...ui.host.querySelectorAll('[role="option"]')].find(node => /India/.test(node.textContent) && !/Indian Ocean/.test(node.textContent))); await settle();
+    assert.match(ui.host.querySelector('#customer-phone-err').textContent, /must start with 6, 7, 8 or 9/);
+    await changeInput(phone, '9234556666'); await settle();
+    await click(ui.host.querySelector('[data-customer-action="next"]')); await settle();
+    assert.match(ui.host.querySelector('.cust-step-title').textContent, /Billing & Tax/); assert.equal(submitted, 0);
+  } finally { await ui.close(); }
+});
+
+
+for (const interaction of ['hover', 'keyboard focus']) test(`Customer email exposes the complete truncated address on ${interaction} without changing the mailto target`, async () => {
+  const email = 'a.long.customer.address.for.billing@gmail.com';
+  const ui = await mount(<CustomerEmailLink email={email} />);
+  try {
+    const link = ui.host.querySelector('a');
+    Object.defineProperty(link, 'scrollWidth', { configurable: true, value: 420 });
+    Object.defineProperty(link, 'clientWidth', { configurable: true, value: 160 });
+    assert.equal(link.textContent, email); assert.equal(link.getAttribute('href'), `mailto:${email}`);
+    await act(async () => {
+      if (interaction === 'hover') { Simulate.mouseOver(link); Simulate.mouseEnter(link); }
+      else { link.focus(); Simulate.focus(link); }
+    });
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 180)); });
+    assert.equal(document.querySelector('[role="tooltip"]').textContent, email);
+    assert.equal(link.getAttribute('href'), `mailto:${email}`);
+  } finally { await ui.close(); }
+});
+
+test('Customer email avoids unnecessary tooltips when the full address fits', async () => {
+  const ui = await mount(<CustomerEmailLink email="short@example.com" />);
+  try {
+    const link = ui.host.querySelector('a');
+    Object.defineProperty(link, 'scrollWidth', { configurable: true, value: 120 });
+    Object.defineProperty(link, 'clientWidth', { configurable: true, value: 180 });
+    await act(async () => { Simulate.mouseOver(link); Simulate.mouseEnter(link); });
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 180)); });
+    assert.equal(document.querySelector('[role="tooltip"]'), null);
+    assert.equal(link.getAttribute('href'), 'mailto:short@example.com');
+  } finally { await ui.close(); }
 });

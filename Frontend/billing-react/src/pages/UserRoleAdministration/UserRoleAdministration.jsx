@@ -28,6 +28,7 @@ import {
   FormControlLabel,
   FormGroup,
   IconButton,
+  InputAdornment,
   InputLabel,
   ListItemIcon,
   Menu,
@@ -40,6 +41,7 @@ import {
 } from '@mui/material';
 import { userRoleAdministrationService as service } from './userRoleAdministrationService';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
 import './user-role-administration.css';
 
 const root = '/user-role-administration';
@@ -220,6 +222,8 @@ function UserForm({ userId, onCancel, onSaved }) {
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [openPermissionGroup, setOpenPermissionGroup] = useState(null);
   useEffect(() => {
     if (!userQuery.data) return;
     setValues({
@@ -310,7 +314,7 @@ function UserForm({ userId, onCancel, onSaved }) {
       <TextField label="Email" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={update('email')} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} fullWidth />
       <TextField label="Username" InputLabelProps={{ shrink: true }} value={editing ? (recordValue(userQuery.data, 'username', 'Username') || values.email) : values.email} helperText="Set by the API from the email address." InputProps={{ readOnly: true }} fullWidth />
       <FormControl fullWidth size="small"><InputLabel id="ura-identity-type-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-identity-type-label" label="Identity type" value={values.identityType} onChange={update('identityType')}><MenuItem value="Platform">Platform account</MenuItem><MenuItem value="Host">Host / SSO account</MenuItem></Select></FormControl>
-      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField label={editing ? 'New password' : 'Temporary password'} InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type="password" value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform.' : 'At least 8 characters.'} fullWidth />}
+      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-temporary-password" label={editing ? 'New password' : 'Temporary password'} InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform.' : 'At least 8 characters.'} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-temporary-password" label="temporary password" /></InputAdornment> }} fullWidth />}
       {values.identityType === 'Host' && <><TextField label="Identity provider (optional)" InputLabelProps={{ shrink: true }} placeholder="AzureAD, Google, HostPortal" value={values.externalProvider} onChange={update('externalProvider')} helperText="Can be added later when the identity provider is configured." fullWidth /><TextField label="External subject ID (optional)" InputLabelProps={{ shrink: true }} value={values.externalSubjectId} onChange={update('externalSubjectId')} helperText="Stable user identifier from the identity provider; can be added later." fullWidth /><TextField label="External scopes (optional)" InputLabelProps={{ shrink: true }} value={values.externalScopes} onChange={update('externalScopes')} helperText="Scopes returned by the host identity provider." fullWidth /></>}
       <FormControl fullWidth size="small" error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
@@ -321,7 +325,7 @@ function UserForm({ userId, onCancel, onSaved }) {
       </FormControl>
       <section className="ura-permission-assignment ura-user-permission-assignment">
         <div className="ura-subheading"><VpnKeyOutlined /><div><h3>Permission assignment</h3><p>Choose the access this user should have. These selections are saved directly to the user.</p></div></div>
-        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : permissions.length === 0 ? <EmptyState title="No permissions available">The permission API returned no permission definitions.</EmptyState> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <section className="ura-permission-group ura-permission-select-group" key={module}><div className="ura-permission-group-heading"><VpnKeyOutlined /><h3>{module}</h3></div><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}</FormGroup></section>)}</div>}
+        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">Unable to load permission options: {getError(permissionsQuery.error)}</Alert> : permissions.length === 0 ? <EmptyState title="No permissions available">The permission API returned no permission definitions.</EmptyState> : <div className="ura-permission-groups">{permissionGroups.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroup === module}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); setOpenPermissionGroup((current) => current === module ? null : module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}</FormGroup></div></details>)}</div>}
       </section>
       <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Use an existing tenant ID.'} inputProps={{ min: 1, step: 1 }} fullWidth />
       <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
@@ -407,6 +411,7 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [openPermissionGroup, setOpenPermissionGroup] = useState(null);
   useEffect(() => {
     if (!roleQuery.data) return;
     setValues({
@@ -457,7 +462,7 @@ function RoleForm({ roleId, onCancel, onSaved }) {
       {!editing && <TextField label="Tenant ID (optional)" InputLabelProps={{ shrink: true }} type="number" value={values.tenantId} onChange={change('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Enter an existing tenant ID to scope this role.'} inputProps={{ min: 1, step: 1 }} fullWidth />}
       <TextField className="ura-role-description" label="Description" InputLabelProps={{ shrink: true }} value={values.description} onChange={change('description')} helperText=" " multiline minRows={2} fullWidth />
       <section className="ura-permission-assignment"><div className="ura-subheading"><VpnKeyOutlined /><div><h3>Permission assignment</h3><p>Select from permission definitions returned by the API.</p></div></div>
-        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">{getError(permissionsQuery.error)}</Alert> : permissions.length === 0 ? <EmptyState title="No permissions available">The permission endpoint returned no permission definitions.</EmptyState> : <div className="ura-permission-groups">{modules.map(([module, entries]) => <section className="ura-permission-group ura-permission-select-group" key={module}><div className="ura-permission-group-heading"><VpnKeyOutlined /><h3>{module}</h3></div><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}</FormGroup></section>)}</div>}
+        {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">{getError(permissionsQuery.error)}</Alert> : permissions.length === 0 ? <EmptyState title="No permissions available">The permission endpoint returned no permission definitions.</EmptyState> : <div className="ura-permission-groups">{modules.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroup === module}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); setOpenPermissionGroup((current) => current === module ? null : module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}</FormGroup></div></details>)}</div>}
       </section>
     </div>
     {serverError && <Alert severity="error" className="ura-inline-alert">{serverError}</Alert>}

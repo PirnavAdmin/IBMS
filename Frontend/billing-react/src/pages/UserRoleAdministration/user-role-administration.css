@@ -173,6 +173,13 @@
 .ura-permission-group { min-width: 0; padding: 16px 18px; border: 1px solid #eadfd4; border-radius: 10px; background: #fffdf9; }
 .ura-permission-group-heading { display: flex; align-items: center; gap: 8px; color: #805737; }
 .ura-permission-group h3 { margin: 0; color: #573b27; font-size: .85rem; }
+.ura-permission-dropdown { padding: 0; overflow: hidden; }
+.ura-permission-dropdown > summary { min-height: 48px; padding: 12px 16px; cursor: pointer; list-style: none; }
+.ura-permission-dropdown > summary::-webkit-details-marker { display: none; }
+.ura-permission-dropdown > summary::after { width: 8px; height: 8px; margin: 0 3px 4px auto; border-right: 2px solid #806448; border-bottom: 2px solid #806448; content: ''; transform: rotate(45deg); transition: transform 150ms ease; }
+.ura-permission-dropdown[open] > summary::after { margin-bottom: 0; transform: rotate(225deg); }
+.ura-permission-dropdown > summary:focus-visible { outline: 2px solid #906846; outline-offset: -3px; }
+.ura-permission-dropdown-content { padding: 0 16px 14px; }
 .ura-permission-list { margin: 12px 0 0; padding: 0; list-style: none; }
 .ura-permission-list li { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid #f0e7df; }
 .ura-permission-item-main { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }

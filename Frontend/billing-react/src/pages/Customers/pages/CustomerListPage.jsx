@@ -1,5 +1,6 @@
 import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
+import { CustomerEmailLink } from "../components/CustomerEmailLink";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useProductSelectProps } from '../../Products/components/ProductSelect';
 import { useEffect, useRef, useState } from "react";
@@ -675,9 +676,7 @@ export function CustomerListPage() {
                       <TableCell data-label="Contact">
                         <div className="customer-contact">
                           {(customer.email || "").trim() ? (
-                            <a href={`mailto:${(customer.email || "").trim()}`}>
-                              {customer.email}
-                            </a>
+                            <CustomerEmailLink email={customer.email} />
                           ) : (
                             <span>—</span>
                           )}

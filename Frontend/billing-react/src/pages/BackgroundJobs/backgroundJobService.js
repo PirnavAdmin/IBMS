@@ -84,6 +84,6 @@ export const backgroundJobService = {
   },
   async downloadExport(id) {
     const response = await apiClient.get(`${exportsBase}/${id}/download`, { responseType: 'blob' });
-    return response;
+    return response?.data ?? response;
   },
 };
