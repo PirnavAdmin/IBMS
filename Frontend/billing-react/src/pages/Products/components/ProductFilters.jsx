@@ -3,6 +3,7 @@ import { Button, IconButton, InputAdornment, MenuItem, TextField } from '@mui/ma
 import { Close, Search } from '@mui/icons-material';
 
 const ALL_CATEGORIES = 'all';
+const ALL_STATUSES = 'all';
 
 const SORT_OPTIONS = [
   { label: 'Recently Added', sortBy: 'createdAt', sortOrder: 'desc' },
@@ -43,8 +44,8 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
     <TextField disabled={categoriesLoading} select SelectProps={categorySelectProps} label="Category" size="small" value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
       <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </TextField>
-    <TextField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status} onChange={event => onChange({ status: event.target.value })}>
-      <MenuItem value="">All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+    <TextField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
+      <MenuItem value={ALL_STATUSES}>All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </TextField>
     <TextField
       select

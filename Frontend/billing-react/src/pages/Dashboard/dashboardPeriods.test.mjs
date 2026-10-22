@@ -5,7 +5,11 @@ test('rolling periods include today and exactly 30 or 90 calendar dates', () => 
   const periods = dashboardPeriods(new Date(2026, 9, 6, 12));
   assert.equal(periods.find(row => row.id === '30days').start, '2026-09-07');
   assert.equal(periods.find(row => row.id === '90days').start, '2026-07-09');
-  assert.ok(periods.every(row => row.end === '2026-10-06'));
+  assert.ok(periods.filter(row => row.id !== 'all').every(row => row.end === '2026-10-06'));
+});
+
+test('all time preset clears both date bounds to include older records', () => {
+  assert.deepEqual(dashboardPeriods().find(row => row.id === 'all'), { id: 'all', label: 'All time', start: '', end: '' });
 });
 test('month and quarter presets use the current local calendar boundaries', () => {
   const periods = dashboardPeriods(new Date(2026, 8, 15, 12));

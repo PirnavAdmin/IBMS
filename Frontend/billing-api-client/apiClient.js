@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
+    import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
 
 export const BACKEND_URL = 'https://pediatric-astrology-outrank.ngrok-free.dev';
 const configuredBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || BACKEND_URL;

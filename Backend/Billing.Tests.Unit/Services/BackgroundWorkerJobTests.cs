@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
 using Billing.Contracts;
@@ -359,6 +360,84 @@ public class BackgroundWorkerJobTests
         var downloadResult = await service.DownloadExportFileAsync(50, TenantId);
         Assert.True(downloadResult.Success);
         Assert.NotEmpty(downloadResult.Data.Content);
+    }
+
+    [Fact]
+    public async Task ExportJobService_QueuesProcessesAndDownloadsInvoiceExport_AsJson()
+    {
+        var exportRepo = new Mock<IExportJobRepository>();
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var paymentRepo = new Mock<IPaymentRepository>();
+        var customerRepo = new Mock<ICustomerRepository>();
+        var auditRepo = new Mock<IAuditLogRepository>();
+        var storage = new Mock<IDocumentStorageService>();
+        var logger = new Mock<ILogger<ExportJobService>>();
+        var job = new ExportJob { Id = 51, TenantId = TenantId, JobType = "Invoice", ExportFormat = "JSON", Status = "Pending" };
+        byte[]? generatedBytes = null;
+
+        exportRepo.Setup(r => r.AddAsync(It.Is<ExportJob>(created =>
+                created.ExportFormat == "JSON" && created.ContentType == "application/json"),
+                It.IsAny<CancellationToken>()))
+            .Callback<ExportJob, CancellationToken>((created, _) =>
+            {
+                job.ExportFormat = created.ExportFormat;
+                job.ContentType = created.ContentType;
+                job.JobType = created.JobType;
+                job.RequestedBy = created.RequestedBy;
+                job.CreatedAtUtc = created.CreatedAtUtc;
+            })
+            .ReturnsAsync(job);
+        exportRepo.Setup(r => r.GetPendingJobsAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExportJob> { job });
+        invoiceRepo.Setup(r => r.GetAllAsync(TenantId))
+            .ReturnsAsync(new List<Invoice>
+            {
+                new()
+                {
+                    Id = 2,
+                    TenantId = TenantId,
+                    InvoiceNumber = "INV-JSON-002",
+                    InvoiceDate = new DateTime(2026, 2, 1),
+                    TotalAmount = 250m,
+                    BalanceAmount = 125m,
+                    Status = "Issued",
+                    Customer = new Customer { Name = "JSON Customer", Email = "json@example.com" }
+                }
+            });
+        storage.Setup(s => s.SaveDocumentAsync(
+                It.IsAny<byte[]>(), It.IsAny<string>(), "application/json", TenantId, It.IsAny<CancellationToken>()))
+            .Callback<byte[], string, string, int, CancellationToken>((content, _, _, _, _) => generatedBytes = content)
+            .ReturnsAsync("tenant_1/exports/invoices.json");
+
+        var service = new ExportJobService(
+            exportRepo.Object, invoiceRepo.Object, paymentRepo.Object, customerRepo.Object,
+            auditRepo.Object, storage.Object, logger.Object);
+
+        var queueResult = await service.QueueExportJobAsync(
+            new CreateExportJobRequest { JobType = "Invoice", ExportFormat = "JSON" }, TenantId, "Admin");
+        Assert.True(queueResult.Success);
+        Assert.Equal("JSON", queueResult.Data!.ExportFormat);
+        Assert.Equal("application/json", queueResult.Data.ContentType);
+
+        var processResult = await service.ProcessPendingExportJobsAsync();
+        Assert.True(processResult.Success);
+        Assert.Equal("Completed", job.Status);
+        Assert.EndsWith(".json", job.FileName);
+        Assert.NotNull(generatedBytes);
+        using (var json = JsonDocument.Parse(generatedBytes!))
+        {
+            Assert.Equal("INV-JSON-002", json.RootElement[0].GetProperty("InvoiceNumber").GetString());
+        }
+
+        exportRepo.Setup(r => r.GetByIdAsync(51, TenantId, It.IsAny<CancellationToken>())).ReturnsAsync(job);
+        storage.Setup(s => s.GetDocumentAsync("tenant_1/exports/invoices.json", TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(generatedBytes!);
+
+        var downloadResult = await service.DownloadExportFileAsync(51, TenantId);
+        Assert.True(downloadResult.Success);
+        Assert.Equal("application/json", downloadResult.Data.ContentType);
+        Assert.EndsWith(".json", downloadResult.Data.FileName);
+        Assert.Equal(generatedBytes, downloadResult.Data.Content);
     }
 
     [Fact]

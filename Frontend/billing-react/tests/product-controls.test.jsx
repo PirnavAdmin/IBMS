@@ -74,7 +74,7 @@ for (const mode of ['create', 'edit']) for (const type of ['Product', 'Service']
 }
 
 
-test('Catalog All Categories clears only the category, resets pagination and requests unfiltered category results', async () => {
+test('Catalog All Categories and All Status independently clear filters and reset pagination', async () => {
   const cache = new QueryClient({ defaultOptions: { queries: { staleTime: 0, gcTime: Infinity, retry: false } } });
   cache.setQueryDefaults(['categories'], { staleTime: Infinity });
   cache.setQueryData(['categories', 'list'], [{ id: 1, name: 'Electronics', status: 'Active' }, { id: 2, name: 'Furniture', status: 'Active' }]);
@@ -84,7 +84,8 @@ test('Catalog All Categories clears only the category, resets pagination and req
   apiClient.get = async (url, { params }) => {
     assert.equal(url, '/api/v1/products'); calls.push({ ...params });
     const categories = params.categoryId ? [Number(params.categoryId)] : [1, 2];
-    return { success: true, data: { items: categories.map(id => ({ id, name: id === 1 ? 'Catalog Electronics Item' : 'Catalog Furniture Item', productCode: `PRD-${id}`, categoryId: id, type: 'Product', unit: 'Box', price: 100, currency: 'INR', status: 'Active' })), totalCount: 30, pageSize: params.pageSize, pageNumber: params.pageNumber } };
+    const statuses = params.status ? [params.status] : ['Active', 'Inactive'];
+    return { success: true, data: { items: categories.flatMap(id => statuses.map(status => ({ id: id * 10 + (status === 'Active' ? 1 : 2), name: `${id === 1 ? 'Catalog Electronics Item' : 'Catalog Furniture Item'} ${status}`, productCode: `PRD-${id}-${status}`, categoryId: id, type: 'Product', unit: 'Box', price: 100, currency: 'INR', status }))), totalCount: 30, pageSize: params.pageSize, pageNumber: params.pageNumber } };
   };
   const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
   const filter = label => [...host.querySelectorAll('.product-filters .MuiTextField-root')].find(node => node.querySelector('label')?.textContent === label);
@@ -97,6 +98,7 @@ test('Catalog All Categories clears only the category, resets pagination and req
     await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter><ProductList /></MemoryRouter></QueryClientProvider>)); await flush();
     assert.match(filter('Category').querySelector('[role="combobox"]').textContent, /All Categories/);
     assert.equal('categoryId' in calls.at(-1), false);
+    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
     await input(host.querySelector('.product-search input'), 'Catalog');
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 330)); }); await flush();
     await selectOption('Status', 'Active');
@@ -117,5 +119,24 @@ test('Catalog All Categories clears only the category, resets pagination and req
     assert.match(host.querySelector('.product-table').textContent, /Catalog Furniture Item/);
     await selectOption('Category', 'Furniture'); assert.equal(calls.at(-1).categoryId, 2);
     await selectOption('Category', 'All Categories'); assert.equal('categoryId' in calls.at(-1), false);
+    await selectOption('Category', 'Electronics');
+    await act(async () => host.querySelector('[aria-label="Go to page 2"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await flush();
+    assert.equal(calls.at(-1).pageNumber, 2);
+    await selectOption('Status', 'All Status');
+    assert.equal(calls.at(-1).status, ''); assert.equal(calls.at(-1).pageNumber, 1);
+    assert.equal(calls.at(-1).categoryId, 1); assert.equal(calls.at(-1).search, 'Catalog');
+    assert.equal(calls.at(-1).sortBy, 'price'); assert.equal(calls.at(-1).sortOrder, 'asc');
+    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
+    assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Active/);
+    assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Inactive/);
+    await selectOption('Status', 'Inactive'); assert.equal(calls.at(-1).status, 'Inactive');
+    assert.doesNotMatch(host.querySelector('.product-table').textContent, /Catalog Electronics Item Active/);
+    await selectOption('Status', 'All Status'); assert.equal(calls.at(-1).status, '');
+    const clear = [...host.querySelectorAll('button')].find(node => node.textContent === 'Clear Filters');
+    await act(async () => clear.dispatchEvent(new MouseEvent('click', { bubbles: true }))); await flush();
+    assert.match(filter('Category').querySelector('[role="combobox"]').textContent, /All Categories/);
+    assert.match(filter('Status').querySelector('[role="combobox"]').textContent, /All Status/);
+    assert.equal(calls.at(-1).status, ''); assert.equal('categoryId' in calls.at(-1), false);
+
   } finally { await act(async () => root.unmount()); host.remove(); cache.clear(); apiClient.get = original; }
 });

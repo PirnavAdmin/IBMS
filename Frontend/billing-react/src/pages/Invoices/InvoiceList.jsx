@@ -23,6 +23,7 @@ import {
 import { Link, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, INVOICE_STATUSES } from "./services/invoiceService";
+import { billingCurrencyGroups } from '../../utils/currencies';
 import { InvoiceActions } from "./components/InvoiceActions";
 import { InvoiceDateRangeFilter } from "./components/InvoiceDateRangeFilter";
 import {
@@ -180,7 +181,7 @@ export function InvoiceList() {
           Invoice access requires TenantAdmin or SuperAdmin.
         </Alert>
       )}
-      {summary.data?.map((group) => {
+      {billingCurrencyGroups(summary.data || []).map((group) => {
         const totalInvoicedNum = Number(group.totalInvoiced) || 0;
         const totalPaidNum = Number(group.totalPaid) || 0;
         const totalOutstandingNum = Number(group.totalOutstanding) || 0;

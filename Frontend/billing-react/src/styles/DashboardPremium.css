@@ -6,7 +6,7 @@
 .premium-title h1 { margin: 5px 0 6px; font-size: clamp(24px, 2.4vw, 31px); letter-spacing: -.04em; line-height: 1.2; }
 .premium-title p { margin: 0; color: #7b6756; font-size: 12px; line-height: 1.6; }
 .premium-tag { padding: 6px 10px; border: 1px solid #e0d1bd; border-radius: 20px; background: #ebe0d0; color: #775538; font-size: 10px; font-weight: 600; white-space: nowrap; }
-.premium-filters { display: grid; grid-template-columns: minmax(230px, 1.3fr) minmax(140px, 1fr) minmax(180px, 1.3fr) auto auto; align-items: end; gap: 10px; margin-bottom: 20px; padding: 12px 16px; border: 1px solid var(--dashboard-border); border-radius: 14px; background: var(--dashboard-surface); box-shadow: 0 3px 12px #67482d08; }
+.premium-filters { display: grid; grid-template-columns: minmax(230px, 1.3fr) minmax(140px, 1fr) minmax(90px, .5fr) minmax(180px, 1.3fr) auto auto; align-items: end; gap: 10px; margin-bottom: 20px; padding: 12px 16px; border: 1px solid var(--dashboard-border); border-radius: 14px; background: var(--dashboard-surface); box-shadow: 0 3px 12px #67482d08; }
 .premium-filters :is(label, .premium-filter-field) { display: grid; min-width: 0; gap: 5px; color: #745b44; font-size: 10px; font-weight: 650; position: relative; }
 .premium-filters :is(input, select) { width: 100%; min-width: 0; height: 36px; padding: 0 9px; border: 1px solid #decfbb; border-radius: 8px; background: #fffcf8; color: #594330; font: inherit; font-size: 11px; }
 .premium-filters input::placeholder { color: #8b7764; }

@@ -1,6 +1,6 @@
 // ISO 4217 current currencies and funds, SIX List One, published 2026-09-17.
 // Source: https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml
-// Excludes precious metals, bond-market units, testing and no-currency codes.
+// Excludes precious metals, bond-market units, testing, no-currency codes and unsupported AOA.
 // Bundled reference data: no runtime network request.
 export const CURRENCY_REFERENCE = [
   {
@@ -29,13 +29,6 @@ export const CURRENCY_REFERENCE = [
     "name": "Armenian Dram",
     "countries": [
       "ARMENIA"
-    ]
-  },
-  {
-    "code": "AOA",
-    "name": "Kwanza",
-    "countries": [
-      "ANGOLA"
     ]
   },
   {

@@ -80,8 +80,11 @@ export function CategoryList() {
             : categories.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(category => <TableRow key={category.id} hover>
             <TableCell><strong>{category.name}</strong></TableCell><TableCell className="category-description">{category.description?.trim() || 'N/A'}</TableCell>
             <TableCell><span className={`product-badge ${category.status.toLowerCase()}`}>{category.status}</span></TableCell>
-            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><IconButton size="small" className="ibms-row-actions-trigger" aria-label={`Actions for ${category.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.category.id === category.id} onClick={event => setActionsMenu({ anchor: event.currentTarget, category })}><MoreVert fontSize="small" /></IconButton></div></TableCell>
-          </TableRow>)}</TableBody></Table>
+            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions category-actions">
+              <IconButton size="small" className="ibms-row-actions-trigger" aria-label={`Actions for ${category.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.category.id === category.id} onClick={event => setActionsMenu({ anchor: event.currentTarget, category })}><MoreVert fontSize="small" /></IconButton>
+            </div></TableCell>
+          </TableRow>)}</TableBody>
+        </Table>
         </div>
       </TableContainer>
       <TablePagination component="div" className="category-pagination" count={categories.length} page={page} onPageChange={(_, nextPage) => setPage(nextPage)} rowsPerPage={rowsPerPage} onRowsPerPageChange={event => { setRowsPerPage(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} labelRowsPerPage="Categories per page" />
