@@ -68,6 +68,7 @@ const getError = (error) => error?.userMessage || error?.message || 'The request
 const getMessage = (result, fallback) => result?.message || fallback;
 const statusValue = (item) => item?.status ?? item?.Status ?? (item?.isActive ?? item?.IsActive ? 'Active' : 'Inactive');
 const recordValue = (item, key, pascalKey) => item?.[key] ?? item?.[pascalKey];
+const isValidEmail = (value) => /^[^\s@]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(value.trim());
 const permissionModuleOrder = [
   'Dashboard', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
   'Products & Services', 'Credit Notes', 'Background Jobs', 'Export Jobs',
@@ -305,6 +306,7 @@ function UserForm({ userId, onCancel, onSaved }) {
   const permissionsQuery = useQuery({ queryKey: ['ura', 'permissions'], queryFn: ({ signal }) => service.listPermissions({ signal }), retry: false });
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [openPermissionGroups, setOpenPermissionGroups] = useState(() => new Set());
@@ -352,6 +354,9 @@ function UserForm({ userId, onCancel, onSaved }) {
   const updateEmail = (event) => {
     const email = event.target.value;
     setValues((current) => ({ ...current, email, username: email }));
+    if (attempted || emailTouched) {
+      setErrors((current) => ({ ...current, email: isValidEmail(email) ? '' : 'Enter a valid email address, such as name@example.com.' }));
+    }
   };
 const selectRole = (event) => {
     const selectedName = event.target.value;
@@ -369,7 +374,7 @@ const selectRole = (event) => {
     const next = {};
     if (!values.name.trim() || values.name.trim().length < 2) next.name = 'Enter a name with at least 2 characters.';
     if (!values.username.trim() || values.username.trim().length < 2 || values.username.trim().length > 256 || /\s/.test(values.username.trim())) next.username = 'Enter a unique username with 2 to 256 characters and no spaces.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) next.email = 'Enter a valid email address.';
+    if (!isValidEmail(values.email)) next.email = 'Enter a valid email address, such as name@example.com.';
     const switchingHostToPlatform = editing && originalIdentityIsHost && values.identityType === 'Platform';
     if ((!editing && values.identityType === 'Platform' || switchingHostToPlatform) && values.password.length < 8) next.password = 'Enter a password with at least 8 characters.';
     if (editing && values.identityType === 'Platform' && values.password && values.password.length < 8) next.password = 'Password must be at least 8 characters.';
@@ -424,7 +429,7 @@ const selectRole = (event) => {
       <header className="ura-user-section-heading"><span>01</span><div><h3 id="ura-user-profile-heading">Personal details</h3><p>Who will be using this account?</p></div><BadgeOutlined /></header>
       <div className="ura-form-grid">
       <TextField label="Full Name" placeholder="e.g. Alex Kumar" InputLabelProps={{ shrink: true }} required value={values.name} onChange={update('name')} error={attempted && !!errors.name} helperText={attempted ? errors.name : ' '} fullWidth />
-      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={updateEmail} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} inputProps={{ autoComplete: 'email' }} fullWidth />
+      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={updateEmail} onBlur={() => { setEmailTouched(true); setErrors((current) => ({ ...current, email: isValidEmail(values.email) ? '' : 'Enter a valid email address, such as name@example.com.' })); }} error={(attempted || emailTouched) && !!errors.email} helperText={attempted || emailTouched ? errors.email : ' '} inputProps={{ autoComplete: 'email' }} fullWidth />
       </div>
     </section>
     <section className="ura-user-form-section" aria-labelledby="ura-user-signin-heading">
