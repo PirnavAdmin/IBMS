@@ -47,12 +47,16 @@ import './user-role-administration.css';
 const root = '/user-role-administration';
 const tabs = [
   { id: 'users', label: 'Users', icon: GroupOutlined },
-  { id: 'roles', label: 'Roles', icon: ShieldOutlined },
-  { id: 'permissions', label: 'Permissions', icon: VpnKeyOutlined },
   { id: 'assignments', label: 'Assignments', icon: AccountTreeOutlined },
 ];
 const emptyUser = { name: '', username: '', email: '', password: '', roles: [], permissions: [], tenantId: '', applicationId: '', status: 'Active', identityType: 'Platform', externalProvider: '', externalSubjectId: '', externalScopes: '' };
 const emptyRole = { name: '', description: '', tenantId: '', permissions: [] };
+const categoryPermissionDefinitions = [
+  { code: 'categories.view', name: 'View Categories', module: 'Products & Services', description: 'View product and service categories.' },
+  { code: 'categories.create', name: 'Create Categories', module: 'Products & Services', description: 'Create product and service categories.' },
+  { code: 'categories.edit', name: 'Edit Categories', module: 'Products & Services', description: 'Edit product and service categories.' },
+  { code: 'categories.delete', name: 'Delete Categories', module: 'Products & Services', description: 'Delete product and service categories.' },
+];
 const selectMenuProps = {
   variant: 'menu',
   anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
@@ -65,8 +69,8 @@ const getMessage = (result, fallback) => result?.message || fallback;
 const statusValue = (item) => item?.status ?? item?.Status ?? (item?.isActive ?? item?.IsActive ? 'Active' : 'Inactive');
 const recordValue = (item, key, pascalKey) => item?.[key] ?? item?.[pascalKey];
 const permissionModuleOrder = [
-  'Dashboard', 'Billing', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
-  'Products & Services', 'Credit Notes', 'Reports', 'Background Jobs', 'Export Jobs',
+  'Dashboard', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
+  'Products & Services', 'Credit Notes', 'Background Jobs', 'Export Jobs',
   'Templates & Branding', 'Audit Activity', 'Integration Settings',
   'Webhook Configuration', 'User & Role Administration', 'Settings / Administration',
 ];
@@ -116,13 +120,18 @@ const moduleMapping = {
 };
 const permissionModuleName = (value) => {
   const normalized = String(value || '').replace(/[^a-z]/gi, '').toLowerCase();
-  if (normalized === 'recurring' || normalized === 'recurringbilling') return null;
+  if (['recurring', 'recurringbilling', 'billing', 'reports', 'report'].includes(normalized)) return null;
   if (moduleMapping[normalized]) return moduleMapping[normalized];
   return permissionModuleOrder.find((module) => module.replace(/[^a-z]/gi, '').toLowerCase() === normalized) || String(value || 'Other');
 };
 const groupPermissionDefinitions = (permissions = []) => {
   const grouped = new Map(permissionModuleOrder.map((module) => [module, []]));
-  for (const permission of permissions) {
+  const mergedPermissions = [...permissions];
+  const existingCodes = new Set(permissions.map((permission) => recordValue(permission, 'code', 'Code')));
+  for (const permission of categoryPermissionDefinitions) {
+    if (!existingCodes.has(permission.code)) mergedPermissions.push(permission);
+  }
+  for (const permission of mergedPermissions) {
     const module = permissionModuleName(recordValue(permission, 'module', 'Module'));
     if (!module) continue;
     if (!grouped.has(module)) grouped.set(module, []);
@@ -134,7 +143,10 @@ const groupPermissionDefinitions = (permissions = []) => {
   ]);
 };
 const getExcludedPermissionCodes = (permissions = []) => new Set(permissions
-  .filter((permission) => permissionModuleName(recordValue(permission, 'module', 'Module')) === null)
+  .filter((permission) => {
+    const code = String(recordValue(permission, 'code', 'Code') || '').toLowerCase();
+    return permissionModuleName(recordValue(permission, 'module', 'Module')) === null || code.startsWith('billing.') || code.startsWith('reports.');
+  })
   .map((permission) => recordValue(permission, 'code', 'Code')));
 
 function useDebounced(value, delay = 300) {
@@ -306,10 +318,11 @@ function UserForm({ userId, onCancel, onSaved }) {
   };
   useEffect(() => {
     if (!userQuery.data) return;
+    const email = recordValue(userQuery.data, 'email', 'Email') ?? '';
     setValues({
       name: recordValue(userQuery.data, 'name', 'Name') ?? '',
-      username: recordValue(userQuery.data, 'username', 'Username') ?? recordValue(userQuery.data, 'email', 'Email') ?? '',
-      email: recordValue(userQuery.data, 'email', 'Email') ?? '',
+      username: email,
+      email,
       password: '',
       roles: (() => { const assigned = recordValue(userQuery.data, 'roles', 'Roles') ?? []; return (Array.isArray(assigned) ? assigned : [assigned]).filter(Boolean).slice(0, 1); })(),
       permissions: recordValue(userQuery.data, 'permissions', 'Permissions') ?? [],
@@ -336,6 +349,10 @@ function UserForm({ userId, onCancel, onSaved }) {
   const allPermissionGroupsOpen = permissionGroups.length > 0 && permissionGroups.every(([module]) => openPermissionGroups.has(module));
   const excludedPermissionCodes = useMemo(() => getExcludedPermissionCodes(permissions), [permissions]);
   const update = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
+  const updateEmail = (event) => {
+    const email = event.target.value;
+    setValues((current) => ({ ...current, email, username: email }));
+  };
 const selectRole = (event) => {
     const selectedName = event.target.value;
     const selectedRole = roles.find((item) => recordValue(item, 'name', 'Name') === selectedName);
@@ -394,7 +411,8 @@ const selectRole = (event) => {
     }
     mutation.mutate({ ...basePayload, Password: values.password, IdentityType: 'Platform' });
   };
-  const selectedPermissionCount = permissions.filter(permission => values.permissions.includes(recordValue(permission, 'code', 'Code')) && !excludedPermissionCodes.has(recordValue(permission, 'code', 'Code'))).length;
+  const visiblePermissionDefinitions = permissionGroups.flatMap(([, entries]) => entries);
+  const selectedPermissionCount = visiblePermissionDefinitions.filter(permission => values.permissions.includes(recordValue(permission, 'code', 'Code')) && !excludedPermissionCodes.has(recordValue(permission, 'code', 'Code'))).length;
   const formContent = <div className="ura-user-form">
     <div className="ura-user-form-intro">
       <span className="ura-user-form-intro-icon"><PersonAddAlt1Outlined /></span>
@@ -406,22 +424,22 @@ const selectRole = (event) => {
       <header className="ura-user-section-heading"><span>01</span><div><h3 id="ura-user-profile-heading">Personal details</h3><p>Who will be using this account?</p></div><BadgeOutlined /></header>
       <div className="ura-form-grid">
       <TextField label="Full Name" placeholder="e.g. Alex Kumar" InputLabelProps={{ shrink: true }} required value={values.name} onChange={update('name')} error={attempted && !!errors.name} helperText={attempted ? errors.name : ' '} fullWidth />
-      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={update('email')} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} fullWidth />
+      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={updateEmail} error={attempted && !!errors.email} helperText={attempted ? errors.email : ' '} inputProps={{ autoComplete: 'email' }} fullWidth />
       </div>
     </section>
     <section className="ura-user-form-section" aria-labelledby="ura-user-signin-heading">
       <header className="ura-user-section-heading"><span>02</span><div><h3 id="ura-user-signin-heading">Sign-in details</h3><p>Set up how this person signs in.</p></div><VpnKeyOutlined /></header>
       <div className="ura-form-grid">
-      <TextField label="Username" placeholder="e.g. alex.kumar" InputLabelProps={{ shrink: true }} required value={values.username} onChange={update('username')} error={attempted && !!errors.username} helperText={attempted ? errors.username : 'Choose a unique username; this can be different from the email address.'} inputProps={{ maxLength: 256, autoComplete: 'off' }} fullWidth />
+      <TextField label="Username" InputLabelProps={{ shrink: true }} required value={values.username} error={attempted && !!errors.username} helperText={attempted ? errors.username : 'Automatically matches the email address.'} inputProps={{ maxLength: 256, autoComplete: 'username', readOnly: true }} fullWidth />
       <FormControl fullWidth size="small"><InputLabel id="ura-identity-type-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-identity-type-label" label="Identity type" value={values.identityType} onChange={update('identityType')}><MenuItem value="Platform">Platform account</MenuItem><MenuItem value="Host">Host / SSO account</MenuItem></Select></FormControl>
-      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-temporary-password" label={editing ? 'New password' : 'Temporary password'} InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform.' : 'At least 8 characters.'} inputProps={{ autoComplete: 'new-password' }} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-temporary-password" label="temporary password" /></InputAdornment> }} fullWidth />}
+      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-password" label="Password" InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform.' : 'At least 8 characters.'} inputProps={{ autoComplete: 'new-password' }} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-password" label="password" /></InputAdornment> }} fullWidth />}
       {values.identityType === 'Host' && <><TextField label="Identity provider (optional)" InputLabelProps={{ shrink: true }} placeholder="AzureAD, Google, HostPortal" value={values.externalProvider} onChange={update('externalProvider')} helperText="Can be added later when the identity provider is configured." fullWidth /><TextField label="External subject ID (optional)" InputLabelProps={{ shrink: true }} value={values.externalSubjectId} onChange={update('externalSubjectId')} helperText="Stable user identifier from the identity provider; can be added later." fullWidth /><TextField label="External scopes (optional)" InputLabelProps={{ shrink: true }} value={values.externalScopes} onChange={update('externalScopes')} helperText="Scopes returned by the host identity provider." fullWidth /></>}
       </div>
     </section>
     <section className="ura-user-form-section" aria-labelledby="ura-user-workspace-heading">
       <header className="ura-user-section-heading"><span>03</span><div><h3 id="ura-user-workspace-heading">Workspace &amp; role</h3><p>Choose the workspace and starting level of access.</p></div><AccountTreeOutlined /></header>
       <div className="ura-form-grid">
-      <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Use an existing tenant ID.'} inputProps={{ min: 1, step: 1 }} fullWidth />
+      <TextField label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : !editing && values.tenantId ? 'Automatically filled from your current tenant.' : 'Use an existing tenant ID.'} InputProps={{ readOnly: !editing && Boolean(values.tenantId) }} inputProps={{ min: 1, step: 1 }} fullWidth />
       <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
       <FormControl fullWidth size="small" error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
