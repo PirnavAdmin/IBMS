@@ -1,0 +1,285 @@
+{
+  "date": "2026-10-24",
+  "timezone": "Asia/Calcutta",
+  "disposition": "Named frontend QA closure complete; complete project QA NOT VERIFIED",
+  "authenticatedBrowserE2E": "NOT EXECUTED",
+  "currentlyFailingNamedTests": [],
+  "latestScopedResults": [
+    {
+      "scope": "18 selected invoice/dashboard/numbering/export/payment-interaction cases",
+      "pass": 18,
+      "fail": 0,
+      "blockedCases": 0,
+      "basis": "16 passes in closure-invoice plus two corrected case passes in closure-invoice-followup; original two failed executions remain in the ledger"
+    },
+    {
+      "scope": "affected payment suite after precision fix",
+      "pass": 26,
+      "fail": 0,
+      "blockedCases": 0,
+      "evidence": "closure-payments-final.log"
+    },
+    {
+      "scope": "Unit Price and country-settings focused UI",
+      "pass": 4,
+      "fail": 0,
+      "blockedCases": 0,
+      "evidence": "closure-focused-ui.log"
+    },
+    {
+      "scope": "contract/model/CSS/source checks",
+      "pass": 32,
+      "fail": 0,
+      "blockedCases": 0,
+      "evidence": "closure-contracts.log"
+    },
+    {
+      "scope": "final source and virtual clean-checkout import manifest",
+      "pass": 2,
+      "fail": 0,
+      "blockedCases": 0,
+      "evidence": "closure-source.log"
+    }
+  ],
+  "note": "Groups overlap. Do not sum these as unique project tests. Unknown prevented cases in timed-out/aborted runs are not invented.",
+  "blockedClosureTestRuns": 1,
+  "blockedClosureBuildRuns": 1,
+  "sandboxDeniedBeforeBundling": 1,
+  "historicalMemoryBlockedDiagnosticRuns": 3,
+  "fixedBugs": [
+    "Dashboard visible Currency selector conflicted with confirmed hide-selector requirement",
+    "Payment amount epsilon validation accepted 1.00000001 despite at-most-two-decimal requirement"
+  ],
+  "productionBuild": {
+    "status": "PASS",
+    "exitCode": 0,
+    "durationMs": 82907,
+    "evidence": "closure-build-final.log",
+    "warnings": [
+      "large minified chunks",
+      "html2pdf imported both statically and dynamically"
+    ]
+  },
+  "gitDiffCheck": {
+    "status": "PASS",
+    "exitCode": 0,
+    "evidence": "closure-diff-check.log"
+  },
+  "backendFilesModified": 0,
+  "dashboardVisibleCurrencySelector": false,
+  "originalUntrackedClassification": {
+    "runtime": 4,
+    "testsAndFixtures": 5,
+    "qaReports": 9,
+    "diagnosticsRetained": 2
+  },
+  "historicalSavedLedger": {
+    "pass": 566,
+    "fail": 9,
+    "total": 575,
+    "scope": "overlapping historical executions"
+  },
+  "evidence": {
+    "payments": {
+      "name": "payments",
+      "args": [
+        "tests/run-payment-ui.mjs"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 85844,
+      "checkedAt": "2026-10-24T12:34:58.556Z",
+      "tests": 26,
+      "pass": 26,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "invoice": {
+      "name": "invoice",
+      "args": [
+        "tests/run-invoice-ui.mjs",
+        "--test-timeout=20000",
+        "--test-name-pattern=Dashboard hides|Invoice API|Draft DTO|Form validates|Concurrency|Preview renders|Edit loads|Details tabs|Numbering|Invoice CSV|Blank draft|Invoice Send|Payment retry|Record payment"
+      ],
+      "status": 1,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 38521,
+      "checkedAt": "2026-10-24T12:38:50.228Z",
+      "tests": 18,
+      "pass": 16,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "invoice-followup": {
+      "name": "invoice-followup",
+      "args": [
+        "tests/run-invoice-ui.mjs",
+        "--test-timeout=20000",
+        "--test-name-pattern=Edit loads|Payment retry"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 21727,
+      "checkedAt": "2026-10-24T12:40:38.714Z",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "focused-ui": {
+      "name": "focused-ui",
+      "args": [
+        "tests/run-ui-tests.mjs",
+        "--test-timeout=20000",
+        "--test-name-pattern=PQA Unit Price|unsupported billing currency|country.*(save|server|backend)|Country.*(save|server|backend)"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 22711,
+      "checkedAt": "2026-10-24T12:39:27.137Z",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "contracts": {
+      "name": "contracts",
+      "args": [
+        "--test",
+        "--test-timeout=20000",
+        "tests/numbering-contract.test.mjs",
+        "tests/invoice-export.test.mjs",
+        "tests/css-cascade.test.mjs",
+        "tests/frontend-source.test.mjs",
+        "src/pages/Dashboard/dashboardModel.test.mjs",
+        "src/pages/Dashboard/dashboardRadial.test.mjs"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 1936,
+      "checkedAt": "2026-10-24T12:38:54.065Z",
+      "tests": 32,
+      "pass": 32,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "source": {
+      "name": "source",
+      "args": [
+        "--test",
+        "--test-timeout=20000",
+        "tests/frontend-source.test.mjs"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 1837,
+      "checkedAt": "2026-10-24T12:40:52.003Z",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "reproduce-invoice": {
+      "name": "reproduce-invoice",
+      "args": [
+        "tests/run-invoice-ui.mjs",
+        "--test-timeout=20000",
+        "--test-name-pattern=Edit preserves|Blank draft|Details tabs"
+      ],
+      "status": 1,
+      "signal": null,
+      "blocked": true,
+      "durationMs": 92199,
+      "checkedAt": "2026-10-24T12:34:32.075Z"
+    },
+    "payment-precision-reproduction": {
+      "name": "payment-precision-reproduction",
+      "args": [
+        "tests/run-payment-ui.mjs",
+        "--test-name-pattern=Validation covers"
+      ],
+      "status": 1,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 35798,
+      "checkedAt": "2026-10-24T12:48:05.494Z",
+      "tests": 1,
+      "pass": 0,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "payments-final": {
+      "name": "payments-final",
+      "args": [
+        "tests/run-payment-ui.mjs"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 8534,
+      "checkedAt": "2026-10-24T12:49:16.520Z",
+      "tests": 26,
+      "pass": 26,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "build": {
+      "name": "build",
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "status": 1,
+      "signal": null,
+      "blocked": true,
+      "durationMs": 120695,
+      "checkedAt": "2026-10-24T12:42:54.740Z"
+    },
+    "build-retry": {
+      "name": "build-retry",
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 40959,
+      "checkedAt": "2026-10-24T12:45:02.293Z"
+    },
+    "build-final": {
+      "name": "build-final",
+      "args": [
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "status": 0,
+      "signal": null,
+      "blocked": false,
+      "durationMs": 82907,
+      "checkedAt": "2026-10-24T12:50:58.759Z"
+    }
+  }
+}

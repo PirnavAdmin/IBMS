@@ -60,3 +60,10 @@ test('historical INR activity remains visible alongside an AOA draft', () => {
 test('missing balances, currency and invalid dates reject rather than disappear', () => {
   for (const patch of [{ balanceAmount: undefined }, { currency: '' }, { invoiceDate: 'invalid' }, { dueDate: 'invalid' }]) assert.throws(() => billingInsights([invoice(1, patch)], [], 'INR', now));
 });
+
+test('decimal money reconciles summary, aging and monthly totals to cents', () => {
+  const data = billingInsights([invoice(1, { totalAmount: 0.1, balanceAmount: 0.1 }), invoice(2, { totalAmount: 0.2, balanceAmount: 0.2 })], [payment(1, { amount: 0.1 }), payment(2, { amount: 0.2 })], 'INR', now);
+  assert.deepEqual(data.summary.slice(0, 4).map(row => row.value), [0.3, 0.3, 0.3, 0.3]);
+  assert.equal(data.aging.reduce((sum, row) => sum + row.value, 0), 0.3);
+  assert.deepEqual(data.revenue, [{ label: '2026-10', invoiced: 0.3, collected: 0.3 }]);
+});

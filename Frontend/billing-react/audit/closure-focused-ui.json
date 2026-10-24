@@ -1,0 +1,19 @@
+{
+  "name": "focused-ui",
+  "args": [
+    "tests/run-ui-tests.mjs",
+    "--test-timeout=20000",
+    "--test-name-pattern=PQA Unit Price|unsupported billing currency|country.*(save|server|backend)|Country.*(save|server|backend)"
+  ],
+  "status": 0,
+  "signal": null,
+  "blocked": false,
+  "durationMs": 22711,
+  "checkedAt": "2026-10-24T12:39:27.137Z",
+  "tests": 4,
+  "pass": 4,
+  "fail": 0,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0
+}

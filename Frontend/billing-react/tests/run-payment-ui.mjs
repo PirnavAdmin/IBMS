@@ -12,6 +12,6 @@ try {
     alias: Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"production"' },
   });
-  const result = spawnSync(process.execPath, ['--test', fileURLToPath(outfile)], { stdio: 'inherit' });
+  const result = spawnSync(process.execPath, ['--test', '--test-timeout=20000', ...process.argv.slice(2), fileURLToPath(outfile)], { stdio: 'inherit', timeout: 90000 });
   process.exitCode = result.status ?? 1;
 } finally { await unlink(outfile).catch(error => { if (error.code !== 'ENOENT') throw error; }); }

@@ -1,0 +1,172 @@
+{
+  "basis": "Saved suite logs, substituting invoice-final-check.log for the earlier aborted invoice run. Counts are executions, not unique test cases.",
+  "rows": [
+    {
+      "name": "contracts-and-models",
+      "evidence": "contracts-and-models.log",
+      "tests": 177,
+      "pass": 176,
+      "fail": 1,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-audit-activity.mjs",
+      "evidence": "run-audit-activity.mjs.log",
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-date-controls.mjs",
+      "evidence": "run-date-controls.mjs.log",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-deliveries-ui.mjs",
+      "evidence": "run-deliveries-ui.mjs.log",
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-draft-ui.mjs",
+      "evidence": "run-draft-ui.mjs.log",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-integrations-ui.mjs",
+      "evidence": "run-integrations-ui.mjs.log",
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-invoice-ui.mjs",
+      "evidence": "invoice-final-check.log",
+      "tests": 33,
+      "pass": 30,
+      "fail": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-notification-ui.mjs",
+      "evidence": "run-notification-ui.mjs.log",
+      "tests": 30,
+      "pass": 30,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-payment-ui.mjs",
+      "evidence": "run-payment-ui.mjs.log",
+      "tests": 26,
+      "pass": 24,
+      "fail": 2,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-print-flow.mjs",
+      "evidence": "run-print-flow.mjs.log",
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-product-controls.mjs",
+      "evidence": "run-product-controls.mjs.log",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-product-ui.mjs",
+      "evidence": "run-product-ui.mjs.log",
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-protected-routes.mjs",
+      "evidence": "run-protected-routes.mjs.log",
+      "tests": 18,
+      "pass": 18,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-ui-tests.mjs",
+      "evidence": "run-ui-tests.mjs.log",
+      "tests": 128,
+      "pass": 125,
+      "fail": 3,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-webhooks-ui.mjs",
+      "evidence": "run-webhooks-ui.mjs.log",
+      "tests": 11,
+      "pass": 11,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "name": "run-workspace-ui.mjs",
+      "evidence": "run-workspace-ui.mjs.log",
+      "tests": 80,
+      "pass": 80,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  ],
+  "totals": {
+    "tests": 575,
+    "pass": 566,
+    "fail": 9,
+    "cancelled": 0,
+    "skipped": 0
+  }
+}

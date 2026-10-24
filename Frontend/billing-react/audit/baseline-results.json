@@ -1,0 +1,82 @@
+[
+  {
+    "name": "contracts-and-models",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-audit-activity.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-date-controls.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-deliveries-ui.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-draft-ui.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-integrations-ui.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-invoice-ui.mjs",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-notification-ui.mjs",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-payment-ui.mjs",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-print-flow.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-product-controls.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-product-ui.mjs",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-protected-routes.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-ui-tests.mjs",
+    "status": 1,
+    "signal": null
+  },
+  {
+    "name": "run-webhooks-ui.mjs",
+    "status": 0,
+    "signal": null
+  },
+  {
+    "name": "run-workspace-ui.mjs",
+    "status": 0,
+    "signal": null
+  }
+]

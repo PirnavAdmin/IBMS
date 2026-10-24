@@ -1,0 +1,257 @@
+[
+  {
+    "file": "src/pages/Customers/styles/customer-list.css",
+    "selectors": {
+      ".customers-page": [
+        "background",
+        "color"
+      ],
+      ".customers-page .customer-panel": [
+        "box-shadow"
+      ],
+      ".customers-page .customer-stat.green": [
+        "border-top-color"
+      ],
+      ".customers-page .customer-stat.gray": [
+        "border-top-color"
+      ],
+      ".customers-page .customer-stat.orange": [
+        "border-top-color"
+      ]
+    },
+    "canonicalHash": "6bd186f9f29ba5c8fdf10c4e6e61a3823a7f90ede4061c88415d3f422d87ba83",
+    "removed": [
+      {
+        "selector": ".customers-page",
+        "property": "background",
+        "value": "#faf8f5",
+        "line": 1
+      },
+      {
+        "selector": ".customers-page",
+        "property": "background",
+        "value": "#f8f6f2",
+        "line": 18
+      },
+      {
+        "selector": ".customers-page",
+        "property": "color",
+        "value": "#292522",
+        "line": 1
+      },
+      {
+        "selector": ".customers-page .customer-panel",
+        "property": "box-shadow",
+        "value": "0 4px 20px rgba(66, 43, 24, .035)",
+        "line": 20
+      },
+      {
+        "selector": ".customers-page .customer-stat.green",
+        "property": "border-top-color",
+        "value": "#75a98c",
+        "line": 22
+      },
+      {
+        "selector": ".customers-page .customer-stat.gray",
+        "property": "border-top-color",
+        "value": "#adb0ba",
+        "line": 23
+      },
+      {
+        "selector": ".customers-page .customer-stat.orange",
+        "property": "border-top-color",
+        "value": "#d6ac62",
+        "line": 24
+      },
+      {
+        "selector": ".customers-page",
+        "property": "background",
+        "value": "#f5ede3",
+        "line": 82
+      },
+      {
+        "selector": ".customers-page",
+        "property": "color",
+        "value": "#493326",
+        "line": 82
+      },
+      {
+        "selector": ".customers-page .customer-stat.green",
+        "property": "border-top-color",
+        "value": "#ab9474",
+        "line": 87
+      },
+      {
+        "selector": ".customers-page .customer-stat.gray",
+        "property": "border-top-color",
+        "value": "#bba28a",
+        "line": 88
+      },
+      {
+        "selector": ".customers-page .customer-stat.orange",
+        "property": "border-top-color",
+        "value": "#c99b65",
+        "line": 89
+      },
+      {
+        "selector": ".customers-page",
+        "property": "color",
+        "value": "var(--text-primary, #292522)",
+        "line": 124
+      }
+    ]
+  },
+  {
+    "file": "src/pages/Quotations/styles/quotations.css",
+    "selectors": {
+      ".quote-actions": [
+        "flex-wrap"
+      ],
+      ".quotation-form-page": [
+        "padding-top"
+      ],
+      ".quotation-form-page .quotation-header": [
+        "margin-bottom"
+      ]
+    },
+    "canonicalHash": "1591b585a3a9a9854474af453035b327067fde72eda8d2b8a1ad0a483f9f284f",
+    "removed": [
+      {
+        "selector": ".quote-actions",
+        "property": "flex-wrap",
+        "value": "wrap",
+        "line": 1
+      },
+      {
+        "selector": ".quotation-form-page",
+        "property": "padding-top",
+        "value": "22px",
+        "line": 77
+      },
+      {
+        "selector": ".quotation-form-page .quotation-header",
+        "property": "margin-bottom",
+        "value": "16px",
+        "line": 78
+      }
+    ]
+  },
+  {
+    "file": "src/pages/CreditNotes/styles/credit-notes.css",
+    "selectors": {
+      ".cn-eligibility-summary": [
+        "display",
+        "grid-template-columns",
+        "gap",
+        "margin-top"
+      ],
+      ".cn-eligibility-summary strong": [
+        "color",
+        "font-size",
+        "font-variant-numeric"
+      ],
+      ".cn-eligibility-summary .cn-eligibility-highlight": [
+        "border-color",
+        "background"
+      ],
+      ".cn-previous-credit-warning": [
+        "border-radius",
+        "background",
+        "color",
+        "font-size"
+      ]
+    },
+    "canonicalHash": "f890812068a16de373780713edbfe75caa36a0488146f1728009602825f897dc",
+    "removed": [
+      {
+        "selector": ".cn-eligibility-summary",
+        "property": "display",
+        "value": "grid",
+        "line": 141
+      },
+      {
+        "selector": ".cn-eligibility-summary",
+        "property": "grid-template-columns",
+        "value": "repeat(5, minmax(0, 1fr))",
+        "line": 141
+      },
+      {
+        "selector": ".cn-eligibility-summary",
+        "property": "gap",
+        "value": "8px",
+        "line": 141
+      },
+      {
+        "selector": ".cn-eligibility-summary",
+        "property": "margin-top",
+        "value": "22px",
+        "line": 141
+      },
+      {
+        "selector": ".cn-eligibility-summary strong",
+        "property": "color",
+        "value": "#53351f",
+        "line": 148
+      },
+      {
+        "selector": ".cn-eligibility-summary strong",
+        "property": "font-size",
+        "value": ".84rem",
+        "line": 148
+      },
+      {
+        "selector": ".cn-eligibility-summary strong",
+        "property": "font-variant-numeric",
+        "value": "tabular-nums",
+        "line": 148
+      },
+      {
+        "selector": ".cn-eligibility-summary .cn-eligibility-highlight",
+        "property": "border-color",
+        "value": "#e8ddd1",
+        "line": 149
+      },
+      {
+        "selector": ".cn-eligibility-summary .cn-eligibility-highlight",
+        "property": "background",
+        "value": "#fff",
+        "line": 149
+      },
+      {
+        "selector": ".cn-previous-credit-warning",
+        "property": "border-radius",
+        "value": "9px",
+        "line": 151
+      },
+      {
+        "selector": ".cn-previous-credit-warning",
+        "property": "background",
+        "value": "#fff8ed",
+        "line": 151
+      },
+      {
+        "selector": ".cn-previous-credit-warning",
+        "property": "color",
+        "value": "#81562f",
+        "line": 151
+      }
+    ]
+  },
+  {
+    "file": "src/styles/WorkspaceUI.css",
+    "selectors": {
+      ".app-layout .ibms-table-frame": [
+        "background"
+      ]
+    },
+    "canonicalHash": "9b838cdbb47f9b80f275f1b5744cfd437a7e02e9b292c286d03294336575cc82",
+    "removed": [
+      {
+        "selector": ".app-layout .ibms-table-frame",
+        "property": "background",
+        "value": "var(--surface)",
+        "line": 49
+      }
+    ]
+  }
+]

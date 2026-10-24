@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Autocomplete,
@@ -20,9 +20,10 @@ import {
   Search,
   WarningAmberOutlined,
 } from "@mui/icons-material";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useLocation, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { invoiceService, INVOICE_STATUSES } from "./services/invoiceService";
+import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./services/invoiceService";
+import { downloadInvoiceCsv } from './services/invoiceExport';
 import { billingCurrencyGroups } from '../../utils/currencies';
 import { InvoiceActions } from "./components/InvoiceActions";
 import { InvoiceDateRangeFilter } from "./components/InvoiceDateRangeFilter";
@@ -87,11 +88,20 @@ function KpiDonut({ percent = 0, icon }) {
 }
 
 export function InvoiceList() {
+  const location = useLocation();
+  const navigationFilters = () => {
+    const params = new URLSearchParams(location.search);
+    return { ...initialFilters, ...Object.fromEntries(['status', 'paymentState', 'currency', 'startDate', 'endDate'].filter(key => params.has(key)).map(key => [key, params.get(key)])) };
+  };
   const context = useOutletContext() || {};
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState(navigationFilters);
+  useEffect(() => { setFilters(navigationFilters()); }, [location.search]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customer, setCustomer] = useState(null);
+  const exportLock = useRef(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
   const querySearch = useDebounced(context.searchQuery || search);
   const customerTerm = useDebounced(customerSearch);
@@ -145,12 +155,30 @@ export function InvoiceList() {
     </button>
   );
   const rows = list.data?.items || [];
+  const exportCsv = async () => {
+    if (exportLock.current || !user.permissions.view || invalidDates) return;
+    exportLock.current = true;
+    setExporting(true);
+    setExportMessage(null);
+    try {
+      await downloadInvoiceCsv(invoiceQuery({ ...filters, search: querySearch }));
+      setExportMessage({ severity: 'info', text: 'CSV downloaded. The server exports at most the first 10,000 matching invoices; export completeness is not verified. Refine filters for larger result sets.' });
+    } catch (error) {
+      setExportMessage({ severity: 'error', text: invoiceError(error) });
+    } finally {
+      exportLock.current = false;
+      setExporting(false);
+    }
+  };
   return (
     <InvoiceShell
       title="Invoices"
       subtitle="Create, issue and manage customer invoices."
       actions={
         <>
+          <Button variant="outlined" disabled={exporting || !user.permissions.view || Boolean(invalidDates)} onClick={exportCsv}>
+            {exporting ? 'Exporting CSV...' : 'Export CSV'}
+          </Button>
           <Button
             variant="outlined"
             startIcon={<Refresh />}
@@ -195,7 +223,7 @@ export function InvoiceList() {
           {
             label: "Total Invoiced",
             formattedValue: money(group.totalInvoiced, group.currency),
-            paymentState: "",
+            paymentState: "Invoiced",
             statusFilter: "",
             icon: <ReceiptLongOutlined />,
             tone: "invoice-tone-sand",
@@ -326,7 +354,7 @@ export function InvoiceList() {
                   const isActive =
                     filters.currency === group.currency &&
                     (label === "Total Invoiced"
-                      ? !filters.paymentState && !filters.status
+                      ? (!filters.paymentState || filters.paymentState === "Invoiced") && !filters.status
                       : label === "Total Paid"
                       ? filters.paymentState === "Paid" && !filters.status
                       : label === "Total Outstanding"
@@ -457,7 +485,7 @@ export function InvoiceList() {
             className="invoice-filter-payment"
           >
             <MenuItem value="">All payment states</MenuItem>
-            {["Paid", "Partially Paid", "Unpaid", "Outstanding", "Overdue"].map(
+            {["Invoiced", "Paid", "Partially Paid", "Unpaid", "Outstanding", "Overdue"].map(
               (state) => (
                 <MenuItem key={state} value={state}>
                   {state}
@@ -654,8 +682,9 @@ export function InvoiceList() {
         )}
       </section>
       <p className="invoice-footnote">
-        Filtered export is unavailable on the current billing server.
+        CSV export uses the current filters and sorting, with a server limit of 10,000 invoices.
       </p>
+      {exportMessage && <Alert severity={exportMessage.severity} role="status">{exportMessage.text}</Alert>}
     </InvoiceShell>
   );
 }

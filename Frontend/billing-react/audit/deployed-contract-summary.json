@@ -1,0 +1,145 @@
+{
+  "checkedAt": "2026-10-24T07:37:09.813Z",
+  "swaggerUrl": "https://pediatric-astrology-outrank.ngrok-free.dev/swagger/v1/swagger.json",
+  "swaggerStatus": 200,
+  "pathCount": 150,
+  "paths": {
+    "/api/v1/invoices/export": {
+      "get": {
+        "parameters": [
+          "SearchTerm",
+          "CustomerId",
+          "Status",
+          "StartDate",
+          "EndDate",
+          "Currency",
+          "PaymentState",
+          "MinOutstandingAmount",
+          "MaxOutstandingAmount",
+          "MinTotalAmount",
+          "MaxTotalAmount",
+          "SortBy",
+          "SortOrder",
+          "Page",
+          "PageSize",
+          "format"
+        ]
+      }
+    },
+    "/api/v1/settings/numbering": {
+      "get": {
+        "parameters": [
+          "documentType"
+        ]
+      },
+      "put": {
+        "requestSchema": {
+          "$ref": "#/components/schemas/UpdateNumberingSettingRequest"
+        }
+      }
+    },
+    "/api/v1/settings/numbering/reset": {
+      "post": {
+        "requestSchema": {
+          "$ref": "#/components/schemas/ResetNumberingSequenceRequest"
+        }
+      }
+    },
+    "/api/v1/settings/numbering/{documentType}/reset": {
+      "post": {
+        "parameters": [
+          "documentType"
+        ]
+      }
+    },
+    "/api/v1/settings/numbering/preview": {
+      "post": {
+        "requestSchema": {
+          "$ref": "#/components/schemas/NumberPreviewRequest"
+        }
+      }
+    },
+    "/api/v1/settings/numbering/generate": {
+      "post": {
+        "requestSchema": {
+          "$ref": "#/components/schemas/GenerateNumberRequest"
+        }
+      }
+    }
+  },
+  "countrySettingsPresent": false,
+  "probes": [
+    {
+      "path": "/api/v1/invoices/export?format=csv",
+      "status": 401
+    },
+    {
+      "path": "/api/v1/settings/country",
+      "status": 404
+    },
+    {
+      "path": "/api/v1/settings/numbering?documentType=Invoice",
+      "status": 401
+    }
+  ],
+  "numberingUpdateSchema": {
+    "required": [
+      "documentType",
+      "resetPolicy"
+    ],
+    "type": "object",
+    "properties": {
+      "documentType": {
+        "maxLength": 64,
+        "minLength": 0,
+        "type": "string"
+      },
+      "prefix": {
+        "maxLength": 20,
+        "minLength": 0,
+        "type": "string",
+        "nullable": true
+      },
+      "suffix": {
+        "maxLength": 20,
+        "minLength": 0,
+        "type": "string",
+        "nullable": true
+      },
+      "tokens": {
+        "maxLength": 30,
+        "minLength": 0,
+        "type": "string",
+        "nullable": true
+      },
+      "sequenceLength": {
+        "maximum": 10,
+        "minimum": 3,
+        "type": "integer",
+        "format": "int32"
+      },
+      "nextNumber": {
+        "maximum": 999999999999,
+        "minimum": 1,
+        "type": "integer",
+        "format": "int64"
+      },
+      "resetPolicy": {
+        "maxLength": 32,
+        "minLength": 0,
+        "type": "string"
+      },
+      "status": {
+        "maxLength": 32,
+        "minLength": 0,
+        "type": "string",
+        "nullable": true
+      },
+      "rowVersion": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

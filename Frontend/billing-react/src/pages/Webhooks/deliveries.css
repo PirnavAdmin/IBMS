@@ -10,6 +10,7 @@
 .delivery-date-range-popover.MuiPaper-root { width: min(21rem, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow-y: auto; padding: 20px 16px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text-primary); }
 .delivery-date-range-popover [role="dialog"] { display: grid; gap: 16px; }
 .delivery-date-range-popover p { color: var(--text-secondary); font-size: 13px; }
+.delivery-date-range-popover label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 13px; }
 .delivery-date-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .delivery-date-range-actions .MuiButton-root { text-transform: none; }
 @container integrations (max-width: 58rem) { .delivery-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

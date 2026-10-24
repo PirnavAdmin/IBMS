@@ -11,8 +11,9 @@
 .payment-panel h2 { font-size: 19px; color: var(--primary); margin: 0 0 20px; font-weight: 650; }
 .payment-panel h2:not(:first-child) { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); }
 .payment-panel p { color: var(--text-secondary); }
-.payment-filters { display: grid; grid-template-columns: minmax(240px, 2fr) repeat(2, minmax(160px, 1fr)); gap: 14px; padding: 18px 20px; margin-bottom: 20px; align-items: start; }
-.payment-filters .payment-filter-actions { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; }
+.payment-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(120px, 150px) minmax(150px, 180px) auto; gap: 16px 12px; padding: 16px; align-items: center; }
+.payment-filters > * { min-width: 0; }
+.payment-filters .payment-filter-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-width: 0; }
 .payments-page .payment-filter-actions .date-range-filter { grid-column: auto; width: auto; min-height: 42px; height: 42px; }
 .payments-page .payment-filters .payment-clear { min-height: 42px; height: 42px; padding: 0 14px; }
 .payments-page .MuiOutlinedInput-root, .payment-dialog .MuiOutlinedInput-root { border-radius: 10px; background: var(--surface); font-size: 14px; }
@@ -31,8 +32,8 @@
 .payment-loading { color: var(--text-secondary); font-size: 13px; padding: 12px 20px; }
 .payment-loading .MuiLinearProgress-root { margin-bottom: 8px; background: var(--border); }
 .payment-loading .MuiLinearProgress-bar { background: var(--secondary); }
-.payments-page .payment-panel.payment-table-card { padding: 0; overflow: hidden; }
-.payment-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; }
+.payments-page .payment-panel.payment-table-card { padding: 0; overflow: hidden; border-radius: 14px; container: payment-list / inline-size; }
+.payment-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); }
 .payment-card-heading h2 { margin: 0 0 4px; }
 .payment-count { background: var(--bg-main); color: var(--secondary); padding: 6px 10px; font-size: 12px; border-radius: 8px; white-space: nowrap; }
 .payments-page .MuiTable-root { min-width: 1060px; }
@@ -44,6 +45,11 @@
 .payments-page .MuiTableSortLabel-root { flex-direction: row; gap: 3px; }
 .payments-page .MuiTableSortLabel-icon { font-size: 16px; margin: 0; }
 .payments-page .payment-number, .payments-page .payment-amount { font-weight: 600; }
+.payments-page .payment-list-table .MuiTableCell-root { padding: 8px 10px; white-space: nowrap; }
+.payments-page .payment-list-table .MuiTableCell-head { padding-block: 10px; }
+.payments-page .payment-list-table .MuiTableCell-root:first-child { padding-left: 16px; }
+.payments-page .payment-list-table .MuiTableCell-root:last-child { padding-right: 16px; }
+.payments-page .payment-list-table .MuiTableRow-root { height: auto; }
 .payment-row-actions { display: flex; justify-content: flex-start; gap: 8px; }
 .payment-row-actions .MuiIconButton-root { width: 32px; height: 32px; border-radius: 8px; background: var(--bg-main); color: var(--secondary); }
 .payment-row-actions .MuiIconButton-root:hover { background: var(--border); }
@@ -435,7 +441,7 @@
 .payment-dialog .MuiDialogContent-root { padding: 8px 24px 24px; }
 .payment-dialog .MuiDialogActions-root { padding: 16px 24px; gap: 8px; border-top: 1px solid var(--border); }
 @media (max-width: 1100px) { .payments-page { padding: 24px; } .payment-pagination { align-items: flex-start; flex-direction: column; } }
-@media (max-width: 900px) { .payments-heading { align-items: flex-start; flex-direction: column; gap: 16px; } .payment-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .payment-filters > * { grid-column: auto; } .payment-filters > :nth-child(1) { grid-column: 1 / -1; } .payment-filters > :nth-child(2), .payment-filters > :nth-child(3) { grid-column: auto; } .payment-filters .payment-clear { justify-self: stretch; } }
+@media (max-width: 900px) { .payments-heading { align-items: flex-start; flex-direction: column; gap: 16px; } }
 @media (max-width: 767px) { .payments-page { padding: 72px 16px 28px; } }
 @media (max-width: 600px) { .payment-filters, .payment-form-grid, .payment-values { grid-template-columns: minmax(0, 1fr); } .payment-filters > :nth-child(1) { grid-column: auto; } .payment-panel { padding: 20px 16px; } .payment-card-heading, .payment-pagination { padding: 20px 16px; } .payment-card-heading { align-items: flex-start; } .payment-pagination-controls { gap: 12px; width: 100%; } .payment-dialog .MuiDialog-paper { margin: 16px; width: calc(100% - 32px); } .payment-dialog .MuiDialogContent-root, .payment-dialog .MuiDialogTitle-root { padding-left: 20px; padding-right: 20px; } }
 
@@ -710,10 +716,16 @@
 .payment-entry-form .payment-fieldset > h2 { margin-bottom: 16px; }
 .payment-entry-form .payment-fieldset > h2:not(:first-child) { margin-top: 20px; padding-top: 20px; }
 /* Inset the actual scroll frame so the card cannot hide its rounded edges. */
-.app-layout .payments-page .payment-list-table.ibms-table-frame { width: calc(100% - 40px); max-width: calc(100% - 40px); margin: 0 20px 16px; border: 1px solid var(--border, #dccdbd); border-radius: 12px; overflow-x: auto; }
+.payments-page .payment-list-table.ibms-table-frame { width: calc(100% - 32px); max-width: calc(100% - 32px); margin: 0 16px 16px; border: 1px solid var(--border, #dccdbd); border-radius: 12px; overflow-x: auto; }
 .payments-page .payment-table-card > .payment-pagination { padding-top: 0; }
+@container payment-list (max-width: 1050px) {
+  .payment-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .payment-filters .payment-search, .payment-filters .payment-filter-actions { grid-column: 1 / -1; }
+}
+@container payment-list (max-width: 560px) {
+  .payment-filters { grid-template-columns: minmax(0, 1fr); }
+  .payment-filters .payment-filter-actions > * { flex: 1 1 140px; max-width: 100%; }
+}
 @media (max-width: 600px) {
-  .payment-filters .payment-filters .payment-filter-actions { grid-column: 1 / -1; }
   .payment-entry-form .payment-form-grid { grid-template-columns: minmax(0, 1fr); }
-  .app-layout .payments-page .payment-list-table.ibms-table-frame { width: calc(100% - 24px); max-width: calc(100% - 24px); margin-inline: 12px; }
 }

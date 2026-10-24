@@ -19,8 +19,11 @@
 
 /* Custom period dropdown styling - warm UI matching palette (no OS blue) */
 .premium-select-wrapper { position: relative; width: 100%; }
-.premium-filters .premium-select-trigger {
+.premium-filters .premium-select-trigger,
+.premium-filters .date-range-filter.ant-btn {
   width: 100%;
+  min-width: 0;
+  min-height: 36px;
   height: 36px;
   display: flex;
   align-items: center;
@@ -38,7 +41,15 @@
   box-shadow: none;
   transition: border-color 150ms ease, background 150ms ease;
 }
-.premium-filters .premium-select-trigger:hover {
+.premium-filters .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.premium-filters .premium-select-trigger:hover,
+.premium-filters .date-range-filter.ant-btn:hover {
   background: #fffdfa;
   border-color: #ba9774;
   box-shadow: 0 2px 8px #67482d0a;
@@ -130,7 +141,7 @@
 .premium-actions .premium-action-product i { background: #e5e2f4; color: #6554a0; }
 .premium-actions .premium-action-credit i { background: #f4e1e4; color: #a34f5d; }
 .premium-analytics, .premium-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.premium-analytics { margin-bottom: 20px; align-items: stretch; }
+.premium-analytics { margin-bottom: 20px; align-items: start; }
 .premium-analytics > .premium-panel { display: flex; flex-direction: column; }
 .premium-analytics > .premium-panel > header { min-height: 58px; flex-shrink: 0; }
 .premium-analytics > .premium-panel > .premium-empty { flex: 1; display: grid; place-content: center; }
@@ -260,6 +271,13 @@
 .premium-aging-insights strong { color: #80502c; font-size: 12px; font-variant-numeric: tabular-nums; }
 .premium-aging-segment { cursor: pointer; transition: stroke-width 180ms, opacity 180ms; }
 .premium-aging-segment:hover, .premium-aging-segment.is-active { stroke-width: 23; }
+.premium-aging-segment.is-dimmed { opacity: .25; }
+.premium-aging-segment { pointer-events: stroke; }
+.premium-aging-ring .premium-ring-value { inset: 22%; gap: 3px; text-align: center; }
+.premium-aging-ring .premium-ring-value strong { font-size: 12px; line-height: 1.4; }
+.premium-aging-ring .premium-current-share { display: flex; flex-direction: column; align-items: center; line-height: 1.4; }
+.premium-aging-ring .premium-ring-value small { font-size: 10px; line-height: 1.4; }
+.premium-chart-caption { margin: 0 17px 14px; color: #756354; font-size: 11px; line-height: 1.6; }
 .premium-aging-legend > button:hover, .premium-aging-legend > button.is-active { background: #f6ead8; border-color: #bd9062; box-shadow: 0 2px 6px #67483212; }
 .premium-aging-legend > button[aria-pressed="true"] { border-color: #a2693e; }
 .premium-bucket-meter { position: absolute; inset: auto 10px 4px; height: 3px; background: #eadfce; border-radius: 3px; overflow: hidden; }

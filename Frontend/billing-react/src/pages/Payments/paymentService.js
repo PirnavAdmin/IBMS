@@ -37,7 +37,7 @@ export function mapBalance(data) {
   return data;
 }
 export function paymentQuery(p) {
-  return Object.fromEntries(Object.entries({ search: p.search?.trim(), status: p.status, method: p.method, fromDate: p.from, toDate: p.to, pageNumber: p.pageNumber, pageSize: p.pageSize, sortBy: p.sortBy, sortOrder: p.sortOrder }).filter(([,v]) => v !== '' && v != null));
+  return Object.fromEntries(Object.entries({ search: p.search?.trim(), currency: p.currency, status: p.status, method: p.method, fromDate: p.from, toDate: p.to, pageNumber: p.pageNumber, pageSize: p.pageSize, sortBy: p.sortBy, sortOrder: p.sortOrder }).filter(([,v]) => v !== '' && v != null));
 }
 export function createPaymentDto(form, invoice, idempotencyKey) {
   const dto = { invoiceId: invoice.invoiceId, customerId: invoice.customerId, currency: invoice.currency, paymentDate: `${form.date}T00:00:00Z`, amount: Number(form.amount), method: form.method, notes: form.notes.trim(), idempotencyKey };

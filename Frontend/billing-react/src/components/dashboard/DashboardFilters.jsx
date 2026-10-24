@@ -4,7 +4,7 @@ import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
 
-export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, recordsSearch, onRecordsSearch }) => {
+export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, onRecordsSearch }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const periods = dashboardPeriods();
@@ -38,7 +38,7 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
     setIsOpen(false);
   };
 
-  const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch(''); };
+  const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch?.(''); };
 
   return <section className="premium-filters" aria-label="Dashboard filters">
     <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} /></div>
@@ -79,10 +79,6 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, re
       </div>
     </div>
 
-    <label>
-      Search recent records
-      <input type="search" value={recordsSearch} onChange={event => onRecordsSearch(event.target.value)} placeholder="Invoice, payment or customer" />
-    </label>
     <button type="button" onClick={reset}><RestartAlt fontSize="small" />Reset</button>
     <button type="button" className="primary" onClick={onRefresh} disabled={isRefreshing} aria-busy={isRefreshing}>
       <Refresh fontSize="small" className={isRefreshing ? 'bd-spin' : ''} />Refresh

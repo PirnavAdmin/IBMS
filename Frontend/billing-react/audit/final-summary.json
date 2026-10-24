@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-24",
+  "timezone": "Asia/Calcutta",
+  "overall": "SCOPED FRONTEND CLOSURE COMPLETE; COMPLETE PROJECT QA NOT VERIFIED",
+  "authenticatedBrowserE2E": "NOT EXECUTED",
+  "savedCompletedExecutionCounts": {
+    "pass": 566,
+    "fail": 9,
+    "blocked": 0,
+    "total": 575
+  },
+  "finalTargetedExecutionCounts": {
+    "pass": 56,
+    "fail": 0,
+    "blocked": 0,
+    "total": 56
+  },
+  "earlierNumberingExportUI": {
+    "pass": 6,
+    "fail": 0,
+    "blocked": 0,
+    "total": 6
+  },
+  "archivedMemoryBlockedRuns": 3,
+  "productionBuild": {
+    "status": "PASS",
+    "exitCode": 0,
+    "durationMs": 82907,
+    "evidence": "closure-build-final.log",
+    "warnings": [
+      "large minified chunks",
+      "html2pdf imported both statically and dynamically"
+    ]
+  },
+  "gitDiffCheck": {
+    "status": "PASS",
+    "exitCode": 0,
+    "evidence": "closure-diff-check.log"
+  },
+  "activeHangingQARunnersFound": 0,
+  "backendFilesModifiedDuringFinalization": 0,
+  "note": "Existing savedCompletedExecutionCounts and earlier groups are historical overlapping executions, not current unique project totals. Current closure scope/results and environment blocks are in closure-summary.json.",
+  "closureEvidence": "closure-summary.json",
+  "currentlyFailingNamedTests": []
+}

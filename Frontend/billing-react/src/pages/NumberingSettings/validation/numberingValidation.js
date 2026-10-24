@@ -1,4 +1,5 @@
 import * as yup from 'yup';
+import { normalizeNumberingTokens } from './numberingTokens.js';
 
 export const DOCUMENT_TYPES = [
   'Invoice',
@@ -28,13 +29,13 @@ export const RESET_POLICIES = [
 ];
 
 export const SUPPORTED_TOKENS = [
-  { token: '(YEAR)', label: 'Year', example: '2026', desc: 'Current 4-digit calendar year' },
-  { token: '(YY)', label: '2-digit Year', example: '26', desc: 'Current 2-digit calendar year' },
-  { token: '(MONTH)', label: 'Month', example: 'Sep', desc: 'Abbreviated month name' },
-  { token: '(MM)', label: 'Month (2-digit)', example: '09', desc: 'Zero-padded month number (01-12)' },
-  { token: '(DAY)', label: 'Day', example: '21', desc: 'Current day of month (01-31)' },
-  { token: '(FY)', label: 'Fiscal Year', example: '26-27', desc: 'Financial year (Apr-Mar)' },
-  { token: '(QUARTER)', label: 'Quarter', example: 'Q3', desc: 'Calendar quarter (Q1-Q4)' },
+  { token: '{YEAR}', label: 'Year', example: '2026', desc: 'Current 4-digit calendar year' },
+  { token: '{YY}', label: '2-digit Year', example: '26', desc: 'Current 2-digit calendar year' },
+  { token: '{MONTH}', label: 'Month', example: 'Sep', desc: 'Abbreviated month name' },
+  { token: '{MM}', label: 'Month (2-digit)', example: '09', desc: 'Zero-padded month number (01-12)' },
+  { token: '{DD}', label: 'Day', example: '21', desc: 'Current day of month (01-31)' },
+  { token: '{FY}', label: 'Fiscal Year', example: '26-27', desc: 'Financial year (Apr-Mar)' },
+  { token: '{QUARTER}', label: 'Quarter', example: 'Q3', desc: 'Calendar quarter (Q1-Q4)' },
 ];
 
 export const DEFAULT_PRESETS_BY_DOC_TYPE = {
@@ -112,7 +113,7 @@ export const DEFAULT_PRESETS_BY_DOC_TYPE = {
   },
 };
 
-export const DEFAULT_NUMBERING_CONFIG = DEFAULT_PRESETS_BY_DOC_TYPE.Invoice;
+export const DEFAULT_NUMBERING_CONFIG = { documentType: 'Invoice', prefix: '', suffix: '', tokens: '', sequenceLength: 4, nextNumber: '', resetPolicy: RESET_POLICIES[0] };
 
 /**
  * Evaluates date-based tokens within a template string.
@@ -201,10 +202,10 @@ const AFFIX_REGEX = /^[A-Za-z0-9_\-\/(){}]*$/;
 // Extract tokens from a string to validate them
 const extractTokenNames = (str = '') => {
   const matches = str.match(/(\([^)]+\)|\{[^}]+\})/g) || [];
-  return matches.map((m) => m.toUpperCase().replace(/[{}]/g, (c) => (c === '{' ? '(' : ')')));
+  return matches.map(m => normalizeNumberingTokens(m).toUpperCase());
 };
 
-const VALID_TOKEN_STRINGS = SUPPORTED_TOKENS.map((t) => t.token.toUpperCase());
+const VALID_TOKEN_STRINGS = [...SUPPORTED_TOKENS.map(t => t.token.toUpperCase()), '{YYYY}'];
 
 export const numberingValidationSchema = yup.object().shape({
   documentType: yup
@@ -217,7 +218,7 @@ export const numberingValidationSchema = yup.object().shape({
     .trim()
     .max(20, 'Prefix must not exceed 20 characters')
     .matches(AFFIX_REGEX, 'Prefix can only contain letters, numbers, hyphens, slashes, underscores, and tokens')
-    .test('valid-tokens-in-prefix', 'Prefix contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
+    .test('valid-tokens-in-prefix', 'Prefix contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {DD}, {FY}, {QUARTER}', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));
@@ -228,7 +229,7 @@ export const numberingValidationSchema = yup.object().shape({
     .trim()
     .max(20, 'Suffix must not exceed 20 characters')
     .matches(AFFIX_REGEX, 'Suffix can only contain letters, numbers, hyphens, slashes, underscores, and tokens')
-    .test('valid-tokens-in-suffix', 'Suffix contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
+    .test('valid-tokens-in-suffix', 'Suffix contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {DD}, {FY}, {QUARTER}', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));
@@ -238,7 +239,7 @@ export const numberingValidationSchema = yup.object().shape({
     .string()
     .trim()
     .max(30, 'Tokens expression must not exceed 30 characters')
-    .test('valid-tokens-field', 'Tokens field contains unsupported token. Supported: (YEAR), (YY), (MONTH), (MM), (DAY), (FY), (QUARTER)', (val) => {
+    .test('valid-tokens-field', 'Tokens field contains unsupported token. Supported: {YEAR}, {YY}, {MONTH}, {MM}, {DD}, {FY}, {QUARTER}', (val) => {
       if (!val) return true;
       const tokens = extractTokenNames(val);
       return tokens.every((t) => VALID_TOKEN_STRINGS.includes(t));

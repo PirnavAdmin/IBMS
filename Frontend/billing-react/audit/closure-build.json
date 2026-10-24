@@ -1,0 +1,12 @@
+{
+  "name": "build",
+  "args": [
+    "node_modules/vite/bin/vite.js",
+    "build"
+  ],
+  "status": 1,
+  "signal": null,
+  "blocked": true,
+  "durationMs": 120695,
+  "checkedAt": "2026-10-24T12:42:54.740Z"
+}

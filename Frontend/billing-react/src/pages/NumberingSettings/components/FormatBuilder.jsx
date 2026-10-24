@@ -7,7 +7,7 @@ const TOKEN_LABELS = {
   '(YY)': 'Year',
   '(MONTH)': 'Month',
   '(MM)': 'Month',
-  '(DAY)': 'Day',
+  '(DD)': 'Day',
   '(FY)': 'Fiscal Year',
   '(QUARTER)': 'Quarter',
   '(SEQUENCE)': 'Sequence',
