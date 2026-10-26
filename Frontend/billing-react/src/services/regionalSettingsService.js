@@ -86,6 +86,11 @@ export const regionalSettingsService = {
     return mapResponse(response).selectedCountries;
   },
 
+  // Preserve the incoming loader entry point with the same fresh, scoped GET.
+  async loadSelectedCountries() {
+    return regionalSettingsService.getSelectedCountries();
+  },
+
   async saveSelectedCountries(countries) {
     const scope = getRegionalSessionScope();
     requireCurrentSession(scope);
@@ -151,6 +156,9 @@ export function useRegionalSettings() {
   const selectedCountries = current ? selection.countries : EMPTY_COUNTRIES;
   return {
     sessionScope: scope,
+    settingsLoading: !current || selection.status === 'loading',
+    settingsError: current ? selection.error?.message || '' : '',
+    reloadSettings: reloadCountries,
     selectedCountries,
     availableCountries: COUNTRIES_LIST,
     selectedCurrencies: [...new Set(selectedCountries.map(country => country.currency).filter(currency => CURRENCY_CODES.includes(currency)))],

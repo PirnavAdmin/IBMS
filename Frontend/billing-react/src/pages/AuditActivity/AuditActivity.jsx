@@ -94,11 +94,6 @@ export function AuditActivity() {
           <DateRangeFilter startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
-        {optionsError && <Alert severity="error" action={![401, 403].includes(optionsError.response?.status)
-          ? <Button color="inherit" size="small" onClick={() => setRefresh(value => value + 1)}>Retry</Button> : undefined}>
-          {optionsError.response?.status === 403 ? 'Access denied to audit filter options.' : optionsError.response?.status === 401
-            ? 'Please sign in again to load audit filter options.' : errorPresentation(optionsError.userMessage || optionsError.message)}
-        </Alert>}
         <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
       </form>
       <div className="audit-results" aria-label="Activity history" aria-busy={loading}>

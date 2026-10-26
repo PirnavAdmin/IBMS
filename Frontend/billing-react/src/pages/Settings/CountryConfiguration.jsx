@@ -23,7 +23,7 @@ import {
 import { SettingsPageHeader } from './SettingsPageHeader';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';
-import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import {
   useRegionalSettings,
   countrySelectionError,
@@ -50,13 +50,13 @@ export function CountryConfiguration() {
   const validationError = countrySelectionError(selectedCountries);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
+  const [saveError, setSaveError] = useState('');
   const saveLock = useRef(false);
 
   // Sync with persisted settings on mount / change
   useEffect(() => {
     setDraft({ scope: sessionScope, countries: persistedCountries });
-    setToast('');
+    setSaveError('');
   }, [persistedCountries, sessionScope]);
 
   const selectedCodes = useMemo(
@@ -101,15 +101,16 @@ export function CountryConfiguration() {
 
   const handleSave = async () => {
     if (saveLock.current || !ready || sessionScope !== getRegionalSessionScope()) return;
-    if (validationError) { setToast(validationError); return; }
+    if (validationError) { setSaveError(validationError); return; }
     saveLock.current = true;
     setSaving(true);
+    setSaveError('');
     try {
       const result = await saveCountries(selectedCountries);
       if (sessionScope !== getRegionalSessionScope()) return;
       navigate('/settings', { state: { countrySaved: result.message || 'Country configuration saved successfully.' } });
     } catch (err) {
-      if (sessionScope === getRegionalSessionScope()) setToast(errorPresentation(err.userMessage || err.message));
+      if (sessionScope === getRegionalSessionScope()) setSaveError(errorPresentation(err.userMessage || err.message));
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -136,9 +137,8 @@ export function CountryConfiguration() {
       </SettingsPageHeader>
 
       {loading && <Alert severity="info" role="status" sx={{ mb: 2 }}>Loading saved country settings...</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" onClick={reloadCountries}>Retry</Button>}>
-        {errorPresentation(error.userMessage || error.message)}
-      </Alert>}
+      {error && <DashboardErrorState title="Unable to load country settings" message={error.userMessage || error.message} onRetry={reloadCountries} />}
+      {saveError && <DashboardErrorState title="Unable to save country settings" message={saveError} onRetry={handleSave} />}
       {ready && validationError && <Alert severity="warning" sx={{ mb: 2 }}>{validationError}</Alert>}
       {ready && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
 
@@ -463,7 +463,6 @@ export function CountryConfiguration() {
 
       </fieldset>}
 
-      <FeedbackSnackbar severity="error" message={toast} onClose={() => setToast('')} />
     </main>
   );
 }

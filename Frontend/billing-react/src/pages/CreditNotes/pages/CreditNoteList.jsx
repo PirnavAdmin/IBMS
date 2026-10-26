@@ -138,7 +138,6 @@ export function CreditNoteList() {
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
                 <TableCell align="right"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
               </TableRow>)}
-              {!query.isPending && !query.isError && !items.length && <TableRow><TableCell colSpan={9}><div className="cn-empty-state"><span className="cn-empty-icon"><ReceiptLongOutlined /></span><strong>{totalCount ? 'No records on this page' : 'No Credit Notes in the billing API'}</strong><span>{totalCount ? 'Adjust page or filters to see other records.' : 'Create a note after the billing API returns eligible invoices.'}</span>{!totalCount && <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button>}</div></TableCell></TableRow>}
             </TableBody>
           </Table>
         </TableContainer>

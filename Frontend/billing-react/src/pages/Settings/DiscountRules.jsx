@@ -1,4 +1,5 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { useEffect, useRef, useState } from 'react';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, ListItemIcon, Menu, MenuItem, Paper, TextField } from '@mui/material';
@@ -53,8 +54,7 @@ export function DiscountRules() {
   };
   return <Paper className="settings-panel settings-full" elevation={0} sx={{ mb: 2 }}>
     <div className="settings-panel-heading"><div><h2>Discount Rules</h2><p>Manage individual discount codes and their limits. These rules do not configure organization-wide permissions.</p></div><Button variant="contained" disabled={busy} onClick={() => open()}>Add Rule</Button></div>
-    {error && <Alert severity="error" action={<Button onClick={() => setRevision((value) => value + 1)}>Retry</Button>}>{error}</Alert>}
-    {loading ? <div className="settings-empty">Loading discount rules...</div> : !error && (result.items.length ? <>
+    {loading ? <div className="settings-empty">Loading discount rules...</div> : error ? <DashboardErrorState title="Unable to load discount rules" message={error} onRetry={() => setRevision((value) => value + 1)} /> : (result.items.length ? <>
       <div className="settings-table-wrap ibms-table-frame"><table className="settings-table"><thead><tr><th>Name / Code</th><th>Type</th><th>Application Level</th><th>Value</th><th>Maximum Amount</th><th>Applicable Role</th><th>Status</th><th>Actions</th></tr></thead><tbody>
         {result.items.map((rule) => <tr key={rule.id}><td><strong>{rule.name}</strong><small className="settings-cell-note">{rule.code}</small></td><td>{discountTypes[rule.type] || rule.type}</td><td>{discountScopes[rule.scope] || rule.scope}</td><td>{rule.value}{rule.type === 'Percentage' ? '%' : ''}</td><td>{rule.maxDiscountAmount ?? 'Not set'}</td><td>{rule.applicableRole || 'Not restricted'}</td><td>{rule.status}</td><td><IconButton className="ibms-row-actions-trigger" size="small" aria-label={`Actions for ${rule.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.rule.id === rule.id} disabled={busy} onClick={(event) => setActionsMenu({ anchor: event.currentTarget, rule })}><MoreVert fontSize="small" /></IconButton></td></tr>)}
       </tbody></table></div><div className="settings-actions"><Button disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button><span>Page {page} of {result.totalPages}</span><Button disabled={page >= result.totalPages} onClick={() => setPage(page + 1)}>Next</Button></div>

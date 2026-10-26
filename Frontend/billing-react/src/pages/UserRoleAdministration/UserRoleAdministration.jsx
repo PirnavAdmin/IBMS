@@ -41,6 +41,7 @@ import {
 } from '@mui/material';
 import { userRoleAdministrationService as service } from './userRoleAdministrationService';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
 import './user-role-administration.css';
 
@@ -173,7 +174,7 @@ function EmptyState({ title, children, icon: Icon = GroupOutlined }) {
 
 function QueryState({ query, label, retry, empty, children }) {
   if (query.isPending) return <div className="ura-resource-state" role="status"><CircularProgress size={22} /><span>Loading {label.toLowerCase()}…</span></div>;
-  if (query.isError) return <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => (retry ? retry() : query.refetch())}>Retry</Button>}>{getError(query.error)}</Alert>;
+  if (query.isError) return <DashboardErrorState title={`Unable to load ${label.toLowerCase()}`} message={getError(query.error)} onRetry={() => (retry ? retry() : query.refetch())} />;
   if (empty) return <EmptyState title={`No ${label.toLowerCase()} available`}>{empty}</EmptyState>;
   return children;
 }
@@ -241,6 +242,8 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
   });
   const users = usersQuery.data?.items ?? [];
   const roles = rolesQuery.data ?? [];
+  const dataError = usersQuery.isError || rolesQuery.isError;
+  const errorQuery = usersQuery.isError ? usersQuery : rolesQuery;
   const changeSearch = (event) => { setSearchInput(event.target.value); setPage(0); };
   const changeStatus = (event) => { setStatus(event.target.value); setPage(0); };
   const changeRole = (event) => { setRole(event.target.value); setPage(0); };
@@ -263,12 +266,14 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
       <div className="ura-filter-field ura-filter-identity"><FormControl size="small" fullWidth><InputLabel id="ura-identity-filter-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} id="ura-identity-filter" labelId="ura-identity-filter-label" label="Identity type" value={identityType} onChange={changeIdentityType}><MenuItem value="all">All identity types</MenuItem><MenuItem value="Platform">Platform</MenuItem><MenuItem value="Host">Host</MenuItem></Select></FormControl></div>
       <Button className="ura-reset-filters" variant="text" onClick={resetFilters} disabled={!hasFilters}>Clear Filters</Button>
     </div>
-    {rolesQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load role filter options: {getError(rolesQuery.error)}</Alert>}
-    <div className="ura-table-wrap"><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
+    {dataError ? <DashboardErrorState
+      title={`Unable to load ${usersQuery.isError ? 'users' : 'roles'}`}
+      message={getError(errorQuery.error)}
+      onRetry={() => { void usersQuery.refetch(); void rolesQuery.refetch(); }}
+    /> : <><div className="ura-table-wrap"><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
       <thead><tr>{assignmentMode ? <><th>Name</th><th>Roles</th><th>Tenant</th><th>Application</th><th>Status</th><th>Actions</th></> : <><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></>}</tr></thead>
       <tbody>
         {usersQuery.isPending && <tr><td colSpan={assignmentMode ? 6 : 9}><div className="ura-resource-state"><CircularProgress size={22} /><span>Loading users…</span></div></td></tr>}
-        {usersQuery.isError && <tr><td colSpan={assignmentMode ? 6 : 9}><Alert severity="error" action={<Button color="inherit" size="small" onClick={() => usersQuery.refetch()}>Retry</Button>}>{getError(usersQuery.error)}</Alert></td></tr>}
         {!usersQuery.isPending && !usersQuery.isError && users.map((user) => {
           const id = recordValue(user, 'id', 'Id');
           const userRoles = recordValue(user, 'roles', 'Roles') ?? [];
@@ -293,6 +298,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
       </tbody>
     </table></div>
     <TablePagination component="div" className="ura-pagination" count={usersQuery.data?.totalCount ?? 0} page={page} onPageChange={(_, next) => setPage(next)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />
+    </>}
   </>;
 }
 
@@ -424,7 +430,7 @@ const selectRole = (event) => {
       <div><strong>{editing ? 'Update team member access' : 'Welcome a new team member'}</strong><p>Add their details, choose a role and fine-tune their access.</p></div>
       <span className="ura-required-note"><span>*</span> Required fields</span>
     </div>
-    {rolesQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load roles: {getError(rolesQuery.error)}</Alert>}
+    {rolesQuery.isError && <DashboardErrorState title="Unable to load roles" message={getError(rolesQuery.error)} onRetry={() => rolesQuery.refetch()} />}
     <section className="ura-user-form-section" aria-labelledby="ura-user-profile-heading">
       <header className="ura-user-section-heading"><span>01</span><div><h3 id="ura-user-profile-heading">Personal details</h3><p>Who will be using this account?</p></div><BadgeOutlined /></header>
       <div className="ura-form-grid">
