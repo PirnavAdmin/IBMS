@@ -11,6 +11,7 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
+  Snackbar,
   TextField,
 } from "@mui/material";
 import {
@@ -193,8 +194,11 @@ export function InvoiceActions({ invoice, permissions }) {
           ? await invoiceService.issue(latest.id)
           : await invoiceService[review.action](latest.id, reason.trim());
       await invalidateInvoices(client);
+      const invoiceNumber = identifier(result);
       setNotice(
-        `${labels[review.action]} confirmed: ${identifier(result)} | ${result.status} | ${money(result.totalAmount, result.currency)}`,
+        review.action === "issue"
+          ? `Invoice ${invoiceNumber} issued successfully.`
+          : `${labels[review.action]} completed for invoice ${invoiceNumber}.`,
       );
       setReview(null);
     } catch (e) {
@@ -273,11 +277,21 @@ export function InvoiceActions({ invoice, permissions }) {
           {error}
         </Alert>
       )}
-      {notice && (
-        <Alert severity="success" onClose={() => setNotice("")}>
+      <Snackbar
+        open={Boolean(notice)}
+        autoHideDuration={5000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        onClose={() => setNotice("")}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          onClose={() => setNotice("")}
+          sx={{ width: "100%", alignItems: "center" }}
+        >
           {notice}
         </Alert>
-      )}
+      </Snackbar>
       <Dialog
         open={Boolean(review)}
         onClose={busy ? undefined : () => setReview(null)}

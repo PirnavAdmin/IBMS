@@ -1,15 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, Menu, MenuItem, TextField, Tooltip } from '@mui/material';
-import { Add, ContentCopyOutlined, MoreVert, Refresh, Search } from '@mui/icons-material';
+import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, ListItemIcon, Menu, MenuItem, TextField, Tooltip } from '@mui/material';
+import { Add, Block, CheckCircleOutline, ContentCopyOutlined, DeleteOutline, EditOutlined, HistoryOutlined, MoreVert, PauseCircleOutline, PowerSettingsNew, Refresh, Search, SendOutlined, VisibilityOutlined, VpnKeyOutlined, Webhook } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { integrationAccess } from '../Integrations/integrationService';
 import { WebhookEditor } from './WebhookEditor';
 import { webhookError, webhookService, WEBHOOK_STATUSES } from './webhookService';
 import '../Integrations/integrations.css';
 import './webhooks.css';
+
+const webhookActionIcons = {
+  view: VisibilityOutlined,
+  edit: EditOutlined,
+  toggle: PowerSettingsNew,
+  ping: SendOutlined,
+  rotate: VpnKeyOutlined,
+  delete: DeleteOutline,
+  deliveries: HistoryOutlined,
+};
 
 function Timestamp({ value }) {
   if (!value) return <span className="integration-muted">Never triggered</span>;
@@ -85,23 +96,30 @@ export function Webhooks() {
   };
   const webhook = dialog?.webhook, page = list.data, waiting = allowed && (list.isPending || list.isFetching);
   const changeFilter = (key, value) => setFilters(previous => ({ ...previous, [key]: value, pageNumber: 1 }));
+  const selectSummaryCard = status => {
+    const selectedStatus = status && filters.status !== status ? status : '';
+    setSearch('');
+    context.onSearch?.('');
+    setFilters(previous => ({ ...previous, status: selectedStatus, eventType: '', searchTerm: '', pageNumber: 1 }));
+    window.requestAnimationFrame(() => document.querySelector('.integrations-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
   return <main className="integrations-page webhooks-page">
     <header className="integrations-heading"><div><span className="integrations-eyebrow">Configuration &amp; Administration</span><h1>Webhook Configuration</h1><p>Manage webhook endpoints and event subscriptions</p></div>
       <div className="integrations-heading-actions"><Button variant="outlined" startIcon={<Refresh />} disabled={!allowed || waiting} onClick={refresh}>Refresh</Button><Button variant="contained" startIcon={<Add />} disabled={!allowed} onClick={() => setDialog({ mode: 'create', error: '' })}>Create Webhook</Button></div>
     </header>
-    {user.isPending ? <div role="status"><LinearProgress />Checking webhook access…</div> : user.isError ? <Alert severity="error" action={<Button onClick={() => user.refetch()}>Retry</Button>}>{webhookError(user.error)}</Alert> : !allowed ? <Alert severity="warning">Webhook access requires TenantAdmin, SuperAdmin, or User permissions.</Alert> : <>
-      {summary.data && !summary.isError && <section className="webhook-summary" aria-label="Webhook totals">{Object.entries(summary.data).map(([key, count]) => <div key={key}><span>{key} Webhooks</span><strong>{count}</strong></div>)}</section>}
+    {user.isPending ? <div role="status"><LinearProgress />Checking webhook access…</div> : user.isError ? <DashboardErrorState title="Unable to load webhook configuration" message={webhookError(user.error)} onRetry={() => user.refetch()} /> : !allowed ? <Alert severity="warning">Webhook access requires TenantAdmin, SuperAdmin, or User permissions.</Alert> : <>
+      {summary.data && !summary.isError && <section className="webhook-summary" aria-label="Webhook totals">{Object.entries(summary.data).map(([key, count]) => <button type="button" key={key} aria-pressed={key === 'Total' ? !filters.status && !filters.eventType && !filters.searchTerm : filters.status === key} onClick={() => selectSummaryCard(key === 'Total' ? '' : key)} className={`webhook-summary-card webhook-summary-${key.toLowerCase()} ${((key === 'Total' && !filters.status && !filters.eventType && !filters.searchTerm) || (key !== 'Total' && filters.status === key)) ? 'selected' : ''}`}><span className="webhook-summary-icon" aria-hidden="true">{key === 'Active' ? <CheckCircleOutline /> : key === 'Disabled' ? <Block /> : key === 'Suspended' ? <PauseCircleOutline /> : <Webhook />}</span><span>{key} Webhooks</span><strong>{count}</strong></button>)}</section>}
       {summary.isError && <Alert severity="warning" action={<Button onClick={() => summary.refetch()}>Retry Summary</Button>}>Summary counts are unavailable. {webhookError(summary.error)}</Alert>}
       <section className="integrations-panel" aria-label="Configured webhooks">
         <div className="integrations-toolbar webhook-toolbar">
           <TextField size="small" type="search" label="Search webhooks" placeholder="Search by name or URL" value={search} onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
           <TextField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>
-          <TextField select size="small" label="Event Type" value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)}><MenuItem value="">All events</MenuItem>{(events.data || []).map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Event Type" InputLabelProps={{ shrink: true }} value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)} SelectProps={{ displayEmpty: true, renderValue: selected => selected || 'All events', MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'webhook-event-options-menu', sx: { maxHeight: 260 } } } }}><MenuItem value="">All events</MenuItem>{(events.data || []).filter(event => event.eventType !== '*').map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
           <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} webhook${page.totalCount === 1 ? '' : 's'}` : ''}</span>
         </div>
         {events.isError && <Alert severity="warning" action={<Button onClick={() => events.refetch()}>Retry Events</Button>}>{webhookError(events.error)}</Alert>}
         {waiting && <div className="integration-progress" role="status" aria-label="Loading webhooks"><LinearProgress /></div>}
-        {list.isError ? <div className="integration-state"><Alert severity="error" action={<Button onClick={() => list.refetch()}>Retry</Button>}>{webhookError(list.error)}</Alert></div> : page?.items.length ?
+        {list.isError ? <DashboardErrorState title="Unable to load webhooks" message={webhookError(list.error)} onRetry={() => list.refetch()} /> : page?.items.length ?
           <div className="integrations-table-scroll" role="region" aria-label="Webhook list" tabIndex={0}><table className="integrations-table webhooks-table" aria-label="Webhooks" aria-busy={waiting}>
             <thead><tr>{['Webhook Name', 'Target URL', 'Associated Application', 'Subscribed Events', 'Status', 'Consecutive Failures', 'Last Triggered At', 'Actions'].map(title => <th scope="col" key={title}>{title}</th>)}</tr></thead>
             <tbody>{page.items.map(item => <tr key={item.id}>
@@ -118,10 +136,14 @@ export function Webhooks() {
       </section>
     </>}
     <Menu anchorEl={menu?.anchor} open={Boolean(menu)} onClose={() => setMenu(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} marginThreshold={8} PaperProps={{ className: 'integration-actions-menu' }} MenuListProps={{ id: 'webhook-actions-list', 'aria-label': 'Webhook actions' }}>
-      {menu && ['view', 'edit', 'toggle', 'ping', 'rotate', 'delete', 'deliveries'].map(mode => <MenuItem key={mode} disabled={busy || (mode === 'toggle' && menu.webhook.status === 'Suspended')}
-        onClick={() => mode === 'deliveries' ? (setMenu(null), navigate(`/webhooks/deliveries?webhookId=${menu.webhook.id}`)) : open(mode, menu.webhook)}>
-        {{ view: 'View Details', edit: 'Edit Webhook', toggle: menu.webhook.status === 'Suspended' ? 'Suspended (backend managed)' : menu.webhook.status === 'Active' ? 'Disable Webhook' : 'Enable Webhook', ping: 'Test Ping', rotate: 'Rotate Secret', delete: 'Delete Webhook', deliveries: 'View Delivery History' }[mode]}
-      </MenuItem>)}
+      {menu && ['view', 'edit', 'toggle', 'ping', 'rotate', 'delete', 'deliveries'].map(mode => {
+        const ActionIcon = webhookActionIcons[mode];
+        const label = { view: 'View Details', edit: 'Edit Webhook', toggle: menu.webhook.status === 'Suspended' ? 'Suspended (backend managed)' : menu.webhook.status === 'Active' ? 'Disable Webhook' : 'Enable Webhook', ping: 'Test Ping', rotate: 'Rotate Secret', delete: 'Delete Webhook', deliveries: 'View Delivery History' }[mode];
+        return <MenuItem key={mode} className={mode === 'delete' ? 'integration-action-destructive' : ''} disabled={busy || (mode === 'toggle' && menu.webhook.status === 'Suspended')}
+          onClick={() => mode === 'deliveries' ? (setMenu(null), navigate(`/webhooks/deliveries?webhookId=${menu.webhook.id}`)) : open(mode, menu.webhook)}>
+          <ListItemIcon><ActionIcon fontSize="small" /></ListItemIcon>{label}
+        </MenuItem>;
+      })}
     </Menu>
     {dialog?.mode === 'create' && <WebhookEditor tenantKey={tenantKey} events={events} busy={busy} error={dialog.error} onClose={close} onSave={dto => run(() => webhookService.create(dto), 'Webhook created.')} />}
     {dialog?.id && !webhook && <Dialog open onClose={close} fullWidth maxWidth="sm" PaperProps={{ className: 'integration-dialog' }} aria-labelledby="webhook-loading-title"><DialogTitle id="webhook-loading-title">Webhook Details</DialogTitle><DialogContent>{dialog.error ? <Alert severity="error">{dialog.error}</Alert> : <div role="status"><LinearProgress />Loading webhook…</div>}</DialogContent><DialogActions><Button onClick={close}>Close</Button>{dialog.error && <Button onClick={() => setDialog(previous => ({ ...previous, error: '', attempt: attempt + 1 }))}>Retry</Button>}</DialogActions></Dialog>}

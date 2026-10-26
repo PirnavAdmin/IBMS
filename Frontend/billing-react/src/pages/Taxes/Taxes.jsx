@@ -441,7 +441,7 @@ function TaxList({ search, setSearch }) {
           </section>
         </>
       )}
-      {selectedTax && (
+      {!query.isError && selectedTax && (
         <section className="tax-detail-panel" aria-label={`${selectedTax.name} details`} aria-live="polite">
           <div className="tax-detail-heading"><div><span className="tax-eyebrow">TAX RULE DETAILS</span><h2>{selectedTax.name}</h2></div><button type="button" className="tax-secondary-btn" onClick={() => setSelectedTax(null)}>Close</button></div>
           <dl className="tax-detail-grid">
@@ -449,7 +449,7 @@ function TaxList({ search, setSearch }) {
           </dl>
         </section>
       )}
-      <Preview />
+      {!query.isError && <Preview />}
       <FeedbackSnackbar message={notice} onClose={() => setNotice("")} />
     </>
   );

@@ -256,7 +256,7 @@ export function productToItem(product, taxes = [], invoiceCurrency = "") {
     !Number.isNaN(discountNum) &&
     discountNum > 0;
 
-  const discountRate = hasDiscount ? String(discountNum) : "";
+  const discountRate = hasDiscount ? String(discountNum) : "0";
   const discountType = product.discountType || "Percentage";
 
   // Extract rate and type from product properties or taxCategory (e.g. "GST 18%")

@@ -1,8 +1,24 @@
-.webhook-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
-.webhook-summary > div { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
-.webhook-summary span { display: block; color: var(--text-secondary); font-size: 13px; }
-.webhook-summary strong { display: block; margin-top: 6px; font-size: 24px; color: var(--primary); }
+.webhook-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.webhook-summary > .webhook-summary-card { position: relative; display: block; width: 100%; min-width: 0; --webhook-accent: #b9875d; --webhook-tint: #fffaf4; min-height: 108px; padding: 17px 58px 17px 18px; background: var(--webhook-tint); border: 1px solid color-mix(in srgb, var(--webhook-accent) 32%, white); border-top: 4px solid var(--webhook-accent); border-radius: 13px; box-shadow: 0 4px 14px #50311b0b; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.webhook-summary > .webhook-summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #50311b16; }
+.webhook-summary > .webhook-summary-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--webhook-accent) 55%, white); outline-offset: 2px; }
+.webhook-summary > .webhook-summary-card.selected { box-shadow: 0 0 0 2px color-mix(in srgb, var(--webhook-accent) 42%, white), 0 7px 18px #50311b14; }
+.webhook-summary .webhook-summary-active { --webhook-accent: #6f987c; --webhook-tint: #f3f8f3; }
+.webhook-summary .webhook-summary-disabled { --webhook-accent: #9380a5; --webhook-tint: #f7f3fa; }
+.webhook-summary .webhook-summary-suspended { --webhook-accent: #ca8768; --webhook-tint: #fbf2ee; }
+.webhook-summary-icon { position: absolute; top: 14px; right: 15px; display: grid !important; width: 36px; height: 36px; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--webhook-accent) 16%, white); color: var(--webhook-accent) !important; }
+.webhook-summary-icon svg { width: 20px; height: 20px; }
+.webhook-summary span { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.webhook-summary strong { display: block; margin-top: 8px; font-size: 25px; line-height: 1; color: var(--webhook-accent); font-variant-numeric: tabular-nums; }
 .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex: 0 1 14rem; min-width: 10rem; }
+.webhook-toolbar .integration-result-count { padding: 7px 12px; border: 1px solid #e5d3c0; border-radius: 999px; background: #f5eadf; color: #765538; font-size: 12px; font-weight: 700; }
+.webhook-event-options-menu { width: 14rem !important; max-width: calc(100vw - 24px) !important; max-height: 260px !important; overflow-y: auto !important; padding: 4px !important; border: 1px solid var(--border) !important; border-radius: 12px !important; background: var(--surface) !important; box-shadow: 0 10px 26px #38251626 !important; }
+.webhook-event-options-menu .MuiMenuItem-root { min-height: 40px; margin: 1px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; color: var(--text-primary); font-size: .9rem; }
+.webhook-event-options-menu .MuiMenuItem-root:hover,.webhook-event-options-menu .MuiMenuItem-root.Mui-focusVisible { background: #f9f1e6; color: var(--primary); }
+.webhook-event-options-menu .MuiMenuItem-root.Mui-selected,.webhook-event-options-menu .MuiMenuItem-root.Mui-selected:hover,.webhook-event-options-menu .MuiMenuItem-root.Mui-selected.Mui-focusVisible { border-color: #805437; background: #f0e2d0; color: #503421; font-weight: 700; }
+.integration-actions-menu .MuiMenuItem-root .MuiListItemIcon-root { min-width: 32px; color: currentColor; }
+.integration-actions-menu .MuiMenuItem-root.integration-action-destructive { color: #b42318; }
+.integration-actions-menu .MuiMenuItem-root.integration-action-destructive:is(:hover, .Mui-focusVisible) { background: #fff0ed; color: #a51d13; }
 .webhooks-table { min-width: 68rem; }
 .webhooks-table th:nth-child(1) { width: 15%; }
 .webhooks-table th:nth-child(2) { width: 20%; }

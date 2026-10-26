@@ -55,6 +55,40 @@ export function auditSnapshot(value) {
   } catch { return 'Snapshot is not available as structured JSON.'; }
 }
 
+export function formatAuditChanges(value) {
+  if (!value) return '';
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const status = parsed.status ?? parsed.newStatus;
+      if (status != null && status !== '') {
+        const readableStatus = String(status).replace(/([a-z])([A-Z])/g, '$1 $2');
+        const actor = parsed.approvedBy || parsed.issuedBy || parsed.submittedBy || parsed.changedBy || parsed.userName;
+        if (/^pending approval$/i.test(readableStatus) && actor && parsed.submittedBy) {
+          return `Submitted for approval by ${actor}`;
+        }
+        const action = readableStatus.toLowerCase() === 'issued' ? 'Issued'
+          : readableStatus.toLowerCase() === 'approved' ? 'Approved'
+            : `Status changed to ${readableStatus}`;
+        return actor ? `${action} by ${actor}` : action;
+      }
+
+      const summary = Object.entries(parsed)
+        .filter(([, item]) => item !== null && item !== undefined && item !== '')
+        .slice(0, 2)
+        .map(([key, item]) => {
+          const label = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
+          return `${label.charAt(0).toUpperCase()}${label.slice(1)}: ${typeof item === 'object' ? JSON.stringify(item) : String(item)}`;
+        })
+        .join(' · ');
+      return summary || 'Audit details recorded';
+    }
+  } catch {
+    return String(value);
+  }
+  return String(value);
+}
+
 export function searchAuditPage(rows, search) {
   const term = search.trim().toLocaleLowerCase();
   return term ? rows.filter(row => [row.action, row.entityName, row.entityId, row.userName, row.changes]

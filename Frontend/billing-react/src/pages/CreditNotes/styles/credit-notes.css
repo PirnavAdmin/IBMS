@@ -59,6 +59,8 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-list-heading p { margin-top: 4px; color: #89796c; font-size: .78rem; }
 .cn-result-count { padding: 5px 10px; border-radius: 999px; background: #f4eadf; color: #775536; font-size: .72rem; font-weight: 750; }
 .cn-filter-bar { display: flex; align-items: center; gap: 11px; padding: 15px 20px; background: #fcf8f3; border-bottom: 1px solid #f0e6dc; }
+.cn-status-menu-space { height: 248px; }
+.cn-status-options-menu { max-height: 240px !important; overflow-y: auto !important; }
 .cn-search { flex: 1 1 420px; max-width: 620px; }
 .cn-search .MuiInputBase-root { min-height: 42px; }
 .cn-search-icon { width: 19px; height: 19px; margin-right: 9px; color: #8b684b; }
@@ -100,6 +102,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-status-rejected,.cn-status-cancelled { border-color: #e6cbc4; background: #fbefec; color: #8a5143; }
 .cn-pagination { border-top: 1px solid #efe5db; }
 .cn-pagination .MuiTablePagination-toolbar { min-height: 50px; }
+.cn-pagination .MuiTablePagination-select { min-width: 42px; padding: 5px 22px 5px 9px; border-radius: 8px; background: #f4eadf; }
 /* Guided create/edit flow */
 .cn-form-page .cn-page-heading { margin-bottom: 18px; }
 .cn-stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 0 18px; padding: 13px 18px; border: 1px solid #eadccc; border-radius: 13px; background: #fffdf9; box-shadow: 0 4px 14px #5a351008; }
@@ -120,8 +123,14 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-section-title p { margin-top: 3px; color: #8a7b6f; font-size: .78rem; }
 .cn-invoice-search { display: block; width: min(100%, 360px); margin-bottom: 14px; }
 .cn-invoice-options { display: grid; gap: 12px; margin-top: 20px; }
-.cn-inline-pagination { margin-top: 8px; border-top: 1px solid #efe5db; background: #fffdf9; }
-.cn-inline-pagination .MuiTablePagination-toolbar { min-height: 48px; }
+.cn-inline-pagination { margin-top: 8px; border: 1px solid #eadccc; border-radius: 0 0 12px 12px; background: linear-gradient(180deg, #fffdf9 0%, #fcf7f0 100%); }
+.cn-inline-pagination .MuiTablePagination-toolbar { min-height: 56px; padding: 0 15px; color: #604631; }
+.cn-inline-pagination .MuiTablePagination-selectLabel { color: #806852; font-size: .78rem; font-weight: 600; }
+.cn-inline-pagination .MuiTablePagination-select { min-width: 42px; padding: 5px 22px 5px 9px; border-radius: 8px; background: #f2e6d8; color: #503421; font-weight: 700; }
+.cn-inline-pagination .MuiTablePagination-displayedRows { margin: 0 10px; padding: 5px 9px; border-radius: 8px; background: #f6eee5; color: #684c35; font-size: .76rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.cn-inline-pagination .MuiTablePagination-actions button { width: 34px; height: 34px; margin-left: 3px; border: 1px solid transparent; border-radius: 9px; color: #694a31; transition: background-color .15s ease, border-color .15s ease; }
+.cn-inline-pagination .MuiTablePagination-actions button:hover:not(.Mui-disabled) { border-color: #e4d2bd; background: #f1e3d3; }
+.cn-inline-pagination .MuiTablePagination-actions button.Mui-disabled { color: #c4b8ab; }
 .cn-invoice-option { display: grid; width: 100%; grid-template-columns: 18px minmax(0, 1fr) minmax(150px, auto); align-items: center; gap: 13px; padding: 14px; border: 1px solid #e9ddd0; border-radius: 11px; background: #fff; color: #403328; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
 .cn-invoice-option:hover { border-color: #c49b76; background: #fffaf4; }
 .cn-invoice-option.selected { border-color: #80502e; background: #f3e4d2; box-shadow: 0 0 0 2px #97694535; }
@@ -202,9 +211,11 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 
 /* Credit note detail and print view */
 .cn-detail-toolbar,.cn-preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.cn-detail-toolbar > .MuiButton-root { min-height: 40px; padding: 7px 14px; border: 1px solid #dfc5aa; border-radius: 10px; background: #f5e9dc; color: #5b3922; font-weight: 700; }
+.cn-detail-toolbar > .MuiButton-root:hover { border-color: #bd916c; background: #ecdbc8; }
 .cn-detail-toolbar > div { display: flex; gap: 8px; }
 .cn-inline-alert { margin-bottom: 12px; }
-.cn-document-header { overflow: hidden; margin-bottom: 16px; padding: 23px 26px 18px; border: 1px solid #e7d6c4; border-radius: 15px; background: linear-gradient(115deg, #fffdf9 0%, #faf1e6 100%); box-shadow: 0 7px 20px #5937170a; }
+.cn-document-header { overflow: hidden; margin-bottom: 16px; padding: 23px 26px 18px; border: 1px solid #dfc5aa; border-radius: 15px; background: linear-gradient(115deg, #f7ecdf 0%, #fffaf3 100%); box-shadow: 0 7px 20px #5937170a; }
 .cn-document-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 19px; }
 .cn-brand-mark { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 9px; background: #5a2508; color: white; }
 .cn-brand-mark svg { font-size: 19px; }
@@ -258,8 +269,8 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-linked-invoice hr { width: 100%; margin: 5px 0; border: 0; border-top: 1px solid #eee5dc; }
 .cn-linked-invoice > div:not(.cn-detail-card-heading) { display: flex; width: 100%; justify-content: space-between; gap: 10px; }
 .cn-linked-invoice > div > strong,.cn-linked-invoice > div > a { color: #61452f; font-size: .73rem; font-weight: 700; }
-.cn-refund-balance { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; background: linear-gradient(145deg, #fffdf9, #f4f7ef); }
-.cn-refund-balance-icon { display: grid; width: 34px; height: 34px; margin-bottom: 5px; place-items: center; border-radius: 10px; background: #e8f0e6; color: #58734f; }
+.cn-refund-balance { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; border-color: #a9c7ac; background: linear-gradient(145deg, #f5fbf4, #e8f3e8); box-shadow: 0 7px 20px #38613a12; }
+.cn-refund-balance-icon { display: grid; width: 34px; height: 34px; margin-bottom: 5px; place-items: center; border-radius: 10px; background: #d8ead9; color: #3f7147; }
 .cn-refund-balance-icon svg { font-size: 19px; }
 .cn-refund-balance > small { color: #7e7a6d; font-size: .68rem; }
 .cn-refund-balance > strong { color: #465b3f; font-size: 1.32rem; font-variant-numeric: tabular-nums; }

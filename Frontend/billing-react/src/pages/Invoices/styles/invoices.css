@@ -237,14 +237,13 @@
   width: 100%;
 }
 
-/* Keep all seven list metrics in one row across browser zoom breakpoints. */
+/* Fit the five invoice summary cards in the available row without horizontal scrolling. */
 .invoice-summary-group > .invoice-summary-grid {
-  grid-template-columns: repeat(7, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  overflow-x: auto;
-  padding: 4px 4px 12px;
+  overflow: visible;
+  padding: 4px;
   box-sizing: border-box;
-  scrollbar-width: thin;
 }
 
 .invoice-summary-grid.invoice-detail-kpis,
@@ -501,6 +500,15 @@
   width: 100%;
   text-align: center;
   margin: 2px 0 3px;
+}
+
+.invoice-kpi-circular-card .invoice-kpi-count-text {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--kpi-label, var(--text-secondary));
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .invoice-kpi-circular-card .invoice-kpi-subtext {
@@ -2051,13 +2059,6 @@
   transform: scale(1.08);
 }
 
-.invoice-table-footer-actions {
-  padding: 16px 4px 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .invoice-form-bottom {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
@@ -2179,7 +2180,8 @@
 
 .invoice-edit-table {
   width: 100%;
-  min-width: 1220px;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
@@ -2195,16 +2197,26 @@
 
 .invoice-edit-table td {
   padding: 8px 6px;
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px solid #f0e6dc;
   text-align: left !important;
 }
 
+.invoice-edit-table input[id^="invoice-line-discount-"] {
+  -moz-appearance: textfield;
+}
+
+.invoice-edit-table input[id^="invoice-line-discount-"]::-webkit-inner-spin-button,
+.invoice-edit-table input[id^="invoice-line-discount-"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 .invoice-edit-table td:first-child,
 .invoice-edit-table th:first-child {
-  width: 36px;
+  width: 4%;
   min-width: 32px;
-  max-width: 40px;
+  max-width: 44px;
   text-align: left !important;
   padding-left: 6px;
   padding-right: 4px;
@@ -2217,56 +2229,60 @@
 /* 2. Product / Service & Description */
 .invoice-edit-table th:nth-child(2),
 .invoice-edit-table td:nth-child(2) {
-  width: auto;
-  min-width: 260px;
+  width: 23%;
+  min-width: 190px;
   text-align: left !important;
+}
+
+.invoice-edit-table td:nth-child(n + 3):nth-child(-n + 7) {
+  vertical-align: middle;
 }
 
 /* 3. HSN/SAC */
 .invoice-edit-table th:nth-child(3),
 .invoice-edit-table td:nth-child(3) {
-  width: 110px;
-  min-width: 105px;
+  width: 9%;
+  min-width: 78px;
   text-align: left !important;
 }
 
 /* 4. Quantity */
 .invoice-edit-table th:nth-child(4),
 .invoice-edit-table td:nth-child(4) {
-  width: 100px;
-  min-width: 95px;
+  width: 8%;
+  min-width: 68px;
   text-align: left !important;
 }
 
 /* 5. Unit Price */
 .invoice-edit-table th:nth-child(5),
 .invoice-edit-table td:nth-child(5) {
-  width: 125px;
-  min-width: 115px;
+  width: 10%;
+  min-width: 85px;
   text-align: left !important;
 }
 
 /* 6. Discount */
 .invoice-edit-table th:nth-child(6),
 .invoice-edit-table td:nth-child(6) {
-  width: 245px;
-  min-width: 235px;
+  width: 12%;
+  min-width: 105px;
   text-align: left !important;
 }
 
 /* 7. Tax Rate */
 .invoice-edit-table th:nth-child(7),
 .invoice-edit-table td:nth-child(7) {
-  width: 135px;
-  min-width: 125px;
+  width: 11%;
+  min-width: 100px;
   text-align: left !important;
 }
 
 /* 8. Tax Amount */
 .invoice-edit-table th:nth-child(8),
 .invoice-edit-table td:nth-child(8) {
-  width: 115px;
-  min-width: 105px;
+  width: 8%;
+  min-width: 75px;
   text-align: left !important;
   white-space: nowrap;
 }
@@ -2280,8 +2296,8 @@
 /* 9. Line Total */
 .invoice-edit-table th:nth-child(9),
 .invoice-edit-table td:nth-child(9) {
-  width: 130px;
-  min-width: 120px;
+  width: 9%;
+  min-width: 85px;
   text-align: left !important;
   white-space: nowrap;
 }
@@ -2295,8 +2311,8 @@
 /* 10. Actions */
 .invoice-edit-table th:last-child,
 .invoice-edit-table td:last-child {
-  width: 85px;
-  min-width: 80px;
+  width: 6%;
+  min-width: 65px;
   text-align: left !important;
 }
 
@@ -2337,14 +2353,7 @@
 }
 
 .invoice-edit-table td:nth-child(2) .MuiTextField-root:nth-child(2) {
-  margin-top: 6px;
-}
-
-.invoice-line-discount-fields {
-  display: grid;
-  grid-template-columns: minmax(80px, 1fr) minmax(125px, 1.4fr);
-  align-items: start;
-  gap: 8px;
+  margin-top: 10px;
 }
 
 @media (max-width: 899px) {
@@ -2353,6 +2362,7 @@
   }
   .invoice-edit-table {
     min-width: 1050px;
+    table-layout: auto;
   }
 }
 
@@ -2522,7 +2532,8 @@
    12. Responsive Adjustments
    -------------------------------------------------------------------------- */
 @media (max-width: 1279px) {
-  .invoice-summary-grid {
+  .invoice-summary-grid,
+  .invoice-summary-group > .invoice-summary-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
@@ -2544,6 +2555,7 @@
 
 @media (max-width: 900px) {
   .invoice-summary-grid,
+  .invoice-summary-group > .invoice-summary-grid,
   .invoice-detail-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
@@ -2580,6 +2592,7 @@
   }
 
   .invoice-summary-grid,
+  .invoice-summary-group > .invoice-summary-grid,
   .invoice-detail-kpis,
   .invoice-form-grid,
   .invoice-form-bottom .invoice-form-grid,

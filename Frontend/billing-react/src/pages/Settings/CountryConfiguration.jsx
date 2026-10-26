@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Alert,
   Button,
   Checkbox,
   TextField,
@@ -21,12 +20,11 @@ import {
   MonetizationOnOutlined,
 } from '@mui/icons-material';
 import { SettingsPageHeader } from './SettingsPageHeader';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';
-import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import {
   useRegionalSettings,
-  COUNTRY_SETTINGS_BLOCKER,
   BILLING_COUNTRIES_LIST as COUNTRIES_LIST,
 } from '../../services/regionalSettingsService';
 import './settings.css';
@@ -36,12 +34,15 @@ export function CountryConfiguration() {
   const {
     selectedCountries: persistedCountries,
     saveCountries,
+    settingsLoading,
+    settingsError,
+    reloadSettings,
   } = useRegionalSettings();
 
   const [selectedCountries, setSelectedCountries] = useState(persistedCountries);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
+  const [saveError, setSaveError] = useState('');
   const saveLock = useRef(false);
 
   // Sync with persisted settings on mount / change
@@ -92,11 +93,12 @@ export function CountryConfiguration() {
     if (saveLock.current) return;
     saveLock.current = true;
     setSaving(true);
+    setSaveError('');
     try {
       const result = await saveCountries(selectedCountries);
       navigate('/settings', { state: { countrySaved: result.message || 'Country configuration saved successfully.' } });
     } catch (err) {
-      setToast(errorPresentation(err.userMessage || err.message));
+      setSaveError(errorPresentation(err.userMessage || err.message));
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -104,6 +106,34 @@ export function CountryConfiguration() {
   };
 
   const defaultCountry = selectedCountries.length > 0 ? selectedCountries[0] : null;
+
+  if (saveError || settingsError) {
+    return (
+      <main className="settings-page country-config-page">
+        <SettingsPageHeader
+          title="Country Configuration"
+          description="Select the countries available for your application. Default phone calling codes and currencies are automatically derived."
+        />
+        <DashboardErrorState
+          title={saveError ? 'Unable to save country settings' : 'Unable to load country settings'}
+          message={saveError || settingsError}
+          onRetry={saveError ? handleSave : reloadSettings}
+        />
+      </main>
+    );
+  }
+
+  if (settingsLoading) {
+    return (
+      <main className="settings-page country-config-page">
+        <SettingsPageHeader
+          title="Country Configuration"
+          description="Select the countries available for your application. Default phone calling codes and currencies are automatically derived."
+        />
+        <div className="settings-panel settings-empty" role="status">Loading country settings...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="settings-page country-config-page">
@@ -121,8 +151,6 @@ export function CountryConfiguration() {
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </SettingsPageHeader>
-
-      <Alert severity="error" sx={{ mb: 2 }}>{COUNTRY_SETTINGS_BLOCKER}</Alert>
 
       {/* UPSIDE: Selected Countries Section */}
       <section className="country-selected-shelf" aria-label="Currently selected countries">
@@ -443,7 +471,6 @@ export function CountryConfiguration() {
         </aside>
       </div>
 
-      <FeedbackSnackbar severity="error" message={toast} onClose={() => setToast('')} />
     </main>
   );
 }

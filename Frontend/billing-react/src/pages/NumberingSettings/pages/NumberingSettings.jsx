@@ -185,6 +185,18 @@ export function NumberingSettings() {
     resetPolicy: currentResetPolicy,
   };
 
+  if (apiError && !loaded) {
+    return (
+      <div className="numbering-page-root">
+        <SettingsPageHeader
+          title="Invoice Numbering"
+          description="Define document formats, set sequence rules, and preview your next invoice number."
+        />
+        <DashboardErrorState title="Unable to load numbering settings" message={apiError} onRetry={() => loadSettingsForType(currentDocType)} />
+      </div>
+    );
+  }
+
   return (
     <div className="numbering-page-root">
       <SettingsPageHeader

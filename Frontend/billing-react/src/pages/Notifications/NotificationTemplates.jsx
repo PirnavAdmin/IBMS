@@ -56,14 +56,14 @@ export function NotificationTemplates() {
     <Link to="/settings/notifications/new"><Button type="primary">Create Template</Button></Link>
   </>}>
     {toastHolder}
-    <section className="notification-card">
+    {query.error ? <NotificationError error={query.error} onRetry={() => query.refetch()} /> : <section className="notification-card">
       <div className="notification-filters" role="group" aria-label="Template filters">
         <label>Event Type<Select aria-label="Event Type filter" placeholder="All events" allowClear options={eventOptions} value={filters.eventType} onChange={eventType => setFilters(previous => ({ ...previous, eventType }))} /></label>
         <label>Status<Select aria-label="Template status filter" value={filters.isActive === undefined ? 'all' : String(filters.isActive)} options={[{ value: 'all', label: 'All statuses' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} onChange={value => setFilters(previous => ({ ...previous, isActive: value === 'all' ? undefined : value === 'true' }))} /></label>
         <Button onClick={() => query.refetch()} disabled={query.isFetching}>Refresh</Button>
       </div>
-      <Table className="ibms-table-frame notification-data-table" aria-label="Notification templates" rowKey="id" columns={columns} dataSource={query.error ? [] : query.data || []} loading={query.isFetching} size="middle" scroll={{ x: 1000 }} pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }} locale={{ emptyText: query.error ? <NotificationError error={query.error} onRetry={() => query.refetch()} /> : <NotificationEmpty /> }} />
-    </section>
+      <Table className="ibms-table-frame notification-data-table" aria-label="Notification templates" rowKey="id" columns={columns} dataSource={query.data || []} loading={query.isFetching} size="middle" scroll={{ x: 1000 }} pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }} locale={{ emptyText: <NotificationEmpty /> }} />
+    </section>}
     {preview && <NotificationPreview payload={preview} onClose={() => setPreview(null)} />}
     <Modal open={Boolean(confirmation)} title={confirmation?.type === 'delete' ? 'Delete notification template?' : 'Restore missing default templates?'} onCancel={() => { if (!locked.current) setConfirmation(null); }} closable={!pending} mask={{ closable: !pending }}
       footer={<><Button disabled={pending} onClick={() => setConfirmation(null)}>Cancel</Button><Button danger={confirmation?.type === 'delete'} type="primary" loading={pending} onClick={perform}>{confirmation?.type === 'delete' ? 'Delete Template' : 'Restore Missing Defaults'}</Button></>} className="notification-modal">

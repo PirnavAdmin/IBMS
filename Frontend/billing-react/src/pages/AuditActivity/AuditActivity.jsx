@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem,
   Pagination, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField} from '@mui/material';
-import { HistoryOutlined, Refresh, VisibilityOutlined } from '@mui/icons-material';
+import { HistoryOutlined, MoreVert, Refresh } from '@mui/icons-material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { getAuditActivity, getAuditFilterOptions } from './auditApi.js';
-import { auditEventLabel, auditDate, auditQuery, auditSnapshot, emptyAuditFilters, searchAuditPage } from './auditModel.js';
+import { auditEventLabel, auditDate, auditQuery, auditSnapshot, emptyAuditFilters, formatAuditChanges, searchAuditPage } from './auditModel.js';
 import './audit-activity.css';
 
 export function AuditActivity() {
@@ -94,11 +94,6 @@ export function AuditActivity() {
           <DateRangeFilter startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
-        {optionsError && <Alert severity="error" action={![401, 403].includes(optionsError.response?.status)
-          ? <Button color="inherit" size="small" onClick={() => setRefresh(value => value + 1)}>Retry</Button> : undefined}>
-          {optionsError.response?.status === 403 ? 'Access denied to audit filter options.' : optionsError.response?.status === 401
-            ? 'Please sign in again to load audit filter options.' : errorPresentation(optionsError.userMessage || optionsError.message)}
-        </Alert>}
         <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
       </form>
       <div className="audit-results" aria-label="Activity history" aria-busy={loading}>
@@ -107,13 +102,13 @@ export function AuditActivity() {
         message={forbidden ? 'Your account does not have access to this tenant’s audit history.' : unauthorized ? 'Please sign in again to view audit activity.' : errorPresentation(error.userMessage || error.message)}
         onRetry={forbidden || unauthorized ? undefined : () => setRefresh(value => value + 1)} /> : <>
         <TableContainer className="ibms-table-frame"><Table aria-label="Audit activity history">
-          <TableHead><TableRow>{['Event', 'Date and time (IST)', 'Performed by', 'Module / entity', 'Changes / result', 'Details'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
+          <TableHead><TableRow>{['Event', 'Date and time (IST)', 'Performed by', 'Module / entity', 'Changes / result', 'Actions'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
           <TableBody>{loading ? Array.from({ length: 6 }, (_, index) => <TableRow key={index}>{Array.from({ length: 6 }, (_, cell) => <TableCell key={cell}><Skeleton /></TableCell>)}</TableRow>)
             : rows.map(row => <TableRow key={row.id} hover><TableCell><Chip size="small" label={auditEventLabel(row.action)} className="audit-event" /></TableCell>
               <TableCell className="audit-date">{auditDate(row.timestamp)}</TableCell><TableCell>{row.userName || '—'}</TableCell>
               <TableCell><strong>{row.entityName || '—'}</strong>{row.entityId && <span className="audit-entity-id">Record #{row.entityId}</span>}</TableCell>
-              <TableCell><span className="audit-changes">{row.changes || 'No description recorded'}</span></TableCell>
-              <TableCell><IconButton size="small" aria-label={`View audit event ${row.id}`} onClick={() => setSelected(row)}><VisibilityOutlined fontSize="small" /></IconButton></TableCell></TableRow>)}
+              <TableCell><span className="audit-changes">{row.changes ? formatAuditChanges(row.changes) : 'No description recorded'}</span></TableCell>
+              <TableCell><IconButton size="small" aria-label={`View audit event ${row.id}`} onClick={() => setSelected(row)}><MoreVert fontSize="small" /></IconButton></TableCell></TableRow>)}
             {!loading && !rows.length && <TableRow><TableCell colSpan={6}><div className="audit-empty"><HistoryOutlined /><h3>{searchQuery.trim() ? 'No matches on this page' : filtered ? 'No matching activity' : 'No audit activity yet'}</h3>
               <p>{searchQuery.trim() ? 'Try another header search or move to another page.' : filtered ? 'Adjust or clear the filters to see more activity.' : 'Recorded activity will appear here when available.'}</p></div></TableCell></TableRow>}
           </TableBody>
@@ -130,7 +125,7 @@ export function AuditActivity() {
       <DialogTitle>Audit event details{selected && <span className="audit-detail-number">#{selected.id}</span>}</DialogTitle>
       <DialogContent dividers>{selected && <><dl className="audit-detail-fields">{[
         ['Event', auditEventLabel(selected.action)], ['Date and time (IST)', auditDate(selected.timestamp)], ['Performed by', selected.userName],
-        ['Module / entity', selected.entityName], ['Record ID', selected.entityId], ['Changes / result', selected.changes],
+        ['Module / entity', selected.entityName], ['Record ID', selected.entityId], ['Changes / result', formatAuditChanges(selected.changes)],
       ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
         <div className="audit-snapshots"><section><h3>Previous values</h3><pre>{auditSnapshot(selected.oldValues)}</pre></section><section><h3>New values</h3><pre>{auditSnapshot(selected.newValues)}</pre></section></div>
       </>}</DialogContent><DialogActions><Button onClick={() => setSelected(null)}>Close</Button></DialogActions>

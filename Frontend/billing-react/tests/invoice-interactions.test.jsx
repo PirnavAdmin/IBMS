@@ -1346,3 +1346,106 @@ test('Invoice CSV export keeps current filters, guards duplicate clicks and disc
     });
   } finally { apiClient.get = original.get; URL.createObjectURL = original.create; URL.revokeObjectURL = original.revoke; HTMLAnchorElement.prototype.click = original.click; }
 });
+
+// Exercise the real shared customer parser: editor data is nested, unlike the
+// flat customer snapshot embedded in saved invoices.
+const addressCustomerRead = invoiceService.customer;
+const addressDto = {
+  id: 2, name: 'Billing Customer', currency: 'INR', status: 'Active',
+  addresses: [
+    { addressType: 'Shipping', addressLine1: 'Shipping only road', city: 'Dispatch city' },
+    { addressType: 'Billing', addressLine1: 'Billing road', addressLine2: 'Suite B', city: 'Billing city', state: 'Billing state', postalCode: '123456', country: 'India' },
+  ],
+};
+async function selectAddressCustomer(name) {
+  await input(document.querySelector('input[role=combobox]'), name);
+  await flush(320);
+  const option = [...document.querySelectorAll('[role=option]')].find(el => el.textContent === name);
+  assert.ok(option, `Customer option ${name} exists`);
+  await click(option);
+}
+
+test('Invoice billing address: Create hydrates shared API billing fields, never shipping, and clears selection', async () => {
+  const reads = [];
+  const noBilling = { id: 3, name: 'Shipping Customer', currency: 'INR', addresses: [addressDto.addresses[0]] };
+  await mock(apiClient, { get: async url => {
+    reads.push(url);
+    return { data: url.endsWith('/3') ? noBilling : addressDto };
+  } }, async () => defaults({
+    customers: async () => ({ items: [addressDto, noBilling] }),
+    customer: addressCustomerRead,
+  }, async () => {
+    const mounted = await mount(<InvoiceForm />, '/invoices/new', '/invoices/new');
+    try {
+      await selectAddressCustomer('Billing Customer');
+      assert.match(mounted.host.textContent, /Billing road, Suite B, Billing city, Billing state, 123456, India/);
+      assert.doesNotMatch(mounted.host.textContent, /Shipping only road|No address supplied/);
+      await selectAddressCustomer('Shipping Customer');
+      assert.match(mounted.host.textContent, /No address supplied/);
+      assert.doesNotMatch(mounted.host.textContent, /Billing road|Shipping only road|Dispatch city/);
+      assert.ok(reads.includes('/api/v1/customers/2'));
+      assert.ok(reads.includes('/api/v1/customers/3'));
+      await click(mounted.host.querySelector('button[title="Clear"]'));
+      assert.equal(mounted.host.querySelector('.invoice-customer-card'), null);
+    } finally { await mounted.close(); }
+  }));
+});
+
+test('Invoice billing address: Edit and remount hydrate billing data without changing invoice financial payload', async () => {
+  let saved;
+  await mock(apiClient, { get: async () => ({ data: addressDto }) }, async () => defaults({
+    customer: addressCustomerRead,
+    get: async () => invoice,
+    save: async (id, body) => { saved = body; return invoice; },
+  }, async () => {
+    for (let reload = 0; reload < 2; reload++) {
+      const mounted = await mount(<InvoiceForm />, '/invoices/7/edit', '/invoices/:id/edit');
+      try {
+        await flush(400);
+        assert.match(mounted.host.textContent, /Billing road, Suite B, Billing city/);
+        assert.doesNotMatch(mounted.host.textContent, /No address supplied|Shipping only road/);
+        if (reload === 1) {
+          await click(button('Save Draft'));
+          assert.deepEqual(saved, invoiceDto(formFromInvoice(invoice), true, undefined));
+        }
+      } finally { await mounted.close(); }
+    }
+  }));
+});
+
+test('Invoice billing address: switching ignores late responses, distinguishes loading/errors and retries without stale data', async () => {
+  let resolveSecond, rejectThird;
+  let thirdReads = 0;
+  const second = { ...addressDto, id: 3, name: 'Second Customer' };
+  const third = { ...addressDto, id: 4, name: 'Third Customer' };
+  await mock(apiClient, { get: url => {
+    if (url.endsWith('/3')) return new Promise(resolve => { resolveSecond = resolve; });
+    if (url.endsWith('/4') && thirdReads++ === 0) return new Promise((_, reject) => { rejectThird = reject; });
+    return Promise.resolve({ data: url.endsWith('/4') ? { ...third, addresses: [{ addressType: 'Billing', addressLine1: 'Third billing road' }] } : addressDto });
+  } }, async () => defaults({
+    customers: async () => ({ items: [addressDto, second, third] }),
+    customer: addressCustomerRead,
+    get: async () => invoice,
+  }, async () => {
+    const mounted = await mount(<InvoiceForm />, '/invoices/7/edit', '/invoices/:id/edit');
+    try {
+      assert.match(mounted.host.textContent, /Billing road/);
+      await selectAddressCustomer('Second Customer');
+      assert.match(mounted.host.textContent, /Loading customer billing details/);
+      assert.doesNotMatch(mounted.host.textContent, /Billing road|No address supplied/);
+      await selectAddressCustomer('Third Customer');
+      await act(async () => resolveSecond({ data: { ...second, addresses: [{ addressType: 'Billing', addressLine1: 'Late second address' }] } }));
+      await flush();
+      assert.doesNotMatch(mounted.host.textContent, /Late second address|Billing road|No address supplied/);
+      await act(async () => rejectThird(new Error('Customer address request unavailable')));
+      await flush();
+      assert.match(mounted.host.textContent, /Customer address request unavailable/);
+      assert.doesNotMatch(mounted.host.textContent, /No address supplied|Late second address/);
+      assert.equal(mounted.host.querySelector('.invoice-customer-card'), null);
+      await click(button('Retry'));
+      await flush();
+      assert.match(mounted.host.textContent, /Third billing road/);
+      assert.doesNotMatch(mounted.host.textContent, /Late second address|Customer address request unavailable/);
+    } finally { await mounted.close(); }
+  }));
+});

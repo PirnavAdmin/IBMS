@@ -120,12 +120,20 @@ export function InvoiceValues({ values }) {
 export function InvoiceTotals({ invoice, calculation, currency }) {
   const isCalc = Boolean(calculation);
   const activeCurrency = currency || invoice?.currency || "INR";
+  const formatSummaryAmount = value => value == null || value === "" ? "N/A" : money(value, activeCurrency);
+  const calculatedDiscount = (Number(calculation?.totalLineDiscounts) || 0) + (Number(calculation?.invoiceDiscountAmount) || 0);
+  const calculatedTaxableBase = calculation?.taxableSubtotal ?? (
+    calculation?.grossSubtotal != null ? Math.max(0, Number(calculation.grossSubtotal) - calculatedDiscount) : null
+  );
+  const persistedTaxableBase = invoice?.taxableAmount ?? (
+    invoice?.subtotal != null ? Math.max(0, Number(invoice.subtotal) - (Number(invoice.discountAmount) || 0)) : null
+  );
 
   const baseRows = isCalc
     ? [
         ["Subtotal", calculation.grossSubtotal],
-        ["Discount", (Number(calculation.totalLineDiscounts) || 0) + (Number(calculation.invoiceDiscountAmount) || 0)],
-        ["Taxable Base", calculation.taxableSubtotal],
+        ["Discount", calculatedDiscount],
+        ["Taxable Base", calculatedTaxableBase],
         ["Tax", calculation.totalTaxes],
         ["Additional Charges", (Number(calculation.chargesTotal) || 0) + (Number(calculation.taxOnChargesTotal) || 0)],
         ["Rounding", calculation.roundingAdjustment || 0],
@@ -133,7 +141,7 @@ export function InvoiceTotals({ invoice, calculation, currency }) {
     : [
         ["Subtotal", invoice?.subtotal],
         ["Discount", invoice?.discountAmount],
-        ["Taxable Base", invoice?.taxableAmount != null ? invoice.taxableAmount : (invoice?.subtotal - (invoice?.discountAmount || 0))],
+        ["Taxable Base", persistedTaxableBase],
         ["Tax", invoice?.taxAmount],
         ["Additional Charges", invoice?.chargesAmount],
         ["Rounding", invoice?.roundingAmount || 0],
@@ -153,14 +161,14 @@ export function InvoiceTotals({ invoice, calculation, currency }) {
         {baseRows.map(([label, value]) => (
           <div key={label} className="invoice-summary-row">
             <dt>{label}</dt>
-            <dd>{money(value, activeCurrency)}</dd>
+            <dd>{formatSummaryAmount(value)}</dd>
           </div>
         ))}
       </dl>
 
       <div className="invoice-grand-total-row">
         <span>Grand Total</span>
-        <strong>{money(grandTotal, activeCurrency)}</strong>
+        <strong>{formatSummaryAmount(grandTotal)}</strong>
       </div>
 
       {!isCalc && invoice && (invoice.paidAmount != null || invoice.balanceAmount != null) && (
