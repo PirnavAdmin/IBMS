@@ -280,6 +280,27 @@ public class QuotationActionService : IQuotationActionService
                 Timestamp = DateTime.UtcNow
             };
             await _auditLogRepository.AddAsync(auditLog);
+
+            if (_outboxService != null)
+            {
+                try
+                {
+                    await _outboxService.PublishEventAsync(tenantId, "quotation.sent", new
+                    {
+                        QuotationId = quotation.Id,
+                        QuoteNumber = quotation.QuoteNumber,
+                        CustomerId = quotation.CustomerId,
+                        CustomerName = quotation.Customer?.Name,
+                        TotalAmount = quotation.TotalAmount,
+                        Currency = currency,
+                        Recipient = recipient,
+                        SentAtUtc = DateTime.UtcNow
+                    });
+                }
+                catch
+                {
+                }
+            }
             
             return ApiResponse<bool>.Ok(true, "Quotation sent.");
         }
@@ -643,6 +664,26 @@ public class QuotationActionService : IQuotationActionService
                 Timestamp = DateTime.UtcNow
             };
             await _auditLogRepository.AddAsync(auditLog);
+
+            if (_outboxService != null)
+            {
+                try
+                {
+                    await _outboxService.PublishEventAsync(tenantId, "quotation.converted", new
+                    {
+                        QuotationId = quotation.Id,
+                        QuoteNumber = quotation.QuoteNumber,
+                        InvoiceId = savedInvoice.Id,
+                        InvoiceNumber = savedInvoice.InvoiceNumber,
+                        CustomerId = quotation.CustomerId,
+                        TotalAmount = quotation.TotalAmount,
+                        ConvertedAtUtc = DateTime.UtcNow
+                    });
+                }
+                catch
+                {
+                }
+            }
 
             await _unitOfWork.CommitTransactionAsync();
 
