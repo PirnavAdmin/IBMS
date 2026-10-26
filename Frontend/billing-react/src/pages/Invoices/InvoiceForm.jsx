@@ -150,6 +150,13 @@ export function InvoiceForm() {
     enabled: Boolean(form.customerId) && user.permissions.view,
     retry: false,
   });
+  // The shared customer client returns a normalized billingAddress object.
+  // Never display data for a previous selection or a failed customer request.
+  const selectedCustomer =
+    form.customerId && !customer.error &&
+    String(customer.data?.id) === String(form.customerId)
+      ? customer.data
+      : null;
   const taxes = useQuery({
     queryKey: ["invoices", "taxes"],
     queryFn: () => invoiceService.taxes(),
@@ -561,7 +568,7 @@ export function InvoiceForm() {
               <Autocomplete
                 options={customers.data?.items || []}
                 filterOptions={(values) => values}
-                value={customer.data || null}
+                value={selectedCustomer}
                 loading={customers.isFetching}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(a, b) => a.id === b.id}
@@ -592,6 +599,9 @@ export function InvoiceForm() {
                 )}
               />
             </div>
+            {form.customerId && customer.isPending && (
+              <p role="status">Loading customer billing details...</p>
+            )}
             <InvoiceState
               error={customers.error || customer.error}
               retry={() => {
@@ -599,18 +609,18 @@ export function InvoiceForm() {
                 customer.refetch();
               }}
             />
-            {customer.data && (
+            {selectedCustomer && (
               <div className="invoice-customer-card">
                 <div className="invoice-customer-card-header">
                   <div className="invoice-customer-avatar">
-                    {customer.data.name?.charAt(0)?.toUpperCase() || "C"}
+                    {selectedCustomer.name?.charAt(0)?.toUpperCase() || "C"}
                   </div>
                   <div className="invoice-customer-meta">
-                    <strong>{customer.data.name}</strong>
-                    <span>{customer.data.email || "No email on record"}</span>
+                    <strong>{selectedCustomer.name}</strong>
+                    <span>{selectedCustomer.email || "No email on record"}</span>
                   </div>
-                  {customer.data.taxId && (
-                    <span className="invoice-tax-id-tag">Tax ID: {customer.data.taxId}</span>
+                  {selectedCustomer.taxId && (
+                    <span className="invoice-tax-id-tag">Tax ID: {selectedCustomer.taxId}</span>
                   )}
                 </div>
                 <div className="invoice-customer-card-details">
@@ -618,23 +628,25 @@ export function InvoiceForm() {
                     <span className="invoice-detail-label">Billing Address</span>
                     <p>
                       {[
-                        customer.data.address,
-                        customer.data.city,
-                        customer.data.state,
-                        customer.data.postalCode,
-                        customer.data.country,
+                        selectedCustomer.billingAddress?.street,
+                        selectedCustomer.billingAddress?.addressLine2,
+                        selectedCustomer.billingAddress?.city,
+                        selectedCustomer.billingAddress?.state,
+                        selectedCustomer.billingAddress?.postalCode,
+                        selectedCustomer.billingAddress?.country,
                       ]
-                        .filter(Boolean)
+                        .filter((part) => typeof part === "string" && part.trim())
+                        .map((part) => part.trim())
                         .join(", ") || "No address supplied"}
                     </p>
                   </div>
                   <div className="invoice-customer-detail-group">
                     <span className="invoice-detail-label">Payment Terms</span>
-                    <p>{customer.data.paymentTerms || "Standard / Net 30"}</p>
+                    <p>{selectedCustomer.paymentTerms || "Standard / Net 30"}</p>
                   </div>
                   <div className="invoice-customer-detail-group">
                     <span className="invoice-detail-label">Commercial Currency</span>
-                    <p>{customer.data.currency || form.currency || defaultCurrency || "—"}</p>
+                    <p>{selectedCustomer.currency || form.currency || defaultCurrency || "—"}</p>
                   </div>
                 </div>
               </div>
