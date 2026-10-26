@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Chip, LinearProgress } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
@@ -9,6 +10,15 @@ import './background-jobs.css';
 const dateTime = (value, emptyLabel) => value
   ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(value))
   : emptyLabel;
+const countdown = (value, now) => {
+  if (!value) return 'Schedule unavailable';
+  const seconds = Math.max(0, Math.ceil((new Date(value).getTime() - now) / 1000));
+  if (!seconds) return 'Due now';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours ? `Next run in ${hours}h ${minutes}m` : minutes ? `Next run in ${minutes}m ${remainder}s` : `Next run in ${remainder}s`;
+};
 function backgroundJobAccess(response) {
   const user = response?.data ?? response;
   const raw = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
@@ -18,6 +28,11 @@ function backgroundJobAccess(response) {
 const statusColor = status => ({ Running: 'info', Succeeded: 'success', Failed: 'error', Idle: 'default' }[status] || 'default');
 
 export function BackgroundJobStatus() {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const user = useQuery({
     queryKey: ['auth-user'],
     queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }),
@@ -46,11 +61,12 @@ export function BackgroundJobStatus() {
             : <>
               {query.isFetching && <LinearProgress aria-label="Refreshing background job status" />}
               <section className="background-jobs-grid" aria-label="Background job status list">
-                {(query.data || []).map(job => <article className="background-job-card" key={job.jobName}>
+                {(query.data || []).map(job => <article className="background-job-card" key={`${job.jobName}-${query.dataUpdatedAt}`}>
+                  <span className="background-job-refresh-flash" key={query.dataUpdatedAt} aria-hidden="true" />
                   <div className="background-job-card-heading"><div><h2>{job.jobName}</h2><p>{job.description}</p></div><Chip size="small" label={job.status} color={statusColor(job.status)} /></div>
                   <dl className="background-job-facts">
                     <div><dt>Last run</dt><dd>{dateTime(job.lastRunAtUtc, 'Never run')}</dd></div>
-                    <div><dt>Next scheduled run</dt><dd>{dateTime(job.nextScheduledRunUtc, 'Not provided')}</dd></div>
+                    <div><dt>Next scheduled run</dt><dd>{dateTime(job.nextScheduledRunUtc, 'Not provided')}<small className="background-job-countdown">{countdown(job.nextScheduledRunUtc, now)}</small></dd></div>
                     <div><dt>Processed</dt><dd>{job.lastProcessedCount}</dd></div>
                     <div><dt>Duration</dt><dd>{job.lastExecutionDurationMs ? `${Math.round(job.lastExecutionDurationMs)} ms` : '—'}</dd></div>
                   </dl>
