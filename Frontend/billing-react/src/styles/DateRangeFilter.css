@@ -15,3 +15,6 @@
 .date-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .date-range-error { color: #b44336; }
 .notification-range { display: grid; gap: 6px; }
+
+/* An opaque surface keeps date labels readable above page content. */
+.ant-popover .date-range-popover-content { background: #fff; box-shadow: 0 6px 20px rgba(69, 43, 29, .12); border: 1px solid #d5c6b5; border-radius: 12px; padding: 12px; }

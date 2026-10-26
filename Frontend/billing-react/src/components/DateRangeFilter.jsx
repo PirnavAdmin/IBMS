@@ -15,7 +15,7 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply }) {
     : startDate ? `From ${displayDate(startDate)}` : endDate ? `Until ${displayDate(endDate)}` : 'Date Range';
   const apply = value => { onApply(value); setOpen(false); };
   return <ConfigProvider theme={dateRangeTheme}>
-    <Popover destroyOnHidden trigger="click" placement="bottomLeft" open={open} onOpenChange={next => {
+    <Popover arrow={false} classNames={{ container: 'date-range-popover-content' }} destroyOnHidden trigger="click" placement="bottomLeft" open={open} onOpenChange={next => {
       if (next) setDraft({ startDate, endDate });
       setOpen(next);
     }} content={<form id={id} role="dialog" aria-label="Date Range" className="date-range-form" onKeyDown={event => {

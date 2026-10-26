@@ -141,7 +141,7 @@
 .premium-actions .premium-action-product i { background: #e5e2f4; color: #6554a0; }
 .premium-actions .premium-action-credit i { background: #f4e1e4; color: #a34f5d; }
 .premium-analytics, .premium-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.premium-analytics { margin-bottom: 20px; align-items: start; }
+.premium-analytics { margin-bottom: 20px; align-items: stretch; }
 .premium-analytics > .premium-panel { display: flex; flex-direction: column; }
 .premium-analytics > .premium-panel > header { min-height: 58px; flex-shrink: 0; }
 .premium-analytics > .premium-panel > .premium-empty { flex: 1; display: grid; place-content: center; }
@@ -308,3 +308,6 @@
 .premium-filters .premium-currency-control select { appearance: none; padding-right: 34px; font-size: 13px; font-weight: 500; }
 .premium-currency-control > svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .premium-currency-control select:disabled { cursor: not-allowed; opacity: .65; }
+
+/* Keep the graph cards and their disclosure footers aligned as content varies. */
+.premium-analytics > .premium-panel > :is(.premium-chart-data, .premium-outstanding-details) { margin-top: auto; }
