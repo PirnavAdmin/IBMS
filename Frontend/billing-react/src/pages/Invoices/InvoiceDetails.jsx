@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Snackbar,
   Tab,
   Tabs,
 } from "@mui/material";
@@ -35,6 +36,7 @@ import {
 } from "./services/invoiceService";
 import { creditNoteService } from "../CreditNotes/services/creditNoteService";
 import { InvoiceActions } from "./components/InvoiceActions";
+import { WorkspacePagination } from "../../components/WorkspacePagination";
 import {
   InvoiceShell,
   InvoiceState,
@@ -53,6 +55,7 @@ export function InvoiceDetails() {
   const client = useQueryClient();
   const [tab, setTab] = useState("Overview");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [copied, setCopied] = useState(false);
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
@@ -62,7 +65,7 @@ export function InvoiceDetails() {
   const [invoiceEmailSent, setInvoiceEmailSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(location.state?.invoiceNotice || "");
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const user = useInvoiceUser();
@@ -90,25 +93,25 @@ export function InvoiceDetails() {
     row?.customer?.name ? row.customer : customer.data || row?.customer;
 
   const payments = useQuery({
-    queryKey: ["invoice", "payments", id, page],
-    queryFn: () => invoiceService.payments(id, page),
+    queryKey: ["invoice", "payments", id, page, pageSize],
+    queryFn: () => invoiceService.payments(id, page, pageSize),
     enabled: tab === "Payments" && user.permissions.view,
     retry: false,
     staleTime: 0,
   });
 
   const credits = useQuery({
-    queryKey: ["invoice", "credits", id, page],
+    queryKey: ["invoice", "credits", id, page, pageSize],
     queryFn: () =>
-      creditNoteService.list({ invoiceId: id, page, pageSize: 20 }),
+      creditNoteService.list({ invoiceId: id, page, pageSize }),
     enabled: tab === "Credit Notes" && user.permissions.view,
     retry: false,
     staleTime: 0,
   });
 
   const audit = useQuery({
-    queryKey: ["invoice-audit", id, page],
-    queryFn: () => invoiceService.audit(id, page),
+    queryKey: ["invoice-audit", id, page, pageSize],
+    queryFn: () => invoiceService.audit(id, page, pageSize),
     enabled: tab === "Audit" && user.permissions.view,
     retry: false,
     staleTime: 0,
@@ -170,7 +173,7 @@ export function InvoiceDetails() {
           </Button>
           <Button
             startIcon={<Refresh />}
-            disabled={invoice.isFetching || !user.permissions.view}
+           disabled={invoice.isFetching || !user.permissions.view}
             onClick={() => {
               invoice.refetch();
               if (tab === "Payments") payments.refetch();
@@ -218,7 +221,7 @@ export function InvoiceDetails() {
             <Button
               variant="outlined"
               startIcon={<Refresh />}
-              disabled={pdfBusy}
+             disabled={pdfBusy}
               onClick={regeneratePdf}
             >
               {pdfBusy ? "Regenerating PDF..." : "Regenerate PDF"}
@@ -231,14 +234,18 @@ export function InvoiceDetails() {
         </>
       }
     >
-      {notice && (
-        <Alert severity="success" onClose={() => setNotice("")} sx={{ mb: 2 }}>
+      <Snackbar
+        open={Boolean(notice)}
+        autoHideDuration={5000}
+        onClose={(_, reason) => {
+          if (reason !== "clickaway") setNotice("");
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setNotice("")}>
           {notice}
         </Alert>
-      )}
-      {location.state?.invoiceNotice && !notice && (
-        <Alert severity="success">{location.state.invoiceNotice}</Alert>
-      )}
+      </Snackbar>
       {pdfError && (
         <Alert severity="error" onClose={() => setPdfError("")} sx={{ mb: 2 }}>
           {pdfError}
@@ -556,7 +563,7 @@ export function InvoiceDetails() {
                           variant="contained"
                           fullWidth
                           startIcon={<EmailOutlined />}
-                          disabled={sending || !customerData?.email}
+                         disabled={sending || !customerData?.email}
                           onClick={() => {
                             setSendError("");
                             setSendDialogOpen(true);
@@ -869,29 +876,7 @@ export function InvoiceDetails() {
                             </tbody>
                           </table>
                         </div>
-                        {payments.data.totalPages > 1 && (
-                          <div className="invoice-pagination">
-                            <span>
-                              Page {page} of {payments.data.totalPages} (
-                              {payments.data.totalCount} total)
-                            </span>
-                            <Button
-                              disabled={page === 1 || payments.isFetching}
-                              onClick={() => setPage((p) => p - 1)}
-                            >
-                              Previous
-                            </Button>
-                            <Button
-                              disabled={
-                                page >= payments.data.totalPages ||
-                                payments.isFetching
-                              }
-                              onClick={() => setPage((p) => p + 1)}
-                            >
-                              Next
-                            </Button>
-                          </div>
-                        )}
+                        {payments.data && <WorkspacePagination page={page} pageSize={pageSize} totalCount={payments.data.totalCount} itemLabel="payments" disabled={payments.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
                       </>
                     )}
                   </>
@@ -1025,29 +1010,7 @@ export function InvoiceDetails() {
                             </tbody>
                           </table>
                         </div>
-                        {credits.data.totalPages > 1 && (
-                          <div className="invoice-pagination">
-                            <span>
-                              Page {page} of {credits.data.totalPages} (
-                              {credits.data.totalCount} total)
-                            </span>
-                            <Button
-                              disabled={page === 1 || credits.isFetching}
-                              onClick={() => setPage((p) => p - 1)}
-                            >
-                              Previous
-                            </Button>
-                            <Button
-                              disabled={
-                                page >= credits.data.totalPages ||
-                                credits.isFetching
-                              }
-                              onClick={() => setPage((p) => p + 1)}
-                            >
-                              Next
-                            </Button>
-                          </div>
-                        )}
+                        {credits.data && <WorkspacePagination page={page} pageSize={pageSize} totalCount={credits.data.totalCount} itemLabel="credit notes" disabled={credits.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
                       </>
                     )}
                   </>
@@ -1076,7 +1039,7 @@ export function InvoiceDetails() {
                         variant="contained"
                         size="small"
                         startIcon={<EmailOutlined />}
-                        disabled={sending || !customerData?.email}
+                       disabled={sending || !customerData?.email}
                         onClick={() => {
                           setSendError("");
                           setSendDialogOpen(true);
@@ -1269,28 +1232,7 @@ export function InvoiceDetails() {
                             </tbody>
                           </table>
                         </div>
-                        {audit.data.totalPages > 1 && (
-                          <div className="invoice-pagination">
-                            <span>
-                              Page {page} of {audit.data.totalPages}
-                            </span>
-                            <Button
-                              disabled={page === 1 || audit.isFetching}
-                              onClick={() => setPage((p) => p - 1)}
-                            >
-                              Previous
-                            </Button>
-                            <Button
-                              disabled={
-                                page >= audit.data.totalPages ||
-                                audit.isFetching
-                              }
-                              onClick={() => setPage((p) => p + 1)}
-                            >
-                              Next
-                            </Button>
-                          </div>
-                        )}
+                        {audit.data && <WorkspacePagination page={page} pageSize={pageSize} totalCount={audit.data.totalCount} itemLabel="events" disabled={audit.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
                       </>
                     )}
                   </>
@@ -1349,7 +1291,7 @@ export function InvoiceDetails() {
           </Button>
           <Button
             variant="contained"
-            disabled={sending || !customerData?.email}
+           disabled={sending || !customerData?.email}
             startIcon={<EmailOutlined />}
             onClick={async () => {
               if (!row || sending) return;
@@ -1419,7 +1361,7 @@ export function InvoiceDetails() {
           </Button>
           <Button
             variant="contained"
-            disabled={issuing}
+           disabled={issuing}
             onClick={async () => {
               setIssuing(true);
               setIssueError("");

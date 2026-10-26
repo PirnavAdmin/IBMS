@@ -3,10 +3,11 @@ import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Breadcrumbs, Button, IconButton, InputAdornment, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField } from '@mui/material';
+import { Alert, Breadcrumbs, Button, IconButton, InputAdornment, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { Add, ArrowBack, CategoryOutlined, EditOutlined, MoreVert, PrintOutlined, SearchOutlined, ToggleOff, ToggleOn } from '@mui/icons-material';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
+import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import '../styles/products.css';
 import '../styles/categories.css';
 
@@ -86,7 +87,7 @@ export function CategoryList() {
           </TableRow>)}</TableBody>
         </Table>
       </TableContainer>
-      <TablePagination component="div" className="category-pagination" count={categories.length} page={page} onPageChange={(_, nextPage) => setPage(nextPage)} rowsPerPage={rowsPerPage} onRowsPerPageChange={event => { setRowsPerPage(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} labelRowsPerPage="Categories per page" />
+      <WorkspacePagination page={page + 1} pageSize={rowsPerPage} totalCount={categories.length} itemLabel="categories" onPageChange={value => setPage(value - 1)} onPageSizeChange={value => { setRowsPerPage(value); setPage(0); }} />
     </section>
     <Menu anchorEl={actionsMenu?.anchor} open={Boolean(actionsMenu)} onClose={closeActionsMenu}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}

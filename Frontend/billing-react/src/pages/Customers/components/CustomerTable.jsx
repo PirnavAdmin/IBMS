@@ -1,9 +1,10 @@
 import { DateRangeFilter } from '../../../components/DateRangeFilter';
 ﻿import { useEffect, useState } from 'react';
 import { useSearchDebounce } from '../../../hooks/useSearchDebounce';
+import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import { prioritizePrefix } from '../../../utils/search';
 import { useOutletContext } from 'react-router-dom';
-import { Button, Card, LinearProgress, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TableSortLabel, TextField } from '@mui/material';
+import { Button, Card, LinearProgress, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
 import { emptyFilters, filterCustomerRows, sortCustomerRows, rankCustomerNameMatches } from './customerTableUtils';
 
 export function CustomerFilters({ title, filters, onChange, selects = [], dates = true, extra }) {
@@ -42,6 +43,6 @@ export function CustomerTable({ title, rows, columns, selects, dates = true, def
   const safePage = server ? Math.min(page, Math.max(0, Math.ceil(server.totalCount / size) - 1)) : Math.min(page, Math.max(0, Math.ceil(sorted.length / size) - 1));
   return <Card className="customer-card"><h2>{title}</h2><CustomerFilters title={title} filters={filters} onChange={updateFilters} selects={selects} dates={dates} extra={extra} />{children}
     {server?.loading && <LinearProgress aria-label="Updating customer list" />}<TableContainer aria-busy={Boolean(server?.loading)} className="ibms-table-frame customer-table" tabIndex={0} role="region" aria-label={`${title} table`}><Table size="small" aria-label={title}><TableHead><TableRow>{columns.map((column) => <TableCell key={column.key} align={column.money ? 'right' : 'left'} sortDirection={sort.key === column.key ? sort.direction : false}>{column.sortable === false ? column.label : <TableSortLabel component="button" type="button" aria-label={`Sort by ${column.label} ${sort.key === column.key && sort.direction === 'asc' ? 'descending' : 'ascending'}`} active={sort.key === column.key} direction={sort.key === column.key ? sort.direction : 'asc'} onClick={() => { setSort({ key: column.key, direction: sort.key === column.key && sort.direction === 'asc' ? 'desc' : 'asc' }); setPage(0); }}>{column.label}</TableSortLabel>}</TableCell>)}</TableRow></TableHead><TableBody>{(server ? rows : sorted.slice(safePage * size, (safePage + 1) * size)).map((row) => <TableRow key={row.id} hover>{columns.map((column) => <TableCell key={column.key} align={column.money ? 'right' : 'left'}>{column.render ? column.render(row) : row[column.key] ?? '—'}</TableCell>)}</TableRow>)}{!sorted.length && !server?.unavailable && <TableRow><TableCell colSpan={columns.length}><div className="customer-empty">{rows.length ? 'No matching records found. Try changing or clearing your filters.' : (emptyMessage || `No ${title.toLowerCase()} found for this customer.`)}</div></TableCell></TableRow>}</TableBody></Table></TableContainer>
-    <TablePagination component="div" count={server ? server.totalCount : sorted.length} page={safePage} rowsPerPage={size} rowsPerPageOptions={[5, 10, 25]} SelectProps={{ MenuProps: { classes: { paper: 'customer-dropdown-menu' } } }} onPageChange={(_, value) => setPage(value)} onRowsPerPageChange={(e) => { setSize(Number(e.target.value)); setPage(0); }} />
+    <WorkspacePagination page={safePage + 1} pageSize={size} totalCount={server ? server.totalCount : sorted.length} itemLabel={title.toLowerCase()} disabled={Boolean(server?.loading)} onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setSize(value); setPage(0); }} />
   </Card>;
 }

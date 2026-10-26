@@ -9,11 +9,12 @@ import {
 } from '@mui/icons-material';
 import {
   Breadcrumbs, Button, IconButton, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell,
-  TableContainer, TableHead, TablePagination, TableRow, TextField,
+  TableContainer, TableHead, TableRow, TextField,
 } from '@mui/material';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import { formatDate, money } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
@@ -152,7 +153,7 @@ export function CreditNoteList() {
             </TableBody>
           </Table>
         </TableContainer>}
-        {totalCount > 0 && <TablePagination component="div" className="cn-pagination" count={totalCount} page={page} onPageChange={(_, value) => setPage(value)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />}
+        {totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={totalCount} itemLabel="credit notes" onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setPageSize(value); setPage(0); }} />}
       </section>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

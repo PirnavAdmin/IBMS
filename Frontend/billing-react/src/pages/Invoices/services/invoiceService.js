@@ -354,16 +354,16 @@ export const invoiceService = {
   calculateCharges: (subtotal, ids) =>
     phase5Api.calculateCharges({ subtotal, selectedChargeIds: ids }),
   calculate: (request) => financialApi.calculate(request),
-  async payments(id, page = 1) {
+  async payments(id, page = 1, pageSize = 20) {
     const response = await apiClient.get("/api/v1/payments", {
-      params: { invoiceId: id, pageNumber: page, pageSize: 20 },
+      params: { invoiceId: id, pageNumber: page, pageSize },
     });
     const data = requirePage(unwrapPayment(response));
     return { ...data, items: data.items.map(mapPayment) };
   },
-  async audit(id, page = 1) {
+  async audit(id, page = 1, pageSize = 20) {
     const response = await apiClient.get("/api/Audit", {
-      params: { entityName: "Invoice", page, pageSize: 20 },
+      params: { entityName: "Invoice", page, pageSize },
     });
     if (response.success !== true)
       throw new Error(response.message || "Audit request failed.");

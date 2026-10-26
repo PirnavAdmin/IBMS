@@ -35,12 +35,12 @@ import {
   MenuItem,
   Select,
   Tab,
-  TablePagination,
   Tabs,
   TextField,
 } from '@mui/material';
 import { userRoleAdministrationService as service } from './userRoleAdministrationService';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
 import './user-role-administration.css';
@@ -297,7 +297,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
         {!usersQuery.isPending && !usersQuery.isError && users.length === 0 && <tr><td colSpan={assignmentMode ? 6 : 9}><EmptyState title="No users available">No users were returned by the User API for the current search and filters.</EmptyState></td></tr>}
       </tbody>
     </table></div>
-    <TablePagination component="div" className="ura-pagination" count={usersQuery.data?.totalCount ?? 0} page={page} onPageChange={(_, next) => setPage(next)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />
+    <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={usersQuery.data?.totalCount ?? 0} itemLabel="users" disabled={usersQuery.isFetching} onPageChange={value => setPage(value - 1)} onPageSizeChange={value => { setPageSize(value); setPage(0); }} />
     </>}
   </>;
 }

@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventLabel, eventOptions, notificationError, notificationService, previewPayload } from './notificationService';
 import { VisibilityOutlined, EditOutlined, DeleteOutline, MoreVert } from '@mui/icons-material';
 import { parseTemplateToVisualModel } from './templateVisualModel';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { NotificationEmpty, NotificationError, NotificationPreview, NotificationShell, NotificationStatus, useNotificationFeedback } from './NotificationShared';
 
 export function NotificationTemplates() {
@@ -19,6 +20,8 @@ export function NotificationTemplates() {
     }
   }, [location, navigate, toast]);
   const [filters, setFilters] = useState({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [preview, setPreview] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
   const [pending, setPending] = useState(false);
@@ -58,11 +61,12 @@ export function NotificationTemplates() {
     {toastHolder}
     {query.error ? <NotificationError error={query.error} onRetry={() => query.refetch()} /> : <section className="notification-card">
       <div className="notification-filters" role="group" aria-label="Template filters">
-        <label>Event Type<Select aria-label="Event Type filter" placeholder="All events" allowClear options={eventOptions} value={filters.eventType} onChange={eventType => setFilters(previous => ({ ...previous, eventType }))} /></label>
-        <label>Status<Select aria-label="Template status filter" value={filters.isActive === undefined ? 'all' : String(filters.isActive)} options={[{ value: 'all', label: 'All statuses' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} onChange={value => setFilters(previous => ({ ...previous, isActive: value === 'all' ? undefined : value === 'true' }))} /></label>
+        <label>Event Type<Select aria-label="Event Type filter" placeholder="All events" allowClear options={eventOptions} value={filters.eventType} onChange={eventType => { setFilters(previous => ({ ...previous, eventType })); setPage(1); }} /></label>
+        <label>Status<Select aria-label="Template status filter" value={filters.isActive === undefined ? 'all' : String(filters.isActive)} options={[{ value: 'all', label: 'All statuses' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} onChange={value => { setFilters(previous => ({ ...previous, isActive: value === 'all' ? undefined : value === 'true' })); setPage(1); }} /></label>
         <Button onClick={() => query.refetch()} disabled={query.isFetching}>Refresh</Button>
       </div>
-      <Table className="ibms-table-frame notification-data-table" aria-label="Notification templates" rowKey="id" columns={columns} dataSource={query.data || []} loading={query.isFetching} size="middle" scroll={{ x: 1000 }} pagination={{ pageSize: 10, showSizeChanger: false, hideOnSinglePage: true }} locale={{ emptyText: <NotificationEmpty /> }} />
+      <Table className="ibms-table-frame notification-data-table" aria-label="Notification templates" rowKey="id" columns={columns} dataSource={(query.data || []).slice((page - 1) * pageSize, page * pageSize)} loading={query.isFetching} size="middle" scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <NotificationEmpty /> }} />
+      {query.data?.length > 0 && <WorkspacePagination page={page} pageSize={pageSize} totalCount={query.data.length} itemLabel="templates" disabled={query.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
     </section>}
     {preview && <NotificationPreview payload={preview} onClose={() => setPreview(null)} />}
     <Modal open={Boolean(confirmation)} title={confirmation?.type === 'delete' ? 'Delete notification template?' : 'Restore missing default templates?'} onCancel={() => { if (!locked.current) setConfirmation(null); }} closable={!pending} mask={{ closable: !pending }}

@@ -5,6 +5,7 @@ import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
 import { Add, Block, CheckCircleOutline, ContentCopyOutlined, DeleteOutline, EditOutlined, HistoryOutlined, MoreVert, PauseCircleOutline, PowerSettingsNew, Refresh, Search, SendOutlined, VisibilityOutlined, VpnKeyOutlined, Webhook } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { integrationAccess } from '../Integrations/integrationService';
 import { WebhookEditor } from './WebhookEditor';
@@ -108,7 +109,14 @@ export function Webhooks() {
       <div className="integrations-heading-actions"><Button variant="outlined" startIcon={<Refresh />} disabled={!allowed || waiting} onClick={refresh}>Refresh</Button><Button variant="contained" startIcon={<Add />} disabled={!allowed} onClick={() => setDialog({ mode: 'create', error: '' })}>Create Webhook</Button></div>
     </header>
     {user.isPending ? <div role="status"><LinearProgress />Checking webhook access…</div> : user.isError ? <DashboardErrorState title="Unable to load webhook configuration" message={webhookError(user.error)} onRetry={() => user.refetch()} /> : !allowed ? <Alert severity="warning">Webhook access requires TenantAdmin, SuperAdmin, or User permissions.</Alert> : <>
-      {summary.data && !summary.isError && <section className="webhook-summary" aria-label="Webhook totals">{Object.entries(summary.data).map(([key, count]) => <button type="button" key={key} aria-pressed={key === 'Total' ? !filters.status && !filters.eventType && !filters.searchTerm : filters.status === key} onClick={() => selectSummaryCard(key === 'Total' ? '' : key)} className={`webhook-summary-card webhook-summary-${key.toLowerCase()} ${((key === 'Total' && !filters.status && !filters.eventType && !filters.searchTerm) || (key !== 'Total' && filters.status === key)) ? 'selected' : ''}`}><span className="webhook-summary-icon" aria-hidden="true">{key === 'Active' ? <CheckCircleOutline /> : key === 'Disabled' ? <Block /> : key === 'Suspended' ? <PauseCircleOutline /> : <Webhook />}</span><span>{key} Webhooks</span><strong>{count}</strong></button>)}</section>}
+      {summary.data && !summary.isError && <section className="webhook-summary" aria-label="Webhook totals">{Object.entries(summary.data).map(([key, count]) => {
+        const selected = (key === 'Total' && !filters.status && !filters.eventType && !filters.searchTerm) || (key !== 'Total' && filters.status === key);
+        const description = { Total: 'Configured endpoints', Active: 'Ready to receive events', Disabled: 'Paused delivery endpoints', Suspended: 'Needs attention' }[key] || 'Webhook endpoints';
+        return <button type="button" key={key} aria-pressed={selected} onClick={() => selectSummaryCard(key === 'Total' ? '' : key)} className={`webhook-summary-card webhook-summary-${key.toLowerCase()} ${selected ? 'selected' : ''}`}>
+          <span className="webhook-summary-top"><span>{key} Webhooks</span><span className="webhook-summary-icon" aria-hidden="true">{key === 'Active' ? <CheckCircleOutline /> : key === 'Disabled' ? <Block /> : key === 'Suspended' ? <PauseCircleOutline /> : <Webhook />}</span></span>
+          <strong>{count}</strong><small>{description}</small>
+        </button>;
+      })}</section>}
       {summary.isError && <Alert severity="warning" action={<Button onClick={() => summary.refetch()}>Retry Summary</Button>}>Summary counts are unavailable. {webhookError(summary.error)}</Alert>}
       <section className="integrations-panel" aria-label="Configured webhooks">
         <div className="integrations-toolbar webhook-toolbar">
@@ -132,7 +140,7 @@ export function Webhooks() {
               <td><IconButton aria-label={`Actions for ${item.name}`} aria-haspopup="menu" aria-expanded={menu?.webhook.id === item.id} aria-controls={menu?.webhook.id === item.id ? 'webhook-actions-list' : undefined} disabled={busy} onClick={event => setMenu({ anchor: event.currentTarget, webhook: item })}><MoreVert /></IconButton></td>
             </tr>)}</tbody>
           </table></div> : !waiting && <div className="integration-state integration-empty"><h2>No webhooks found</h2><p>{filters.status || filters.searchTerm || filters.eventType ? 'Try changing your search or filters.' : 'Create a webhook to subscribe to billing events.'}</p></div>}
-        {page && !list.isError && <footer className="integrations-pagination"><TextField select size="small" label="Rows per page" value={filters.pageSize} onChange={event => changeFilter('pageSize', Number(event.target.value))}>{[10, 20, 50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField><span>Page {page.pageNumber} of {Math.max(1, page.totalPages)}</span><div><Button disabled={waiting || page.pageNumber <= 1} onClick={() => setFilters(previous => ({ ...previous, pageNumber: previous.pageNumber - 1 }))}>Previous</Button><Button disabled={waiting || page.pageNumber >= page.totalPages} onClick={() => setFilters(previous => ({ ...previous, pageNumber: previous.pageNumber + 1 }))}>Next</Button></div></footer>}
+        {page && !list.isError && <WorkspacePagination page={page.pageNumber} pageSize={filters.pageSize} totalCount={page.totalCount} itemLabel="webhooks" disabled={waiting} onPageChange={pageNumber => setFilters(previous => ({ ...previous, pageNumber }))} onPageSizeChange={pageSize => changeFilter('pageSize', pageSize)} />}
       </section>
     </>}
     <Menu anchorEl={menu?.anchor} open={Boolean(menu)} onClose={() => setMenu(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} marginThreshold={8} PaperProps={{ className: 'integration-actions-menu' }} MenuListProps={{ id: 'webhook-actions-list', 'aria-label': 'Webhook actions' }}>

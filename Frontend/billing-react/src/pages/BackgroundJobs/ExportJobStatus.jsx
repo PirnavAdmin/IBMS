@@ -5,6 +5,7 @@ import { Download, Refresh } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { integrationAccess } from '../Integrations/integrationService';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { backgroundJobError, backgroundJobService } from './backgroundJobService';
 import './background-jobs.css';
 
@@ -28,6 +29,7 @@ export function ExportJobStatus() {
   const [exportFormat, setExportFormat] = useState('CSV');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [feedback, setFeedback] = useState(null);
   useEffect(() => {
     if (!feedback) return undefined;
@@ -44,8 +46,8 @@ export function ExportJobStatus() {
   const profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
   const query = useQuery({
-    queryKey: ['export-jobs', tenantKey, page, filterJobType, status],
-    queryFn: ({ signal }) => backgroundJobService.getExports({ page, pageSize: 20, jobType: filterJobType, status }, signal),
+    queryKey: ['export-jobs', tenantKey, page, pageSize, filterJobType, status],
+    queryFn: ({ signal }) => backgroundJobService.getExports({ page, pageSize, jobType: filterJobType, status }, signal),
     enabled: allowed,
     retry: false,
     refetchInterval: current => current.state.data?.items.some(job => ['Pending', 'Processing'].includes(job.status)) ? 5000 : false,
@@ -139,11 +141,7 @@ export function ExportJobStatus() {
                       </tbody>
                     </table>
                   </div>}
-              {result && <footer className="background-jobs-pagination">
-                <span>{result.totalCount} exports · Page {result.page} of {Math.max(1, Math.ceil(result.totalCount / result.pageSize))}</span>
-                <div><Button disabled={query.isFetching || page <= 1} onClick={() => setPage(value => value - 1)}>Previous</Button>
-                  <Button disabled={query.isFetching || page >= Math.max(1, Math.ceil(result.totalCount / result.pageSize))} onClick={() => setPage(value => value + 1)}>Next</Button></div>
-              </footer>}
+              {result && <WorkspacePagination page={result.page} pageSize={result.pageSize} totalCount={result.totalCount} itemLabel="exports" disabled={query.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
             </section>
           </>}
   </main>;

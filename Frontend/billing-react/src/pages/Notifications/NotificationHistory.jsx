@@ -3,6 +3,7 @@ import { Button, Input, Select, Table, Tooltip } from 'antd';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { auditDate } from '../AuditActivity/auditModel';
 import { eventLabel, eventOptions, HISTORY_STATUSES, notificationError, notificationService } from './notificationService';
 import { NotificationEmpty, NotificationError, NotificationShell, NotificationStatus, useNotificationFeedback } from './NotificationShared';
@@ -53,8 +54,8 @@ export function NotificationHistory() {
         <div className="notification-range">Date Range (IST)<DateRangeFilter startDate={draft.startDate} endDate={draft.endDate} onApply={changeDraft} /></div>
         <div className="notification-actions"><Button onClick={() => { setDraft(emptyFilters); setFilters(previous => ({ ...previous, ...emptyFilters, pageNumber: 1 })); }}>Clear</Button><Button type="primary" htmlType="submit">Apply Filters</Button></div>
       </form>
-      <Table className="ibms-table-frame notification-data-table" aria-label="Communication history" rowKey="id" columns={columns} dataSource={query.data?.items || []} loading={query.isFetching} size="middle" scroll={{ x: 1265 }} locale={{ emptyText: <NotificationEmpty text="No communications found" /> }}
-        pagination={{ current: filters.pageNumber, pageSize: filters.pageSize, total: query.data?.totalCount || 0, showSizeChanger: true, pageSizeOptions: [10, 20, 50, 100], showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} notifications`, onChange: (pageNumber, pageSize) => setFilters(previous => ({ ...previous, pageNumber: pageSize !== previous.pageSize ? 1 : pageNumber, pageSize })) }} />
+      <Table className="ibms-table-frame notification-data-table" aria-label="Communication history" rowKey="id" columns={columns} dataSource={query.data?.items || []} loading={query.isFetching} size="middle" scroll={{ x: 1265 }} locale={{ emptyText: <NotificationEmpty text="No communications found" /> }} pagination={false} />
+      {query.data && <WorkspacePagination page={filters.pageNumber} pageSize={filters.pageSize} totalCount={query.data.totalCount} itemLabel="notifications" disabled={query.isFetching} onPageChange={pageNumber => setFilters(previous => ({ ...previous, pageNumber }))} onPageSizeChange={pageSize => setFilters(previous => ({ ...previous, pageNumber: 1, pageSize }))} />}
     </section>}
   </NotificationShell>;
 }

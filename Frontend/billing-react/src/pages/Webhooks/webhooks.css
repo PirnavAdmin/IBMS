@@ -1,15 +1,17 @@
-.webhook-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
-.webhook-summary > .webhook-summary-card { position: relative; display: block; width: 100%; min-width: 0; --webhook-accent: #b9875d; --webhook-tint: #fffaf4; min-height: 108px; padding: 17px 58px 17px 18px; background: var(--webhook-tint); border: 1px solid color-mix(in srgb, var(--webhook-accent) 32%, white); border-top: 4px solid var(--webhook-accent); border-radius: 13px; box-shadow: 0 4px 14px #50311b0b; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
-.webhook-summary > .webhook-summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #50311b16; }
-.webhook-summary > .webhook-summary-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--webhook-accent) 55%, white); outline-offset: 2px; }
-.webhook-summary > .webhook-summary-card.selected { box-shadow: 0 0 0 2px color-mix(in srgb, var(--webhook-accent) 42%, white), 0 7px 18px #50311b14; }
-.webhook-summary .webhook-summary-active { --webhook-accent: #6f987c; --webhook-tint: #f3f8f3; }
-.webhook-summary .webhook-summary-disabled { --webhook-accent: #9380a5; --webhook-tint: #f7f3fa; }
-.webhook-summary .webhook-summary-suspended { --webhook-accent: #ca8768; --webhook-tint: #fbf2ee; }
-.webhook-summary-icon { position: absolute; top: 14px; right: 15px; display: grid !important; width: 36px; height: 36px; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--webhook-accent) 16%, white); color: var(--webhook-accent) !important; }
+.webhook-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.webhook-summary > .webhook-summary-card { display: block; width: 100%; min-width: 0; min-height: 108px; padding: 8px 14px; border: 1px solid #eae5de; border-top: 4px solid var(--webhook-accent, #a06b47); border-radius: 12px; background: var(--webhook-tint, #fff8ef); box-shadow: 0 3px 8px #462a0e08; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; }
+.webhook-summary > .webhook-summary-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px #462a0e12; }
+.webhook-summary > .webhook-summary-card:focus-visible { outline: 3px solid color-mix(in srgb, var(--webhook-accent) 50%, white); outline-offset: 2px; }
+.webhook-summary > .webhook-summary-card.selected { box-shadow: 0 0 0 2px color-mix(in srgb, var(--webhook-accent) 55%, white), 0 6px 16px #462a0e12; }
+.webhook-summary .webhook-summary-total { --webhook-accent: #9a633e; --webhook-tint: #fff8ef; }
+.webhook-summary .webhook-summary-active { --webhook-accent: #5c9874; --webhook-tint: #eef9f2; }
+.webhook-summary .webhook-summary-disabled { --webhook-accent: #cf4545; --webhook-tint: #fff1f0; }
+.webhook-summary .webhook-summary-suspended { --webhook-accent: #b58b26; --webhook-tint: #fffbea; }
+.webhook-summary-top { display: flex !important; align-items: center; justify-content: space-between; gap: 8px; color: #71675f !important; font-size: 14px !important; font-weight: 600 !important; }
+.webhook-summary-icon { display: grid !important; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border-radius: 8px; background: color-mix(in srgb, var(--webhook-accent) 16%, white); color: var(--webhook-accent) !important; }
 .webhook-summary-icon svg { width: 20px; height: 20px; }
-.webhook-summary span { display: block; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
-.webhook-summary strong { display: block; margin-top: 8px; font-size: 25px; line-height: 1; color: var(--webhook-accent); font-variant-numeric: tabular-nums; }
+.webhook-summary strong { display: block; margin: 4px 0 2px; color: #352b24; font-size: clamp(21px, 1.8vw, 25px); line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.webhook-summary small { display: block; color: #62584f; font-size: 12px; }
 .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex: 0 1 14rem; min-width: 10rem; }
 .webhook-toolbar .integration-result-count { padding: 7px 12px; border: 1px solid #e5d3c0; border-radius: 999px; background: #f5eadf; color: #765538; font-size: 12px; font-weight: 700; }
 .webhook-event-options-menu { width: 14rem !important; max-width: calc(100vw - 24px) !important; max-height: 260px !important; overflow-y: auto !important; padding: 4px !important; border: 1px solid var(--border) !important; border-radius: 12px !important; background: var(--surface) !important; box-shadow: 0 10px 26px #38251626 !important; }

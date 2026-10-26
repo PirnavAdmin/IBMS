@@ -3,6 +3,7 @@ import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { CustomerEmailLink } from "../components/CustomerEmailLink";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import { useProductSelectProps } from '../../Products/components/ProductSelect';
 import { useEffect, useRef, useState } from "react";
 import {
@@ -25,8 +26,6 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
-  Pagination,
-  PaginationItem,
   Skeleton,
   Table,
   TableBody,
@@ -253,7 +252,7 @@ export function CustomerListPage() {
   const sortSelectProps = useProductSelectProps();
   const params = {
     page: Math.max(1, Number(url.get("page")) || 1),
-    pageSize: [10, 25, 50, 100].includes(Number(url.get("pageSize")))
+    pageSize: [5, 10, 20, 50].includes(Number(url.get("pageSize")))
       ? Number(url.get("pageSize"))
       : 10,
     search: url.get("search") || "",
@@ -736,48 +735,15 @@ export function CustomerListPage() {
                 </TableBody>
               </Table>
             </TableContainer>
-            <footer className="customer-pagination">
-              <span role="status">
-                Showing{" "}
-                {data.totalCount ? (data.page - 1) * data.pageSize + 1 : 0}
-                &ndash;{Math.min(data.page * data.pageSize, data.totalCount)} of{" "}
-                {data.totalCount} customers
-              </span>
-              <TextField
-                disabled={query.isFetching}
-                select
-                size="small"
-                label="Rows per page"
-                value={params.pageSize}
-                onChange={(event) =>
-                  change({ pageSize: event.target.value, page: 1 })
-                }
-              >
-                {[10, 25, 50, 100].map((n) => (
-                  <MenuItem key={n} value={n}>
-                    {n}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Pagination
-                aria-label="Customer pages"
-                count={Math.max(1, data.totalPages)}
-                page={data.page}
-                onChange={(_, page) => change({ page })}
-                disabled={query.isFetching}
-                shape="rounded"
-                color="primary"
-                renderItem={(item) => (
-                  <PaginationItem
-                    {...item}
-                    slots={{
-                      previous: () => <span>Previous</span>,
-                      next: () => <span>Next</span>,
-                    }}
-                  />
-                )}
-              />
-            </footer>
+            <WorkspacePagination
+              page={data.page}
+              pageSize={params.pageSize}
+              totalCount={data.totalCount}
+              itemLabel="customers"
+              disabled={query.isFetching}
+              onPageChange={(page) => change({ page })}
+              onPageSizeChange={(pageSize) => change({ pageSize, page: 1 })}
+            />
           </>
         )}
       </section>
