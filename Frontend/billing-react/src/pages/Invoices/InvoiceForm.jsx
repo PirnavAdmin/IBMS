@@ -852,46 +852,28 @@ export function InvoiceForm() {
                         />
                       </td>
                       <td>
-                        <div className="invoice-line-discount-fields">
-                          <TextField
-                            id={`invoice-line-discount-${index + 1}`}
-                            size="small"
-                            type="number"
-                            label="Discount"
-                            placeholder="0"
-                            InputLabelProps={{ shrink: true }}
-                            value={item.discountRate ?? ""}
-                            onChange={(event) =>
-                              changeItem(index, "discountRate", event.target.value)
-                            }
-                            inputProps={{
-                              min: 0,
-                              max: item.discountType === "Percentage" ? 100 : 999999999,
-                              step: 0.01,
-                            }}
-                            error={Boolean(errors[`items.${index}.discountRate`])}
-                            helperText={
-                              errors[`items.${index}.discountRate`] ||
-                              (freshCalculation?.items?.[index]?.discountAmount > 0
-                                ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
-                                : "")
-                            }
-                          />
-                          <TextField
-                            select
-                            size="small"
-                            label="Discount type"
-                            InputLabelProps={{ shrink: true }}
-                            SelectProps={{ native: true }}
-                            id={`invoice-line-discount-type-${index + 1}`}
-                            inputProps={{ 'aria-label': `Discount type line ${index + 1}` }}
-                            value={item.discountType || "Percentage"}
-                            onChange={event => changeItem(index, "discountType", event.target.value)}
-                          >
-                            <option value="Percentage">Percentage (%)</option>
-                            <option value="Fixed">Fixed{form.currency ? ` (${form.currency})` : ''}</option>
-                          </TextField>
-                        </div>
+                        <TextField
+                          id={`invoice-line-discount-${index + 1}`}
+                          size="small"
+                          type="number"
+                          label="Discount"
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
+                          InputProps={{ readOnly: true, endAdornment: <InputAdornment position="end">{item.discountType === "Percentage" || !item.discountType ? "%" : form.currency || "Currency"}</InputAdornment> }}
+                          value={item.discountRate ?? ""}
+                          inputProps={{
+                            min: 0,
+                            max: item.discountType === "Percentage" ? 100 : 999999999,
+                            step: 0.01,
+                          }}
+                          error={Boolean(errors[`items.${index}.discountRate`])}
+                          helperText={
+                            errors[`items.${index}.discountRate`] ||
+                            (freshCalculation?.items?.[index]?.discountAmount > 0
+                              ? `-${money(freshCalculation.items[index].discountAmount, form.currency)}`
+                              : "")
+                          }
+                        />
                       </td>
                       <td>
                         <TextField
@@ -978,16 +960,14 @@ export function InvoiceForm() {
                         </TextField>
                       </td>
                       <td>
-                        {money(
-                          freshCalculation?.items?.[index]?.taxAmount,
-                          form.currency,
-                        )}
+                        {freshCalculation?.items?.[index]?.taxAmount == null
+                          ? "N/A"
+                          : money(freshCalculation.items[index].taxAmount, form.currency)}
                       </td>
                       <td style={{ fontWeight: 700, color: "var(--primary)" }}>
-                        {money(
-                          freshCalculation?.items?.[index]?.lineTotal,
-                          form.currency,
-                        )}
+                        {freshCalculation?.items?.[index]?.lineTotal == null
+                          ? "N/A"
+                          : money(freshCalculation.items[index].lineTotal, form.currency)}
                       </td>
                       <td>
                         <div style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
@@ -1042,24 +1022,7 @@ export function InvoiceForm() {
                 </tbody>
               </table>
             </div>
-            <div className="invoice-table-footer-actions">
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={() => {
-                  setForm((previous) => ({
-                    ...previous,
-                    items: [...previous.items, blankItem()],
-                  }));
-                }}
-              >
-                Add Another Line
-              </Button>
-            </div>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
-            <p className="invoice-footnote">
-              Line discounts and single exclusive item taxes are calculated by the authoritative backend engine.
-            </p>
           </section>
           <div className="invoice-form-bottom">
             <div>
@@ -1118,18 +1081,6 @@ export function InvoiceForm() {
                         Boolean(discounts.error) ||
                         discounts.data?.status !== "Active" ||
                         discounts.data?.allowInvoiceLevel === false,
-                      helperText: (
-                        <span>
-                          Validated against tenant maximum discount limits.{" "}
-                          <Link
-                            to="/settings/discounts"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Manage limits
-                          </Link>
-                        </span>
-                      ),
                     },
                   )}
                   <div className="invoice-charge-apply-group">
@@ -1199,9 +1150,6 @@ export function InvoiceForm() {
                     helperText={`Total additional charges applied in ${form.currency}.`}
                   />
                 </div>
-                <p className="invoice-footnote">
-                  Discount limits are validated against tenant settings. Calculations reflect backend calculation service rules.
-                </p>
               </section>
               <section className="invoice-panel invoice-notes-panel">
                 <div className="invoice-section-heading">
@@ -1234,9 +1182,6 @@ export function InvoiceForm() {
                 calculation={freshCalculation}
                 currency={form.currency}
               />
-              <p className="invoice-footnote" style={{ marginTop: "12px" }}>
-                The invoice backend applies whole-unit rounding on Save/Issue. Saved totals replace this preview.
-              </p>
             </div>
           </div>
           {error && (

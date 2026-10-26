@@ -11,8 +11,6 @@ import {
   Add,
   CheckCircleOutline,
   DescriptionOutlined,
-  EditNoteOutlined,
-  ErrorOutline,
   HourglassEmptyOutlined,
   ReceiptLongOutlined,
   Refresh,
@@ -244,6 +242,7 @@ export function InvoiceList() {
           {
             label: "Overdue Amount",
             formattedValue: money(group.overdueAmount, group.currency),
+            countText: `${overdueCountNum} invoices`,
             paymentState: "Overdue",
             statusFilter: "",
             icon: <WarningAmberOutlined />,
@@ -260,32 +259,9 @@ export function InvoiceList() {
                 : 0,
           },
           {
-            label: "Overdue Count",
-            formattedValue: `${overdueCountNum}`,
-            paymentState: "Overdue",
-            statusFilter: "",
-            icon: <ErrorOutline />,
-            tone: "invoice-tone-rose",
-            progress:
-              overdueCountNum === 0
-                ? 0
-                : Math.min(100, Math.max(12, overdueCountNum * 12)),
-          },
-          {
-            label: "Draft Count",
-            formattedValue: `${draftCountNum}`,
-            paymentState: "",
-            statusFilter: "Draft",
-            icon: <EditNoteOutlined />,
-            tone: "invoice-tone-sand",
-            progress:
-              draftCountNum === 0
-                ? 0
-                : Math.min(100, Math.max(12, draftCountNum * 8)),
-          },
-          {
             label: "Draft Amount",
             formattedValue: money(group.draftAmount, group.currency),
+            countText: `${draftCountNum} invoices`,
             paymentState: "",
             statusFilter: "Draft",
             icon: <DescriptionOutlined />,
@@ -317,6 +293,7 @@ export function InvoiceList() {
                 ({
                   label,
                   formattedValue,
+                  countText,
                   paymentState,
                   statusFilter,
                   icon,
@@ -331,9 +308,9 @@ export function InvoiceList() {
                       ? filters.paymentState === "Paid" && !filters.status
                       : label === "Total Outstanding"
                       ? filters.paymentState === "Outstanding" && !filters.status
-                      : label === "Overdue Amount" || label === "Overdue Count"
+                      : label === "Overdue Amount"
                       ? filters.paymentState === "Overdue" && !filters.status
-                      : label === "Draft Count" || label === "Draft Amount"
+                      : label === "Draft Amount"
                       ? filters.status === "Draft" && !filters.paymentState
                       : false);
 
@@ -364,6 +341,7 @@ export function InvoiceList() {
                         >
                           {formattedValue}
                         </strong>
+                        {countText && <small className="invoice-kpi-count-text">{countText}</small>}
                         <small className="invoice-kpi-subtext">
                           Filter invoices
                         </small>
