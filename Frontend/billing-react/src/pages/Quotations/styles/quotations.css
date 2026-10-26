@@ -1460,3 +1460,40 @@
 .quote-items-table td.quote-item-discount{min-width:100px}
 .app-layout .quote-table-wrap .quote-items-table thead th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric){text-align:center;vertical-align:middle}
 .app-layout .quote-table-wrap.ibms-table-frame tbody tr:hover>td{background:transparent}
+
+/* Quotation list filters use one compact, consistently positioned arrow. */
+.quote-filter-dropdown :is(.quote-themed-select-trigger, .date-range-filter.ant-btn) {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 36px 0 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.quote-filter-dropdown .date-range-filter.ant-btn { justify-content: flex-start; }
+.quote-filter-dropdown .date-range-filter svg[data-testid="ArrowDropDownIcon"] { display: none; }
+.quote-filter-dropdown .quote-themed-select-chevron,
+.quote-filter-dropdown .date-range-filter::after {
+  content: '';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  margin: 0;
+  border-top: 5px solid #715238;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  border-bottom: 0;
+  pointer-events: none;
+}
+.quote-filter-dropdown .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

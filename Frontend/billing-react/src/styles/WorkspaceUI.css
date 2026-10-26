@@ -173,3 +173,65 @@
     border-bottom: 0;
   }
 }
+
+/* The same compact cappuccino scrollbars on every workspace table.
+   Bound actual table viewports, not cards that also contain pagination. */
+@media screen {
+  .app-layout :is(
+    .ibms-table-frame,
+    .MuiTableContainer-root,
+    .invoice-table-scroll,
+    .integrations-table-scroll,
+    .background-jobs-table-scroll,
+    .ura-table-wrap,
+    .ant-table-content,
+    .ant-table-body
+  ):has(> table):not(.invoice-document *) {
+    max-height: min(56vh, 560px);
+    max-width: 100%;
+    overflow: auto;
+    scrollbar-gutter: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #9a7757 #f1e7dc;
+  }
+
+  .app-layout :is(
+    .ibms-table-frame, .MuiTableContainer-root, .invoice-table-scroll,
+    .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
+    .ant-table-content, .ant-table-body
+  ):has(> table):not(.invoice-document *)::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .app-layout :is(
+    .ibms-table-frame, .MuiTableContainer-root, .invoice-table-scroll,
+    .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
+    .ant-table-content, .ant-table-body
+  ):has(> table):not(.invoice-document *)::-webkit-scrollbar-track {
+    background: #f1e7dc;
+    border-radius: 8px;
+  }
+  .app-layout :is(
+    .ibms-table-frame, .MuiTableContainer-root, .invoice-table-scroll,
+    .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
+    .ant-table-content, .ant-table-body
+  ):has(> table):not(.invoice-document *)::-webkit-scrollbar-thumb {
+    background: #9a7757;
+    border: 1px solid #f1e7dc;
+    border-radius: 8px;
+  }
+  .app-layout :is(
+    .ibms-table-frame, .MuiTableContainer-root, .invoice-table-scroll,
+    .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
+    .ant-table-content, .ant-table-body
+  ):has(> table):not(.invoice-document *)::-webkit-scrollbar-thumb:hover {
+    background: #795334;
+  }
+}
+
+/* Ant sets overflow-y:hidden inline when only horizontal scroll is configured. */
+@media screen {
+  .app-layout :is(.ant-table-content, .ant-table-body):has(> table) {
+    overflow-y: auto !important;
+  }
+}

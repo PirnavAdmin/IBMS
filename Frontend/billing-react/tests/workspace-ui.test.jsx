@@ -26,7 +26,7 @@ import { MemoryRouter, Route, Routes, Link, useLocation } from 'react-router-dom
 import { apiClient, authApi, customerApi } from 'billing-api-client';
 import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration';
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
-import { regionalSettingsService, COUNTRIES_LIST } from '../src/services/regionalSettingsService';
+import { COUNTRIES_LIST } from '../src/services/regionalSettingsService';
 import { Login } from '../src/pages/Login/Login';
 import { UserRoleAdministration } from '../src/pages/UserRoleAdministration/UserRoleAdministration';
 import { userRoleAdministrationService as administrationService } from '../src/pages/UserRoleAdministration/userRoleAdministrationService';
@@ -84,7 +84,8 @@ test('Country confirmation waits for server success, prevents duplicates and red
   localStorage.clear();
   localStorage.setItem('billing_auth_token', 'country-test-session');
   localStorage.setItem('billing_auth_user', JSON.stringify({ tenantId: 1, id: 'country-test' }));
-  const original = apiClient.put; const calls = []; let resolve;
+  const original = apiClient.put; const originalGet = apiClient.get;
+  apiClient.get = async () => ({success:true,data:{countries:[]}}); const calls = []; let resolve;
   apiClient.put = (url, payload) => { calls.push({ url, payload }); return new Promise(done => { resolve = done; }); };
   const ui = await mount(countries, '/settings/countries');
   try {
@@ -94,19 +95,19 @@ test('Country confirmation waits for server success, prevents duplicates and red
     assert.equal(calls.length, 1);
     assert.equal(calls[0].url, '/api/v1/settings/country');
     assert.deepEqual(calls[0].payload, { countries: [{ country: 'India', countryCode: 'IN', phoneCode: '+91', currency: 'INR' }] });
-    assert.equal(regionalSettingsService.getSelectedCountries().length, 0);
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
-    await act(async () => resolve({ success: true, message: 'Country settings saved.' })); await settle();
+    await act(async () => resolve({ success: true, message: 'Country settings saved.', data:{countries:[{countryCode:'IN',country:'India',phoneCode:'+91',currency:'INR'}]} })); await settle();
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings');
     assert.match(document.body.textContent, /Country settings saved\./);
-    assert.deepEqual(regionalSettingsService.getSelectedCountries().map(country => country.code), ['IN']);
-  } finally { await ui.close(); apiClient.put = original; localStorage.clear(); }
+  } finally { await ui.close(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
 });
 
 test('Country save failure keeps the draft, ignores legacy settings and allows retry', async () => {
   localStorage.clear();
   localStorage.setItem('invoice_billing_selected_countries_default', JSON.stringify(['India']));
-  const original = apiClient.put;
+  const original = apiClient.put; const originalGet = apiClient.get;
+  localStorage.setItem('billing_auth_token', 'country-error-session');
+  apiClient.get = async () => ({success:true,data:{countries:[]}});
   apiClient.put = async () => ({ success: false, message: 'Country settings are unavailable.' });
   const ui = await mount(countries, '/settings/countries');
   try {
@@ -114,15 +115,14 @@ test('Country save failure keeps the draft, ignores legacy settings and allows r
     await click(button(ui.host, 'Save Changes')); await settle();
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
     assert.equal(ui.host.querySelector('[aria-label="Select Canada"]').checked, true);
-    assert.deepEqual(regionalSettingsService.getSelectedCountries(), []);
-    assert.match(ui.host.textContent, /Country settings API is unavailable/);
+    assert.doesNotMatch(ui.host.textContent, /Country settings API is unavailable/);
     assert.match(document.body.textContent, /Country settings are unavailable/);
     assert.equal(button(ui.host, 'Save Changes').disabled, false);
     apiClient.put = async () => { throw new Error('Connection lost'); };
     await click(button(ui.host, 'Save Changes')); await settle();
     assert.match(document.body.textContent, /Connection lost/);
     assert.equal(ui.host.querySelector('[aria-label="Select Canada"]').checked, true);
-  } finally { await ui.close(); apiClient.put = original; localStorage.clear(); }
+  } finally { await ui.close(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
 });
 
 test('Login password visibility has matching icons, accessible actions and an unchanged value', async () => {

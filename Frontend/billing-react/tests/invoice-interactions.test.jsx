@@ -212,15 +212,32 @@ test('Invoice summary hides AOA groups returned by the backend and preserves INR
   });
 });
 
-test('Dashboard hides the currency selector and preserves historical INR invoices without mixing currencies', async () => {
+test('Dashboard currency filter uses real ledger currencies, resets and keeps totals separate without refetching', async () => {
+  let invoiceCalls = 0;
   await mock(authApi, { getCurrentUser: () => ({ role: 'TenantAdmin', tenantId: 1, id: 1 }) }, async () =>
-    mock(invoiceService, { list: async () => page([{ ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' }, { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' }]) }, async () =>
+    mock(invoiceService, { list: async () => { invoiceCalls++; return page([
+      { ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' },
+      { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' },
+      { ...invoice, id: 9, currency: 'USD', invoiceNumber: 'HISTORY-USD' },
+    ]); } }, async () =>
       mock(paymentService, { getPayments: async () => page([]) }, async () => {
         const mounted = await mount(<Dashboard />, '/dashboard');
         try {
-          assert.equal(mounted.host.querySelector('.premium-filters select'), null);
+          const selector = mounted.host.querySelector('[aria-label="Billing Currency"]');
+          assert.deepEqual([...selector.options].map(option => option.value), ['INR', 'USD']);
+          assert.equal(selector.value, 'INR');
           assert.match(mounted.host.textContent, /HISTORY-INR/);
-          assert.doesNotMatch(mounted.host.textContent, /AOA/);
+          assert.doesNotMatch(mounted.host.textContent, /HISTORY-USD|AOA/);
+          await act(async () => { selector.value = 'USD'; selector.dispatchEvent(new window.Event('change', {bubbles:true})); });
+          await flush();
+          assert.match(mounted.host.textContent, /HISTORY-USD/);
+          assert.doesNotMatch(mounted.host.textContent, /HISTORY-INR|AOA/);
+          assert.ok(mounted.host.querySelector('.premium-stat-invoiced').getAttribute('href').includes('currency=USD'));
+          assert.equal(invoiceCalls, 1);
+          await click(button('Reset'));
+          assert.equal(mounted.host.querySelector('[aria-label="Billing Currency"]').value, 'INR');
+          assert.match(mounted.host.textContent, /HISTORY-INR/);
+          assert.equal(invoiceCalls, 1);
         } finally { await mounted.close(); }
       })));
 });

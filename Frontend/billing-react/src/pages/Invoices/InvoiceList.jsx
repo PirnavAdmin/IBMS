@@ -445,16 +445,6 @@ export function InvoiceList() {
             }))}
           />
           <TextField
-            className="invoice-filter-currency"
-            size="small"
-            label="Currency"
-            value={filters.currency}
-            onChange={(event) =>
-              change("currency", event.target.value.toUpperCase())
-            }
-            inputProps={{ maxLength: 3 }}
-          />
-          <TextField
             select
             size="small"
             label="Payment state"

@@ -26,7 +26,8 @@ import { CountryFlag } from '../../components/CountryFlag';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import {
   useRegionalSettings,
-  COUNTRY_SETTINGS_BLOCKER,
+  countrySelectionError,
+  getRegionalSessionScope,
   BILLING_COUNTRIES_LIST as COUNTRIES_LIST,
 } from '../../services/regionalSettingsService';
 import './settings.css';
@@ -36,9 +37,17 @@ export function CountryConfiguration() {
   const {
     selectedCountries: persistedCountries,
     saveCountries,
+    sessionScope, loading, loaded, error, reloadCountries,
   } = useRegionalSettings();
 
-  const [selectedCountries, setSelectedCountries] = useState(persistedCountries);
+  const [draft, setDraft] = useState({ scope: sessionScope, countries: persistedCountries });
+  const selectedCountries = draft.scope === sessionScope ? draft.countries : [];
+  const setSelectedCountries = update => setDraft(current => ({
+    scope: sessionScope,
+    countries: typeof update === 'function' ? update(current.scope === sessionScope ? current.countries : []) : update,
+  }));
+  const ready = loaded && draft.scope === sessionScope;
+  const validationError = countrySelectionError(selectedCountries);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -46,8 +55,9 @@ export function CountryConfiguration() {
 
   // Sync with persisted settings on mount / change
   useEffect(() => {
-    setSelectedCountries(persistedCountries);
-  }, [persistedCountries]);
+    setDraft({ scope: sessionScope, countries: persistedCountries });
+    setToast('');
+  }, [persistedCountries, sessionScope]);
 
   const selectedCodes = useMemo(
     () => new Set(selectedCountries.map((c) => c.code)),
@@ -67,6 +77,7 @@ export function CountryConfiguration() {
   }, [search]);
 
   const handleToggleCountry = (country) => {
+    if (!ready || saving) return;
     setSelectedCountries((current) => {
       const exists = current.some((c) => c.code === country.code);
       if (exists) {
@@ -89,14 +100,16 @@ export function CountryConfiguration() {
   };
 
   const handleSave = async () => {
-    if (saveLock.current) return;
+    if (saveLock.current || !ready || sessionScope !== getRegionalSessionScope()) return;
+    if (validationError) { setToast(validationError); return; }
     saveLock.current = true;
     setSaving(true);
     try {
       const result = await saveCountries(selectedCountries);
+      if (sessionScope !== getRegionalSessionScope()) return;
       navigate('/settings', { state: { countrySaved: result.message || 'Country configuration saved successfully.' } });
     } catch (err) {
-      setToast(errorPresentation(err.userMessage || err.message));
+      if (sessionScope === getRegionalSessionScope()) setToast(errorPresentation(err.userMessage || err.message));
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -114,7 +127,7 @@ export function CountryConfiguration() {
         <Button
           variant="contained"
           startIcon={<SaveOutlined />}
-          disabled={saving}
+          disabled={saving || !ready || Boolean(validationError)}
           onClick={handleSave}
           className="country-save-header-btn"
         >
@@ -122,7 +135,12 @@ export function CountryConfiguration() {
         </Button>
       </SettingsPageHeader>
 
-      <Alert severity="error" sx={{ mb: 2 }}>{COUNTRY_SETTINGS_BLOCKER}</Alert>
+      {loading && <Alert severity="info" role="status" sx={{ mb: 2 }}>Loading saved country settings...</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" onClick={reloadCountries}>Retry</Button>}>
+        {errorPresentation(error.userMessage || error.message)}
+      </Alert>}
+      {ready && validationError && <Alert severity="warning" sx={{ mb: 2 }}>{validationError}</Alert>}
+      {ready && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
 
       {/* UPSIDE: Selected Countries Section */}
       <section className="country-selected-shelf" aria-label="Currently selected countries">
@@ -422,7 +440,7 @@ export function CountryConfiguration() {
                 variant="contained"
                 fullWidth
                 startIcon={<SaveOutlined />}
-                disabled={saving}
+                disabled={saving || !ready || Boolean(validationError)}
                 onClick={handleSave}
                 className="quick-save-btn"
               >
@@ -442,6 +460,8 @@ export function CountryConfiguration() {
           </div>
         </aside>
       </div>
+
+      </fieldset>}
 
       <FeedbackSnackbar severity="error" message={toast} onClose={() => setToast('')} />
     </main>
