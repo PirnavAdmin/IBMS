@@ -1,3 +1,4 @@
+import { agingLabels, agingDays, agingIndex, roundMoney } from './dashboardAging.js';
 import { isCurrencyEnabled } from '../../utils/currencies.js';
 export const defaultDashboardFilters = () => ({ start: '', end: '' });
 export const selectDashboardCurrency = (currencies, selected) => {
@@ -26,9 +27,7 @@ export function billingInsights(invoices, payments, currency, now = new Date()) 
   const issued = selected.filter(row => !['Draft', 'Cancelled', 'Voided'].includes(row.status));
   const paid = payments.filter(row => row.currency === currency && row.status === 'Completed');
   const outstanding = issued.filter(row => row.balanceAmount > 0);
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const age = row => row.dueDate ? Math.max(0, Math.ceil((today - Date.parse(row.dueDate.slice(0, 10))) / 86400000)) : null;
-  const overdue = outstanding.filter(row => age(row) > 0 || row.status === 'Overdue');
+  const overdue = outstanding.filter(row => agingDays(row, now) > 0 || row.status === 'Overdue');
   const sum = (rows, key) => rows.reduce((total, row) => {
     if (!Number.isFinite(row[key])) throw new Error(`Missing ${key} in billing response.`);
     return total + row[key];
@@ -40,7 +39,7 @@ export function billingInsights(invoices, payments, currency, now = new Date()) 
     { id: 'outstanding', label: 'Outstanding', value: sum(outstanding, 'balanceAmount'), meta: `${outstanding.length} unpaid invoices`, icon: 'wallet' },
     { id: 'overdue', label: 'Overdue', value: sum(overdue, 'balanceAmount'), meta: `${overdue.length} overdue invoices`, icon: 'warning' },
     { id: 'drafts', label: 'Draft Invoices', value: drafts.length, valueType: 'number', meta: 'Not included in invoiced totals', icon: 'draft' },
-  ].map(row => ({ ...row, currency }));
+  ].map(row => ({ ...row, value: roundMoney(row.value), currency }));
   const months = new Map();
   const add = (row, dateKey, amountKey, series) => {
     const key = row[dateKey]?.slice(0, 7);
@@ -50,9 +49,10 @@ export function billingInsights(invoices, payments, currency, now = new Date()) 
   };
   issued.forEach(row => add(row, 'invoiceDate', 'totalAmount', 'invoiced'));
   paid.forEach(row => add(row, 'paymentDate', 'amount', 'collected'));
-  const buckets = ['Current', '1?30 Days', '31?60 Days', '61?90 Days', '90+ Days', 'No due date'].map((label, index) => ({ label, value: 0, color: ['#674832','#a67752','#bf9470','#d4b596','#e6cfb4','#b4aea5'][index] }));
-  outstanding.forEach(row => { const days = age(row); buckets[days === null ? 5 : days === 0 ? 0 : days <= 30 ? 1 : days <= 60 ? 2 : days <= 90 ? 3 : 4].value += row.balanceAmount; });
-  return { summary, revenue: [...months.values()].sort((a, b) => a.label.localeCompare(b.label)), aging: buckets, invoices: selected.slice(0, 6), payments: payments.filter(row => row.currency === currency).slice(0, 6) };
+  const buckets = agingLabels.map(label => ({ label, value: 0 }));
+  outstanding.forEach(row => { buckets[agingIndex(row, now)].value += row.balanceAmount; });
+  buckets.forEach(row => { row.value = roundMoney(row.value); });
+  return { summary, revenue: [...months.values()].map(row => ({ ...row, invoiced: roundMoney(row.invoiced), collected: roundMoney(row.collected) })).sort((a, b) => a.label.localeCompare(b.label)), aging: buckets, invoices: [...selected].sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate) || b.id - a.id).slice(0, 6), payments: payments.filter(row => row.currency === currency).slice(0, 6) };
 }
 
 // Validate whole source before calculating; malformed records must never become zero totals.

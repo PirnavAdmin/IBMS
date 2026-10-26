@@ -1,53 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   VisibilityOutlined,
   FormatListNumberedOutlined,
   CheckCircle,
   LightbulbOutlined,
 } from '@mui/icons-material';
-import { generateNumberPreview, numberingValidationSchema } from '../validation/numberingValidation';
+import { numberingValidationSchema } from '../validation/numberingValidation';
+import { numberingService } from '../services/numberingService';
 
-export const NextNumberPreviewCard = ({ formValues = {} }) => {
+export const NextNumberPreviewCard = ({ formValues = {}, enabled = true }) => {
   const {
     documentType = 'Invoice',
     prefix = '',
     suffix = '',
     tokens = '',
     sequenceLength = 4,
-    nextNumber = 42,
+    nextNumber = '',
     resetPolicy = 'Never (Continuous sequence)',
   } = formValues;
 
-  const valid = numberingValidationSchema.isValidSync(formValues);
-  const preview = generateNumberPreview({
-    documentType,
-    prefix,
-    suffix,
-    tokens,
-    sequenceLength,
-    nextNumber,
-  });
-
-  const nextSeq1 = (parseInt(nextNumber, 10) || 1) + 1;
-  const nextSeq2 = (parseInt(nextNumber, 10) || 1) + 2;
-
-  const previewNext1 = generateNumberPreview({
-    documentType,
-    prefix,
-    suffix,
-    tokens,
-    sequenceLength,
-    nextNumber: nextSeq1,
-  }).fullPreview;
-
-  const previewNext2 = generateNumberPreview({
-    documentType,
-    prefix,
-    suffix,
-    tokens,
-    sequenceLength,
-    nextNumber: nextSeq2,
-  }).fullPreview;
+  const valid = enabled && numberingValidationSchema.isValidSync(formValues);
+  const requestKey = JSON.stringify({ documentType, prefix, suffix, tokens, sequenceLength, nextNumber });
+  const [state, setState] = useState({ key: '', previews: [], error: '' });
+  useEffect(() => {
+    if (!valid) return;
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const values = JSON.parse(requestKey);
+        // Preview is read-only; never call the consuming /generate endpoint.
+        const previews = await Promise.all([0, 1, 2].map(offset => numberingService.preview({ ...values, nextNumber: Number(values.nextNumber) + offset })));
+        if (active) setState({ key: requestKey, previews, error: '' });
+      } catch (error) {
+        if (active) setState({ key: requestKey, previews: [], error: error.userMessage || error.message || 'Preview unavailable.' });
+      }
+    }, 300);
+    return () => { active = false; clearTimeout(timer); };
+  }, [requestKey, valid]);
+  const current = valid && state.key === requestKey;
+  const preview = current && state.previews[0] || { fullPreview: '---', parts: {} };
+  const previewNext1 = current && state.previews[1]?.fullPreview || '---';
+  const previewNext2 = current && state.previews[2]?.fullPreview || '---';
+  const ready = current && state.previews.length > 0;
 
   const docTypeName = documentType.toUpperCase();
 
@@ -60,7 +54,7 @@ export const NextNumberPreviewCard = ({ formValues = {} }) => {
         </div>
         <div>
           <h3>Live Preview</h3>
-          <p>See how your document numbers are generated.</p>
+          <p>Server format examples. Numbers are not reserved.</p>
         </div>
       </div>
 
@@ -68,16 +62,17 @@ export const NextNumberPreviewCard = ({ formValues = {} }) => {
       <div className="preview-main-card">
         <div className="preview-main-label">NEXT {docTypeName} NUMBER</div>
         <div className="preview-main-number">
-          {valid ? preview.fullPreview : '---'}
+          {preview.fullPreview}
         </div>
         <div className="preview-badge-row">
           <span className="valid-format-badge">
-            {valid && <CheckCircle style={{ fontSize: '0.95rem' }} />}
-            {valid ? 'Valid format' : 'Check format values'}
+            {ready && <CheckCircle style={{ fontSize: '0.95rem' }} />}
+            {ready ? 'Server preview' : valid ? 'Loading preview' : 'Check format values'}
           </span>
         </div>
       </div>
 
+      {current && state.error && <p role="alert">{state.error}</p>}
       {/* Breakdown Section */}
       <div className="preview-section">
         <h4>Breakdown</h4>
@@ -101,13 +96,13 @@ export const NextNumberPreviewCard = ({ formValues = {} }) => {
         </div>
       </div>
 
-      {/* Upcoming Numbers Section */}
+      {/* Upcoming Format Examples Section */}
       <div className="preview-section">
         <h4 className="with-icon">
           <span className="section-icon-badge">
             <FormatListNumberedOutlined style={{ fontSize: '1rem' }} />
           </span>
-          Upcoming Numbers
+          Upcoming Format Examples
         </h4>
         <div className="preview-table">
           <div className="preview-table-row">

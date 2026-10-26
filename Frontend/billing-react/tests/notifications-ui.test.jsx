@@ -391,7 +391,7 @@ test('Normal editors hide syntax, source mode is explicit, unchanged save preser
   const original='<p class="email-copy">Dear <strong>{{CustomerName}}</strong></p>';
   const ui=await mount(`${rootPath}/23/edit`,call=>call.method==='get'&&call.url.endsWith('/23')?envelope({...template,bodyTemplate:original}):undefined);
   try {
-    await until(()=>ui.host.querySelector('#bodyTemplate .notification-inline-field'));
+    await until(()=>ui.host.querySelector('#bodyTemplate .notification-inline-field')?.textContent === 'Customer Name');
     assert.equal(ui.host.querySelector('#bodyTemplate').textContent,'Dear Customer Name');
     assert.doesNotMatch(ui.host.querySelector('#subjectTemplate').textContent,/\{\{/);
     await click(button('HTML Source',ui.host));

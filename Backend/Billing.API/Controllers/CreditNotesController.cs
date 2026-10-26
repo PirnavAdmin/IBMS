@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.CreditNote;
@@ -19,23 +19,27 @@ public class CreditNotesController : ControllerBase
         _creditNoteService = creditNoteService;
     }
 
-    private int GetTenantId()
+    private int? GetTenantId()
     {
+        if (User.IsInRole("SuperAdmin"))
+        {
+            if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal))
+            {
+                if (int.TryParse(headerVal.ToString(), out var headerTenantId) && headerTenantId > 0)
+                {
+                    return headerTenantId;
+                }
+            }
+            return 1;
+        }
+
         var claim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
         if (int.TryParse(claim, out var tenantId) && tenantId > 0)
         {
             return tenantId;
         }
 
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal))
-        {
-            if (int.TryParse(headerVal.ToString(), out var headerTenantId) && headerTenantId > 0)
-            {
-                return headerTenantId;
-            }
-        }
-
-        return 1;
+        return null;
     }
 
     private string GetUserDisplayName()
@@ -70,11 +74,6 @@ public class CreditNotesController : ControllerBase
             {
                 roles.AddRange(claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
             }
-        }
-
-        if (roles.Count == 0)
-        {
-            roles.Add("TenantAdmin");
         }
 
         return roles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -129,8 +128,10 @@ public class CreditNotesController : ControllerBase
         }
 
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.CreateCreditNoteAsync(
-            tenantId,
+            tenantId.Value,
             request,
             GetUserDisplayName(),
             GetUserRoles(),
@@ -149,8 +150,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<CreditNoteListItemDto>>>> GetCreditNotes([FromQuery] CreditNoteFilterRequest filter)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.GetPagedCreditNotesAsync(
-            tenantId,
+            tenantId.Value,
             filter ?? new CreditNoteFilterRequest(),
             GetUserRoles(),
             GetRestrictedCustomerId());
@@ -162,8 +165,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<CreditNoteDetailDto>>> GetCreditNoteById(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.GetCreditNoteByIdAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetUserRoles(),
             GetRestrictedCustomerId());
@@ -185,8 +190,10 @@ public class CreditNotesController : ControllerBase
         }
 
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.UpdateCreditNoteDraftAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -206,8 +213,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<CreditNoteDetailDto>>> SubmitForApproval(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.SubmitForApprovalAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetUserDisplayName(),
             GetUserRoles(),
@@ -225,8 +234,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<CreditNoteDetailDto>>> ApproveCreditNote(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.ApproveCreditNoteAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetUserDisplayName(),
             GetUserRoles(),
@@ -249,8 +260,10 @@ public class CreditNotesController : ControllerBase
         }
 
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.RejectCreditNoteAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -269,8 +282,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<CreditNoteDetailDto>>> IssueCreditNote(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.IssueCreditNoteAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetUserDisplayName(),
             GetUserRoles(),
@@ -293,8 +308,10 @@ public class CreditNotesController : ControllerBase
         }
 
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.CancelCreditNoteAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -318,8 +335,10 @@ public class CreditNotesController : ControllerBase
         }
 
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.ProcessRefundAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -338,8 +357,10 @@ public class CreditNotesController : ControllerBase
     public async Task<ActionResult<ApiResponse<InvoiceCreditableSummaryDto>>> GetInvoiceCreditableSummary(int invoiceId)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _creditNoteService.GetInvoiceCreditableSummaryAsync(
-            tenantId,
+            tenantId.Value,
             invoiceId,
             GetUserRoles(),
             GetRestrictedCustomerId());

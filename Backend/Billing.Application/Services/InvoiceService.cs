@@ -1,4 +1,4 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Financial;
 using Billing.Contracts.Numbering;
@@ -286,6 +286,7 @@ public class InvoiceService : IInvoiceService
                     InvoiceId = invoice.Id,
                     InvoiceNumber = invoice.InvoiceNumber,
                     CustomerId = invoice.CustomerId,
+                    CustomerName = invoice.Customer?.Name ?? invoice.Customer?.CompanyName,
                     TotalAmount = invoice.TotalAmount,
                     BalanceAmount = invoice.BalanceAmount,
                     Currency = invoice.GetCurrency(),
@@ -296,6 +297,18 @@ public class InvoiceService : IInvoiceService
             }
             
             await _unitOfWork.CommitTransactionAsync();
+
+            if (_notificationService != null)
+            {
+                try
+                {
+                    await _notificationService.SendInvoiceNotificationAsync(invoice.Id, tenantId, "InvoiceIssued", userName);
+                }
+                catch
+                {
+                    // Notification dispatch failure should not rollback invoice issuance
+                }
+            }
 
             return ApiResponse<Invoice>.Ok(invoice, "Invoice issued successfully.");
         }

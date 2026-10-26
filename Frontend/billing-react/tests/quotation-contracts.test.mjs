@@ -231,11 +231,11 @@ test('quotation form retains the existing item controls and table layout',async(
  const html=text(tree);
  assert.match(html,/Discount \(%\)/);
  const source=await readFile(new URL('../src/pages/Quotations/components/QuotationForm.jsx',import.meta.url),'utf8');
- assert.match(source,/<strong>Actions<\/strong><button type="button" className="quote-items-actions-trigger" aria-label="Items actions"/);
+ assert.match(source,/<strong>Actions<\/strong><button type="button" className="quote-items-actions-trigger ibms-row-actions-trigger" aria-label="Items actions"/);
  for(const action of ['Add tax','Add discount','Add item','Add charge'])assert.ok(source.includes(action));
- assert.match(source,/className="quote-items-actions-menu" role="menu"/);
- assert.match(source,/<ThemedSelect className="quote-item-select" label="Product or service"/);
- assert.match(source,/label: 'Select product'/);
+ assert.match(source,/className="quote-items-actions-menu ibms-row-actions-menu" role="menu"/);
+ assert.match(source,/<SearchablePicker className="quote-product-picker" ariaLabel="Product or service"/);
+ assert.match(source,/placeholder="Select product"/);
  assert.doesNotMatch(source,/placeholder="Search product or code"/);
  assert.match(source,/<td className="quote-item-discount"><input aria-label="Product discount" readOnly value=\{!item\.productId \? '' : item\.discountAllowed && Number\(item\.discountRate\) > 0 \? `\$\{Number\(item\.discountRate\)\}%` : 'N\/A'\} \/><\/td>/);
  assert.match(source,/discountAllowed = product\.discountAllowed === true \|\| product\.DiscountAllowed === true/);
@@ -245,10 +245,17 @@ test('quotation form retains the existing item controls and table layout',async(
  assert.match(source,/<td><input className="quote-item-tax" aria-label="Product tax" readOnly value=\{itemTaxLabel\(item\)\} \/><\/td>/);
  const inputs=[];
  const selects=[];
- const visit=node=>{if(!node||typeof node!=='object')return;if(node.type==='input')inputs.push(node.props);if(node.type?.name==='ThemedSelect')selects.push(node.props);[node.props?.children].flat(Infinity).forEach(visit);};
+ const pickers=[];
+ const visit=node=>{if(!node||typeof node!=='object')return;if(node.type==='input')inputs.push(node.props);if(node.type?.name==='ThemedSelect')selects.push(node.props);if(node.type?.name==='SearchablePicker')pickers.push(node.props);[node.props?.children].flat(Infinity).forEach(visit);};
  visit(tree);
  for(const label of ['Product description','Unit price','Product discount','Product tax'])assert.equal(inputs.find(input=>input['aria-label']===label)?.value,'');
- assert.equal(JSON.stringify(selects[0].options.map(option=>option.label)),JSON.stringify(['Select product','Apple Macbook (PR-1)','Dell Laptop (PR-2)','Product']));
+ const picker=pickers.find(props=>props.ariaLabel==='Product or service');
+ assert.equal(picker.placeholder,'Select product');
+ assert.equal(picker.showDropdownIcon,true);
+ assert.deepEqual(picker.items.map(picker.getLabel).sort(),['Apple Macbook (PR-1)','Dell Laptop (PR-2)','Product']);
+ assert.ok(picker.getSearchText(products[0]).includes('Product'));
+ const pickerSource=await readFile(new URL('../src/pages/Quotations/components/SearchablePicker.jsx',import.meta.url),'utf8');
+ assert.match(pickerSource,/return labelA.localeCompare\(labelB\)/);
 });
 test('quotation tax type dropdown can add an additional tax row',async()=>{
  const source=await readFile(new URL('../src/pages/Quotations/components/QuotationForm.jsx',import.meta.url),'utf8');

@@ -64,7 +64,7 @@ export function CategoryList() {
     } catch (error) { setExportError(error.message); }
   };
 
-  return <main className="product-page">
+  return <main className="product-page category-list-page">
     <Breadcrumbs aria-label="Breadcrumb"><Link to="/products">Products &amp; Services</Link><span>Product Categories</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Categories</h1><p>Manage categories used to organize products and services.</p></div><div className="product-row-actions"><Button component={Link} to="/products" variant="outlined" startIcon={<ArrowBack />}>Back to Products</Button><Button variant="outlined" className="billing-pdf-button" startIcon={<PrintOutlined />} disabled={query.isPending || query.isError} onClick={exportPdf}>Print</Button><Button component={Link} to="/products/categories/new" variant="contained" startIcon={<Add />}>Add Category</Button></div></header>
     {exportError && <Alert severity="error" onClose={() => setExportError('')}>{exportError}</Alert>}
@@ -72,9 +72,9 @@ export function CategoryList() {
     <section className="product-panel" aria-label="Category list">
       <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><CategoryOutlined /></span><div><h2>Categories</h2><p>Organize your billing catalog.</p></div></div><span className="product-result-count">{query.isPending ? 'Loading categories...' : query.isError ? 'Categories unavailable' : `${categories.length}${searchTerm ? ' matching' : ''} categories`}</span></div>
       <div className="category-search-row"><TextField className="category-search" size="small" label="Search categories" placeholder="Category name, description, or status" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlined fontSize="small" /></InputAdornment> }} inputProps={{ 'aria-label': 'Search categories by name, description, or status' }} /></div>
-      <TableContainer className="ibms-table-frame product-table category-table" tabIndex={0} aria-label="Scrollable categories">
-        <div className="category-table-header"><Table aria-label="Product categories"><TableHead><TableRow>{['Category Name', 'Description', 'Status', 'Products', 'Actions'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead></Table></div>
-        <div className="category-table-body" tabIndex={0} role="region" aria-label="Scrollable category rows"><Table aria-label="Category data"><TableBody>{query.isPending ? <TableRow><TableCell colSpan={5}><div className="product-state" role="status">Loading categories...</div></TableCell></TableRow>
+      <TableContainer className="ibms-table-frame product-table category-table" tabIndex={0} role="region" aria-label="Scrollable categories">
+        <Table stickyHeader aria-label="Product categories"><TableHead><TableRow>{['Category Name', 'Description', 'Status', 'Products', 'Actions'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
+          <TableBody>{query.isPending ? <TableRow><TableCell colSpan={5}><div className="product-state" role="status">Loading categories...</div></TableCell></TableRow>
             : query.isError ? <TableRow><TableCell colSpan={5}><Alert severity="error" action={<Button onClick={() => query.refetch()}>Retry</Button>}>{categoryError(query.error)}</Alert></TableCell></TableRow>
             : !categories.length ? <TableRow><TableCell colSpan={5}><div className="product-state"><h2>No categories yet</h2><p>Add a category to organize products and services.</p></div></TableCell></TableRow>
             : categories.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(category => <TableRow key={category.id} hover>
@@ -85,7 +85,6 @@ export function CategoryList() {
             </div></TableCell>
           </TableRow>)}</TableBody>
         </Table>
-        </div>
       </TableContainer>
       <TablePagination component="div" className="category-pagination" count={categories.length} page={page} onPageChange={(_, nextPage) => setPage(nextPage)} rowsPerPage={rowsPerPage} onRowsPerPageChange={event => { setRowsPerPage(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} labelRowsPerPage="Categories per page" />
     </section>

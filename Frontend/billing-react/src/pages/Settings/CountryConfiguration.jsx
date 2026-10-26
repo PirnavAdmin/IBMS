@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
+  Alert,
   Button,
   Checkbox,
   TextField,
@@ -25,6 +26,7 @@ import { CountryFlag } from '../../components/CountryFlag';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import {
   useRegionalSettings,
+  COUNTRY_SETTINGS_BLOCKER,
   BILLING_COUNTRIES_LIST as COUNTRIES_LIST,
 } from '../../services/regionalSettingsService';
 import './settings.css';
@@ -119,6 +121,8 @@ export function CountryConfiguration() {
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </SettingsPageHeader>
+
+      <Alert severity="error" sx={{ mb: 2 }}>{COUNTRY_SETTINGS_BLOCKER}</Alert>
 
       {/* UPSIDE: Selected Countries Section */}
       <section className="country-selected-shelf" aria-label="Currently selected countries">

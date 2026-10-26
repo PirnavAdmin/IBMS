@@ -2,11 +2,16 @@
 .date-range-filter.ant-btn:hover { background: #f5ebe0; border-color: #ba9774; color: #715238; }
 .date-range-filter.ant-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
 .date-range-filter svg { font-size: 18px; flex-shrink: 0; }
+.date-range-filter .ant-btn-icon, .delivery-date-range .MuiButton-startIcon { color: #b65a20; }
 .date-range-form { display: grid; gap: 16px; width: min(20rem, calc(100vw - 64px)); padding: 8px 4px 4px; color: #715238; font: 13px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .date-range-form label { display: grid; gap: 6px; }
-.date-range-form input { min-height: 40px; border-radius: 8px; font-family: inherit; }
-.date-range-form input:hover { border-color: #ba9774; }
-.date-range-form input:focus { border-color: #96704e; box-shadow: 0 0 0 3px #cba57b26; }
+.date-range-date-field { display: block; min-width: 0; }
+.date-range-date-picker.ant-picker { width: 100%; min-height: 40px; font-family: inherit; }
+.date-range-date-picker.ant-picker .ant-picker-suffix { color: #b65a20; font-size: 18px; }
+.date-range-date-picker.ant-picker .ant-picker-input > input { color: #452b1d; font-weight: 650; }
+.date-range-date-picker.ant-picker .ant-picker-input > input::placeholder { color: #8b7764; font-weight: 400; }
+.date-range-calendar .ant-picker-cell-in-view.ant-picker-cell-selected:not(.ant-picker-cell-disabled) .ant-picker-cell-inner { background: #795137; color: #fff; font-weight: 750; }
+.date-range-calendar .ant-picker-cell-in-view.ant-picker-cell-today:not(.ant-picker-cell-selected) .ant-picker-cell-inner { color: #8b3f12; font-weight: 700; }
 .date-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .date-range-error { color: #b44336; }
 .notification-range { display: grid; gap: 6px; }

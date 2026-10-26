@@ -1,4 +1,4 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -66,6 +66,14 @@ public class InvoicesController : ControllerBase
         };
 
         var paged = await _invoiceRepository.GetPagedAsync(tenantId.Value, exportFilter);
+
+        if (Response?.Headers != null)
+        {
+            Response.Headers["X-Total-Count"] = paged.TotalCount.ToString();
+            Response.Headers["X-Exported-Count"] = paged.Items.Count.ToString();
+            Response.Headers["X-Export-Truncated"] = (paged.TotalCount > 10000).ToString().ToLowerInvariant();
+            Response.Headers["Access-Control-Expose-Headers"] = "X-Total-Count, X-Exported-Count, X-Export-Truncated";
+        }
 
         if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
         {
@@ -225,16 +233,18 @@ public class InvoicesController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-    private int? GetTenantId()
+        private int? GetTenantId()
     {
+        if (User.IsInRole("SuperAdmin"))
+        {
+            if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
+                return hId;
+
+            return 1;
+        }
+
         var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
         if (int.TryParse(claim, out var tid) && tid > 0) return tid;
-
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
-            return hId;
-
-        if (User.IsInRole("SuperAdmin"))
-            return 1;
 
         return null;
     }

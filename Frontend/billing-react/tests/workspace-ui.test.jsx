@@ -82,6 +82,8 @@ test('Enhanced user form preserves validation, role defaults, permission toggles
 
 test('Country confirmation waits for server success, prevents duplicates and redirects with success feedback', async () => {
   localStorage.clear();
+  localStorage.setItem('billing_auth_token', 'country-test-session');
+  localStorage.setItem('billing_auth_user', JSON.stringify({ tenantId: 1, id: 'country-test' }));
   const original = apiClient.put; const calls = []; let resolve;
   apiClient.put = (url, payload) => { calls.push({ url, payload }); return new Promise(done => { resolve = done; }); };
   const ui = await mount(countries, '/settings/countries');
@@ -101,7 +103,7 @@ test('Country confirmation waits for server success, prevents duplicates and red
   } finally { await ui.close(); apiClient.put = original; localStorage.clear(); }
 });
 
-test('Country save failure keeps selection and prior persisted settings and allows retry', async () => {
+test('Country save failure keeps the draft, ignores legacy settings and allows retry', async () => {
   localStorage.clear();
   localStorage.setItem('invoice_billing_selected_countries_default', JSON.stringify(['India']));
   const original = apiClient.put;
@@ -112,7 +114,8 @@ test('Country save failure keeps selection and prior persisted settings and allo
     await click(button(ui.host, 'Save Changes')); await settle();
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
     assert.equal(ui.host.querySelector('[aria-label="Select Canada"]').checked, true);
-    assert.deepEqual(regionalSettingsService.getSelectedCountries().map(country => country.code), ['IN']);
+    assert.deepEqual(regionalSettingsService.getSelectedCountries(), []);
+    assert.match(ui.host.textContent, /Country settings API is unavailable/);
     assert.match(document.body.textContent, /Country settings are unavailable/);
     assert.equal(button(ui.host, 'Save Changes').disabled, false);
     apiClient.put = async () => { throw new Error('Connection lost'); };
@@ -150,9 +153,9 @@ test('Login password visibility has matching icons, accessible actions and an un
 
 test('Every available Dashboard summary is a native accessible link to the supported module', async () => {
   const stats = [
-    ['invoiced', 'Total Invoiced', 'invoice', '/invoices'], ['paid', 'Total Paid', 'paid', '/payments'],
-    ['outstanding', 'Outstanding', 'wallet', '/invoices'], ['overdue', 'Overdue', 'warning', '/invoices'],
-    ['drafts', 'Draft Invoices', 'draft', '/invoices'],
+    ['invoiced', 'Total Invoiced', 'invoice', '/invoices?paymentState=Invoiced'], ['paid', 'Total Paid', 'paid', '/payments?status=Completed'],
+    ['outstanding', 'Outstanding', 'wallet', '/invoices?paymentState=Outstanding'], ['overdue', 'Overdue', 'warning', '/invoices?paymentState=Overdue'],
+    ['drafts', 'Draft Invoices', 'draft', '/invoices?status=Draft'],
   ];
   for (const [id, label, icon, destination] of stats) {
     assert.equal(summaryDestination(id), destination);
@@ -165,7 +168,7 @@ test('Every available Dashboard summary is a native accessible link to the suppo
       assert.equal(link.tabIndex, 0);
       link.focus(); assert.equal(document.activeElement, link);
       await click(link);
-      assert.equal(ui.host.querySelector('[data-location]').textContent, destination);
+      assert.equal(ui.host.querySelector('[data-location]').textContent, destination.split('?')[0]);
     } finally { await ui.close(); }
   }
   const unavailable = await mount(<StatCard data={{ id: 'paid', label: 'Total Paid', icon: 'paid', value: null }} />);
@@ -206,7 +209,10 @@ test('Invoice date format preserves supplied calendar dates and IST timestamps a
 import './notifications-ui.test';
 
 
-const changeInput = async (input, value) => act(async () => { input.value = value; Simulate.change(input, { target: { value, name: input.name } }); });
+const changeInput = async (input, value) => {
+  await act(async () => { input.value = value; Simulate.change(input, { target: { value, name: input.name } }); });
+  if (input.closest('.ant-picker')) await act(async () => Simulate.keyDown(input, { key: 'Enter' }));
+};
 const bodyButton = text => [...document.body.querySelectorAll('button')].find(node => node.textContent.trim() === text);
 
 test('Shared Invoice Date Range stages local dates, rejects reversed dates, applies and clears both endpoints', async () => {
@@ -220,7 +226,7 @@ test('Shared Invoice Date Range stages local dates, rejects reversed dates, appl
     const to = document.body.querySelector('[aria-label="To Date"]');
     await changeInput(from, '2026-10-15'); await changeInput(to, '2026-10-01');
     assert.equal(bodyButton('Apply').disabled, true); assert.equal(calls.length, 0);
-    assert.equal(to.min, '2026-10-15');
+    assert.notEqual(to.type, 'date', 'Use the themed calendar instead of the browser calendar');
     await changeInput(to, '2026-10-20'); await act(async () => Simulate.submit(document.body.querySelector('form.date-range-form')));
     assert.deepEqual(calls, [{ startDate: '2026-10-15', endDate: '2026-10-20' }]);
     assert.match(ui.host.textContent, /15\/10\/2026.*20\/10\/2026/);
@@ -291,6 +297,19 @@ test('Aging keeps complete real currency values, zero buckets, and a separate No
   } finally { await ui.close(); }
 });
 
+test('Dashboard currency replaces recent search and drilldowns retain range and currency', async () => {
+  const chosen = [];
+  const ui = await mount(<DashboardFilters values={{ start: '2026-10-01', end: '2026-10-23' }} onChange={() => {}} onRefresh={() => {}} currencies={['INR', 'USD']} currency="INR" onCurrencyChange={value => chosen.push(value)} />);
+  try {
+    assert.equal(ui.host.querySelector('input[type="search"]'), null);
+    await act(async () => Simulate.change(ui.host.querySelector('select'), { target: { value: 'USD' } }));
+    assert.deepEqual(chosen, ['USD']);
+    const destination = new URL(summaryDestination('outstanding', { start: '2026-10-01', end: '2026-10-23' }, 'USD'), 'http://localhost');
+    assert.equal(destination.pathname, '/invoices');
+    assert.deepEqual(Object.fromEntries(destination.searchParams), { paymentState: 'Outstanding', startDate: '2026-10-01', endDate: '2026-10-23', currency: 'USD' });
+  } finally { await ui.close(); }
+});
+
 test('Aging details exclude drafts and other currencies and classify every due date boundary', () => {
   const dates = ['2026-10-23', '2026-10-22', '2026-10-21', '2026-09-22', '2026-09-21', '2026-08-23', '2026-08-22', '2026-07-24', '2026-07-23', null];
   const invoices = dates.map((dueDate, id) => ({ id, dueDate, currency: 'INR', status: 'Issued', balanceAmount: 100 }));
@@ -355,7 +374,7 @@ test('Shared table and Dashboard styles enforce all boundaries, nowrap values an
   assert.match(css, /nth-child\(3\)\s*\{ text-align: left; white-space: nowrap/);
   assert.match(css, /premium-stat > strong[^}]*white-space: nowrap/);
   const dashboard = readFileSync('src/styles/DashboardPremium.css', 'utf8');
-  assert.match(dashboard, /premium-aging-legend > div[^}]*grid-template-columns:[^;]+;[^}]*border: 1px solid/s);
+  assert.match(dashboard, /premium-aging-legend > button[^}]*grid-template-columns:[^;]+;[^}]*border: 1px solid/s);
   assert.match(dashboard, /premium-stat-link:hover, \.premium-actions a:hover/);
 });
 

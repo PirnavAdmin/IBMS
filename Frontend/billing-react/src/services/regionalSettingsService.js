@@ -45,44 +45,33 @@ export function getDefaultCountryFromSettings() {
   return null;
 }
 
+const EMPTY_COUNTRIES = [];
 const REGIONAL_SETTINGS_EVENT = 'invoice_billing_regional_settings_changed';
 
-function getStorageScope() {
+// Only server-confirmed selections from this authenticated session are cached.
+// The deployed contract has no country-settings GET/PUT; never hydrate from legacy storage.
+export const COUNTRY_SETTINGS_BLOCKER = 'Country settings API is unavailable on the current billing server (GET/PUT /api/v1/settings/country). Saved selections cannot be loaded. A save requires server confirmation.';
+let confirmedSelection = null;
+function getSessionScope() {
   try {
+    const token = localStorage.getItem('billing_auth_token');
     const user = authApi.getCurrentUser();
-    if (user?.tenantId) return `tenant_${user.tenantId}`;
-    if (user?.id) return `user_${user.id}`;
-    if (user?.email) return `email_${user.email}`;
-  } catch (e) {
-    // fallback
-  }
-  return 'default';
-}
-
-function getStorageKey() {
-  return `invoice_billing_selected_countries_${getStorageScope()}`;
+    return token ? JSON.stringify([token, user?.tenantId ?? user?.tenant_id ?? null, user?.id ?? user?.email ?? null]) : null;
+  } catch { return null; }
 }
 
 export const regionalSettingsService = {
   getSelectedCountries() {
-    try {
-      const raw = localStorage.getItem(getStorageKey()) || localStorage.getItem('invoice_billing_selected_countries_default');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          return parsed
-            .map((item) => (typeof item === 'object' ? findCountry(item?.name || item?.code) : findCountry(item)))
-            .filter(isBillingCountry);
-        }
-      }
-    } catch (e) {
-      // storage unavailable or invalid json
+    const scope = getSessionScope();
+    if (!scope || confirmedSelection?.scope !== scope) {
+      confirmedSelection = null;
+      return [];
     }
-    // No default country
-    return [];
+    return [...confirmedSelection.countries];
   },
 
   async saveSelectedCountries(countries) {
+    const scope = getSessionScope();
     const list = Array.isArray(countries) ? countries : (countries ? [countries] : []);
     const normalized = list
       .map((item) => (typeof item === 'object' ? findCountry(item?.name || item?.code) : findCountry(item)))
@@ -103,15 +92,13 @@ export const regionalSettingsService = {
     const response = await apiClient.put('/api/v1/settings/country', {
       countries: unique.map((c) => ({ country: c.name, countryCode: c.code, phoneCode: c.phoneCode, currency: c.currency })),
     });
-    if (response?.success === false || (response?.success !== true && !(response?.status >= 200 && response?.status < 300))) {
+    if (response?.success !== true) {
       throw new Error(response?.message || 'Country settings could not be saved. Please try again.');
     }
-    try {
-      const serialized = JSON.stringify(unique.map((c) => c.name));
-      localStorage.setItem(getStorageKey(), serialized);
-      localStorage.setItem('invoice_billing_selected_countries_default', serialized);
-    } catch { /* Server success remains valid when browser storage is unavailable. */ }
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT, { detail: unique }));
+    if (scope && scope === getSessionScope()) {
+      confirmedSelection = { scope, countries: unique };
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT));
+    }
     const backendStatus = { backendBlocked: false, message: response.message || 'Country settings saved successfully.' };
 
     return {
@@ -122,20 +109,15 @@ export const regionalSettingsService = {
 };
 
 export function useRegionalSettings() {
-  const [selectedCountries, setSelectedCountries] = useState(() =>
-    regionalSettingsService.getSelectedCountries()
-  );
+  const scope = getSessionScope();
+  const [selection, setSelection] = useState(() => ({ scope, countries: regionalSettingsService.getSelectedCountries() }));
+  const selectedCountries = selection.scope === scope && scope ? selection.countries : EMPTY_COUNTRIES;
+  const setSelectedCountries = countries => setSelection({ scope: getSessionScope(), countries });
 
   useEffect(() => {
-    const handleUpdate = (e) => {
-      if (Array.isArray(e.detail)) {
-        setSelectedCountries(e.detail);
-      } else {
-        setSelectedCountries(regionalSettingsService.getSelectedCountries());
-      }
-    };
+    const handleUpdate = () => setSelectedCountries(regionalSettingsService.getSelectedCountries());
     const handleStorage = (e) => {
-      if (e.key && e.key.startsWith('invoice_billing_selected_countries')) {
+      if (e.key === null || e.key === 'billing_auth_user' || e.key === 'billing_auth_token') {
         setSelectedCountries(regionalSettingsService.getSelectedCountries());
       }
     };

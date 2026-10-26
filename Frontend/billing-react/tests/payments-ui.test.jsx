@@ -15,6 +15,7 @@ import { PaymentReversalContent } from '../src/pages/Payments/PaymentReversal';
 import { PaymentState } from '../src/pages/Payments/PaymentShared';
 import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money, displayDate } from '../src/pages/Payments/paymentService';
 import { paymentSchema, reversalSchema } from '../src/pages/Payments/paymentValidation';
+import { connectionErrorMessage } from '../src/utils/errorPresentation';
 import { localCalendarDate } from '../src/utils/localDate';
 import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from '../src/pages/Payments/paymentReports';
 
@@ -34,7 +35,7 @@ test('Payments list: real mapped row, controls, actions and server page totals',
  assert.match(html,/href="\/payments\/new"/);
  assert.doesNotMatch(html,/MuiTableCell-alignRight|MuiTableCell-alignCenter/);
  const headings = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[\s\S]*?<\/style>|<svg\b[\s\S]*?<\/svg>|<[^>]*>/g, '').trim());
- assert.deepEqual(headings, ['Payment Number / ID','Date','Customer','Invoice','Method','Amount','Allocated','Status','Actions']);
+ assert.deepEqual(headings, ['Payment Number / ID','Date','Customer','Invoice','Method','Amount','Status','Actions']);
 });
 test('Payments list and details: empty, loading and API failure states',()=>{
  const c=cache();c.setQueryData(['payments','list',params],{items:[],totalCount:0,pageNumber:1,pageSize:10});assert.match(render('/payments',c),/No payments found/);
@@ -51,11 +52,13 @@ test('Payments load failures render once inside the table across all columns', (
  const html = render('/payments', c);
  const body = html.match(/<tbody\b[^>]*>([\s\S]*?)<\/tbody>/)?.[1];
  assert.ok(body);
- assert.match(body, /colSpan="9"/i);
+ const headerCount = (html.match(/<th\b/g) || []).length;
+ assert.equal(headerCount, 8);
+ assert.match(body, new RegExp(`colspan="${headerCount}"`, 'i'));
  assert.match(body, /Unable to load payment data/);
  assert.match(body, /Retry/);
  assert.equal(html.split('Unable to load payment data').length - 1, 1);
- assert.equal(html.split(paymentError(error)).length - 1, 1);
+ assert.equal(html.split(connectionErrorMessage).length - 1, 1);
  assert.doesNotMatch(html, /Payments could not be loaded\.|No payments found/);
 });
 test('Record screen renders fields and read-only authoritative values',()=>{
@@ -189,8 +192,9 @@ test('Submission guard excludes overlapping operations and releases after failur
  const first=submit();await submit();assert.equal(calls,1);finish();await first;assert.equal(guard.acquire(),true);assert.equal(guard.acquire(),false);guard.release();assert.equal(guard.acquire(),true);guard.release();
 });
 test('Validation covers amount, method details, dates and reversal limits',()=>{
- for(const amount of ['',0,-1,'bad',Infinity,1.001,1000000001])assert.throws(()=>paymentSchema.validateSyncAt('amount',{amount}));
+ for(const amount of ['',0,-1,'bad',Infinity,1.001,1.00000001,80.25000001,1000000001])assert.throws(()=>paymentSchema.validateSyncAt('amount',{amount}), `Invalid amount accepted: ${amount}`);
  assert.equal(paymentSchema.validateSyncAt('amount',{amount:'12.50'}),12.5);
+ for (const amount of ['0.01', '1.13', '2.51', '80.25']) assert.equal(paymentSchema.validateSyncAt('amount', {amount}), Number(amount));
  for(const method of ['BankTransfer','UPI','Card','Cheque','Gateway','Custom','Unsupported'])assert.throws(()=>paymentSchema.validateSync({...form,method}));
  for(const [method,patch] of [['BankTransfer',{reference:'R'}],['UPI',{providerTransactionId:'R'}],['Card',{reference:'R'}],['Cheque',{chequeNumber:'C',chequeDate:'2026-09-30'}],['Gateway',{providerName:'P',reference:'R'}],['Custom',{customMethodName:'Other'}]])assert.doesNotThrow(()=>paymentSchema.validateSync({...form,method,...patch}));
  for(const reason of ['', '  ', 'ab','x'.repeat(501)])assert.throws(()=>reversalSchema.validateSync({reason}));assert.equal(reversalSchema.validateSync({reason:'  QA reason  '}).reason,'QA reason');
@@ -211,7 +215,7 @@ test('Fresh balance, exact retry and duplicate guard are wired before mutations'
  const compact=record.replace(/\s+/g,'');
  const refreshIndex=compact.indexOf('constfresh=awaitbalance.refetch()');
  assert.ok(refreshIndex>=0 && refreshIndex<compact.indexOf('setConfirmation({values:'));
- assert.match(compact,/Number\(form.amount\)>Math.trunc\(fresh.data.currentOutstanding\)/);
+ assert.match(compact,/result.values.amount>fresh.data.currentOutstanding/);
  assert.match(record,/confirmation.retryDto \|\| createPaymentDto/);assert.match(record,/if\(!dto.idempotencyKey\)/);assert.match(record,/Retry Same Payment/);assert.match(record,/lock.current.acquire\(\)/);
  const reverse=readFileSync(join(dir,'PaymentReversal.jsx'),'utf8');assert.match(reverse,/query.data\?\.isReversible/);assert.match(reverse,/user.permissions.reverse/);assert.match(reverse,/lock.current.acquire\(\)/);assert.match(reverse,/invalidatePaymentData\(client\)/);
 });

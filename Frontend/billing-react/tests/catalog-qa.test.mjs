@@ -15,9 +15,11 @@ const page = { items: [{ id: 1, name: 'Example', type: 'Service', price: 10 }], 
 
 test('PQA routes: static category routes outrank product detail routes', () => {
   const source = readFileSync(new URL('../src/routes/AppRoutes.jsx', import.meta.url), 'utf8');
-  const routes = [...source.matchAll(/<Route path="(\/products[^"]*)" element=\{<(\w+)/g)].map(([, path, component]) => ({ path, component }));
+  const routes = [...source.matchAll(/<Route path="(\/products[^"]*)" element=\{<PermissionRoute permission="([^"]+)"><(\w+)/g)].map(([, path, permission, component]) => ({ path, permission, component }));
   for (const [url, expected] of Object.entries({ '/products': 'ProductList', '/products/new': 'CreateProduct', '/products/7': 'ProductDetails', '/products/7/edit': 'EditProduct', '/products/categories': 'CategoryList', '/products/categories/new': 'CategoryFormPage', '/products/categories/7/edit': 'CategoryFormPage' })) {
-    assert.equal(matchRoutes(routes, url).at(-1).route.component, expected);
+    const matched = matchRoutes(routes, url).at(-1).route;
+    assert.equal(matched.component, expected);
+    assert.equal(matched.permission, url.endsWith('/new') ? 'products.create' : url.endsWith('/edit') ? 'products.edit' : 'products.view');
   }
 });
 

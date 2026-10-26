@@ -1,4 +1,4 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Numbering;
 using Microsoft.AspNetCore.Authorization;
@@ -53,6 +53,8 @@ public class NumberingSettingsController : ControllerBase
         {
             if (result.Message != null && result.Message.Contains("Concurrency error"))
                 return Conflict(result);
+            if (result.Message != null && result.Message.Contains("Precondition required"))
+                return StatusCode(StatusCodes.Status428PreconditionRequired, result);
             return BadRequest(result);
         }
 

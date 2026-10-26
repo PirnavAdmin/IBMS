@@ -121,16 +121,16 @@
     border-color: var(--action-hover);
   }
   .app-layout .app-layout-content .MuiButton-outlinedPrimary:not(.Mui-disabled),
-  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous),
-  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(:disabled) {
+  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous):not(.premium-filters .date-range-filter),
+  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(.date-range-filter):not(:disabled) {
     background: #FFFFFF;
     color: var(--action-primary);
     border-color: #9B7759;
     box-shadow: none;
   }
   .app-layout .app-layout-content .MuiButton-outlinedPrimary:not(.Mui-disabled):hover,
-  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous):hover,
-  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(:disabled):hover {
+  .app-layout .app-layout-content .ant-btn-default:not(:disabled):not(.ant-btn-dangerous):not(.premium-filters .date-range-filter):hover,
+  .app-layout .premium-filters button:not(.primary):not(.premium-select-trigger):not(.date-range-filter):not(:disabled):hover {
     background: #F5EADD;
     border-color: var(--action-primary);
   }

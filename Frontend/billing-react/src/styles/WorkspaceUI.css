@@ -46,7 +46,7 @@
   box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: var(--surface);
+
   overflow: auto;
 }
 
@@ -130,3 +130,46 @@
 .workspace-back-button.ant-btn:not(:disabled):hover { color: #513420; border-color: #96704e; background: #f6eee4; }
 .workspace-back-button.ant-btn:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }
 .workspace-back-button.ant-btn:disabled { opacity: .55; }
+
+/* Bordered tables for credit notes, exports, audit, integrations and webhooks. */
+@media screen {
+  .app-layout :is(
+    .cn-page .ibms-table-frame,
+    .audit-page .ibms-table-frame,
+    .export-job-list .background-jobs-table-scroll,
+    .integrations-page .integrations-table-scroll
+  ) {
+    box-sizing: border-box;
+    min-width: 0;
+    border: 1px solid var(--border, #d5c6b5);
+    border-radius: 12px;
+    background: var(--surface, #fffdf9);
+    overflow: auto;
+  }
+
+  .app-layout :is(.cn-page .cn-table-wrap, .integrations-page .integrations-table-scroll) {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
+    margin: 0 16px 16px;
+  }
+
+  .app-layout :is(
+    .cn-page .ibms-table-frame,
+    .audit-page .ibms-table-frame,
+    .export-job-list .background-jobs-table-scroll,
+    .integrations-page .integrations-table-scroll
+  ) > table > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border, #d5c6b5);
+  }
+
+  .app-layout :is(
+    .cn-page .ibms-table-frame,
+    .audit-page .ibms-table-frame,
+    .export-job-list .background-jobs-table-scroll,
+    .integrations-page .integrations-table-scroll
+  ) > table > tbody:last-child > tr:last-child > td {
+    border-bottom: 0;
+  }
+}

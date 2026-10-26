@@ -1,16 +1,24 @@
+import { agingLabels, agingIndex, roundMoney } from './dashboardAging.js';
 // Revenue metrics use different date cohorts. There is no common progress denominator.
 export const revenueAmounts = summary => ({
   invoiced: summary.find(row => row.id === 'invoiced')?.value ?? null,
   collected: summary.find(row => row.id === 'paid')?.value ?? null,
 });
 
+// Real arc geometry keeps every segment's click target inside its own slice.
+export const agingArc = ({ share, offset }) => {
+  const point = percent => { const angle = percent / 100 * Math.PI * 2; return `${100 + 79 * Math.cos(angle)} ${100 + 79 * Math.sin(angle)}`; };
+  if (share >= 100) return 'M 179 100 A 79 79 0 1 1 21 100 A 79 79 0 1 1 179 100';
+  return `M ${point(offset)} A 79 79 0 ${share > 50 ? 1 : 0} 1 ${point(offset + share)}`;
+};
+
 export const agingRadial = data => {
-  const total = data.reduce((sum, row) => sum + row.value, 0);
+  const total = roundMoney(data.reduce((sum, row) => sum + row.value, 0));
   let offset = 0;
   const colors = ['#de9a58', '#b77b48', '#91613f', '#715143', '#594941', '#8c8177'];
   const buckets = data.map((row, index) => {
     const share = total > 0 ? row.value / total * 100 : 0;
-    const bucket = { ...row, label: row.label.replace(/(\d+)[?–-](\d+)/g, '$1–$2'), color: colors[index] || row.color, share, offset };
+    const bucket = { ...row, label: /^(\d+)\D+(\d+) Days$/.test(row.label) ? row.label.replace(/^(\d+)\D+(\d+) Days$/, '$1\u2013$2 Days') : row.label, color: colors[index] || row.color, share, offset };
     offset += share;
     return bucket;
   });
@@ -18,11 +26,8 @@ export const agingRadial = data => {
 };
 
 export const outstandingInvoiceDetails = (invoices, currency, now = new Date()) => {
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const labels = ['Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'No due date'];
   return invoices.filter(row => row.currency === currency && !['Draft', 'Cancelled', 'Voided'].includes(row.status) && row.balanceAmount > 0).map(row => {
-    const days = row.dueDate ? Math.max(0, Math.ceil((today - Date.parse(row.dueDate.slice(0, 10))) / 86400000)) : null;
-    return { ...row, agingBucket: labels[days === null ? 5 : days === 0 ? 0 : days <= 30 ? 1 : days <= 60 ? 2 : days <= 90 ? 3 : 4] };
+    return { ...row, agingBucket: agingLabels[agingIndex(row, now)] };
   });
 };
 

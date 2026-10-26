@@ -1,0 +1,19 @@
+{
+  "name": "invoice",
+  "args": [
+    "tests/run-invoice-ui.mjs",
+    "--test-timeout=20000",
+    "--test-name-pattern=Dashboard hides|Invoice API|Draft DTO|Form validates|Concurrency|Preview renders|Edit loads|Details tabs|Numbering|Invoice CSV|Blank draft|Invoice Send|Payment retry|Record payment"
+  ],
+  "status": 1,
+  "signal": null,
+  "blocked": false,
+  "durationMs": 38521,
+  "checkedAt": "2026-10-24T12:38:50.228Z",
+  "tests": 18,
+  "pass": 16,
+  "fail": 2,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0
+}

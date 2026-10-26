@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { StaticRouter } from 'react-router-dom/server';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TableSortLabel } from '@mui/material';
 import { ProductActionItems } from '../src/pages/Products/components/ProductActionsMenu';
 import { ProductTable } from '../src/pages/Products/components/ProductTable';
 import { ProductPagination } from '../src/pages/Products/components/ProductPagination';
@@ -123,9 +124,10 @@ test('PQA categories: real cached rows, zero/known counts, edit and both status 
   const cache = client(); cache.setQueryData(['categories', 'list'], categories);
   const html = render(<CategoryList />, cache, '/products/categories');
   assert.match(html, /Product Categories/); assert.match(html, /Available/);
-  assert.match(html, /href="\/products\/categories\/1\/edit"/);
-  assert.match(html, /aria-label="Deactivate Active category"/);
-  assert.match(html, /aria-label="Activate Inactive category"/);
+  assert.match(html, /aria-label="Actions for Active category"/);
+  assert.match(html, /aria-label="Actions for Inactive category"/);
+  assert.match(html, /aria-haspopup="menu"/);
+  assert.match(html, /aria-expanded="false"/);
   assert.match(html, /2 categories/);
 });
 
@@ -195,8 +197,24 @@ test('PQA Unit Price sorting keeps the price field and left alignment in both di
     assert.ok(header);
     assert.match(header, /MuiTableCell-alignLeft/);
     assert.match(header, new RegExp(`aria-sort="${sortOrder === 'asc' ? 'ascending' : 'descending'}"`));
-    assert.match(header, /flex-direction:row;/);
-    assert.doesNotMatch(header, /flex-direction:row-reverse/);
+    // Emotion may reuse a class whose style tag was emitted by an earlier render.
+    // Verify the component's layout and sort handler, not style-tag placement.
+    const sorted = [];
+    const nodes = [];
+    const visit = node => {
+      if (!React.isValidElement(node)) return;
+      nodes.push(node);
+      React.Children.forEach(node.props.children, visit);
+    };
+    visit(ProductTable({ ...table().props, params: { sortBy: 'price', sortOrder }, onSort: key => sorted.push(key) }));
+    const priceSort = nodes.find(node => node.type === TableSortLabel && node.props.children === 'Unit Price');
+    assert.ok(priceSort);
+    assert.equal(priceSort.props.sx.flexDirection, 'row');
+    assert.equal(priceSort.props.sx.whiteSpace, 'nowrap');
+    assert.equal(priceSort.props.active, true);
+    assert.equal(priceSort.props.direction, sortOrder);
+    priceSort.props.onClick();
+    assert.deepEqual(sorted, ['price']);
     assert.match(header.replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ''), /Unit Price<svg/);
     assert.match(html, /<td[^>]*MuiTableCell-alignLeft[^>]*product-price/);
     assert.match(html, /class="product-identity"><span class="product-row-icon product"[^>]*>.*?<\/span><a[^>]*class="product-name"/s);

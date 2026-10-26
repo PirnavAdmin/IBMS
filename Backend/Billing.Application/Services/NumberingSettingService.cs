@@ -1,4 +1,4 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Numbering;
 using Billing.Domain.Entities;
@@ -123,13 +123,15 @@ public class NumberingSettingService : INumberingSettingService
         }
         else
         {
-            if (!string.IsNullOrWhiteSpace(request.RowVersion))
+            if (string.IsNullOrWhiteSpace(request.RowVersion))
             {
-                var existingRowVersionStr = Convert.ToBase64String(BitConverter.GetBytes(existing.RowVersion.Ticks));
-                if (!string.Equals(existingRowVersionStr, request.RowVersion.Trim(), StringComparison.Ordinal))
-                {
-                    return ApiResponse<NumberingSettingDto>.Fail("Concurrency error: The numbering configuration was modified by another user.");
-                }
+                return ApiResponse<NumberingSettingDto>.Fail("Precondition required: RowVersion is required to update existing numbering configuration to prevent stale writes.");
+            }
+
+            var existingRowVersionStr = Convert.ToBase64String(BitConverter.GetBytes(existing.RowVersion.Ticks));
+            if (!string.Equals(existingRowVersionStr, request.RowVersion.Trim(), StringComparison.Ordinal))
+            {
+                return ApiResponse<NumberingSettingDto>.Fail("Concurrency error: The numbering configuration was modified by another user.");
             }
 
             existing.Prefix = request.Prefix?.Trim() ?? string.Empty;

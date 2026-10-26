@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { ArrowForward } from '@mui/icons-material';
 import { Tooltip } from '@mui/material';
 import { money } from '../../pages/Dashboard/dashboardModel';
-import { agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
+import { agingArc, agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
 import { displayDate } from '../../utils/localDate';
 
-const chartTooltipProps = { arrow: true, enterTouchDelay: 0 };
+const chartTooltipProps = { arrow: true, enterTouchDelay: 0, disableInteractive: true, slotProps: { tooltip: { sx: { maxWidth: 280, fontSize: 12, lineHeight: 1.6, whiteSpace: 'normal', overflowWrap: 'anywhere', backgroundColor: '#633d28' } } } };
 
 const RingSurface = ({ className, radius }) => {
   const id = useId();
@@ -50,6 +50,7 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
         <AmountRing label="Invoiced" value={invoiced} currency={currency} tone="invoiced" percentage={cohort?.invoicedPercent} description="Total value of issued invoices in the selected date range. Drafts, cancelled and voided invoices are excluded." />
         <AmountRing label="Collected" value={collected} currency={currency} tone="collected" percentage={cohort?.collectedPercent} description={cohort ? `${cohort.collectedPercent.toFixed(1)}% collected against these same issued invoices, based on their paid balances.` : 'Completed payments by payment date. These may relate to invoices issued outside this range.'} />
       </div>
+      <p className="premium-chart-caption">Rings compare paid balances on the same invoices. Monthly bars show completed payments by payment date.</p>
       <div className="premium-monthly-trend" aria-label="Recent monthly revenue">
         <div className="premium-trend-heading"><span>Monthly activity</span><small><i />Invoiced <i />Collected</small></div>
         <div className="premium-month-bars">{trend.map(row => <Tooltip key={row.label} {...chartTooltipProps} title={<>{row.label}<br />Invoiced: {money(row.invoiced, currency)}<br />Collected by payment date: {money(row.collected, currency)}</>}><div className="premium-month-column" tabIndex={0} aria-label={`${row.label}: invoiced ${money(row.invoiced, currency)}, collected by payment date ${money(row.collected, currency)}`}><div className="premium-month-bar-pair"><i style={{ height: `${Math.max(0, row.invoiced) / maximum * 100}%` }} /><i style={{ height: `${Math.max(0, row.collected) / maximum * 100}%` }} /></div><small>{row.label}</small></div></Tooltip>)}</div>
@@ -74,7 +75,7 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
   return <article className="premium-panel premium-aging-panel">
     <header><div><h2>Outstanding Aging</h2><p>Outstanding aging breakdown &middot; Current balances &middot; {currency}</p></div></header>
     {total === 0 ? <div className="premium-empty">No outstanding balances in this date range.</div> : <>
-    <div className="premium-aging-insights"><span>Overdue balance <strong>{money(overdue, currency)}</strong></span><span>Open invoices <strong>{outstanding.length}</strong></span></div>
+    <div className="premium-aging-insights"><span>Overdue balance <strong>{money(overdue, currency)}</strong></span><span>Invoices <strong>{outstanding.length}</strong></span></div>
     <div className="premium-aging">
       <div className="premium-aging-ring">
         <svg viewBox="0 0 200 200" role="img" aria-labelledby={id}>
@@ -82,10 +83,10 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
           <RingSurface className="premium-aging-center" radius={94} />
 
           <circle className="premium-aging-track" cx="100" cy="100" r="79" />
-          <g transform="rotate(-90 100 100)">{segments.map(row => <circle className={`premium-aging-segment ${activeBucket?.label === row.label ? 'is-active' : ''}`} key={row.label} cx="100" cy="100" r="79" pathLength="100" fill="none" stroke={row.color} strokeWidth="17" strokeDasharray={`${row.share} ${100 - row.share}`} strokeDashoffset={-row.offset} onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} onClick={() => selectBucket(row.label)}><title>{`${row.label}: ${money(row.value, currency)} (${row.share.toFixed(1)}%)`}</title></circle>)}</g>
+          <g transform="rotate(-90 100 100)">{segments.map(row => <path d={agingArc(row)} className={`premium-aging-segment ${activeBucket?.label === row.label ? 'is-active' : activeBucket ? 'is-dimmed' : ''}`} key={row.label} fill="none" stroke={row.color} strokeWidth="17" onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} role="button" tabIndex={0} aria-label={`${row.label}: ${money(row.value, currency)}`} aria-pressed={selectedBucket === row.label} onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); selectBucket(row.label); } }} onClick={() => selectBucket(row.label)} />)}</g>
 
         </svg>
-        <div className="premium-ring-value" aria-live="polite"><small>{activeBucket?.label || 'Outstanding'}</small><strong>{money(activeBucket?.value ?? total, currency)}</strong><span className="premium-current-share">{(activeBucket?.share ?? currentShare).toFixed(1)}% <small>{activeBucket ? 'of total outstanding' : 'Current'}</small></span></div>
+        <div className="premium-ring-value" aria-live="polite"><small>{activeBucket?.label || 'Outstanding'}</small><strong>{money(activeBucket?.value ?? total, currency)}</strong><span className="premium-current-share">{(activeBucket?.share ?? currentShare).toFixed(1)}% <small>{activeBucket ? 'of outstanding' : 'Current share'}</small></span></div>
       </div>
       <div className="premium-aging-legend">{buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => <Tooltip key={row.label} {...chartTooltipProps} title={`${row.label}: ${money(row.value, currency)} · ${row.share.toFixed(1)}% of outstanding. ${outstanding.filter(invoice => invoice.agingBucket === row.label).length} open invoices. Select to view details.`}><button type="button" className={activeBucket?.label === row.label ? 'is-active' : ''} aria-pressed={selectedBucket === row.label} aria-controls={`${id}-details`} onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} onFocus={() => setHoveredBucket(row.label)} onBlur={() => setHoveredBucket(null)} onClick={() => selectBucket(row.label)}><span className="premium-aging-bucket"><i aria-hidden="true" style={{ background: row.color }} />{row.label}</span><small>{row.share.toFixed(1)}%</small><strong>{money(row.value, currency)}</strong><span className="premium-bucket-meter" aria-hidden="true"><i style={{ width: `${row.share}%`, background: row.color }} /></span></button></Tooltip>)}</div>
     </div>

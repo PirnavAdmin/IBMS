@@ -1,0 +1,24 @@
+{
+  "name": "contracts",
+  "args": [
+    "--test",
+    "--test-timeout=20000",
+    "tests/numbering-contract.test.mjs",
+    "tests/invoice-export.test.mjs",
+    "tests/css-cascade.test.mjs",
+    "tests/frontend-source.test.mjs",
+    "src/pages/Dashboard/dashboardModel.test.mjs",
+    "src/pages/Dashboard/dashboardRadial.test.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "blocked": false,
+  "durationMs": 1936,
+  "checkedAt": "2026-10-24T12:38:54.065Z",
+  "tests": 32,
+  "pass": 32,
+  "fail": 0,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0
+}

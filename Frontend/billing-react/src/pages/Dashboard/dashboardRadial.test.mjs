@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { agingRadial, revenueAmounts, revenueCohort } from './dashboardRadial.js';
+import { agingArc, agingRadial, revenueAmounts, revenueCohort } from './dashboardRadial.js';
+
+test('aging uses distinct arc geometry so a later segment cannot cover another segment hit target', () => {
+  assert.match(agingArc({ share: 25, offset: 0 }), /^M 179 100 A 79 79 0 0 1 100 179$/);
+  assert.notEqual(agingArc({ share: 25, offset: 0 }), agingArc({ share: 25, offset: 25 }));
+  assert.equal((agingArc({ share: 100, offset: 0 }).match(/ A /g) || []).length, 2);
+});
 test('revenue indicators preserve authoritative totals without manufacturing rates', () => {
   assert.deepEqual(revenueAmounts([{ id: 'invoiced', value: 100 }, { id: 'paid', value: 200 }]), { invoiced: 100, collected: 200 });
   assert.deepEqual(revenueAmounts([]), { invoiced: null, collected: null });

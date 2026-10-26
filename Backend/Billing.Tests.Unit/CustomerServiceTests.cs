@@ -922,5 +922,43 @@ public class CustomerServiceTests
         Assert.Equal("CUST-002", res2.Data!.CustomerCode);
     }
 
+    [Fact]
+    public async Task UpdateCustomer_WhenOutboxServiceProvided_PublishesCustomerUpdatedEvent()
+    {
+        // Arrange
+        var customer = new Customer { Id = 40, TenantId = 2, CustomerCode = "CUST-040", Name = "Acme Global", Email = "acme@example.com" };
+        _fakeRepo.Customers.Add(customer);
+
+        var outboxMock = new Moq.Mock<Billing.Application.Interfaces.IOutboxService>();
+        var serviceWithOutbox = new CustomerService(_fakeRepo, outboxMock.Object);
+
+        var updateReq = new UpdateCustomerRequest { Name = "Acme Global Tech" };
+
+        // Act
+        var result = await serviceWithOutbox.UpdateCustomerAsync(customer.Id, updateReq, tenantId: 2);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Acme Global Tech", result.Data!.Name);
+        outboxMock.Verify(o => o.PublishEventAsync(2, "customer.updated", Moq.It.IsAny<object>(), Moq.It.IsAny<string?>()), Moq.Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateCustomer_WhenOutboxServiceProvided_PublishesCustomerCreatedEvent()
+    {
+        // Arrange
+        var outboxMock = new Moq.Mock<Billing.Application.Interfaces.IOutboxService>();
+        var serviceWithOutbox = new CustomerService(_fakeRepo, outboxMock.Object);
+
+        var createReq = new CreateCustomerRequest { Name = "New Enterprise", Email = "enterprise@test.com" };
+
+        // Act
+        var result = await serviceWithOutbox.CreateCustomerAsync(createReq, tenantId: 2);
+
+        // Assert
+        Assert.True(result.Success);
+        outboxMock.Verify(o => o.PublishEventAsync(2, "customer.created", Moq.It.IsAny<object>(), Moq.It.IsAny<string?>()), Moq.Times.Once);
+    }
+
     #endregion
 }

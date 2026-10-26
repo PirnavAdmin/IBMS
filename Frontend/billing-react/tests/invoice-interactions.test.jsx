@@ -4,13 +4,17 @@ import { createRoot } from "react-dom/client";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { FormDraftProvider } from '../src/context/FormDraftContext';
 import { apiClient, invoiceApi, templateApi, customerApi, authApi } from "billing-api-client";
 import { Dashboard } from '../src/pages/Dashboard/Dashboard';
 import { paymentService } from '../src/pages/Payments/paymentService';
+import { Payments } from '../src/pages/Payments/Payments';
+import { RecordPayment } from '../src/pages/Payments/RecordPayment';
 import { InvoiceList } from "../src/pages/Invoices/InvoiceList";
 import { InvoiceForm } from "../src/pages/Invoices/InvoiceForm";
 import { InvoiceDetails } from "../src/pages/Invoices/InvoiceDetails";
+import { InvoicePreview } from '../src/pages/Invoices/InvoicePreview';
 import { InvoiceActions } from "../src/pages/Invoices/components/InvoiceActions";
 import { InvoiceDocument } from "../src/pages/Invoices/components/InvoiceDocument";
 import {
@@ -89,7 +93,7 @@ const setting = {
   tokens: "{YEAR}-",
   sequenceLength: 4,
   nextNumber: 1,
-  resetPolicy: "Never",
+  resetPolicy: "Never (Continuous sequence)",
   status: "Active",
   rowVersion: "v1",
   preview: "T-2026-0001",
@@ -135,7 +139,9 @@ async function flush(ms = 20) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   });
 }
-async function mount(element, path = "/invoices", route = "*") {
+async function mount(element, path = "/invoices", route = "*", extraRoutes = null) {
+  let navigate;
+  function NavigationProbe() { navigate = useNavigate(); return null; }
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
@@ -143,19 +149,23 @@ async function mount(element, path = "/invoices", route = "*") {
     },
   });
   client.setQueryData(["auth-user"], { role: "TenantAdmin" });
+  client.setQueryData(['payment-user'], { roles: ['TenantAdmin'] });
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
   await act(async () =>
     root.render(
       <QueryClientProvider client={client}>
+        <FormDraftProvider>
         <MemoryRouter
           initialEntries={[path]}
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
+          <NavigationProbe />
           <Routes>
             <Route path={route} element={element} />
-            {route !== "/invoices/:id" && (
+            {extraRoutes}
+            {!extraRoutes && route !== "/invoices/:id" && (
               <Route
                 path="/invoices/:id"
                 element={<div>Saved invoice route</div>}
@@ -163,6 +173,7 @@ async function mount(element, path = "/invoices", route = "*") {
             )}
           </Routes>
         </MemoryRouter>
+        </FormDraftProvider>
       </QueryClientProvider>,
     ),
   );
@@ -170,6 +181,7 @@ async function mount(element, path = "/invoices", route = "*") {
   return {
     host,
     client,
+    async go(to) { await act(async () => navigate(to)); await flush(420); },
     async close() {
       await act(async () => root.unmount());
       host.remove();
@@ -200,7 +212,7 @@ test('Invoice summary hides AOA groups returned by the backend and preserves INR
   });
 });
 
-test('Dashboard hides the currency selector while showing historical INR invoices', async () => {
+test('Dashboard hides the currency selector and preserves historical INR invoices without mixing currencies', async () => {
   await mock(authApi, { getCurrentUser: () => ({ role: 'TenantAdmin', tenantId: 1, id: 1 }) }, async () =>
     mock(invoiceService, { list: async () => page([{ ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' }, { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' }]) }, async () =>
       mock(paymentService, { getPayments: async () => page([]) }, async () => {
@@ -229,6 +241,7 @@ async function input(element, value) {
     element.dispatchEvent(new window.Event("input", { bubbles: true }));
     element.dispatchEvent(new window.Event("change", { bubbles: true }));
   });
+  if (element.closest('.ant-picker')) await act(async () => element.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
   await flush();
 }
 async function defaults(changes, run) {
@@ -529,7 +542,7 @@ test("List Date Range stages dates, validates order, applies existing filters an
       await input(to(), '2026-10-09');
       assert.equal(calls.length, initialCalls, 'Draft dates must not query the backend');
       assert.equal(button('Apply').disabled, true);
-      assert.equal(to().min, '2026-10-10');
+      assert.notEqual(to().type, 'date');
       assert.match(document.body.textContent, /To Date must be on or after From Date/);
       await input(to(), '2026-10-14');
       await click(button('Apply'));
@@ -603,11 +616,14 @@ test("List shows backend error separately from empty state", async () => {
     },
   );
 });
-test("Edit preserves input on 409; preview/back preserves edits; reload restores latest", async () => {
+test("Edit loads server values; inline financial and saved preview/back preserve edits; 409 reload restores latest", async () => {
   let saved;
+  let latest = invoice;
+  const calculations = [];
   await defaults(
     {
-      get: async () => invoice,
+      get: async () => latest,
+      calculate: async payload => { calculations.push(payload); return calculation; },
       save: async (id, payload) => {
         saved = payload;
         throw Object.assign(new Error("Stale"), { response: { status: 409 } });
@@ -618,6 +634,10 @@ test("Edit preserves input on 409; preview/back preserves edits; reload restores
         <InvoiceForm />,
         "/invoices/7/edit",
         "/invoices/:id/edit",
+        <>
+          <Route path="/invoices/:id/preview" element={<InvoicePreview />} />
+          <Route path="/invoices/:id" element={<InvoiceDetails />} />
+        </>,
       );
       try {
         await flush(400);
@@ -628,15 +648,34 @@ test("Edit preserves input on 409; preview/back preserves edits; reload restores
         );
         await input(description, "Unsaved description");
         await flush(420);
-        await click(button("Preview"));
-        assert.match(document.body.textContent, /Unsaved draft preview/);
-        await click(button("Back to Edit"));
+        // CalculationRequest carries financial inputs, not line descriptions.
+        assert.equal(calculations.at(-1).items[0].unitPrice, item.unitPrice);
+        assert.equal(calculations.at(-1).items[0].quantity, item.quantity);
+        const totals = mounted.host.querySelector('.invoice-total-panel');
+        assert.match(totals.textContent, /Authoritative Preview/);
+        assert.match(totals.textContent, /100\.00/);
+        await mounted.go('/invoices/7/preview');
+        assert.match(mounted.host.textContent, /Review the saved invoice/);
+        assert.match(mounted.host.textContent, /Saved product/);
+        assert.doesNotMatch(mounted.host.textContent, /Unsaved description/);
+        await click(mounted.host.querySelector('a[href="/invoices/7"]'));
+        assert.match(mounted.host.textContent, /Draft #7/);
+        await mounted.go(-1);
+        assert.match(mounted.host.textContent, /Invoice Preview/);
+        await click(mounted.host.querySelector('a[href="/invoices/7/edit"]'));
+        await flush(420);
         assert.ok(document.querySelector('input[value="Unsaved description"]'));
         await click(button("Save Draft"));
         assert.equal(saved.rowVersion, invoice.rowVersion);
         assert.match(mounted.host.textContent, /changed by another user/);
+        assert.equal(saved.items[0].description, 'Unsaved description');
+        assert.ok(document.querySelector('input[value="Unsaved description"]'));
+        latest = { ...invoice, rowVersion: 'server-reloaded-version', items: [{ ...item, description: 'Latest server description' }] };
         await click(button("Reload latest"));
-        assert.ok(document.querySelector('input[value="Saved product"]'));
+        assert.ok(document.querySelector('input[value="Latest server description"]'));
+        await flush(420);
+        await click(button('Save Draft'));
+        assert.equal(saved.rowVersion, latest.rowVersion);
       } finally {
         await mounted.close();
       }
@@ -718,7 +757,7 @@ test("Issue confirmation prevents duplicate submit and shows backend-assigned nu
     },
   );
 });
-test("Details tabs query payment/credit/audit and expose communication blocker", async () => {
+test("Details tabs query payment/credit/audit; draft communication requires issue and exposes no Send action", async () => {
   const calls = [];
   await defaults(
     {
@@ -759,8 +798,11 @@ test("Details tabs query payment/credit/audit and expose communication blocker",
             assert.deepEqual(calls, ["payments", "credits", "audit"]);
             assert.match(
               mounted.host.textContent,
-              /unavailable on the current billing server/,
+              /Draft invoice must be issued prior to dispatch/,
             );
+            assert.equal(button('Send Invoice'), undefined);
+            assert.equal(button('Resend'), undefined);
+            assert.doesNotMatch(mounted.host.textContent, /Email Sent Successfully/);
           } finally {
             await mounted.close();
           }
@@ -768,6 +810,104 @@ test("Details tabs query payment/credit/audit and expose communication blocker",
       ),
   );
 });
+test('Invoice Send transport requires confirmed true and propagates failures (API boundary only)', async () => {
+  const calls = [];
+  await mock(apiClient, { post: async (url, body) => {
+    calls.push([url, body]);
+    return { success: true, data: false };
+  } }, async () => {
+    await assert.rejects(invoiceService.send(invoice.id), /not sent/);
+    assert.equal(calls[0][0], '/api/v1/invoices/7/send');
+  });
+  const failure = Object.assign(new Error('Dispatch rejected'), { response: { status: 400 } });
+  await mock(apiClient, { post: async () => { throw failure; } }, async () => {
+    await assert.rejects(invoiceService.send(invoice.id), error => error === failure);
+  });
+});
+
+test('Payment retry clears the error/loading state after a confirmed response', async () => {
+  let calls = 0;
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  await mock(apiClient, { get: async url => {
+    assert.equal(url, '/api/Auth/me');
+    return { roles: ['TenantAdmin'] };
+  } }, () => mock(paymentService, { getPayments: async () => {
+    calls++;
+    if (calls === 1) throw Object.assign(new Error('Unavailable'), { response: { status: 500 } });
+    await pending;
+    return { items: [], totalCount: 0, pageNumber: 1, pageSize: 10 };
+  } }, async () => {
+    const mounted = await mount(<Payments />, '/payments', '/payments');
+    try {
+      assert.equal(mounted.host.querySelectorAll('.bd-dashboard-error').length, 1);
+      assert.match(mounted.host.textContent, /Unable to load payment data/);
+      assert.doesNotMatch(mounted.host.textContent, /No payments found/);
+      await click(button('Retry'));
+      assert.equal(calls, 2);
+      assert.equal(mounted.host.querySelector('[aria-label="Refresh payments"]').disabled, true);
+      finish();
+      await flush();
+      assert.match(mounted.host.textContent, /No payments found/);
+      assert.equal(mounted.host.querySelector('.bd-dashboard-error'), null);
+      assert.equal(mounted.host.querySelector('.payment-loading'), null);
+      assert.equal(mounted.host.querySelector('[aria-label="Refresh payments"]').disabled, false);
+    } finally { finish(); await mounted.close(); }
+  }));
+});
+
+test('Record payment preserves fractions, compares the exact fresh balance and blocks duplicate submission', async () => {
+  // Isolated test fixtures; no fixture data enters runtime modules or live APIs.
+  const balance = { invoiceId: invoice.id, customerId: invoice.customerId, invoiceNumber: 'TEST', customerName: customer.name, currency: invoice.currency, invoiceTotal: invoice.totalAmount, previouslyPaid: 0, currentOutstanding: 80.25, isEligibleForPayment: true };
+  let freshBalance = balance;
+  let balanceReads = 0;
+  const sent = [];
+  let finish;
+  const pending = new Promise(resolve => { finish = resolve; });
+  await mock(paymentService, {
+    getEligibleInvoices: async () => [balance],
+    getInvoiceBalance: async () => { balanceReads++; return freshBalance; },
+    createPayment: async dto => { sent.push(dto); await pending; return { id: 9 }; },
+  }, async () => {
+    const mounted = await mount(<RecordPayment />, { pathname: '/payments/new', state: { invoiceId: invoice.id } }, '/payments/new', <Route path="/payments/:id" element={<div>Persisted payment route</div>} />);
+    try {
+      await flush();
+      const amount = mounted.host.querySelector('input[type="number"]');
+      const method = [...mounted.host.querySelectorAll('[role="combobox"]')].find(el => el.tagName !== 'INPUT');
+      assert.ok(method);
+      await act(async () => method.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true })));
+      await click([...document.querySelectorAll('[role="option"]')].find(el => el.textContent === 'Cash'));
+      for (const value of ['0', '-1', '1.001']) {
+        await input(amount, value);
+        await click(button('Review Payment'));
+        assert.equal(button('Confirm Payment'), undefined);
+        assert.equal(sent.length, 0);
+        assert.equal(amount.getAttribute('aria-invalid'), 'true');
+      }
+      await input(amount, '80.26');
+      await click(button('Review Payment'));
+      assert.match(mounted.host.textContent, /exceeds the current outstanding/);
+      freshBalance = { ...balance, currentOutstanding: 80.24 };
+      await input(amount, '80.25');
+      await click(button('Review Payment'));
+      assert.match(mounted.host.textContent, /exceeds the current outstanding/);
+      freshBalance = balance;
+      await input(amount, '80.25');
+      await click(button('Review Payment'));
+      assert.ok(balanceReads >= 4);
+      assert.equal(amount.value, '80.25');
+      const confirm = button('Confirm Payment');
+      assert.ok(confirm);
+      await act(async () => { confirm.click(); confirm.click(); });
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].amount, 80.25);
+      assert.ok(sent[0].idempotencyKey);
+      finish(); await flush();
+      assert.match(mounted.host.textContent, /Persisted payment route/);
+    } finally { finish(); await mounted.close(); }
+  });
+});
+
 test("Numbering validates real tokens, unknown tokens, sequence bounds and enable/disable statuses", async () => {
   assert.equal(validTokens("{YEAR}-{DD}-{FY}-"), true);
   assert.equal(validTokens("{SEQ}"), false);
@@ -806,71 +946,56 @@ test("Numbering uses preview endpoint only and never consumes sequence or sends 
   assert.equal(calls[0][1].tokens, "{YEAR}-");
   assert.equal(Object.hasOwn(calls[0][1], "rowVersion"), false);
 });
-test("Numbering dynamically previews edits; save requires confirmation", async () => {
-  let calls = 0;
-  const previews = [];
-  await mock(
-    numberingService,
-    {
-      getSettings: async () => setting,
-      preview: async (values) => {
-        previews.push(values);
-        return { fullPreview: `${values.prefix}server`, parts: {} };
-      },
-      updateSettings: async (values) => {
-        calls++;
-        return { ...values, rowVersion: "v2" };
-      },
-    },
-    async () => {
-      const mounted = await mount(<NumberingSettings />, "/settings/numbering");
-      try {
-        await flush(360);
-        assert.match(mounted.host.textContent, /T-server/);
-        await input(document.querySelector('input[value="T-"]'), "QA-");
-        await flush(360);
-        assert.equal(previews.at(-1).prefix, "QA-");
-        await click(button("Save Changes"));
-        assert.equal(calls, 0);
-        await click(button("Confirm Save"));
-        assert.equal(calls, 1);
-        assert.match(mounted.host.textContent, /saved by the billing server/);
-      } finally {
-        await mounted.close();
-      }
-    },
-  );
+test("Numbering dynamically previews edits; save waits for server confirmation and prevents duplicate submits", async () => {
+  const sent = []; const previews = []; let finish;
+  await mock(numberingService, {
+    getSettings: async () => setting,
+    preview: async values => { previews.push(values); return { fullPreview: `${values.prefix}server`, parts: {} }; },
+    updateSettings: values => { sent.push(values); return new Promise(resolve => { finish = resolve; }); },
+  }, async () => {
+    const mounted = await mount(<NumberingSettings />, "/settings/numbering");
+    try {
+      await flush(360);
+      assert.match(mounted.host.textContent, /T-server/);
+      await input(document.querySelector('input[value="T-"]'), "QA-");
+      await flush(360);
+      assert.equal(previews.at(-1).prefix, "QA-");
+      const save = button("Save Changes");
+      await act(async () => { save.click(); save.click(); });
+      await flush();
+      assert.equal(sent.length, 1); assert.equal(sent[0].rowVersion, 'v1');
+      assert.doesNotMatch(document.body.textContent, /saved successfully/);
+      await act(async () => finish({ ...sent[0], rowVersion: 'v2' }));
+      await flush();
+      assert.match(document.body.textContent, /saved successfully/);
+      await click(button('Save Changes'));
+      assert.equal(sent.length, 2); assert.equal(sent[1].rowVersion, 'v2');
+      await act(async () => finish({ ...sent[1], rowVersion: 'v3' }));
+    } finally { await mounted.close(); }
+  });
 });
-test("Numbering detects changed sequence before PUT and offers Reload latest", async () => {
-  let gets = 0;
-  let writes = 0;
-  await mock(
-    numberingService,
-    {
-      getSettings: async () => ({
-        ...setting,
-        nextNumber: ++gets === 1 ? 1 : 2,
-      }),
-      preview: async () => ({ fullPreview: "SERVER", parts: {} }),
-      updateSettings: async () => {
-        writes++;
-        return setting;
-      },
-    },
-    async () => {
-      const mounted = await mount(<NumberingSettings />, "/settings/numbering");
-      try {
-        await flush(360);
-        await click(button("Save Changes"));
-        await click(button("Confirm Save"));
-        assert.equal(writes, 0);
-        assert.match(document.body.textContent, /changed by another user/);
-        assert.ok(button("Reload latest"));
-      } finally {
-        await mounted.close();
-      }
-    },
-  );
+
+test("Numbering stale RowVersion keeps edits, stops further PUTs and reloads the authoritative settings explicitly", async () => {
+  let gets = 0; const sent = [];
+  await mock(numberingService, {
+    getSettings: async () => ({ ...setting, rowVersion: ++gets === 1 ? 'v1' : 'v2', nextNumber: gets === 1 ? 1 : 2 }),
+    preview: async () => ({ fullPreview: 'SERVER', parts: {} }),
+    updateSettings: async values => { sent.push(values); throw Object.assign(new Error('Concurrency error: modified by another user.'), {status: 409}); },
+  }, async () => {
+    const mounted = await mount(<NumberingSettings />, "/settings/numbering");
+    try {
+      await input(document.querySelector('input[value="T-"]'), 'MY-EDIT-');
+      await click(button('Save Changes'));
+      assert.equal(sent.length, 1); assert.equal(sent[0].rowVersion, 'v1');
+      assert.equal(document.getElementById('prefix-input').value, 'MY-EDIT-');
+      assert.match(document.body.textContent, /modified by another user/);
+      assert.equal(button('Save Changes').disabled, true);
+      await click(button('Reload saved settings')); await flush();
+      assert.equal(document.getElementById('prefix-input').value, 'T-');
+      assert.equal(document.getElementById('next-num-input').value, '2');
+      assert.equal(button('Save Changes').disabled, false);
+    } finally { await mounted.close(); }
+  });
 });
 
 test("Issue, Cancel and Void use separate confirmed endpoints; reasons are sent only for cancel/void", async () => {
@@ -1115,7 +1240,7 @@ test("Numbering unknown tokens remain visible and cannot be saved", async () => 
   await mock(
     numberingService,
     {
-      getSettings: async () => setting,
+      getSettings: async () => ({ ...setting, tokens: '{UNKNOWN}' }),
       preview: async () => ({ fullPreview: "SERVER", parts: {} }),
       updateSettings: async () => {
         writes++;
@@ -1126,14 +1251,9 @@ test("Numbering unknown tokens remain visible and cannot be saved", async () => 
       const mounted = await mount(<NumberingSettings />, "/settings/numbering");
       try {
         await flush(340);
-        await input(
-          document.querySelector('input[value="{YEAR}-"]'),
-          "{UNKNOWN}",
-        );
-        await flush(340);
-        assert.ok(document.querySelector('input[value="{UNKNOWN}"]'));
-        assert.match(mounted.host.textContent, /unsupported token/);
+        assert.match(mounted.host.textContent, /UNKNOWN/);
         await click(button("Save Changes"));
+        assert.match(mounted.host.textContent, /unsupported token/);
         assert.equal(writes, 0);
         assert.equal(button("Confirm Save"), undefined);
       } finally {
@@ -1159,11 +1279,23 @@ test("Blank draft displays required-field errors and never submits to the API", 
         "/invoices/new",
       );
       try {
+        const dates = [...mounted.host.querySelectorAll('input')].filter(el => el.placeholder === 'dd/mm/yyyy');
+        assert.equal(dates.length, 2);
+        assert.ok(dates.every(el => /^\d{2}\/\d{2}\/\d{4}$/.test(el.value)));
         await click(button("Save Draft"));
         assert.equal(calls, 0);
         assert.match(mounted.host.textContent, /Select a customer/);
-        assert.match(mounted.host.textContent, /Enter a valid date/);
+        assert.doesNotMatch(mounted.host.textContent, /Enter a valid date/);
         assert.match(mounted.host.textContent, /Select a product or service/);
+        await input(dates[0], '31/02/2026');
+        await click(button('Save Draft'));
+        assert.match(mounted.host.textContent, /Enter a valid date/);
+        assert.equal(calls, 0);
+        await input(dates[0], '');
+        await input(dates[1], '');
+        await click(button('Save Draft'));
+        assert.ok(dates.every(el => el.getAttribute('aria-invalid') === 'true'));
+        assert.equal(calls, 0);
       } finally {
         await mounted.close();
       }
@@ -1182,4 +1314,138 @@ test("Invoice customer lookup adapts the shared API array to dropdown items", as
     assert.equal(requested.search, "Test");
     assert.equal(requested.status, "Active");
   } finally { customerApi.getCustomers = original; }
+});
+
+
+test('Invoice CSV export keeps current filters, guards duplicate clicks and discloses the 10,000-row cap', async () => {
+  const original = { get: apiClient.get, create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+  const calls = []; const downloads = []; let finish;
+  apiClient.get = (url, options) => { calls.push({url, options}); return new Promise(resolve => {finish = resolve;}); };
+  URL.createObjectURL = () => 'blob:test-export'; URL.revokeObjectURL = () => {};
+  HTMLAnchorElement.prototype.click = function () { downloads.push(this.download); };
+  try {
+    await mock(invoiceService, {list: async () => page([]), customers: async () => ({items: []}), summary: async () => []}, async () => {
+      const mounted = await mount(<InvoiceList />, '/invoices?currency=INR&paymentState=Overdue&startDate=2026-10-01&endDate=2026-10-24');
+      try {
+        const exportButton = button('Export CSV');
+        await act(async () => { exportButton.click(); exportButton.click(); });
+        assert.equal(calls.length, 1); assert.equal(calls[0].url, '/api/v1/invoices/export');
+        assert.equal(calls[0].options.params.currency, 'INR'); assert.equal(calls[0].options.params.paymentState, 'Overdue');
+        assert.equal(calls[0].options.params.startDate, '2026-10-01T00:00:00Z');
+        assert.equal(calls[0].options.params.endDate, '2026-10-24T23:59:59.999Z');
+        assert.equal(calls[0].options.params.page, undefined);
+        assert.equal(downloads.length, 0); assert.equal(button('Exporting CSV...').disabled, true);
+        await act(async () => finish(new Blob(['InvoiceNumber,Date\n'], {type:'text/csv'}))); await flush();
+        assert.equal(downloads.length, 1); assert.match(mounted.host.textContent, /at most the first 10,000/);
+        assert.match(mounted.host.textContent, /completeness is not verified/);
+        apiClient.get = async () => { throw new Error('CSV unavailable'); };
+        await click(button('Export CSV')); await flush();
+        assert.match(mounted.host.textContent, /CSV unavailable/); assert.equal(downloads.length, 1);
+        assert.equal(button('Export CSV').disabled, false);
+      } finally { await mounted.close(); }
+    });
+  } finally { apiClient.get = original.get; URL.createObjectURL = original.create; URL.revokeObjectURL = original.revoke; HTMLAnchorElement.prototype.click = original.click; }
+});
+
+// Exercise the real shared customer parser: editor data is nested, unlike the
+// flat customer snapshot embedded in saved invoices.
+const addressCustomerRead = invoiceService.customer;
+const addressDto = {
+  id: 2, name: 'Billing Customer', currency: 'INR', status: 'Active',
+  addresses: [
+    { addressType: 'Shipping', addressLine1: 'Shipping only road', city: 'Dispatch city' },
+    { addressType: 'Billing', addressLine1: 'Billing road', addressLine2: 'Suite B', city: 'Billing city', state: 'Billing state', postalCode: '123456', country: 'India' },
+  ],
+};
+async function selectAddressCustomer(name) {
+  await input(document.querySelector('input[role=combobox]'), name);
+  await flush(320);
+  const option = [...document.querySelectorAll('[role=option]')].find(el => el.textContent === name);
+  assert.ok(option, `Customer option ${name} exists`);
+  await click(option);
+}
+
+test('Invoice billing address: Create hydrates shared API billing fields, never shipping, and clears selection', async () => {
+  const reads = [];
+  const noBilling = { id: 3, name: 'Shipping Customer', currency: 'INR', addresses: [addressDto.addresses[0]] };
+  await mock(apiClient, { get: async url => {
+    reads.push(url);
+    return { data: url.endsWith('/3') ? noBilling : addressDto };
+  } }, async () => defaults({
+    customers: async () => ({ items: [addressDto, noBilling] }),
+    customer: addressCustomerRead,
+  }, async () => {
+    const mounted = await mount(<InvoiceForm />, '/invoices/new', '/invoices/new');
+    try {
+      await selectAddressCustomer('Billing Customer');
+      assert.match(mounted.host.textContent, /Billing road, Suite B, Billing city, Billing state, 123456, India/);
+      assert.doesNotMatch(mounted.host.textContent, /Shipping only road|No address supplied/);
+      await selectAddressCustomer('Shipping Customer');
+      assert.match(mounted.host.textContent, /No address supplied/);
+      assert.doesNotMatch(mounted.host.textContent, /Billing road|Shipping only road|Dispatch city/);
+      assert.ok(reads.includes('/api/v1/customers/2'));
+      assert.ok(reads.includes('/api/v1/customers/3'));
+      await click(mounted.host.querySelector('button[title="Clear"]'));
+      assert.equal(mounted.host.querySelector('.invoice-customer-card'), null);
+    } finally { await mounted.close(); }
+  }));
+});
+
+test('Invoice billing address: Edit and remount hydrate billing data without changing invoice financial payload', async () => {
+  let saved;
+  await mock(apiClient, { get: async () => ({ data: addressDto }) }, async () => defaults({
+    customer: addressCustomerRead,
+    get: async () => invoice,
+    save: async (id, body) => { saved = body; return invoice; },
+  }, async () => {
+    for (let reload = 0; reload < 2; reload++) {
+      const mounted = await mount(<InvoiceForm />, '/invoices/7/edit', '/invoices/:id/edit');
+      try {
+        await flush(400);
+        assert.match(mounted.host.textContent, /Billing road, Suite B, Billing city/);
+        assert.doesNotMatch(mounted.host.textContent, /No address supplied|Shipping only road/);
+        if (reload === 1) {
+          await click(button('Save Draft'));
+          assert.deepEqual(saved, invoiceDto(formFromInvoice(invoice), true, undefined));
+        }
+      } finally { await mounted.close(); }
+    }
+  }));
+});
+
+test('Invoice billing address: switching ignores late responses, distinguishes loading/errors and retries without stale data', async () => {
+  let resolveSecond, rejectThird;
+  let thirdReads = 0;
+  const second = { ...addressDto, id: 3, name: 'Second Customer' };
+  const third = { ...addressDto, id: 4, name: 'Third Customer' };
+  await mock(apiClient, { get: url => {
+    if (url.endsWith('/3')) return new Promise(resolve => { resolveSecond = resolve; });
+    if (url.endsWith('/4') && thirdReads++ === 0) return new Promise((_, reject) => { rejectThird = reject; });
+    return Promise.resolve({ data: url.endsWith('/4') ? { ...third, addresses: [{ addressType: 'Billing', addressLine1: 'Third billing road' }] } : addressDto });
+  } }, async () => defaults({
+    customers: async () => ({ items: [addressDto, second, third] }),
+    customer: addressCustomerRead,
+    get: async () => invoice,
+  }, async () => {
+    const mounted = await mount(<InvoiceForm />, '/invoices/7/edit', '/invoices/:id/edit');
+    try {
+      assert.match(mounted.host.textContent, /Billing road/);
+      await selectAddressCustomer('Second Customer');
+      assert.match(mounted.host.textContent, /Loading customer billing details/);
+      assert.doesNotMatch(mounted.host.textContent, /Billing road|No address supplied/);
+      await selectAddressCustomer('Third Customer');
+      await act(async () => resolveSecond({ data: { ...second, addresses: [{ addressType: 'Billing', addressLine1: 'Late second address' }] } }));
+      await flush();
+      assert.doesNotMatch(mounted.host.textContent, /Late second address|Billing road|No address supplied/);
+      await act(async () => rejectThird(new Error('Customer address request unavailable')));
+      await flush();
+      assert.match(mounted.host.textContent, /Customer address request unavailable/);
+      assert.doesNotMatch(mounted.host.textContent, /No address supplied|Late second address/);
+      assert.equal(mounted.host.querySelector('.invoice-customer-card'), null);
+      await click(button('Retry'));
+      await flush();
+      assert.match(mounted.host.textContent, /Third billing road/);
+      assert.doesNotMatch(mounted.host.textContent, /Late second address|Customer address request unavailable/);
+    } finally { await mounted.close(); }
+  }));
 });

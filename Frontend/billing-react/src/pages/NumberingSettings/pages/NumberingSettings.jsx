@@ -22,6 +22,7 @@ import {
   numberingValidationSchema,
 } from '../validation/numberingValidation';
 import { numberingService } from '../services/numberingService';
+import { normalizeNumberingTokens } from '../validation/numberingTokens.js';
 import { DocumentTypeSelector } from '../components/DocumentTypeSelector';
 import { FormatBuilder } from '../components/FormatBuilder';
 import { NextNumberPreviewCard } from '../components/NextNumberPreviewCard';
@@ -38,6 +39,7 @@ export function NumberingSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [hasConflict, setHasConflict] = useState(false);
   const [toast, setToast] = useState('');
   const [toastSeverity, setToastSeverity] = useState('info');
 
@@ -71,13 +73,12 @@ export function NumberingSettings() {
     try {
       const data = await numberingService.getSettings(docType);
       if (revision !== loadRevision.current) return;
-      const settings = { ...data,
-        prefix: data.prefix.replace(/\{/g, '(').replace(/\}/g, ')'),
-        suffix: data.suffix.replace(/\{/g, '(').replace(/\}/g, ')'),
-        tokens: data.tokens.replace(/\{/g, '(').replace(/\}/g, ')'),
-      };
-      savedSettings.current = settings;
-      reset(drafts.read(docType) || settings);
+      savedSettings.current = data;
+      // A restored draft must keep the version it was originally edited against.
+      const draft = drafts.read(docType);
+      const settings = draft ? { ...draft, rowVersion: draft.rowVersion ?? null } : data;
+      reset({ ...settings, prefix: normalizeNumberingTokens(settings.prefix), suffix: normalizeNumberingTokens(settings.suffix), tokens: normalizeNumberingTokens(settings.tokens) });
+      setHasConflict(Boolean(draft && draft.rowVersion !== data.rowVersion));
       setLoaded(true);
     } catch (err) {
       if (revision === loadRevision.current) setApiError(err.userMessage || err.message || 'Unable to load numbering settings. Please retry.');
@@ -109,6 +110,7 @@ export function NumberingSettings() {
     reset(savedSettings.current);
     drafts.clear(currentDocType);
     setApiError('');
+    setHasConflict(false);
     setToastSeverity('info');
     setToast(`Restored saved settings for ${currentDocType}.`);
   };
@@ -129,7 +131,7 @@ export function NumberingSettings() {
 
   // Save handler
   const onSave = async (isDraft = false) => {
-    if (requestLock.current || isSubmitting || isLoading || !loaded) return;
+    if (requestLock.current || isSubmitting || isLoading || !loaded || hasConflict) return;
     requestLock.current = true;
     setIsSubmitting(true);
     setToast('');
@@ -137,10 +139,11 @@ export function NumberingSettings() {
 
     try {
       // Convert normal brackets to backend token format if present
-      const toBackendTokens = (val) => (val || '').replace(/\(/g, '{').replace(/\)/g, '}');
+      const toBackendTokens = normalizeNumberingTokens;
 
       const payload = {
         documentType: currentDocType,
+        rowVersion: watch('rowVersion') ?? null,
         prefix: toBackendTokens((currentPrefix || '').trim()),
         suffix: toBackendTokens((currentSuffix || '').trim()),
         tokens: toBackendTokens((currentTokens || '').trim()),
@@ -152,15 +155,7 @@ export function NumberingSettings() {
 
       const result = await numberingService.updateSettings(payload);
       if (result) {
-        const settings = {
-          documentType: result.documentType || currentDocType,
-          prefix: (result.prefix ?? currentPrefix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          suffix: (result.suffix ?? currentSuffix).replace(/\{/g, '(').replace(/\}/g, ')'),
-          tokens: (result.tokens ?? currentTokens).replace(/\{/g, '(').replace(/\}/g, ')'),
-          sequenceLength: Number(result.sequenceLength ?? currentSeqLength),
-          nextNumber: Number(result.nextNumber ?? currentNextNum),
-          resetPolicy: result.resetPolicy || currentResetPolicy,
-        };
+        const settings = result;
         savedSettings.current = settings;
         reset(settings);
         drafts.clear(currentDocType);
@@ -172,6 +167,7 @@ export function NumberingSettings() {
           : `Numbering settings for ${currentDocType} saved successfully.`
       );
     } catch (err) {
+      if ((err.status ?? err.response?.status) === 409) setHasConflict(true);
       setApiError(err.userMessage || err.message || 'Failed to save numbering settings.');
     } finally {
       requestLock.current = false;
@@ -201,6 +197,7 @@ export function NumberingSettings() {
         <DashboardErrorState title="Unable to load numbering settings" message={apiError} onRetry={() => loadSettingsForType(currentDocType)} />
       ) : <Alert severity="error" sx={{ mb: 3 }}>{apiError}</Alert>)}
 
+      {hasConflict && <Alert severity="warning" action={<Button onClick={() => { drafts.clear(currentDocType); loadSettingsForType(currentDocType); }}>Reload saved settings</Button>}>These settings changed on the server. Your edits are kept. Reload the latest settings before saving; reloading discards these edits.</Alert>}
       {isLoading && <Alert severity="info" role="status">Loading numbering settings...</Alert>}
       {/* Main 2-Column Layout */}
       <div className="numbering-content-grid">
@@ -371,7 +368,7 @@ export function NumberingSettings() {
         </fieldset>
 
         {/* Right Column: Live Preview Panel */}
-        <NextNumberPreviewCard formValues={formValues} />
+        <NextNumberPreviewCard formValues={formValues} enabled={loaded && !isLoading} />
       </div>
 
       {/* Bottom Sticky Action Bar */}
@@ -381,7 +378,7 @@ export function NumberingSettings() {
             type="button"
             className="bar-btn bar-btn-outline"
             onClick={handleResetChanges}
-            disabled={isSubmitting || isLoading || !loaded}
+            disabled={isSubmitting || isLoading || !loaded || hasConflict}
           >
             <RestartAlt style={{ fontSize: '1.1rem' }} />
             Reset Changes
@@ -393,7 +390,7 @@ export function NumberingSettings() {
             type="button"
             className="bar-btn bar-btn-outline"
             onClick={handleSubmit(() => onSave(true))}
-            disabled={isSubmitting || isLoading || !loaded}
+            disabled={isSubmitting || isLoading || !loaded || hasConflict}
           >
             <SaveOutlined style={{ fontSize: '1.1rem' }} />
             Save as Draft
@@ -403,7 +400,7 @@ export function NumberingSettings() {
             type="button"
             className="bar-btn bar-btn-primary"
             onClick={handleSubmit(() => onSave(false))}
-            disabled={isSubmitting || isLoading || !loaded}
+            disabled={isSubmitting || isLoading || !loaded || hasConflict}
           >
             {isSubmitting ? (
               <>

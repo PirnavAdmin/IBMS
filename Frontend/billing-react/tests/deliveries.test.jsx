@@ -20,7 +20,7 @@ async function mock(object, overrides, run) { const old = Object.fromEntries(Obj
 async function flush(ms = 30) { await act(async () => { await new Promise(resolve => setTimeout(resolve, ms)); }); }
 const button = label => [...document.querySelectorAll('button')].find(el => el.textContent.trim() === label);
 async function click(el) { assert.ok(el, 'Expected clickable element'); await act(async () => el.click()); await flush(); }
-async function input(el, value) { assert.ok(el); await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, value); el.dispatchEvent(new window.Event('input', { bubbles: true })); el.dispatchEvent(new window.Event('change', { bubbles: true })); }); await flush(); }
+async function input(el, value) { assert.ok(el); await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, value); el.dispatchEvent(new window.Event('input', { bubbles: true })); el.dispatchEvent(new window.Event('change', { bubbles: true })); }); if (el.closest('.ant-picker')) await act(async () => el.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))); await flush(); }
 const labeled = text => { const label = [...document.querySelectorAll('label')].find(el => el.textContent === text); return label ? document.getElementById(label.htmlFor) : null; };
 function Location() { const value = useLocation(); return <output data-testid="location">{value.pathname + value.search}</output>; }
 async function ui(overrides, run, { role = 'TenantAdmin', path = '/webhooks/deliveries?webhookId=7', webhookStatus = 'Active' } = {}) {

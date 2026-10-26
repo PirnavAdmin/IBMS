@@ -8,7 +8,7 @@ try {
   await build({
     entryPoints: [fileURLToPath(new URL('./deliveries.test.jsx', import.meta.url))],
     outfile: fileURLToPath(outfile), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
-    loader: { '.css': 'empty' }, external: ['jsdom'],
+    loader: { '.css': 'empty' }, external: ['jsdom'], mainFields: ['module', 'main'],
     alias: {
       axios: fileURLToPath(new URL('../node_modules/axios/index.js', import.meta.url)),
       ...Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
@@ -16,10 +16,12 @@ try {
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const {JSDOM}=require('jsdom');
       const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'http://localhost:3000/integrations',pretendToBeVisual:true});
-      for(const key of ['window','document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment'])global[key]=dom.window[key];
+      for(const key of ['window','document','Document','HTMLElement','HTMLBodyElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot'])global[key]=dom.window[key];
       Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});
       global.localStorage=dom.window.localStorage;global.sessionStorage=dom.window.sessionStorage;
       global.getComputedStyle=dom.window.getComputedStyle;global.requestAnimationFrame=dom.window.requestAnimationFrame.bind(dom.window);global.cancelAnimationFrame=dom.window.cancelAnimationFrame.bind(dom.window);
+      window.matchMedia=()=>({matches:false,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){}});
+      global.ResizeObserver=class{observe(){}unobserve(){}disconnect(){}};
       global.HTMLElement.prototype.getBoundingClientRect=function(){return{x:0,y:0,width:100,height:40,top:0,right:100,bottom:40,left:0}};
       global.IS_REACT_ACT_ENVIRONMENT=true;` },
   });

@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProductForm } from '../src/pages/Products/components/ProductForm';
+import { CategoryList } from '../src/pages/Products/pages/CategoryList';
 import { ProductList } from '../src/pages/Products/ProductList';
 import { ProductFilters } from '../src/pages/Products/components/ProductFilters';
 import { ProductPagination } from '../src/pages/Products/components/ProductPagination';
@@ -195,4 +196,21 @@ test('Catalog All Categories and All Status independently clear filters and rese
     assert.equal(calls.at(-1).status, ''); assert.equal('categoryId' in calls.at(-1), false);
 
   } finally { await act(async () => root.unmount()); host.remove(); cache.clear(); apiClient.get = original; }
+});
+
+
+test('Category overflow retains edit routes and both status actions when opened', async () => {
+  const cache = new QueryClient({defaultOptions: {queries: {retry: false, staleTime: Infinity, gcTime: 0}}});
+  cache.setQueryData(['categories', 'list'], [{id: 1, name: 'Active category', status: 'Active'}, {id: 2, name: 'Inactive category', status: 'Inactive'}]);
+  const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter><CategoryList /></MemoryRouter></QueryClientProvider>)); await flush();
+    for (const [name, id, action] of [['Active category', 1, 'Deactivate'], ['Inactive category', 2, 'Activate']]) {
+      await act(async () => host.querySelector(`[aria-label="Actions for ${name}"]`).click()); await flush();
+      const menu = document.querySelector('[role="menu"]');
+      assert.equal(menu.querySelector('a').getAttribute('href'), `/products/categories/${id}/edit`);
+      assert.ok([...menu.querySelectorAll('[role="menuitem"]')].some(item => item.textContent.trim() === action));
+      await act(async () => Simulate.keyDown(menu, {key: 'Escape'})); await flush();
+    }
+  } finally { await act(async () => root.unmount()); host.remove(); cache.clear(); }
 });

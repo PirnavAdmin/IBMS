@@ -1,4 +1,5 @@
 import { RESET_POLICIES } from '../validation/numberingValidation.js';
+import { normalizeNumberingTokens } from '../validation/numberingTokens.js';
 import { numberingApi } from '../../../../../billing-api-client/numberingApi.js';
 import { apiClient } from '../../../../../billing-api-client/apiClient.js';
 
@@ -6,9 +7,10 @@ const mapSettings = settings => {
   if (!settings || typeof settings.documentType !== 'string' || !Number.isInteger(settings.sequenceLength) || !Number.isSafeInteger(settings.nextNumber)) throw new Error('The backend returned invalid numbering settings. Please retry.');
   return {
     documentType: settings.documentType ?? 'Invoice',
-    prefix: (settings.prefix ?? '').replace(/\{DD\}/gi, '{DAY}'),
-    suffix: (settings.suffix ?? '').replace(/\{DD\}/gi, '{DAY}'),
-    tokens: (settings.tokens ?? '').replace(/\{DD\}/gi, '{DAY}'),
+    prefix: normalizeNumberingTokens(settings.prefix ?? ''),
+    suffix: normalizeNumberingTokens(settings.suffix ?? ''),
+    tokens: normalizeNumberingTokens(settings.tokens ?? ''),
+    rowVersion: settings.rowVersion ?? null,
     sequenceLength: Number(settings.sequenceLength ?? 4),
     nextNumber: Number(settings.nextNumber ?? 1),
     resetPolicy: RESET_POLICIES.find(policy => policy.split(' (')[0] === settings.resetPolicy?.split(' (')[0]) ?? settings.resetPolicy,
@@ -18,9 +20,10 @@ const mapSettings = settings => {
 
 const toRequest = values => ({
   documentType: values.documentType,
-  prefix: (values.prefix || '').trim().replace(/\{DAY\}/gi, '{DD}'),
-  suffix: (values.suffix || '').trim().replace(/\{DAY\}/gi, '{DD}'),
-  tokens: (values.tokens || '').trim().replace(/\{DAY\}/gi, '{DD}'),
+  prefix: normalizeNumberingTokens(values.prefix || '').trim(),
+  suffix: normalizeNumberingTokens(values.suffix || '').trim(),
+  tokens: normalizeNumberingTokens(values.tokens || '').trim(),
+  rowVersion: values.rowVersion ?? null,
   sequenceLength: Number(values.sequenceLength),
   nextNumber: Number(values.nextNumber),
   resetPolicy: values.resetPolicy.split(' (')[0],
@@ -37,9 +40,9 @@ export const numberingService = {
   async preview(values) {
     const response = await apiClient.post('/api/v1/settings/numbering/preview', {
       documentType: values.documentType,
-      prefix: values.prefix,
-      suffix: values.suffix,
-      tokens: values.tokens,
+      prefix: normalizeNumberingTokens(values.prefix ?? ''),
+      suffix: normalizeNumberingTokens(values.suffix ?? ''),
+      tokens: normalizeNumberingTokens(values.tokens ?? ''),
       sequenceLength: Number(values.sequenceLength),
       nextNumber: Number(values.nextNumber),
       ...(values.date ? { date: values.date } : {}),

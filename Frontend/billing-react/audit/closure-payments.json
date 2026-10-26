@@ -1,0 +1,17 @@
+{
+  "name": "payments",
+  "args": [
+    "tests/run-payment-ui.mjs"
+  ],
+  "status": 0,
+  "signal": null,
+  "blocked": false,
+  "durationMs": 85844,
+  "checkedAt": "2026-10-24T12:34:58.556Z",
+  "tests": 26,
+  "pass": 26,
+  "fail": 0,
+  "cancelled": 0,
+  "skipped": 0,
+  "todo": 0
+}
