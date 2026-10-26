@@ -14,6 +14,9 @@
 .audit-filter-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1.2fr)) repeat(2,minmax(155px,1fr)); gap:12px; }
 .audit-filter-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:18px; }
 .audit-filter-actions > span { margin-right:auto; color:var(--text-secondary,#756354); font-size:13px; }
+.audit-filter-actions .MuiButton-root:not(.MuiButton-contained) { background:#f5eee7; border:1px solid #d5c6b5; color:#674730; }
+.audit-filter-actions .MuiButton-root:not(.MuiButton-contained):hover { background:#eee0d5; border-color:#c8b49f; }
+.audit-filter-actions .MuiButton-root:not(.MuiButton-contained):focus-visible { outline:2px solid var(--primary,#674730); outline-offset:2px; }
 .audit-page .MuiButton-contained { background:var(--action-primary,#633d28); }
 .audit-page .MuiButton-contained:hover { background:var(--action-hover,#462919); }
 .audit-page .MuiButton-outlined,.audit-page .MuiButton-text,.audit-page .MuiIconButton-root { color:var(--primary,#674730); }
@@ -34,7 +37,7 @@
 .audit-event .MuiChip-label { white-space:nowrap; overflow:visible; text-overflow:clip; padding:5px 9px; }
 .audit-date { min-width:180px; }
 .audit-entity-id { display:block; color:var(--text-secondary,#756354); font-size:12px; margin-top:4px; overflow-wrap:anywhere; }
-.audit-changes { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; min-width:180px; }
+.audit-changes { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; min-width:180px; overflow-wrap:anywhere; white-space:normal; line-height:1.45; }
 .audit-empty { padding:40px 16px; text-align:center; color:var(--text-secondary,#756354); }
 .audit-empty > svg { font-size:40px; color:#8a6548; }
 .audit-empty h3 { color:var(--text-primary,#35271f); margin:12px 0 8px; }

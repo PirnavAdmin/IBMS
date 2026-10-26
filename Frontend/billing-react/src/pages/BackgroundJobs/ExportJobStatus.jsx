@@ -56,7 +56,7 @@ export function ExportJobStatus() {
       setPage(1);
       setFilterJobType('');
       setStatus('');
-      setFeedback({ severity: 'success', message: `${job.exportFormat} ${job.jobType} export #${job.id} queued.` });
+      setFeedback({ severity: 'success', message: 'Export queued.' });
       void client.invalidateQueries({ queryKey: ['export-jobs'] });
     },
     onError: error => setFeedback({ severity: 'error', message: backgroundJobError(error) }),
@@ -90,7 +90,7 @@ export function ExportJobStatus() {
       <div><span className="background-jobs-eyebrow">Operations</span><h1>Export Jobs</h1><p>Queue data exports, track progress, and download completed files.</p></div>
       <Button variant="outlined" startIcon={<Refresh />} onClick={refresh} disabled={!allowed || query.isFetching}>Refresh</Button>
     </header>
-    {feedback && <Alert severity={feedback.severity} onClose={() => setFeedback(null)}>{feedback.message}</Alert>}
+    {feedback && <Alert className="export-job-feedback" severity={feedback.severity} onClose={() => setFeedback(null)}>{feedback.message}</Alert>}
     {user.isPending ? <div role="status">Checking access…</div>
       : user.isError ? <DashboardErrorState title="Unable to check access" message={backgroundJobError(user.error)} onRetry={() => user.refetch()} />
         : !allowed ? <Alert severity="warning">Export jobs are available to TenantAdmin, SuperAdmin, and User roles.</Alert>
