@@ -118,7 +118,18 @@ export function CreditNoteList() {
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
         </div>
         {statusMenuOpen && <div className="cn-status-menu-space" aria-hidden="true" />}
-        <TableContainer className="ibms-table-frame cn-table-wrap">
+        {!query.isPending && !query.isFetching && !query.isError && items.length === 0 ? (
+          <div className="cn-empty-state">
+            <span className="cn-empty-state-icon"><ReceiptLongOutlined /></span>
+            <h3>No credit notes found</h3>
+            <p>{hasFilters ? 'No credit notes match your current filters.' : 'Create your first credit note to manage customer credits and refunds.'}</p>
+            {hasFilters ? (
+              <Button variant="outlined" onClick={clearFilters}>Clear Filters</Button>
+            ) : (
+              <Button component={Link} to="/credit-notes/new" variant="outlined">Create Credit Note</Button>
+            )}
+          </div>
+        ) : <TableContainer className="ibms-table-frame cn-table-wrap">
           <Table stickyHeader aria-label="Credit note register">
             <TableHead><TableRow>
               {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
@@ -140,8 +151,8 @@ export function CreditNoteList() {
               </TableRow>)}
             </TableBody>
           </Table>
-        </TableContainer>
-        <TablePagination component="div" className="cn-pagination" count={totalCount} page={page} onPageChange={(_, value) => setPage(value)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />
+        </TableContainer>}
+        {totalCount > 0 && <TablePagination component="div" className="cn-pagination" count={totalCount} page={page} onPageChange={(_, value) => setPage(value)} rowsPerPage={pageSize} onRowsPerPageChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} />}
       </section>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

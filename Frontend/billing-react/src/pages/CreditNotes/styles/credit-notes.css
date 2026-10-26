@@ -261,6 +261,12 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-refund-total { padding: 5px 9px; border-radius: 999px; background: #edf5ef; color: #4e745a; font-size: .68rem; font-weight: 750; }
 .cn-empty-inline { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 8px; background: #faf6f1; color: #8c7d70; font-size: .73rem; }
 .cn-empty-inline svg { font-size: 18px; color: #9c8067; }
+.cn-empty-state { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px 16px; border-radius: 14px; background: #fff8ef; color: #76533a; text-align: center; }
+.cn-empty-state-icon { display: grid; width: 84px; height: 84px; place-items: center; border-radius: 22px; background: #f2dfc9; color: #b48a67; }
+.cn-empty-state-icon svg { font-size: 42px; }
+.cn-empty-state h3 { margin: 0; color: #3e2a1c; font-size: 1.35rem; }
+.cn-empty-state p { margin: 0 0 4px; color: #806b59; }
+.cn-empty-state .MuiButton-root { padding-inline: 22px; }
 .cn-linked-invoice { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
 .cn-linked-invoice .cn-detail-card-heading { width: 100%; }
 .cn-linked-invoice > small,.cn-linked-invoice div > small { color: #958474; font-size: .65rem; }

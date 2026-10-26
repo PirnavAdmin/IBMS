@@ -87,7 +87,6 @@ const QUICK_TIPS = {
   ],
   1: [
     'Primary email receives automated invoices and receipts.',
-    'Ensure valid 10-digit mobile number for SMS / WhatsApp alerts.',
     'Adding website URL helps in automated merchant verification.',
     'Contact information can be updated anytime after creation.',
   ],
@@ -132,15 +131,24 @@ export const CustomerForm = ({
   const getInitialValues = (values) => {
     const rawTax = String(values?.taxId || values?.gstin || values?.pan || '').trim();
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
+    const isPan = /^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(rawTax);
     let taxType = '';
-    if (values?.taxRegistrationType === 'non-gst') {
+    const providedTaxType = String(
+      values?.taxRegistrationType ?? values?.taxRegistration ?? ''
+    ).trim().toLowerCase();
+    if (providedTaxType === 'non-gst' || providedTaxType === 'unregistered') {
       taxType = 'non-gst';
-    } else if (values?.taxRegistrationType === 'gst') {
+    } else if (providedTaxType === 'gst' || providedTaxType === 'registered') {
       taxType = 'gst';
-    } else if (values?.taxRegistrationType) {
-      taxType = values.taxRegistrationType;
+    } else if (providedTaxType) {
+      taxType = providedTaxType;
     } else if (isGst || values?.gstin) {
       taxType = 'gst';
+    } else if (isPan || values?.pan) {
+      // The customer API stores PAN/GSTIN in one taxId field and does not
+      // persist a separate registration flag. A PAN-only tax ID is therefore
+      // the durable signal for Non-GST / Unregistered customers on edit.
+      taxType = 'non-gst';
     }
 
     let initialPan = values?.pan || '';
@@ -894,7 +902,7 @@ export const CustomerForm = ({
                         className="cust-phone-input"
                         placeholder="Enter mobile number"
                         aria-invalid={Boolean(errors.phone)}
-                        aria-describedby={errors.phone ? 'customer-phone-err' : 'customer-phone-hint'}
+                        aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
                         {...register('phone', {
                           onChange: (e) => {
                             const maxLen = currentPhoneConfig.max || 15;
@@ -947,17 +955,9 @@ export const CustomerForm = ({
                       />
                     </div>
                   </div>
-                  {errors.phone ? (
+                  {errors.phone && (
                     <span id="customer-phone-err" className="cust-field-error" role="alert">
                       {errors.phone.message}
-                    </span>
-                  ) : watchedPhoneCode ? (
-                    <span id="customer-phone-hint" className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
-                      Requires {currentPhoneConfig.label} for {currentPhoneConfig.country}
-                    </span>
-                  ) : (
-                    <span id="customer-phone-hint" className="cust-field-hint" style={{ fontSize: '0.75rem', color: '#8c7d71', marginTop: '2px' }}>
-                      Enter mobile number
                     </span>
                   )}
                 </div>
