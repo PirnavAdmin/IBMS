@@ -122,11 +122,11 @@ public class WebhookDispatcher : IWebhookDispatcher
         try
         {
             using var doc = JsonDocument.Parse(rawPayloadJson);
-            var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            var src = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var prop in doc.RootElement.EnumerateObject())
             {
-                dict[prop.Name] = prop.Value.ValueKind switch
+                src[prop.Name] = prop.Value.ValueKind switch
                 {
                     JsonValueKind.String => prop.Value.GetString(),
                     JsonValueKind.Number => prop.Value.TryGetInt64(out var l) ? l : prop.Value.GetDecimal(),
@@ -137,53 +137,95 @@ public class WebhookDispatcher : IWebhookDispatcher
                 };
             }
 
-            dict["event"] = eventType;
-            dict["eventType"] = eventType;
-            dict["Event"] = eventType;
+            // Target dictionary with Ordinal (case-sensitive) comparer so both lowercase and uppercase keys coexist
+            var dict = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                dict[prop.Name] = src[prop.Name];
+            }
 
-            var num = dict.GetValueOrDefault("InvoiceNumber")
-                   ?? dict.GetValueOrDefault("PaymentNumber")
-                   ?? dict.GetValueOrDefault("QuoteNumber")
-                   ?? dict.GetValueOrDefault("CreditNoteNumber")
-                   ?? dict.GetValueOrDefault("CustomerCode")
-                   ?? dict.GetValueOrDefault("InvoiceId")
-                   ?? dict.GetValueOrDefault("PaymentId")
-                   ?? (dict.TryGetValue("CustomerId", out var cidVal) ? $"CUST-{cidVal}" : null);
+            // Event variants
+            dict["event"] = eventType;
+            dict["Event"] = eventType;
+            dict["eventType"] = eventType;
+            dict["EventType"] = eventType;
+            dict["event_type"] = eventType;
+
+            var num = src.GetValueOrDefault("InvoiceNumber")
+                   ?? src.GetValueOrDefault("PaymentNumber")
+                   ?? src.GetValueOrDefault("QuoteNumber")
+                   ?? src.GetValueOrDefault("CreditNoteNumber")
+                   ?? src.GetValueOrDefault("CustomerCode")
+                   ?? src.GetValueOrDefault("InvoiceId")
+                   ?? src.GetValueOrDefault("PaymentId")
+                   ?? (src.TryGetValue("CustomerId", out var cidVal) ? $"CUST-{cidVal}" : null);
+
+            var customerCode = src.GetValueOrDefault("CustomerCode")
+                            ?? (src.TryGetValue("CustomerId", out var cid3) ? $"CUST-{cid3}" : null);
+
+            var customerId = src.GetValueOrDefault("CustomerId");
+
             if (num != null)
             {
                 dict["number"] = num;
                 dict["Number"] = num;
                 dict["Invoice Number"] = num;
                 dict["InvoiceNumber"] = num;
+                dict["invoice_number"] = num;
+                dict["id"] = num;
+                dict["Id"] = num;
             }
 
-            var amt = dict.GetValueOrDefault("TotalAmount")
-                   ?? dict.GetValueOrDefault("Amount")
-                   ?? dict.GetValueOrDefault("AppliedAmount")
-                   ?? dict.GetValueOrDefault("RefundAmount");
+            if (customerCode != null)
+            {
+                dict["CustomerCode"] = customerCode;
+                dict["Customer Code"] = customerCode;
+                dict["customer_code"] = customerCode;
+            }
+
+            if (customerId != null)
+            {
+                dict["CustomerId"] = customerId;
+                dict["Customer Id"] = customerId;
+                dict["customer_id"] = customerId;
+            }
+
+            var amt = src.GetValueOrDefault("TotalAmount")
+                   ?? src.GetValueOrDefault("Amount")
+                   ?? src.GetValueOrDefault("AppliedAmount")
+                   ?? src.GetValueOrDefault("RefundAmount");
+
             if (amt != null)
             {
                 dict["amount"] = amt;
                 dict["Amount"] = amt;
+                dict["TotalAmount"] = amt;
+                dict["total_amount"] = amt;
             }
             else
             {
                 dict["amount"] = "-";
                 dict["Amount"] = "-";
+                dict["TotalAmount"] = "-";
+                dict["total_amount"] = "-";
             }
 
             // Resolve Customer Name
             string? resolvedCustomer = null;
-            if (dict.TryGetValue("CustomerName", out var cn) && cn != null && !string.IsNullOrWhiteSpace(cn.ToString()))
+            if (src.TryGetValue("CustomerName", out var cn) && cn != null && !string.IsNullOrWhiteSpace(cn.ToString()))
             {
                 resolvedCustomer = cn.ToString();
             }
-            else if (dict.TryGetValue("Name", out var n) && n != null && !string.IsNullOrWhiteSpace(n.ToString()))
+            else if (src.TryGetValue("Name", out var n) && n != null && !string.IsNullOrWhiteSpace(n.ToString()))
             {
                 resolvedCustomer = n.ToString();
             }
+            else if (src.TryGetValue("Customer", out var c) && c != null && !string.IsNullOrWhiteSpace(c.ToString()))
+            {
+                resolvedCustomer = c.ToString();
+            }
 
-            if (string.IsNullOrWhiteSpace(resolvedCustomer) && _customerRepository != null && dict.TryGetValue("CustomerId", out var cidObj))
+            if (string.IsNullOrWhiteSpace(resolvedCustomer) && _customerRepository != null && src.TryGetValue("CustomerId", out var cidObj))
             {
                 if (int.TryParse(cidObj?.ToString(), out var cid) && cid > 0)
                 {
@@ -204,37 +246,42 @@ public class WebhookDispatcher : IWebhookDispatcher
 
             if (string.IsNullOrWhiteSpace(resolvedCustomer))
             {
-                resolvedCustomer = dict.GetValueOrDefault("Recipient")?.ToString()
-                                ?? (dict.TryGetValue("CustomerId", out var cid2) ? $"Customer #{cid2}" : null);
+                resolvedCustomer = src.GetValueOrDefault("Recipient")?.ToString()
+                                ?? (src.TryGetValue("CustomerId", out var cid2) ? $"Customer #{cid2}" : null);
             }
 
             if (resolvedCustomer != null)
             {
                 dict["customer"] = resolvedCustomer;
-                dict["CustomerName"] = resolvedCustomer;
                 dict["Customer"] = resolvedCustomer;
+                dict["CustomerName"] = resolvedCustomer;
+                dict["Customer Name"] = resolvedCustomer;
+                dict["customer_name"] = resolvedCustomer;
                 dict["Name"] = resolvedCustomer;
+                dict["name"] = resolvedCustomer;
             }
 
             // Format date cleanly in readable format: yyyy-MM-dd HH:mm
-            var rawDate = dict.GetValueOrDefault("IssuedAtUtc")
-                       ?? dict.GetValueOrDefault("CreatedAtUtc")
-                       ?? dict.GetValueOrDefault("UpdatedAtUtc")
-                       ?? dict.GetValueOrDefault("SentAtUtc")
-                       ?? dict.GetValueOrDefault("PaymentDate")
-                       ?? dict.GetValueOrDefault("QuoteDate")
-                       ?? dict.GetValueOrDefault("date");
+            var rawDate = src.GetValueOrDefault("IssuedAtUtc")
+                       ?? src.GetValueOrDefault("CreatedAtUtc")
+                       ?? src.GetValueOrDefault("UpdatedAtUtc")
+                       ?? src.GetValueOrDefault("SentAtUtc")
+                       ?? src.GetValueOrDefault("PaymentDate")
+                       ?? src.GetValueOrDefault("QuoteDate")
+                       ?? src.GetValueOrDefault("date");
 
             if (rawDate != null && DateTime.TryParse(rawDate.ToString(), out var parsedDate))
             {
                 var localTime = parsedDate.Kind == DateTimeKind.Utc ? parsedDate.AddHours(5.5) : parsedDate;
                 dict["date"] = localTime.ToString("yyyy-MM-dd HH:mm");
+                dict["Date"] = dict["date"];
             }
             else
             {
-                dict["date"] = DateTime.UtcNow.AddHours(5.5).ToString("yyyy-MM-dd HH:mm");
+                var now = DateTime.UtcNow.AddHours(5.5).ToString("yyyy-MM-dd HH:mm");
+                dict["date"] = now;
+                dict["Date"] = now;
             }
-            dict["Date"] = dict["date"];
 
             return JsonSerializer.Serialize(dict);
         }
