@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Payment;
@@ -19,23 +19,27 @@ public class PaymentsController : ControllerBase
         _paymentService = paymentService;
     }
 
-    private int GetTenantId()
+    private int? GetTenantId()
     {
+        if (User.IsInRole("SuperAdmin"))
+        {
+            if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal))
+            {
+                if (int.TryParse(headerVal.ToString(), out var headerTenantId) && headerTenantId > 0)
+                {
+                    return headerTenantId;
+                }
+            }
+            return 1;
+        }
+
         var claim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
         if (int.TryParse(claim, out var tenantId) && tenantId > 0)
         {
             return tenantId;
         }
 
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var headerVal))
-        {
-            if (int.TryParse(headerVal.ToString(), out var headerTenantId) && headerTenantId > 0)
-            {
-                return headerTenantId;
-            }
-        }
-
-        return 1;
+        return null;
     }
 
     private string GetUserDisplayName()
@@ -70,12 +74,6 @@ public class PaymentsController : ControllerBase
             {
                 roles.AddRange(claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
             }
-        }
-
-        if (roles.Count == 0)
-        {
-            // Default authenticated staff/tenant admin fallback when role claim is not explicitly split
-            roles.Add("TenantAdmin");
         }
 
         return roles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -129,6 +127,9 @@ public class PaymentsController : ControllerBase
             return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment request payload is required."));
         }
 
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         // Support Idempotency-Key or X-Idempotency-Key HTTP headers
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && Request?.Headers != null)
         {
@@ -142,9 +143,8 @@ public class PaymentsController : ControllerBase
             }
         }
 
-        var tenantId = GetTenantId();
         var result = await _paymentService.CreatePaymentAsync(
-            tenantId,
+            tenantId.Value,
             request,
             GetUserDisplayName(),
             GetUserRoles(),
@@ -173,8 +173,10 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<PagedResult<PaymentListItemDto>>>> GetPayments([FromQuery] PaymentListFilterRequest filter)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.GetPagedPaymentsAsync(
-            tenantId,
+            tenantId.Value,
             filter ?? new PaymentListFilterRequest(),
             GetUserRoles(),
             GetRestrictedCustomerId());
@@ -191,8 +193,10 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<PaymentDetailDto>>> GetPaymentById(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.GetPaymentByIdAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetUserRoles(),
             GetRestrictedCustomerId());
@@ -211,8 +215,10 @@ public class PaymentsController : ControllerBase
         [FromBody] ReversePaymentRequest request)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.ReversePaymentAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -233,8 +239,10 @@ public class PaymentsController : ControllerBase
         [FromBody] UpdatePaymentStatusRequest request)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.UpdatePaymentStatusAsync(
-            tenantId,
+            tenantId.Value,
             id,
             request,
             GetUserDisplayName(),
@@ -253,8 +261,10 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<PaymentAuditEventDto>>>> GetPaymentAuditHistory(int id)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.GetPaymentAuditHistoryAsync(
-            tenantId,
+            tenantId.Value,
             id,
             GetRestrictedCustomerId());
 
@@ -270,8 +280,10 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<EligibleInvoiceBalanceDto>>>> GetEligibleInvoices([FromQuery] int? customerId = null)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.GetEligibleInvoicesAsync(
-            tenantId,
+            tenantId.Value,
             customerId,
             GetRestrictedCustomerId());
 
@@ -287,8 +299,10 @@ public class PaymentsController : ControllerBase
     public async Task<ActionResult<ApiResponse<EligibleInvoiceBalanceDto>>> GetInvoiceBalance(int invoiceId)
     {
         var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
         var result = await _paymentService.GetInvoiceBalanceAsync(
-            tenantId,
+            tenantId.Value,
             invoiceId,
             GetRestrictedCustomerId());
 

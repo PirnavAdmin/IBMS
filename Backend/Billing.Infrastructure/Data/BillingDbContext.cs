@@ -1,4 +1,4 @@
-using Billing.Domain.Entities;
+﻿using Billing.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Billing.Application.Interfaces;
 using System.Text.Json;
@@ -85,6 +85,7 @@ public class BillingDbContext : DbContext
     public DbSet<WebhookDelivery> WebhookDeliveries { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<ExportJob> ExportJobs { get; set; }
+    public DbSet<CountrySetting> CountrySettings { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -1040,6 +1041,14 @@ public class BillingDbContext : DbContext
             entity.HasIndex(e => new { e.TenantId, e.JobType });
             entity.HasIndex(e => new { e.TenantId, e.CreatedAtUtc });
             entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CountrySetting>(entity =>
+        {
+            entity.ToTable("countrysettings");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.Property(e => e.CountriesJson).HasColumnType("longtext").IsRequired();
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
