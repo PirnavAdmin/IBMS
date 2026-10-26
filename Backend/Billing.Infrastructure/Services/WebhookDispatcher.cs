@@ -14,6 +14,7 @@ public class WebhookDispatcher : IWebhookDispatcher
     private readonly IWebhookSecurityService _securityService;
     private readonly IWebhookRepository _webhookRepository;
     private readonly IWebhookDeliveryRepository _deliveryRepository;
+    private readonly ICustomerRepository? _customerRepository;
     private readonly ILogger<WebhookDispatcher> _logger;
 
     public WebhookDispatcher(
@@ -21,22 +22,25 @@ public class WebhookDispatcher : IWebhookDispatcher
         IWebhookSecurityService securityService,
         IWebhookRepository webhookRepository,
         IWebhookDeliveryRepository deliveryRepository,
-        ILogger<WebhookDispatcher> logger)
+        ILogger<WebhookDispatcher> logger,
+        ICustomerRepository? customerRepository = null)
     {
         _httpClient = httpClient;
         _securityService = securityService;
         _webhookRepository = webhookRepository;
         _deliveryRepository = deliveryRepository;
         _logger = logger;
+        _customerRepository = customerRepository;
     }
 
     public async Task<WebhookDelivery> DispatchDeliveryAsync(WebhookDelivery delivery, Webhook webhook)
     {
+        var payloadToSend = await NormalizePayloadAsync(delivery.PayloadJson, delivery.EventType, delivery.TenantId);
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var signature = _securityService.ComputeHmacSha256(webhook.SecretKey, delivery.PayloadJson, timestamp);
+        var signature = _securityService.ComputeHmacSha256(webhook.SecretKey, payloadToSend, timestamp);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, webhook.TargetUrl);
-        request.Content = new StringContent(delivery.PayloadJson, Encoding.UTF8, "application/json");
+        request.Content = new StringContent(payloadToSend, Encoding.UTF8, "application/json");
 
         request.Headers.Add("User-Agent", "IBMS-Webhook-Delivery/1.0");
         request.Headers.Add("X-IBMS-Signature", $"t={timestamp},v1={signature}");
@@ -56,7 +60,6 @@ public class WebhookDispatcher : IWebhookDispatcher
         delivery.RequestHeadersJson = JsonSerializer.Serialize(headerSnapshot);
 
         var stopwatch = Stopwatch.StartNew();
-
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -67,11 +70,9 @@ public class WebhookDispatcher : IWebhookDispatcher
             delivery.ResponseStatusCode = (int)response.StatusCode;
 
             var responseBody = await response.Content.ReadAsStringAsync(cts.Token);
-            if (!string.IsNullOrEmpty(responseBody) && responseBody.Length > 2000)
-            {
-                responseBody = responseBody.Substring(0, 2000) + "... [truncated]";
-            }
-            delivery.ResponseBody = responseBody;
+            delivery.ResponseBody = responseBody.Length > 2000
+                ? responseBody[..2000] + "... [truncated]"
+                : responseBody;
 
             if (response.IsSuccessStatusCode)
             {
@@ -83,27 +84,164 @@ public class WebhookDispatcher : IWebhookDispatcher
                 webhook.ConsecutiveFailureCount = 0;
                 webhook.LastTriggeredAtUtc = DateTime.UtcNow;
                 await _webhookRepository.UpdateAsync(webhook);
+
+                _logger.LogInformation("Webhook delivery {DeliveryId} succeeded with HTTP {StatusCode} in {Duration}ms",
+                    delivery.Id, delivery.ResponseStatusCode, delivery.ExecutionDurationMs);
             }
             else
             {
-                await HandleFailureAsync(delivery, webhook, $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
+                var failureReason = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase}";
+                await HandleFailureAsync(delivery, webhook, failureReason);
             }
         }
-        catch (OperationCanceledException)
+        catch (TaskCanceledException)
         {
             stopwatch.Stop();
             delivery.ExecutionDurationMs = stopwatch.ElapsedMilliseconds;
             await HandleFailureAsync(delivery, webhook, "Request timed out after 10 seconds.");
         }
+        catch (HttpRequestException ex)
+        {
+            stopwatch.Stop();
+            delivery.ExecutionDurationMs = stopwatch.ElapsedMilliseconds;
+            await HandleFailureAsync(delivery, webhook, $"HTTP request failed: {ex.Message}");
+        }
         catch (Exception ex)
         {
             stopwatch.Stop();
             delivery.ExecutionDurationMs = stopwatch.ElapsedMilliseconds;
-            await HandleFailureAsync(delivery, webhook, ex.Message);
+            await HandleFailureAsync(delivery, webhook, $"Unexpected delivery failure: {ex.Message}");
         }
 
         await _deliveryRepository.UpdateAsync(delivery);
         return delivery;
+    }
+
+    private async Task<string> NormalizePayloadAsync(string rawPayloadJson, string eventType, int tenantId)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(rawPayloadJson);
+            var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var prop in doc.RootElement.EnumerateObject())
+            {
+                dict[prop.Name] = prop.Value.ValueKind switch
+                {
+                    JsonValueKind.String => prop.Value.GetString(),
+                    JsonValueKind.Number => prop.Value.TryGetInt64(out var l) ? l : prop.Value.GetDecimal(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    JsonValueKind.Null => null,
+                    _ => prop.Value.Clone()
+                };
+            }
+
+            dict["event"] = eventType;
+            dict["eventType"] = eventType;
+            dict["Event"] = eventType;
+
+            var num = dict.GetValueOrDefault("InvoiceNumber")
+                   ?? dict.GetValueOrDefault("PaymentNumber")
+                   ?? dict.GetValueOrDefault("QuoteNumber")
+                   ?? dict.GetValueOrDefault("CreditNoteNumber")
+                   ?? dict.GetValueOrDefault("CustomerCode")
+                   ?? dict.GetValueOrDefault("InvoiceId")
+                   ?? dict.GetValueOrDefault("PaymentId")
+                   ?? (dict.TryGetValue("CustomerId", out var cidVal) ? $"CUST-{cidVal}" : null);
+            if (num != null)
+            {
+                dict["number"] = num;
+                dict["Number"] = num;
+                dict["Invoice Number"] = num;
+                dict["InvoiceNumber"] = num;
+            }
+
+            var amt = dict.GetValueOrDefault("TotalAmount")
+                   ?? dict.GetValueOrDefault("Amount")
+                   ?? dict.GetValueOrDefault("AppliedAmount")
+                   ?? dict.GetValueOrDefault("RefundAmount");
+            if (amt != null)
+            {
+                dict["amount"] = amt;
+                dict["Amount"] = amt;
+            }
+            else
+            {
+                dict["amount"] = "-";
+                dict["Amount"] = "-";
+            }
+
+            // Resolve Customer Name
+            string? resolvedCustomer = null;
+            if (dict.TryGetValue("CustomerName", out var cn) && cn != null && !string.IsNullOrWhiteSpace(cn.ToString()))
+            {
+                resolvedCustomer = cn.ToString();
+            }
+            else if (dict.TryGetValue("Name", out var n) && n != null && !string.IsNullOrWhiteSpace(n.ToString()))
+            {
+                resolvedCustomer = n.ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedCustomer) && _customerRepository != null && dict.TryGetValue("CustomerId", out var cidObj))
+            {
+                if (int.TryParse(cidObj?.ToString(), out var cid) && cid > 0)
+                {
+                    try
+                    {
+                        var cust = await _customerRepository.GetByIdAsync(cid, tenantId);
+                        if (cust != null && !string.IsNullOrWhiteSpace(cust.Name))
+                        {
+                            resolvedCustomer = cust.Name;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Could not resolve customer name for CustomerId {CustomerId}", cid);
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedCustomer))
+            {
+                resolvedCustomer = dict.GetValueOrDefault("Recipient")?.ToString()
+                                ?? (dict.TryGetValue("CustomerId", out var cid2) ? $"Customer #{cid2}" : null);
+            }
+
+            if (resolvedCustomer != null)
+            {
+                dict["customer"] = resolvedCustomer;
+                dict["CustomerName"] = resolvedCustomer;
+                dict["Customer"] = resolvedCustomer;
+                dict["Name"] = resolvedCustomer;
+            }
+
+            // Format date cleanly in readable format: yyyy-MM-dd HH:mm
+            var rawDate = dict.GetValueOrDefault("IssuedAtUtc")
+                       ?? dict.GetValueOrDefault("CreatedAtUtc")
+                       ?? dict.GetValueOrDefault("UpdatedAtUtc")
+                       ?? dict.GetValueOrDefault("SentAtUtc")
+                       ?? dict.GetValueOrDefault("PaymentDate")
+                       ?? dict.GetValueOrDefault("QuoteDate")
+                       ?? dict.GetValueOrDefault("date");
+
+            if (rawDate != null && DateTime.TryParse(rawDate.ToString(), out var parsedDate))
+            {
+                var localTime = parsedDate.Kind == DateTimeKind.Utc ? parsedDate.AddHours(5.5) : parsedDate;
+                dict["date"] = localTime.ToString("yyyy-MM-dd HH:mm");
+            }
+            else
+            {
+                dict["date"] = DateTime.UtcNow.AddHours(5.5).ToString("yyyy-MM-dd HH:mm");
+            }
+            dict["Date"] = dict["date"];
+
+            return JsonSerializer.Serialize(dict);
+        }
+        catch
+        {
+            return rawPayloadJson;
+        }
     }
 
     private async Task HandleFailureAsync(WebhookDelivery delivery, Webhook webhook, string failureReason)

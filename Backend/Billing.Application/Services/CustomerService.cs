@@ -20,10 +20,12 @@ public class CustomerService : ICustomerService
     private static decimal Outstanding(Customer customer) => BillableInvoices(customer).Sum(i => Math.Max(0, i.BalanceAmount));
 
     private readonly ICustomerRepository _customerRepository;
+    private readonly IOutboxService? _outboxService;
 
-    public CustomerService(ICustomerRepository customerRepository)
+    public CustomerService(ICustomerRepository customerRepository, IOutboxService? outboxService = null)
     {
         _customerRepository = customerRepository;
+        _outboxService = outboxService;
     }
 
     public async Task<ApiResponse<CustomerDto>> CreateCustomerAsync(CreateCustomerRequest request, int tenantId)
@@ -125,6 +127,32 @@ public class CustomerService : ICustomerService
         catch (Billing.Application.Common.DuplicateCustomerCodeException ex)
         {
             return ApiResponse<CustomerDto>.Fail("Customer code conflict", ex.Message);
+        }
+
+        if (_outboxService != null)
+        {
+            try
+            {
+                await _outboxService.PublishEventAsync(tenantId, "customer.created", new
+                {
+                    CustomerId = customer.Id,
+                    CustomerCode = customer.CustomerCode,
+                    Name = customer.Name,
+                    CustomerName = customer.Name,
+                    Customer = customer.Name,
+                    Email = customer.Email,
+                    Phone = customer.Phone,
+                    CompanyName = customer.CompanyName,
+                    CustomerType = customer.CustomerType,
+                    Currency = customer.Currency,
+                    Status = customer.Status,
+                    IsActive = customer.IsActive,
+                    CreatedAtUtc = customer.CreatedAtUtc
+                });
+            }
+            catch
+            {
+            }
         }
 
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer created successfully.");
@@ -334,6 +362,32 @@ public class CustomerService : ICustomerService
             return ApiResponse<CustomerDto>.Fail("Customer code conflict", ex.Message);
         }
 
+        if (_outboxService != null)
+        {
+            try
+            {
+                await _outboxService.PublishEventAsync(targetTenantId, "customer.updated", new
+                {
+                    CustomerId = customer.Id,
+                    CustomerCode = customer.CustomerCode,
+                    Name = customer.Name,
+                    CustomerName = customer.Name,
+                    Customer = customer.Name,
+                    Email = customer.Email,
+                    Phone = customer.Phone,
+                    CompanyName = customer.CompanyName,
+                    CustomerType = customer.CustomerType,
+                    Currency = customer.Currency,
+                    Status = customer.Status,
+                    IsActive = customer.IsActive,
+                    UpdatedAtUtc = customer.UpdatedAtUtc ?? DateTime.UtcNow
+                });
+            }
+            catch
+            {
+            }
+        }
+
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer updated successfully.");
     }
 
@@ -363,6 +417,27 @@ public class CustomerService : ICustomerService
                 "Concurrency conflict",
                 "The customer record has been modified by another process. Please reload and try again."
             );
+        }
+
+        if (_outboxService != null)
+        {
+            try
+            {
+                await _outboxService.PublishEventAsync(customer.TenantId, "customer.updated", new
+                {
+                    CustomerId = customer.Id,
+                    CustomerCode = customer.CustomerCode,
+                    Name = customer.Name,
+                    CustomerName = customer.Name,
+                    Customer = customer.Name,
+                    Status = "Inactive",
+                    IsActive = false,
+                    UpdatedAtUtc = customer.UpdatedAtUtc ?? DateTime.UtcNow
+                });
+            }
+            catch
+            {
+            }
         }
 
         return ApiResponse<CustomerDto>.Ok(MapToDto(customer), "Customer deactivated successfully.");

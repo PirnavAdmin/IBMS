@@ -304,4 +304,59 @@ public class InvoiceServiceTests
         // Verify that number generator was NOT called because it already had a valid invoice number
         _numberGenMock.Verify(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId), Times.Never);
     }
+    [Fact]
+    public async Task IssueInvoiceAsync_WhenNotificationServiceProvided_DispatchesInvoiceIssuedNotification()
+    {
+        // Arrange
+        int invoiceId = 20;
+        int tenantId = 1;
+        var draftInvoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            Status = "Draft",
+            InvoiceNumber = "INV-2026-10-000041",
+            Items = new List<InvoiceItem>
+            {
+                new InvoiceItem { UnitPrice = 1000, Quantity = 1 }
+            }
+        };
+
+        _invoiceRepoMock.Setup(r => r.GetByIdForUpdateAsync(invoiceId, tenantId)).ReturnsAsync(draftInvoice);
+        _calcEngineMock.Setup(c => c.CalculateAsync(It.IsAny<FinancialCalculationRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<FinancialCalculationResultDto>.Ok(new FinancialCalculationResultDto
+            {
+                GrandTotal = 1000,
+                GrossSubtotal = 1000,
+                Items = new List<CalculatedFinancialLineDto> { new CalculatedFinancialLineDto { LineTotal = 1000 } }
+            }));
+        _uowMock.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+        _uowMock.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+        _invoiceRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Invoice>())).ReturnsAsync((Invoice i, System.Threading.CancellationToken ct) => i);
+
+        var notifMock = new Mock<INotificationService>();
+        notifMock.Setup(n => n.SendInvoiceNotificationAsync(invoiceId, tenantId, "InvoiceIssued", "Admin", null, null))
+                 .ReturnsAsync(ApiResponse<Billing.Contracts.Notification.NotificationLogDto>.Ok(new Billing.Contracts.Notification.NotificationLogDto { Id = 1, Status = "Sent" }));
+
+        var invoiceService = new InvoiceService(
+            _invoiceRepoMock.Object,
+            _numberGenMock.Object,
+            _calcEngineMock.Object,
+            _uowMock.Object,
+            _auditMock.Object,
+            _emailMock.Object,
+            _commMock.Object,
+            _templateMock.Object,
+            outboxService: null,
+            notificationLogRepository: null,
+            notificationService: notifMock.Object);
+
+        // Act
+        var result = await invoiceService.IssueInvoiceAsync(invoiceId, tenantId, "Admin");
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal("Issued", result.Data!.Status);
+        notifMock.Verify(n => n.SendInvoiceNotificationAsync(invoiceId, tenantId, "InvoiceIssued", "Admin", null, null), Times.Once);
+    }
 }
