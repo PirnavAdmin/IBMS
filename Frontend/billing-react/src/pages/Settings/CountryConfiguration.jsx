@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
+  Alert,
   Button,
   Checkbox,
   TextField,
@@ -20,11 +21,13 @@ import {
   MonetizationOnOutlined,
 } from '@mui/icons-material';
 import { SettingsPageHeader } from './SettingsPageHeader';
-import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import {
   useRegionalSettings,
+  countrySelectionError,
+  getRegionalSessionScope,
   BILLING_COUNTRIES_LIST as COUNTRIES_LIST,
 } from '../../services/regionalSettingsService';
 import './settings.css';
@@ -34,12 +37,17 @@ export function CountryConfiguration() {
   const {
     selectedCountries: persistedCountries,
     saveCountries,
-    settingsLoading,
-    settingsError,
-    reloadSettings,
+    sessionScope, loading, loaded, error, reloadCountries,
   } = useRegionalSettings();
 
-  const [selectedCountries, setSelectedCountries] = useState(persistedCountries);
+  const [draft, setDraft] = useState({ scope: sessionScope, countries: persistedCountries });
+  const selectedCountries = draft.scope === sessionScope ? draft.countries : [];
+  const setSelectedCountries = update => setDraft(current => ({
+    scope: sessionScope,
+    countries: typeof update === 'function' ? update(current.scope === sessionScope ? current.countries : []) : update,
+  }));
+  const ready = loaded && draft.scope === sessionScope;
+  const validationError = countrySelectionError(selectedCountries);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -47,8 +55,9 @@ export function CountryConfiguration() {
 
   // Sync with persisted settings on mount / change
   useEffect(() => {
-    setSelectedCountries(persistedCountries);
-  }, [persistedCountries]);
+    setDraft({ scope: sessionScope, countries: persistedCountries });
+    setSaveError('');
+  }, [persistedCountries, sessionScope]);
 
   const selectedCodes = useMemo(
     () => new Set(selectedCountries.map((c) => c.code)),
@@ -68,6 +77,7 @@ export function CountryConfiguration() {
   }, [search]);
 
   const handleToggleCountry = (country) => {
+    if (!ready || saving) return;
     setSelectedCountries((current) => {
       const exists = current.some((c) => c.code === country.code);
       if (exists) {
@@ -90,15 +100,17 @@ export function CountryConfiguration() {
   };
 
   const handleSave = async () => {
-    if (saveLock.current) return;
+    if (saveLock.current || !ready || sessionScope !== getRegionalSessionScope()) return;
+    if (validationError) { setSaveError(validationError); return; }
     saveLock.current = true;
     setSaving(true);
     setSaveError('');
     try {
       const result = await saveCountries(selectedCountries);
+      if (sessionScope !== getRegionalSessionScope()) return;
       navigate('/settings', { state: { countrySaved: result.message || 'Country configuration saved successfully.' } });
     } catch (err) {
-      setSaveError(errorPresentation(err.userMessage || err.message));
+      if (sessionScope === getRegionalSessionScope()) setSaveError(errorPresentation(err.userMessage || err.message));
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -106,34 +118,6 @@ export function CountryConfiguration() {
   };
 
   const defaultCountry = selectedCountries.length > 0 ? selectedCountries[0] : null;
-
-  if (saveError || settingsError) {
-    return (
-      <main className="settings-page country-config-page">
-        <SettingsPageHeader
-          title="Country Configuration"
-          description="Select the countries available for your application. Default phone calling codes and currencies are automatically derived."
-        />
-        <DashboardErrorState
-          title={saveError ? 'Unable to save country settings' : 'Unable to load country settings'}
-          message={saveError || settingsError}
-          onRetry={saveError ? handleSave : reloadSettings}
-        />
-      </main>
-    );
-  }
-
-  if (settingsLoading) {
-    return (
-      <main className="settings-page country-config-page">
-        <SettingsPageHeader
-          title="Country Configuration"
-          description="Select the countries available for your application. Default phone calling codes and currencies are automatically derived."
-        />
-        <div className="settings-panel settings-empty" role="status">Loading country settings...</div>
-      </main>
-    );
-  }
 
   return (
     <main className="settings-page country-config-page">
@@ -144,13 +128,19 @@ export function CountryConfiguration() {
         <Button
           variant="contained"
           startIcon={<SaveOutlined />}
-          disabled={saving}
+          disabled={saving || !ready || Boolean(validationError)}
           onClick={handleSave}
           className="country-save-header-btn"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </SettingsPageHeader>
+
+      {loading && <Alert severity="info" role="status" sx={{ mb: 2 }}>Loading saved country settings...</Alert>}
+      {error && <DashboardErrorState title="Unable to load country settings" message={error.userMessage || error.message} onRetry={reloadCountries} />}
+      {saveError && <DashboardErrorState title="Unable to save country settings" message={saveError} onRetry={handleSave} />}
+      {ready && validationError && <Alert severity="warning" sx={{ mb: 2 }}>{validationError}</Alert>}
+      {ready && <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
 
       {/* UPSIDE: Selected Countries Section */}
       <section className="country-selected-shelf" aria-label="Currently selected countries">
@@ -450,7 +440,7 @@ export function CountryConfiguration() {
                 variant="contained"
                 fullWidth
                 startIcon={<SaveOutlined />}
-                disabled={saving}
+                disabled={saving || !ready || Boolean(validationError)}
                 onClick={handleSave}
                 className="quick-save-btn"
               >
@@ -470,6 +460,8 @@ export function CountryConfiguration() {
           </div>
         </aside>
       </div>
+
+      </fieldset>}
 
     </main>
   );

@@ -26,7 +26,7 @@ export const Dashboard = () => {
   const { invoices, payments, invoicesAllowed, paymentsAllowed, refresh } = useDashboard(filters);
   const user = authApi.getCurrentUser();
   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);
-  const currency = selectDashboardCurrency(currencies, '');
+  const currency = selectDashboardCurrency(currencies, filters.currency || '');
   const result = useMemo(() => {
     if (!currency) return { data: null };
     try { return { data: billingInsights(invoices.isError ? [] : invoices.data || [], payments.isError ? [] : payments.data || [], currency) }; }
@@ -46,7 +46,7 @@ export const Dashboard = () => {
   ];
   return <div className="bd-shell premium-dashboard"><DashboardHeader searchQuery={recordsSearch} onSearch={setRecordsSearch} onSignOut={() => { authApi.logout(); navigate('/login'); }} /><main className="premium-main">
     <div className="premium-title"><div><span className="premium-eyebrow">BILLING OVERVIEW</span><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div><span className="premium-tag">Tenant-scoped data</span></div>
-    <DashboardFilters values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} onRecordsSearch={setRecordsSearch} />
+    <DashboardFilters currencies={currencies} currency={currency} values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} onRecordsSearch={setRecordsSearch} />
     {loading ? <DashboardSkeleton /> : <>
       {!invoicesAllowed ? <Notice>Invoice analytics are unavailable for your role.</Notice> : invoices.isError && <Notice retry={invoices.refetch}>Invoice data could not be loaded. {invoices.error.message}</Notice>}
       {!paymentsAllowed ? <Notice>Payment analytics are unavailable for your role.</Notice> : payments.isError && <Notice retry={payments.refetch}>Payment data could not be loaded. {payments.error.message}</Notice>}

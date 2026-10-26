@@ -566,12 +566,11 @@
 .invoice-filters {
   display: grid;
   grid-template-columns:
-    14rem
+    minmax(12rem, 1.6fr)
+    minmax(7rem, .8fr)
+    minmax(9rem, 1fr)
     max-content
-    max-content
-    max-content
-    6rem
-    max-content
+    minmax(10rem, 1fr)
     max-content;
   justify-content: start;
   align-items: center;
@@ -590,21 +589,21 @@
 }
 
 .invoice-filters .invoice-filter-status {
-  width: auto;
-  min-width: 6.25rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .invoice-filters .invoice-filter-payment {
-  width: auto;
-  min-width: 10rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .invoice-filters .invoice-filter-customer {
-  width: 7.5rem;
+  width: 100%;
 }
 
 .invoice-filters .invoice-filter-customer:has(.MuiAutocomplete-clearIndicator) {
-  width: 14rem;
+  width: 100%;
 }
 
 .invoice-filters .MuiOutlinedInput-root {
@@ -640,11 +639,7 @@
   align-items: center;
 }
 
-.invoice-filter-currency .MuiOutlinedInput-input {
-  text-align: center;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
+
 
 .invoice-filters .invoice-filter-reset,
 .invoice-filters .invoice-filter-date-range {
@@ -2675,3 +2670,8 @@
     background: #ffffff !important;
   }
 }
+
+/* Reflow the six list filters without leaving an empty currency slot. */
+@media (max-width: 1200px) { .invoice-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .invoice-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 440px) { .invoice-filters { grid-template-columns: minmax(0, 1fr); } }

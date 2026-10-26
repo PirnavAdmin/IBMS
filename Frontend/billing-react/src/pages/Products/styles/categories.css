@@ -1,19 +1,13 @@
 .category-table table { width: 100%; min-width: 640px; table-layout: fixed; margin: 0; }
-.category-table { max-height: min(56vh, 560px); overflow: auto; scrollbar-width: thin; scrollbar-color: #9a7757 #f1e7dc; }
+.category-table { max-height: min(56vh, 560px); overflow: auto; }
 .app-layout .ibms-table-frame.category-table { border: 1px solid var(--border, #d5c6b5); border-radius: 12px; overflow: auto; }
 .app-layout .category-table table > thead > tr > .MuiTableCell-head { vertical-align: middle; }
 .app-layout .category-table table > tbody > tr > .MuiTableCell-body { text-align: left; }
-.app-layout .ibms-table-frame.category-table table > thead > tr > th:not(:last-child),
-.app-layout .ibms-table-frame.category-table table > tbody > tr > td:not(:last-child) { border-right: 1px solid var(--border, #d5c6b5); }
 .category-table .MuiTableCell-root:nth-child(1) { width: 24%; }
 .category-table .MuiTableCell-root:nth-child(2) { width: 39%; }
 .category-table .MuiTableCell-root:nth-child(3) { width: 15%; }
 .category-table .MuiTableCell-root:nth-child(4) { width: 12%; }
 .category-table .MuiTableCell-root:nth-child(5) { width: 10%; }
-.category-table::-webkit-scrollbar { width: 5px; height: 5px; }
-.category-table::-webkit-scrollbar-track { background: #f1e7dc; border-radius: 8px; }
-.category-table::-webkit-scrollbar-thumb { background: #9a7757; border: 1px solid #f1e7dc; border-radius: 8px; }
-.category-table::-webkit-scrollbar-thumb:hover { background: #795334; }
 .category-search-row { display: flex; justify-content: flex-start; padding: 16px; }
 .category-search { width: min(100%, 420px); }
 .category-search .MuiOutlinedInput-root { background: #fffdf9; }

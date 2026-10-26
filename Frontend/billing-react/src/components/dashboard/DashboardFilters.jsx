@@ -4,7 +4,7 @@ import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
 
-export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, onRecordsSearch }) => {
+export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, onRecordsSearch, currencies = [], currency = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const periods = dashboardPeriods();
@@ -79,9 +79,22 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, on
       </div>
     </div>
 
+    <label className="premium-filter-field premium-currency-field">
+      <span>Billing Currency</span>
+      <div className="premium-currency-control">
+        <select aria-label="Billing Currency" value={currency || ''} disabled={!currencies.length} onChange={event => onChange({ ...values, currency: event.target.value })}>
+          {!currencies.length && <option value="">{isRefreshing ? 'Loading currencies...' : 'No currencies available'}</option>}
+          {currencies.map(code => <option key={code} value={code}>{code}</option>)}
+        </select>
+        <KeyboardArrowDown className="premium-select-arrow" fontSize="small" aria-hidden="true" />
+      </div>
+    </label>
+
+    <div className="premium-filter-actions">
     <button type="button" onClick={reset}><RestartAlt fontSize="small" />Reset</button>
     <button type="button" className="primary" onClick={onRefresh} disabled={isRefreshing} aria-busy={isRefreshing}>
       <Refresh fontSize="small" className={isRefreshing ? 'bd-spin' : ''} />Refresh
     </button>
+    </div>
   </section>;
 };

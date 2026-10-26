@@ -1,55 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { authApi, apiClient } from 'billing-api-client';
-
 import countries195Data from '../data/countries195.json';
-import { CURRENCY_CODES } from '../utils/currencies.js';
+import { CURRENCY_CODES, getCurrencySymbol } from '../utils/currencies.js';
 
 export const COUNTRIES_LIST = countries195Data;
 export const BILLING_COUNTRIES_LIST = COUNTRIES_LIST.filter(country => CURRENCY_CODES.includes(country.currency));
-const isBillingCountry = country => Boolean(country && CURRENCY_CODES.includes(country.currency));
+const ENDPOINT = '/api/v1/settings/country';
+const REGIONAL_SETTINGS_EVENT = 'invoice_billing_regional_settings_changed';
+const EMPTY_COUNTRIES = [];
 
 export function findCountry(countryOrCode) {
-  if (!countryOrCode) return null;
-  const str = String(countryOrCode).trim().toLowerCase();
-  return (
-    COUNTRIES_LIST.find(
-      (c) => c.name.toLowerCase() === str || c.code.toLowerCase() === str
-    ) || null
-  );
+  const value = String(countryOrCode || '').trim().toLowerCase();
+  return COUNTRIES_LIST.find(country => country.name.toLowerCase() === value || country.code.toLowerCase() === value) || null;
 }
 
 export function findCountryByCallingCode(phoneCode, preferredCountryCode = null) {
-  if (!phoneCode) return null;
-  const str = String(phoneCode).trim();
-  const normalized = str.startsWith('+') ? str : `+${str}`;
-
-  // If a preferred country code is provided (e.g. from Settings), check it first
-  if (preferredCountryCode) {
-    const pref = COUNTRIES_LIST.find(
-      (c) =>
-        (c.code.toLowerCase() === String(preferredCountryCode).toLowerCase() ||
-         c.name.toLowerCase() === String(preferredCountryCode).toLowerCase()) &&
-        c.phoneCode === normalized
-    );
-    if (pref) return pref;
-  }
-
-  return COUNTRIES_LIST.find((c) => c.phoneCode === normalized) || null;
+  const value = String(phoneCode || '').trim();
+  if (!value) return null;
+  const normalized = value.startsWith('+') ? value : `+${value}`;
+  const preferred = findCountry(preferredCountryCode);
+  return (preferred?.phoneCode === normalized ? preferred : null) || COUNTRIES_LIST.find(country => country.phoneCode === normalized) || null;
 }
 
-export function getDefaultCountryFromSettings() {
-  const selected = regionalSettingsService.getSelectedCountries();
-  if (Array.isArray(selected) && selected.length > 0) {
-    return selected[0];
-  }
-  return null;
-}
-
-const EMPTY_COUNTRIES = [];
-const REGIONAL_SETTINGS_EVENT = 'invoice_billing_regional_settings_changed';
-let confirmedSelection = null;
-let countryLoadRequest = null;
-function getSessionScope() {
+// Authentication storage identifies the request scope only. Country selections are
+// never read from storage or held in a module-level fallback cache.
+export function getRegionalSessionScope() {
   try {
     const token = localStorage.getItem('billing_auth_token');
     const user = authApi.getCurrentUser();
@@ -57,142 +32,144 @@ function getSessionScope() {
   } catch { return null; }
 }
 
-export const regionalSettingsService = {
-  getSelectedCountries() {
-    const scope = getSessionScope();
-    if (!scope || confirmedSelection?.scope !== scope) {
-      confirmedSelection = null;
-      return [];
+function requireCurrentSession(scope) {
+  if (!scope || scope !== getRegionalSessionScope()) {
+    throw new Error('Your session changed. Reload country settings before saving.');
+  }
+}
+
+// Axios runs request interceptors asynchronously. Check scope again immediately
+// before transport so an account switch cannot submit the old draft as the new user.
+function requestOptions(scope) {
+  const transforms = apiClient.defaults.transformRequest;
+  return { transformRequest: [data => { requireCurrentSession(scope); return data; }, ...(Array.isArray(transforms) ? transforms : [transforms]).filter(Boolean)] };
+}
+
+function mapResponse(response) {
+  if (response?.success !== true) throw new Error(response?.message || 'Country settings could not be confirmed by the server.');
+  if (!Array.isArray(response.data?.countries)) throw new Error('The server returned an invalid country settings response.');
+  const seen = new Set();
+  const countries = response.data.countries.map(item => {
+    const code = String(item?.countryCode || '').trim().toUpperCase();
+    const canonical = COUNTRIES_LIST.find(country => country.code === code);
+    if (!canonical) throw new Error(`The server returned an unsupported country code: ${code || '(missing)'}.`);
+    if (seen.has(code)) throw new Error(`The server returned duplicate country settings for ${code}.`);
+    seen.add(code);
+    const currency = String(item.currency || canonical.currency).trim().toUpperCase();
+    return { ...canonical, phoneCode: String(item.phoneCode || canonical.phoneCode).trim(), currency, currencySymbol: getCurrencySymbol(currency) };
+  });
+  return { selectedCountries: countries, message: response.message, updatedAtUtc: response.data.updatedAtUtc ?? null };
+}
+
+export function countrySelectionError(countries) {
+  if (!Array.isArray(countries)) return 'Select countries from the available country list.';
+  const seen = new Set();
+  for (const item of countries) {
+    const canonical = findCountry(typeof item === 'string' ? item : item?.code);
+    if (!canonical) return 'The selection contains an unsupported country. Reload country settings.';
+    if (seen.has(canonical.code)) return `Duplicate country selected: ${canonical.name}.`;
+    seen.add(canonical.code);
+    if (!CURRENCY_CODES.includes(item?.currency ?? canonical.currency)) return `The billing currency for ${canonical.name} is unsupported. Remove this country before saving.`;
+    if (typeof item === 'object' && (item.currency !== canonical.currency || item.phoneCode !== canonical.phoneCode)) {
+      return `The saved calling code or currency for ${canonical.name} does not match the supported country metadata. Remove and reselect this country before saving.`;
     }
-    return [...confirmedSelection.countries];
+  }
+  return '';
+}
+
+export const regionalSettingsService = {
+  async getSelectedCountries() {
+    const scope = getRegionalSessionScope();
+    requireCurrentSession(scope);
+    const response = await apiClient.get(ENDPOINT, requestOptions(scope));
+    requireCurrentSession(scope);
+    return mapResponse(response).selectedCountries;
   },
 
+  // Preserve the incoming loader entry point with the same fresh, scoped GET.
   async loadSelectedCountries() {
-    const scope = getSessionScope();
-    if (!scope) throw new Error('Sign in again to load country settings.');
-    if (confirmedSelection?.scope === scope) return [...confirmedSelection.countries];
-    if (countryLoadRequest?.scope === scope) return countryLoadRequest.promise;
-
-    const promise = (async () => {
-      const response = await apiClient.get('/api/v1/settings/country');
-      if (response?.success !== true || !Array.isArray(response?.data?.countries)) {
-        throw new Error(response?.message || 'Country settings could not be loaded. Please try again.');
-      }
-      const countries = response.data.countries
-        .map((item) => findCountry(item?.countryCode || item?.country))
-        .filter(isBillingCountry);
-      const unique = [...new Map(countries.map((country) => [country.code, country])).values()];
-      if (getSessionScope() === scope) {
-        confirmedSelection = { scope, countries: unique };
-        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT));
-      }
-      return unique;
-    })();
-    countryLoadRequest = { scope, promise };
-    try { return await promise; }
-    finally { if (countryLoadRequest?.promise === promise) countryLoadRequest = null; }
+    return regionalSettingsService.getSelectedCountries();
   },
 
   async saveSelectedCountries(countries) {
-    const scope = getSessionScope();
-    const list = Array.isArray(countries) ? countries : (countries ? [countries] : []);
-    const normalized = list
-      .map((item) => (typeof item === 'object' ? findCountry(item?.name || item?.code) : findCountry(item)))
-      .filter(isBillingCountry);
-
-    // Filter unique by country code
-    const unique = [];
-    const seen = new Set();
-    for (const c of normalized) {
-      if (!seen.has(c.code)) {
-        seen.add(c.code);
-        unique.push(c);
-      }
-    }
-
-    // The shared client returns the API envelope, not an Axios response.
-    // Persist locally and notify subscribers only after confirmed server success.
-    const response = await apiClient.put('/api/v1/settings/country', {
-      countries: unique.map((c) => ({ country: c.name, countryCode: c.code, phoneCode: c.phoneCode, currency: c.currency })),
-    });
-    if (response?.success !== true) {
-      throw new Error(response?.message || 'Country settings could not be saved. Please try again.');
-    }
-    if (scope && scope === getSessionScope()) {
-      confirmedSelection = { scope, countries: unique };
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT));
-    }
-    const backendStatus = { backendBlocked: false, message: response.message || 'Country settings saved successfully.' };
-
-    return {
-      selectedCountries: unique,
-      ...backendStatus,
-    };
+    const scope = getRegionalSessionScope();
+    requireCurrentSession(scope);
+    const validation = countrySelectionError(countries);
+    if (validation) throw new Error(validation);
+    const selected = countries.map(item => findCountry(typeof item === 'string' ? item : item.code));
+    const response = await apiClient.put(ENDPOINT, {
+      countries: selected.map(country => ({ country: country.name, countryCode: country.code, phoneCode: country.phoneCode, currency: country.currency })),
+    }, requestOptions(scope));
+    requireCurrentSession(scope);
+    const result = mapResponse(response);
+    // Consumers refetch their own scoped state; this event carries no cached data.
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT));
+    return result;
   },
 };
 
+export async function getDefaultCountryFromSettings() {
+  return (await regionalSettingsService.getSelectedCountries())[0] || null;
+}
+
 export function useRegionalSettings() {
-  const scope = getSessionScope();
-  const [selection, setSelection] = useState(() => ({ scope, countries: regionalSettingsService.getSelectedCountries() }));
-  const [settingsLoading, setSettingsLoading] = useState(Boolean(scope && confirmedSelection?.scope !== scope));
-  const [settingsError, setSettingsError] = useState('');
-  const selectedCountries = selection.scope === scope && scope ? selection.countries : EMPTY_COUNTRIES;
-  const setSelectedCountries = countries => setSelection({ scope: getSessionScope(), countries });
-
-  useEffect(() => {
-    let active = true;
-    setSettingsError('');
-    setSettingsLoading(Boolean(scope && confirmedSelection?.scope !== scope));
-    if (scope && confirmedSelection?.scope !== scope) {
-      regionalSettingsService.loadSelectedCountries()
-        .catch((error) => { if (active) setSettingsError(error.message || 'Country settings could not be loaded.'); })
-        .finally(() => { if (active) setSettingsLoading(false); });
+  const [, observeSession] = useState(0);
+  const scope = getRegionalSessionScope();
+  const requestId = useRef(0);
+  const [selection, setSelection] = useState({ scope: null, countries: EMPTY_COUNTRIES, status: 'loading', error: null });
+  const reloadCountries = useCallback(async () => {
+    const id = ++requestId.current;
+    if (!scope) {
+      setSelection({ scope, countries: EMPTY_COUNTRIES, status: 'error', error: new Error('Sign in to load country settings.') });
+      return;
     }
-    const handleUpdate = () => setSelectedCountries(regionalSettingsService.getSelectedCountries());
-    const handleStorage = (e) => {
-      if (e.key === null || e.key === 'billing_auth_user' || e.key === 'billing_auth_token') {
-        setSelectedCountries(regionalSettingsService.getSelectedCountries());
-      }
-    };
-
-    window.addEventListener(REGIONAL_SETTINGS_EVENT, handleUpdate);
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      active = false;
-      window.removeEventListener(REGIONAL_SETTINGS_EVENT, handleUpdate);
-      window.removeEventListener('storage', handleStorage);
-    };
+    setSelection({ scope, countries: EMPTY_COUNTRIES, status: 'loading', error: null });
+    try {
+      const countries = await regionalSettingsService.getSelectedCountries();
+      if (id === requestId.current && scope === getRegionalSessionScope()) setSelection({ scope, countries, status: 'success', error: null });
+    } catch (error) {
+      if (id === requestId.current && scope === getRegionalSessionScope()) setSelection({ scope, countries: EMPTY_COUNTRIES, status: 'error', error });
+    }
   }, [scope]);
 
-  const selectedCurrencies = Array.from(
-    new Set(selectedCountries.map((c) => c.currency))
-  );
+  useEffect(() => {
+    reloadCountries();
+    return () => { requestId.current++; };
+  }, [reloadCountries]);
 
-  const selectedPhoneCodes = Array.from(
-    new Set(selectedCountries.map((c) => c.phoneCode))
-  );
+  useEffect(() => {
+    const sessionChanged = () => observeSession(value => value + 1);
+    const storageChanged = event => {
+      if (event.key === null || event.key === 'billing_auth_token' || event.key === 'billing_auth_user') sessionChanged();
+    };
+    window.addEventListener('storage', storageChanged);
+    window.addEventListener('focus', sessionChanged);
+    window.addEventListener(REGIONAL_SETTINGS_EVENT, reloadCountries);
+    return () => {
+      window.removeEventListener('storage', storageChanged);
+      window.removeEventListener('focus', sessionChanged);
+      window.removeEventListener(REGIONAL_SETTINGS_EVENT, reloadCountries);
+    };
+  }, [reloadCountries]);
 
-  const defaultCountry = selectedCountries.length > 0 ? selectedCountries[0] : null;
-  const defaultCallingCode = defaultCountry ? defaultCountry.phoneCode : null;
-
+  const current = selection.scope === scope;
+  const selectedCountries = current ? selection.countries : EMPTY_COUNTRIES;
   return {
+    sessionScope: scope,
+    settingsLoading: !current || selection.status === 'loading',
+    settingsError: current ? selection.error?.message || '' : '',
+    reloadSettings: reloadCountries,
     selectedCountries,
-    settingsLoading,
-    settingsError,
-    reloadSettings: () => {
-      confirmedSelection = null;
-      setSettingsError('');
-      setSettingsLoading(true);
-      return regionalSettingsService.loadSelectedCountries()
-        .catch((error) => { setSettingsError(error.message || 'Country settings could not be loaded.'); throw error; })
-        .finally(() => setSettingsLoading(false));
-    },
     availableCountries: COUNTRIES_LIST,
-    selectedCurrencies,
-    selectedPhoneCodes,
+    selectedCurrencies: [...new Set(selectedCountries.map(country => country.currency).filter(currency => CURRENCY_CODES.includes(currency)))],
+    selectedPhoneCodes: [...new Set(selectedCountries.map(country => country.phoneCode))],
     hasSelectedCountries: selectedCountries.length > 0,
-    defaultCountry,
-    defaultCallingCode,
+    defaultCountry: selectedCountries[0] || null,
+    defaultCallingCode: selectedCountries[0]?.phoneCode || null,
+    loading: !current || selection.status === 'loading',
+    loaded: current && selection.status === 'success',
+    error: current ? selection.error : null,
+    reloadCountries,
     saveCountries: regionalSettingsService.saveSelectedCountries,
   };
 }
