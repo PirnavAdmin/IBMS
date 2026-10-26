@@ -1,5 +1,6 @@
 import { Skeleton } from '@mui/material';
 import { errorPresentation } from '../../utils/errorPresentation';
+import { transportErrorMessage } from '../../../../billing-api-client/transportError.js';
 import { DnsOutlined, DescriptionOutlined, PowerOffOutlined, Refresh } from '@mui/icons-material';
 
 const SectionSkeleton = ({ title, chart = false }) => <section className="bd-card bd-section-skeleton" aria-label={`Loading ${title}`}>
@@ -13,9 +14,17 @@ export const DashboardSkeleton = () => <div className="bd-dashboard-skeleton" ro
   <div className="bd-detail-grid">{['Recent Payments', 'Top Customers'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
 </div>;
 
-export const DashboardErrorState = ({ onRetry, title = "Unable to load data", message }) => <section className="bd-dashboard-error" role="alert">
-  <div className="bd-error-illustration" aria-hidden="true"><PowerOffOutlined /><div><DnsOutlined /><DescriptionOutlined /></div></div>
-  <h2>{title}</h2>
-  <p>{errorPresentation(message)}</p>
-  {onRetry && <button className="bd-retry" onClick={onRetry}><Refresh /> Retry</button>}
-</section>;
+export const DashboardErrorState = ({ onRetry, title = "Unable to load data", message }) => {
+  const isTransportFailure = Boolean(transportErrorMessage(message));
+  const moduleName = title.replace(/^Unable to (?:load|check)\s+/i, '').trim();
+  const displayMessage = isTransportFailure
+    ? `${moduleName || 'This information'} is temporarily unavailable. Please try again.`
+    : errorPresentation(message);
+
+  return <section className="bd-dashboard-error" role="alert">
+    <div className="bd-error-illustration" aria-hidden="true"><PowerOffOutlined /><div><DnsOutlined /><DescriptionOutlined /></div></div>
+    <h2>{title}</h2>
+    <p>{displayMessage}</p>
+    {onRetry && <button className="bd-retry" onClick={onRetry}><Refresh /> Retry</button>}
+  </section>;
+};

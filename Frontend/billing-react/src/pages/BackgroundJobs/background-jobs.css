@@ -6,7 +6,12 @@
 .background-jobs-page > .MuiAlert-root:not(.export-job-feedback) { margin-bottom: 16px; }
 .background-jobs-page > .export-job-feedback { position: fixed; z-index: 1400; bottom: 24px; left: 24px; width: fit-content; max-width: min(480px, calc(100vw - 48px)); margin: 0; box-shadow: 0 6px 22px rgba(53,35,28,.18); }
 .background-jobs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 16px; }
-.background-job-card, .export-job-create, .export-job-list { min-width: 0; padding: 20px; border: 1px solid var(--border, #dccebf); border-radius: 12px; background: var(--surface, #fffdf9); box-shadow: 0 3px 14px rgba(53,35,28,.04); }
+.background-job-card, .export-job-create, .export-job-list { min-width: 0; padding: 20px; border: 1px solid var(--border, #dccebf); border-radius: 12px; background: var(--surface, #fffdf9); box-shadow: 0 5px 18px rgba(69,43,25,.09), 0 1px 3px rgba(69,43,25,.05); }
+.background-job-card { border-top: 3px solid #c69a70; background: linear-gradient(145deg, #fffaf3 0%, #fffdf9 72%); box-shadow: 0 10px 26px rgba(168,112,61,.24), 0 3px 8px rgba(69,43,25,.1); transition: box-shadow .18s ease, transform .18s ease; }
+.background-job-card:nth-child(4n + 2) { border-top-color: #9a83b0; background: linear-gradient(145deg, #f8f4fb 0%, #fffdf9 72%); box-shadow: 0 10px 26px rgba(126,99,157,.25), 0 3px 8px rgba(69,43,25,.1); }
+.background-job-card:nth-child(4n + 3) { border-top-color: #cf8a6d; background: linear-gradient(145deg, #fff5ef 0%, #fffdf9 72%); box-shadow: 0 10px 26px rgba(190,112,78,.25), 0 3px 8px rgba(69,43,25,.1); }
+.background-job-card:nth-child(4n) { border-top-color: #7ba58b; background: linear-gradient(145deg, #f2f8f3 0%, #fffdf9 72%); box-shadow: 0 10px 26px rgba(91,145,109,.25), 0 3px 8px rgba(69,43,25,.1); }
+.background-job-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(69,43,25,.2), 0 5px 10px rgba(69,43,25,.1); }
 .background-job-card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .background-job-card h2, .export-job-create h2, .export-job-list h2 { margin: 0; color: var(--primary, #68462f); }
 .background-job-card-heading p { margin: 8px 0 0; color: var(--text-secondary, #806b5b); font-size: 13px; line-height: 1.5; }

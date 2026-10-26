@@ -8,6 +8,7 @@ import {
 import { Add, ContentCopyOutlined, IntegrationInstructionsOutlined, MoreVert, Refresh, Search } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { ApplicationEditor, FeatureFlagsDialog, SecretDialog } from './IntegrationDialogs';
 import { integrationAccess, integrationError, integrationService } from './integrationService';
 import './integrations.css';
@@ -133,7 +134,7 @@ export function Integrations() {
       {!allowed && <div className="integrations-heading-actions"><Button variant="outlined" startIcon={<Refresh />} disabled>Refresh</Button><Button variant="contained" startIcon={<Add />} disabled>Register New App</Button></div>}
     </header>
     {user.isPending ? <div className="integration-state" role="status"><LinearProgress />Checking integration access…</div>
-      : user.isError ? <Alert severity="error" action={<Button color="inherit" onClick={() => user.refetch()}>Retry</Button>}>{integrationError(user.error)}</Alert>
+      : user.isError ? <DashboardErrorState title="Unable to load integration settings" message={integrationError(user.error)} onRetry={() => user.refetch()} />
         : !allowed ? <Alert severity="warning">Integration access requires TenantAdmin, SuperAdmin, or User permissions.</Alert>
           : <section className="integrations-panel" aria-label="Integration applications">
             <div className="integrations-toolbar">
@@ -150,7 +151,7 @@ export function Integrations() {
               </div>
             </div>
             {waiting && <div className="integration-progress" role="status" aria-label="Loading applications"><LinearProgress /></div>}
-            {list.isError ? <div className="integration-state"><Alert severity="error" action={<Button color="inherit" onClick={() => list.refetch()}>Retry</Button>}>{integrationError(list.error)}</Alert></div>
+            {list.isError ? <DashboardErrorState title="Unable to load applications" message={integrationError(list.error)} onRetry={() => list.refetch()} />
               : page?.items.length ? <div className="integrations-table-scroll" role="region" aria-label="Application list" tabIndex={0}><table className="integrations-table" aria-label="Applications" aria-busy={waiting}>
                 <thead><tr>{['Application Name', 'Client ID', 'Status', 'Connected Webhooks', 'Feature Flags', 'Created Date', 'Actions'].map(title => <th key={title} scope="col">{title}</th>)}</tr></thead>
                 <tbody>{page.items.map(app => <tr key={app.id}>

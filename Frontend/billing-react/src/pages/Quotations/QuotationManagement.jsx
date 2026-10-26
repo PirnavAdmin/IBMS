@@ -84,7 +84,7 @@ export function QuotationManagement() {
     ]);
     if(version!==generation.current)return;
     try {
-      const [q,c,p,profile,charges]=results; setListFailed(q.status==='rejected');
+      const [q,c,p,profile,charges]=results; setListFailed(results.some(result=>result.status==='rejected'));
       if(q.status==='fulfilled')setQuotes(q.value.map(normalizeQuotation));
       if(c.status==='fulfilled')setCustomers(c.value.map(parseCustomerResponse).filter(Boolean).map(row=>({...row,id:String(row.id),code:row.customerCode,mobile:row.phone,billingAddress:address(row.billingAddress),shippingAddress:address(row.shippingAddress),taxInfo:row.taxId||''})));
       if(p.status==='fulfilled')setProducts(p.value.filter(row=>row.isActive!==false&&row.status!=='Inactive').map(normalizeQuotationProduct));
@@ -157,7 +157,7 @@ export function QuotationManagement() {
     :load();
   return <>
     {(loading||busy)&&<LinearProgress/>}
-    {error&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
+    {error&&!listFailed&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
     <fieldset disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
       {screen==='create'||screen==='edit'
         ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>

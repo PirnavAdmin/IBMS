@@ -47,11 +47,8 @@ export function getDefaultCountryFromSettings() {
 
 const EMPTY_COUNTRIES = [];
 const REGIONAL_SETTINGS_EVENT = 'invoice_billing_regional_settings_changed';
-
-// Only server-confirmed selections from this authenticated session are cached.
-// The deployed contract has no country-settings GET/PUT; never hydrate from legacy storage.
-export const COUNTRY_SETTINGS_BLOCKER = 'Country settings API is unavailable on the current billing server (GET/PUT /api/v1/settings/country). Saved selections cannot be loaded. A save requires server confirmation.';
 let confirmedSelection = null;
+let countryLoadRequest = null;
 function getSessionScope() {
   try {
     const token = localStorage.getItem('billing_auth_token');
@@ -68,6 +65,32 @@ export const regionalSettingsService = {
       return [];
     }
     return [...confirmedSelection.countries];
+  },
+
+  async loadSelectedCountries() {
+    const scope = getSessionScope();
+    if (!scope) throw new Error('Sign in again to load country settings.');
+    if (confirmedSelection?.scope === scope) return [...confirmedSelection.countries];
+    if (countryLoadRequest?.scope === scope) return countryLoadRequest.promise;
+
+    const promise = (async () => {
+      const response = await apiClient.get('/api/v1/settings/country');
+      if (response?.success !== true || !Array.isArray(response?.data?.countries)) {
+        throw new Error(response?.message || 'Country settings could not be loaded. Please try again.');
+      }
+      const countries = response.data.countries
+        .map((item) => findCountry(item?.countryCode || item?.country))
+        .filter(isBillingCountry);
+      const unique = [...new Map(countries.map((country) => [country.code, country])).values()];
+      if (getSessionScope() === scope) {
+        confirmedSelection = { scope, countries: unique };
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(REGIONAL_SETTINGS_EVENT));
+      }
+      return unique;
+    })();
+    countryLoadRequest = { scope, promise };
+    try { return await promise; }
+    finally { if (countryLoadRequest?.promise === promise) countryLoadRequest = null; }
   },
 
   async saveSelectedCountries(countries) {
@@ -111,10 +134,20 @@ export const regionalSettingsService = {
 export function useRegionalSettings() {
   const scope = getSessionScope();
   const [selection, setSelection] = useState(() => ({ scope, countries: regionalSettingsService.getSelectedCountries() }));
+  const [settingsLoading, setSettingsLoading] = useState(Boolean(scope && confirmedSelection?.scope !== scope));
+  const [settingsError, setSettingsError] = useState('');
   const selectedCountries = selection.scope === scope && scope ? selection.countries : EMPTY_COUNTRIES;
   const setSelectedCountries = countries => setSelection({ scope: getSessionScope(), countries });
 
   useEffect(() => {
+    let active = true;
+    setSettingsError('');
+    setSettingsLoading(Boolean(scope && confirmedSelection?.scope !== scope));
+    if (scope && confirmedSelection?.scope !== scope) {
+      regionalSettingsService.loadSelectedCountries()
+        .catch((error) => { if (active) setSettingsError(error.message || 'Country settings could not be loaded.'); })
+        .finally(() => { if (active) setSettingsLoading(false); });
+    }
     const handleUpdate = () => setSelectedCountries(regionalSettingsService.getSelectedCountries());
     const handleStorage = (e) => {
       if (e.key === null || e.key === 'billing_auth_user' || e.key === 'billing_auth_token') {
@@ -125,10 +158,11 @@ export function useRegionalSettings() {
     window.addEventListener(REGIONAL_SETTINGS_EVENT, handleUpdate);
     window.addEventListener('storage', handleStorage);
     return () => {
+      active = false;
       window.removeEventListener(REGIONAL_SETTINGS_EVENT, handleUpdate);
       window.removeEventListener('storage', handleStorage);
     };
-  }, []);
+  }, [scope]);
 
   const selectedCurrencies = Array.from(
     new Set(selectedCountries.map((c) => c.currency))
@@ -143,6 +177,16 @@ export function useRegionalSettings() {
 
   return {
     selectedCountries,
+    settingsLoading,
+    settingsError,
+    reloadSettings: () => {
+      confirmedSelection = null;
+      setSettingsError('');
+      setSettingsLoading(true);
+      return regionalSettingsService.loadSelectedCountries()
+        .catch((error) => { setSettingsError(error.message || 'Country settings could not be loaded.'); throw error; })
+        .finally(() => setSettingsLoading(false));
+    },
     availableCountries: COUNTRIES_LIST,
     selectedCurrencies,
     selectedPhoneCodes,

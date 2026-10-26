@@ -1,3 +1,4 @@
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, ConfigProvider, Empty, Modal, Spin, Tag } from 'antd';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -19,8 +20,8 @@ export function useNotificationFeedback() {
 }
 export function NotificationShell({ title, description, actions, children }) {
   return <ConfigProvider theme={theme}><main className="notification-page">
-    <nav className="notification-breadcrumb" aria-label="Breadcrumb"><Link to="/settings">Settings</Link><span>/</span><Link to="/settings/notifications">Notifications</Link></nav>
-    <header className="notification-heading"><div><span className="notification-eyebrow">Configuration & administration</span><h1>{title}</h1><p>{description}</p></div><div className="notification-actions">{actions}</div></header>
+    <nav className="notification-breadcrumb" aria-label="Breadcrumb"><span className="notification-breadcrumb-trail"><Link to="/settings">Settings</Link><span>/</span><Link to="/settings/notifications">Notifications</Link></span></nav>
+    <header className="notification-heading"><div><span className="notification-eyebrow">Configuration & administration</span><h1>{title}</h1><p>{description}</p></div><div className="notification-actions"><Link to="/settings"><Button icon={<ArrowLeftOutlined />}>Back to Settings</Button></Link>{actions}</div></header>
     {children}
   </main></ConfigProvider>;
 }
