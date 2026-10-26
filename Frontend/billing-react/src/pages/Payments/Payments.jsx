@@ -1,6 +1,6 @@
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
-import { Button, IconButton, InputAdornment, Pagination, MenuItem, Menu, ListItemIcon, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
+import { Button, IconButton, InputAdornment, MenuItem, Menu, ListItemIcon, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
 import { Add, Refresh, Search, VisibilityOutlined, UndoOutlined, ReceiptLongOutlined, LocalPrintshopOutlined, MoreVert } from '@mui/icons-material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { PaymentShell, PaymentState, PaymentStatus, usePaymentUser } from './Pay
 import { paymentService, PAYMENT_METHODS, PAYMENT_STATUSES, methodLabel, money, displayDate, paymentError } from './paymentService';
 import { PaymentReversal } from './PaymentReversal';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { buildPaymentListReport, buildPaymentReceiptReport, getPaymentReportRows, printPaymentDocument } from './paymentReports';
 
 const columns = [['paymentNumber','Payment Number / ID'],['paymentDate','Date'],['','Customer'],['','Invoice'],['method','Method'],['amount','Amount'],['status','Status'],['','Actions']];
@@ -106,10 +107,7 @@ export const Payments = () => {
       {loadError && !dateError && <TableRow><TableCell colSpan={columns.length}><PaymentState error={loadError} onRetry={() => { user.refetch(); query.refetch(); }} /></TableCell></TableRow>}
       {items.map(p => <TableRow key={p.id} hover><TableCell className="payment-number">{p.paymentNumber || p.id}</TableCell><TableCell>{displayDate(p.paymentDate)}</TableCell><TableCell>{p.customerName}</TableCell><TableCell>{p.invoiceDisplay}</TableCell><TableCell>{p.methodDisplay}</TableCell><TableCell className="payment-amount" align="left">{money(p.amount,p.currency)}</TableCell><TableCell align="left"><PaymentStatus status={p.status} /></TableCell><TableCell align="left"><PaymentRowActions payment={p} user={user} onReverse={setReverse} /></TableCell></TableRow>)}
       {!items.length && (dateError || !loadError) && <TableRow><TableCell colSpan={columns.length}><div className="payments-state">{dateError ? 'Choose a valid date range.' : query.isFetching ? 'Loading payments...' : <><ReceiptLongOutlined className="payment-empty-icon" /><strong>No payments found</strong><p>Recorded payments will appear here.</p></>}</div></TableCell></TableRow>}</TableBody></Table></TableContainer>
-      {query.data && <footer className="payment-pagination"><span>Showing {items.length ? (query.data.pageNumber - 1) * query.data.pageSize + 1 : 0}&ndash;{items.length ? (query.data.pageNumber - 1) * query.data.pageSize + items.length : 0} of {query.data.totalCount} payments{filters.currency ? ` ? ${filters.currency}` : ''}</span><div className="payment-pagination-controls">
-        <TextField select size="small" label="Rows per page" value={filters.pageSize} onChange={event => change({ pageSize: Number(event.target.value) })}>{[5,10,20,50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField>
-        <Pagination count={Math.max(1, Math.ceil(query.data.totalCount / query.data.pageSize))} page={filters.pageNumber} disabled={query.isFetching || dateError} onChange={(_, pageNumber) => setFilters(previous => ({ ...previous, pageNumber }))} shape="rounded" siblingCount={0} />
-      </div></footer>}
+      {query.data && <WorkspacePagination page={query.data.pageNumber} pageSize={query.data.pageSize} totalCount={query.data.totalCount} itemLabel="payments" disabled={query.isFetching || Boolean(dateError)} onPageChange={pageNumber => setFilters(previous => ({ ...previous, pageNumber }))} onPageSizeChange={pageSize => change({ pageSize })} />}
     </section><PaymentReversal open={Boolean(reverse)} onClose={() => setReverse(null)} paymentId={reverse?.id} />
   </PaymentShell>;
 };

@@ -38,7 +38,7 @@ export function customerQuery(params) {
   if (
     !Number.isInteger(params.page) ||
     params.page < 1 ||
-    ![10, 25, 50, 100].includes(params.pageSize)
+    ![5, 10, 20, 50].includes(params.pageSize)
   )
     throw new Error("Invalid customer page or page size.");
   if (params.status && !["active", "inactive"].includes(params.status))

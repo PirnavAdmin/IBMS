@@ -1,0 +1,36 @@
+.workspace-pagination {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 20px;
+  border-top: 1px solid #eee5dc;
+  background: #fffcf8;
+  color: #806b59;
+  box-sizing: border-box;
+}
+.workspace-pagination-range { font-size: 13px; }
+.workspace-pagination-controls { display: flex; align-items: center; justify-content: flex-end; gap: 22px; min-width: 0; }
+.workspace-pagination-size { width: 144px; }
+.workspace-pagination .MuiOutlinedInput-root { border-radius: 10px; background: #fbf8f3; }
+.workspace-pagination .MuiOutlinedInput-notchedOutline { border-color: #d9c7b3; }
+.workspace-pagination .MuiInputLabel-root { color: #897766; }
+.workspace-pagination .MuiSelect-select { padding: 10px 34px 10px 14px; }
+.workspace-pagination-menu { border: 1px solid #dfcbb6; border-radius: 9px !important; background: #fffdfb !important; box-shadow: 0 5px 14px rgba(62, 39, 25, 0.16) !important; }
+.workspace-pagination-menu .MuiMenuItem-root { min-height: 44px; color: #4a2927; }
+.workspace-pagination-menu .MuiMenuItem-root.Mui-selected { background: #f1e2cf; }
+.workspace-pagination-menu .MuiMenuItem-root.Mui-selected:hover { background: #ead7c0; }
+.workspace-pagination-menu .MuiMenuItem-root:hover { background: #f8f0e7; }
+.workspace-pagination .MuiPagination-ul { flex-wrap: nowrap; gap: 4px; }
+.workspace-pagination .MuiPaginationItem-root { min-width: 40px; height: 40px; border-radius: 12px; color: #9a918a; font-size: 13px; }
+.workspace-pagination .MuiPaginationItem-page.Mui-selected { background: #4a2927; color: #fff; }
+.workspace-pagination .MuiPaginationItem-page.Mui-selected:hover { background: #5b332f; }
+.workspace-pagination .MuiPaginationItem-previousNext { padding-inline: 12px; font-size: 13px; }
+.workspace-pagination .MuiPaginationItem-previousNext.Mui-disabled { color: #b7b0aa; }
+.workspace-pagination .MuiPaginationItem-ellipsis { color: #9a918a; }
+@media (max-width: 640px) {
+  .workspace-pagination { align-items: flex-start; flex-direction: column; gap: 12px; padding: 14px; }
+  .workspace-pagination-controls { width: 100%; justify-content: space-between; gap: 10px; }
+  .workspace-pagination .MuiPaginationItem-root { min-width: 34px; height: 36px; }
+}

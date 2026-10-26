@@ -213,6 +213,12 @@
   box-shadow: 0 2px 10px rgba(90, 37, 8, 0.04);
 }
 
+.invoice-page .bd-dashboard-error h2 {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
 /* --------------------------------------------------------------------------
    3. Executive KPI Summary Cards (Aligned with Dashboard StatCard Tones)
    -------------------------------------------------------------------------- */

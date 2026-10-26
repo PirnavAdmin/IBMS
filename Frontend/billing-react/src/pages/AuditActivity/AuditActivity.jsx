@@ -2,9 +2,10 @@ import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem,
-  Pagination, Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField} from '@mui/material';
+  Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField} from '@mui/material';
 import { HistoryOutlined, MoreVert, Refresh } from '@mui/icons-material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { getAuditActivity, getAuditFilterOptions } from './auditApi.js';
 import { auditEventLabel, auditDate, auditQuery, auditSnapshot, emptyAuditFilters, formatAuditChanges, searchAuditPage } from './auditModel.js';
@@ -64,9 +65,6 @@ export function AuditActivity() {
   const forbidden = error?.response?.status === 403;
   const unauthorized = error?.response?.status === 401;
   const filtered = Object.values(filters).some(Boolean);
-  const first = data?.totalCount ? (data.pageNumber - 1) * data.pageSize + 1 : 0;
-  const last = data ? Math.min(data.pageNumber * data.pageSize, data.totalCount) : 0;
-
   return <main className="audit-page">
     <section className="audit-card" aria-labelledby="audit-page-title">
       <header className="audit-heading">
@@ -85,7 +83,7 @@ export function AuditActivity() {
             ['action', 'Event name', 'actions', 'All events'],
             ['userName', 'Performed by', 'userNames', 'All actors'],
           ].map(([key, label, optionKey, allLabel]) => <TextField key={key} select size="small" label={label}
-            disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}
+           disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}
             helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : undefined} {...field(key)}>
             <MenuItem value="">{allLabel}</MenuItem>
             {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{key === 'action' ? auditEventLabel(draft[key]) : draft[key]}</MenuItem>}
@@ -113,10 +111,7 @@ export function AuditActivity() {
               <p>{searchQuery.trim() ? 'Try another header search or move to another page.' : filtered ? 'Adjust or clear the filters to see more activity.' : 'Recorded activity will appear here when available.'}</p></div></TableCell></TableRow>}
           </TableBody>
         </Table></TableContainer>
-        {data && <footer className="audit-pagination"><span role="status">Showing {first}–{last} of {data.totalCount.toLocaleString('en-IN')} records{searchQuery.trim() ? ` (${rows.length} matches on this page)` : ''}</span>
-          <TextField select size="small" label="Rows per page" value={pageSize} disabled={loading} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField>
-          <Pagination count={Math.max(1, data.totalPages)} page={page} disabled={loading} onChange={(_, value) => setPage(value)} shape="rounded" color="primary" aria-label="Audit activity pages" />
-        </footer>}
+        {data && <WorkspacePagination page={page} pageSize={pageSize} totalCount={data.totalCount} itemLabel="records" disabled={loading} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}
         {loading && <span className="sr-only" role="status">Loading audit activity…</span>}
       </>}
       </div>

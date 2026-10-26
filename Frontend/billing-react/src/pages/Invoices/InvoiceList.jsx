@@ -24,6 +24,7 @@ import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./
 import { downloadInvoiceCsv } from './services/invoiceExport';
 import { billingCurrencyGroups } from '../../utils/currencies';
 import { InvoiceActions } from "./components/InvoiceActions";
+import { WorkspacePagination } from "../../components/WorkspacePagination";
 import { InvoiceDateRangeFilter } from "./components/InvoiceDateRangeFilter";
 import {
   InvoiceShell,
@@ -603,51 +604,15 @@ export function InvoiceList() {
               : ""
           }
         />
-        {list.data && (
-          <footer className="invoice-pagination">
-            <span>
-              {list.data.totalCount} invoices / Page {list.data.pageNumber} of{" "}
-              {Math.max(1, list.data.totalPages)}
-            </span>
-            <TextField
-              select
-              label="Rows"
-              size="small"
-              value={filters.pageSize}
-              onChange={(event) =>
-                change("pageSize", Number(event.target.value))
-              }
-            >
-              {[10, 20, 50].map((size) => (
-                <MenuItem key={size} value={size}>
-                  {size}
-                </MenuItem>
-              ))}
-            </TextField>
-            <Button
-              disabled={filters.page <= 1 || list.isFetching}
-              onClick={() =>
-                setFilters((previous) => ({
-                  ...previous,
-                  page: previous.page - 1,
-                }))
-              }
-            >
-              Previous
-            </Button>
-            <Button
-              disabled={!list.data.hasNextPage || list.isFetching}
-              onClick={() =>
-                setFilters((previous) => ({
-                  ...previous,
-                  page: previous.page + 1,
-                }))
-              }
-            >
-              Next
-            </Button>
-          </footer>
-        )}
+        {list.data && <WorkspacePagination
+          page={list.data.pageNumber}
+          pageSize={list.data.pageSize}
+          totalCount={list.data.totalCount}
+          itemLabel="invoices"
+          disabled={list.isFetching}
+          onPageChange={(page) => change("page", page)}
+          onPageSizeChange={(pageSize) => change("pageSize", pageSize)}
+        />}
       </section>
       <p className="invoice-footnote">
         CSV export uses the current filters and sorting, with a server limit of 10,000 invoices.

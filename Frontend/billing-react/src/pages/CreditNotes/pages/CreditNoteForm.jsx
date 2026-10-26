@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField } from '@mui/material';
+import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { ArrowBack, ArrowForward, Check, DescriptionOutlined, ReceiptLongOutlined, SavingsOutlined } from '@mui/icons-material';
 import { creditNoteService } from '../services/creditNoteService';
 import { calculateCredit, creditLineAmounts, eligibleCredit, money, reconcileFullCredit } from '../utils/creditNoteCalculations';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import '../styles/credit-notes.css';
 import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 
@@ -177,7 +178,7 @@ export function CreditNoteForm() {
               {Number(selectedInvoice.previousCredits) > 0 && <div className="cn-previous-credit-warning"><strong>Previous issued credits: {money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong><span>This amount is already reflected in invoice eligibility. Available additional credit: {money(eligibleAmount, selectedInvoice.currency)}.</span></div>}
               <div className="cn-eligibility-summary"><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'invoiceTotal' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'invoiceTotal'} onClick={() => setActiveEligibilityCard((current) => current === 'invoiceTotal' ? '' : 'invoiceTotal')}><small>Original invoice total</small><strong>{money(selectedInvoice.total, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'payments' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'payments'} onClick={() => setActiveEligibilityCard((current) => current === 'payments' ? '' : 'payments')}><small>Payments received</small><strong>{money(selectedInvoice.paid, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'previousCredits' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'previousCredits'} onClick={() => setActiveEligibilityCard((current) => current === 'previousCredits' ? '' : 'previousCredits')}><small>Previous issued credits</small><strong>{money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice ${activeEligibilityCard === 'currentDue' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'currentDue'} onClick={() => setActiveEligibilityCard((current) => current === 'currentDue' ? '' : 'currentDue')}><small>Current amount due</small><strong>{money(selectedInvoice.currentDue, selectedInvoice.currency)}</strong></button><button type="button" className={`cn-eligibility-choice cn-eligibility-highlight ${activeEligibilityCard === 'remainingCredit' ? 'selected' : ''}`} aria-pressed={activeEligibilityCard === 'remainingCredit'} onClick={() => setActiveEligibilityCard((current) => current === 'remainingCredit' ? '' : 'remainingCredit')}><small>Remaining creditable</small><strong>{money(eligibleAmount, selectedInvoice.currency)}</strong></button></div>
             </>}
-            {invoices.length > 0 && <TablePagination component="div" className="cn-inline-pagination" count={invoices.length} page={invoicePage} onPageChange={(_, value) => setInvoicePage(value)} rowsPerPage={invoicePageSize} onRowsPerPageChange={(event) => { setInvoicePageSize(Number(event.target.value)); setInvoicePage(0); }} rowsPerPageOptions={[5, 10, 25]} labelRowsPerPage="Invoices per page" />}
+            {invoices.length > 0 && <WorkspacePagination page={invoicePage + 1} pageSize={invoicePageSize} totalCount={invoices.length} itemLabel="invoices" onPageChange={(value) => setInvoicePage(value - 1)} onPageSizeChange={(value) => { setInvoicePageSize(value); setInvoicePage(0); }} />}
           </div>}
 
           {step === 1 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Choose credit scope &amp; items</h2><p>Set credit quantities within the remaining invoice quantities.</p></div></div>

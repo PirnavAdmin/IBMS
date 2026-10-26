@@ -5,6 +5,7 @@ import { Alert, Autocomplete, Button, IconButton, LinearProgress, Menu, MenuItem
 import { MoreVert, Refresh, RestartAlt } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { integrationAccess } from '../Integrations/integrationService';
 import { webhookService } from './webhookService';
 import { DELIVERY_STATUSES, deliveryError, deliveryService } from './deliveryService';
@@ -22,7 +23,7 @@ export function DeliveryHistory() {
   const mounted = useRef(false), locked = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => { const timer = setTimeout(() => setWebhookTerm(webhookSearch.trim()), 300); return () => clearTimeout(timer); }, [webhookSearch]);
-  const filters = { webhookId: params.get('webhookId') || '', eventType: params.get('eventType') || '', status: params.get('status') || '', startDate: params.get('startDate') || '', endDate: params.get('endDate') || '', pageNumber: positive(params.get('pageNumber')) ? Number(params.get('pageNumber')) : 1, pageSize: [10, 20, 50].includes(Number(params.get('pageSize'))) ? Number(params.get('pageSize')) : 20 };
+  const filters = { webhookId: params.get('webhookId') || '', eventType: params.get('eventType') || '', status: params.get('status') || '', startDate: params.get('startDate') || '', endDate: params.get('endDate') || '', pageNumber: positive(params.get('pageNumber')) ? Number(params.get('pageNumber')) : 1, pageSize: [5, 10, 20, 50].includes(Number(params.get('pageSize'))) ? Number(params.get('pageSize')) : 10 };
   const invalidFilters = (filters.webhookId && !positive(filters.webhookId)) || (filters.status && !DELIVERY_STATUSES.includes(filters.status)) || !validDate(filters.startDate) || !validDate(filters.endDate);
   const invalidDates = filters.startDate && filters.endDate && filters.startDate > filters.endDate;
   const setFilter = (key, value) => setParams(previous => { const next = new URLSearchParams(previous); if (value === '' || value == null) next.delete(key); else next.set(key, String(value)); if (key !== 'pageNumber') next.delete('pageNumber'); return next; });
@@ -110,7 +111,7 @@ export function DeliveryHistory() {
             <tbody>{page.items.map(row => <tr key={row.id}><td><Tooltip title={row.eventId}><code className="delivery-truncated">{row.eventId}</code></Tooltip></td><td><Tooltip title={row.eventType}><span className="delivery-truncated">{row.eventType}</span></Tooltip></td><td><Tooltip title={row.webhookName}><span className="delivery-truncated">{row.webhookName || `Webhook #${row.webhookId}`}</span></Tooltip></td><td><DeliveryBadge status={row.status} /></td><td>{dlq ? <Tooltip title={row.failureReason}><span className="delivery-truncated">{row.failureReason || 'Not provided'}</span></Tooltip> : row.responseStatusCode ?? 'Not provided'}</td><td>{row.attemptNumber}</td>{!dlq && <td><DeliveryTime value={row.deliveredAtUtc} /></td>}<td><DeliveryTime value={row.nextRetryUtc} /></td><td><IconButton aria-label={`Actions for delivery ${row.id}`} aria-haspopup="menu" aria-expanded={menu?.delivery.id === row.id} disabled={busy} onClick={event => setMenu({ anchor: event.currentTarget, delivery: row })}><MoreVert /></IconButton></td></tr>)}</tbody>
           </table>
         </div> : enabled && !waiting && !list.isError && <div className="integration-state integration-empty"><h2>{dlq ? 'No dead-letter deliveries found' : 'No deliveries found'}</h2><p>Try changing your filters or refresh to check for new records.</p></div>}
-        {enabled && page && !list.isError && <footer className="integrations-pagination"><TextField select size="small" label="Rows per page" value={filters.pageSize} onChange={event => setFilter('pageSize', event.target.value)}>{[10, 20, 50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField><span>{page.totalCount} deliveries · Page {page.pageNumber} of {Math.max(1, page.totalPages)}</span><div><Button disabled={waiting || page.pageNumber <= 1} onClick={() => setFilter('pageNumber', page.pageNumber - 1)}>Previous</Button><Button disabled={waiting || page.pageNumber >= page.totalPages} onClick={() => setFilter('pageNumber', page.pageNumber + 1)}>Next</Button></div></footer>}
+        {enabled && page && !list.isError && <WorkspacePagination page={page.pageNumber} pageSize={filters.pageSize} totalCount={page.totalCount} itemLabel="deliveries" disabled={waiting} onPageChange={pageNumber => setFilter('pageNumber', pageNumber)} onPageSizeChange={pageSize => setFilter('pageSize', pageSize)} />}
       </section>
     </>}
     <Menu anchorEl={menu?.anchor} open={Boolean(menu)} onClose={() => setMenu(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} marginThreshold={8} PaperProps={{ className: 'integration-actions-menu' }}>

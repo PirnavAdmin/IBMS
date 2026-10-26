@@ -8,6 +8,7 @@ import {
 import { Add, ContentCopyOutlined, IntegrationInstructionsOutlined, MoreVert, Refresh, Search } from '@mui/icons-material';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { ApplicationEditor, FeatureFlagsDialog, SecretDialog } from './IntegrationDialogs';
 import { integrationAccess, integrationError, integrationService } from './integrationService';
@@ -164,14 +165,7 @@ export function Integrations() {
                   <td data-label="Actions"><Tooltip title="Application actions"><IconButton aria-label={`Actions for ${app.name}`} aria-haspopup="menu" aria-expanded={menu?.application.id === app.id} aria-controls={menu?.application.id === app.id ? 'integration-actions-list' : undefined} onClick={event => setMenu({ anchor: event.currentTarget, application: app })}><MoreVert /></IconButton></Tooltip></td>
                 </tr>)}</tbody>
               </table></div> : !waiting && <div className="integration-state integration-empty"><IntegrationInstructionsOutlined /><h2>No applications found</h2><p>{filters.status || filters.searchTerm ? 'Try changing your search or status filter.' : 'Register an application to get started.'}</p></div>}
-            {page && !list.isError && <footer className="integrations-pagination">
-              <TextField select size="small" label="Rows per page" value={filters.pageSize} onChange={event => setFilters(previous => ({ ...previous, pageSize: Number(event.target.value), pageNumber: 1 }))}>
-                {[10, 20, 50].map(size => <MenuItem key={size} value={size}>{size}</MenuItem>)}
-              </TextField>
-              <span>Page {page.pageNumber} of {Math.max(1, page.totalPages)}</span>
-              <div><Button disabled={waiting || page.pageNumber <= 1} onClick={() => setFilters(previous => ({ ...previous, pageNumber: previous.pageNumber - 1 }))}>Previous</Button>
-                <Button disabled={waiting || page.pageNumber >= page.totalPages} onClick={() => setFilters(previous => ({ ...previous, pageNumber: previous.pageNumber + 1 }))}>Next</Button></div>
-            </footer>}
+            {page && !list.isError && <WorkspacePagination page={page.pageNumber} pageSize={filters.pageSize} totalCount={page.totalCount} itemLabel="applications" disabled={waiting} onPageChange={pageNumber => setFilters(previous => ({ ...previous, pageNumber }))} onPageSizeChange={pageSize => setFilters(previous => ({ ...previous, pageSize, pageNumber: 1 }))} />}
           </section>}
     <Menu
       anchorEl={menu?.anchor}
