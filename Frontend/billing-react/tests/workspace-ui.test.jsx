@@ -981,3 +981,24 @@ test('Customer email avoids unnecessary tooltips when the full address fits', as
     assert.equal(link.getAttribute('href'), 'mailto:short@example.com');
   } finally { await ui.close(); }
 });
+
+test('Customer edit keeps PAN-only and explicit unregistered records non-GST while retaining real GST', async () => {
+  const {parseCustomerResponse} = await import('billing-contracts');
+  const raw = {id:44,customerCode:'CUST-044',name:'QA Tax Customer',customerType:'Business',currency:'INR',email:'qa@example.com',phone:'+91 9876543210',taxId:'ABCDE1234F'};
+  const cases = [
+    {values:parseCustomerResponse(raw),gst:false},
+    {values:{...parseCustomerResponse(raw),gstin:'ABCDE1234F'},gst:false},
+    {values:parseCustomerResponse({...raw,taxId:'36ABCDE1234F1Z8',taxRegistrationType:'non-gst'}),gst:false},
+    {values:parseCustomerResponse({...raw,taxId:'36ABCDE1234F1Z8'}),gst:true},
+  ];
+  for (const {values,gst} of cases) {
+    const ui = await mount(<CustomerForm mode="edit" initialValues={values} />);
+    try {
+      for(let step=0;step<2;step++){await click(ui.host.querySelector('[data-customer-action="next"]'));await settle();}
+      assert.match(ui.host.querySelector('#customer-tax-type').textContent,gst?/GST Registered/:/Non-GST \/ Unregistered/);
+      assert.equal(ui.host.querySelector('#customer-gstin').value,gst?'36ABCDE1234F1Z8':'');
+      assert.equal(ui.host.querySelector('#customer-gstin').disabled,!gst);
+      assert.equal(ui.host.querySelector('#customer-pan').value,'ABCDE1234F');
+    } finally {await ui.close();}
+  }
+});

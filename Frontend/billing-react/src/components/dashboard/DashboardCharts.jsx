@@ -50,7 +50,7 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
         <AmountRing label="Invoiced" value={invoiced} currency={currency} tone="invoiced" percentage={cohort?.invoicedPercent} description="Total value of issued invoices in the selected date range. Drafts, cancelled and voided invoices are excluded." />
         <AmountRing label="Collected" value={collected} currency={currency} tone="collected" percentage={cohort?.collectedPercent} description={cohort ? `${cohort.collectedPercent.toFixed(1)}% collected against these same issued invoices, based on their paid balances.` : 'Completed payments by payment date. These may relate to invoices issued outside this range.'} />
       </div>
-      <p className="premium-chart-caption">Rings compare paid balances on the same invoices. Monthly bars show completed payments by payment date.</p>
+
       <div className="premium-monthly-trend" aria-label="Recent monthly revenue">
         <div className="premium-trend-heading"><span>Monthly activity</span><small><i />Invoiced <i />Collected</small></div>
         <div className="premium-month-bars">{trend.map(row => <Tooltip key={row.label} {...chartTooltipProps} title={<>{row.label}<br />Invoiced: {money(row.invoiced, currency)}<br />Collected by payment date: {money(row.collected, currency)}</>}><div className="premium-month-column" tabIndex={0} aria-label={`${row.label}: invoiced ${money(row.invoiced, currency)}, collected by payment date ${money(row.collected, currency)}`}><div className="premium-month-bar-pair"><i style={{ height: `${Math.max(0, row.invoiced) / maximum * 100}%` }} /><i style={{ height: `${Math.max(0, row.collected) / maximum * 100}%` }} /></div><small>{row.label}</small></div></Tooltip>)}</div>

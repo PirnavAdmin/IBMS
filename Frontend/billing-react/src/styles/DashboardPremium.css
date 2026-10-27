@@ -309,3 +309,6 @@
 .premium-filters .premium-currency-control select { appearance: none; padding-right: 34px; font-size: 13px; font-weight: 500; }
 .premium-currency-control > svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .premium-currency-control select:disabled { cursor: not-allowed; opacity: .65; }
+
+/* Keep the graph cards and their disclosure footers aligned as content varies. */
+.premium-analytics > .premium-panel > :is(.premium-chart-data, .premium-outstanding-details) { margin-top: auto; }

@@ -48,6 +48,11 @@ export const createCustomerRequest = (data = {}) => {
     },
   ];
 
+  const unregistered = ['non-gst', 'unregistered'].includes(String(data.taxRegistrationType ?? data.taxRegistration ?? '').trim().toLowerCase());
+  const selectedTaxId = unregistered
+    ? data.pan || (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(data.taxId || '') ? data.taxId : null)
+    : data.taxId || data.gstin || data.pan;
+
   let formattedWebsite = data.website?.trim() || null;
   if (formattedWebsite && !/^https?:\/\//i.test(formattedWebsite)) {
     formattedWebsite = `https://${formattedWebsite}`;
@@ -59,7 +64,7 @@ export const createCustomerRequest = (data = {}) => {
     email: data.email?.trim() || '',
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
-    taxId: (data.taxId || data.gstin || data.pan)?.trim() || null,
+    taxId: selectedTaxId?.trim() || null,
     currency: (data.currency?.trim() || data.Currency?.trim() || '').toUpperCase() || null,
     notes: data.notes?.trim() || null,
     website: formattedWebsite,
@@ -230,7 +235,7 @@ export const parseCustomerResponse = (response) => {
       billingAddress.postalCode === shippingAddress.postalCode &&
       billingAddress.country === shippingAddress.country);
 
-  const taxId = raw.taxId ?? raw.TaxId ?? '';
+  const taxId = String(raw.taxId ?? raw.TaxId ?? '').trim();
   const rawStatus = raw.status ?? raw.Status;
   let isActive = true;
   if (typeof raw.isActive === 'boolean') {
@@ -297,7 +302,9 @@ export const parseCustomerResponse = (response) => {
     openingBalance,
     OpeningBalance: openingBalance,
     taxId,
-    gstin: taxId,
+    // taxId can be PAN or GSTIN; PAN must never populate the GST field.
+    gstin: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(taxId) ? taxId : '',
+    taxRegistrationType: raw.taxRegistrationType ?? raw.TaxRegistrationType ?? raw.taxRegistration ?? raw.TaxRegistration,
     pan: (/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(taxId) ? taxId.substring(2, 12) : (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(taxId) ? taxId : '')),
     currency,
     Currency: currency,

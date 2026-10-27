@@ -142,12 +142,14 @@ export const CustomerForm = ({
       taxType = 'gst';
     } else if (providedTaxType) {
       taxType = providedTaxType;
-    } else if (isGst || values?.gstin) {
+    } else if (isGst || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(String(values?.gstin || '').trim())) {
       taxType = 'gst';
     } else if (isPan || values?.pan) {
       // The customer API stores PAN/GSTIN in one taxId field and does not
       // persist a separate registration flag. A PAN-only tax ID is therefore
       // the durable signal for Non-GST / Unregistered customers on edit.
+      taxType = 'non-gst';
+    } else if (!rawTax && values?.id) {
       taxType = 'non-gst';
     }
 
@@ -160,7 +162,7 @@ export const CustomerForm = ({
       }
     }
 
-    const initialGstin = values?.gstin || (isGst ? rawTax : '');
+    const initialGstin = taxType === 'gst' ? values?.gstin || (isGst ? rawTax : '') : '';
 
     const rawStatus = values?.status ?? values?.Status;
     let initialStatus = 'Active';
