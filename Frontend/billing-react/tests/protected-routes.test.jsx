@@ -75,10 +75,12 @@ test('network failure blocks content without losing the token and supports retry
   try {
     assert.match(view.host.textContent, /Unable to load/); assert.equal(view.mounts, 0);
     assert.match(view.host.textContent, /Unable to reach the server/);
+    assert.ok(view.host.querySelector('[data-connection-state=server] svg'));
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     failed = false;
     await act(async () => Simulate.click(view.host.querySelector('button')));
     assert.match(view.host.textContent, /Private billing data/); assert.equal(view.calls.length, 2);
+    assert.equal(view.host.querySelector('.connection-state-icon'), null);
   } finally { await view.close(); }
 });
 
@@ -89,6 +91,7 @@ test('an offline browser gets a network message while retaining its session for 
   try {
     view = await mount(() => Promise.reject({ code: 'ERR_NETWORK', message: 'Network Error' }), 'valid-token');
     assert.match(view.host.textContent, /No internet connection/);
+    assert.ok(view.host.querySelector('[data-connection-state=offline] svg'));
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     assert.equal(view.mounts, 0);
   } finally {
@@ -101,6 +104,7 @@ for (const status of [500, 502, 503, 504]) test(`server ${status} shows server u
   const view = await mount(() => Promise.reject({ response: { status } }), 'valid-token');
   try {
     assert.match(view.host.textContent, /Server is currently unavailable/);
+    assert.ok(view.host.querySelector('[data-connection-state=server] svg'));
     assert.doesNotMatch(view.host.textContent, /check your connection/i);
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     assert.equal(view.mounts, 0);
@@ -117,6 +121,7 @@ test('offline tunnel HTML is a server failure even when the gateway returns 404'
   const view = await mount(() => Promise.reject({ response: { status: 404, data: '<html>ERR_NGROK_3200: tunnel offline</html>' } }), 'valid-token');
   try {
     assert.match(view.host.textContent, /Server is currently unavailable/);
+    assert.ok(view.host.querySelector('[data-connection-state=server] svg'));
     assert.equal(localStorage.getItem('billing_auth_token'), 'valid-token');
     assert.equal(view.mounts, 0);
   } finally { await view.close(); }

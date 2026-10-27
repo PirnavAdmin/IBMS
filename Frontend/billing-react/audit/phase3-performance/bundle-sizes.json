@@ -1,0 +1,50 @@
+[
+  {
+    "file": "html2canvas-cuC0PbNg.js",
+    "bytes": 464,
+    "gzip_bytes": 339,
+    "sha256": "f3332fca68792d9515203927617bfc5d50ffec72ac4550c2efc6380f91cc6bcf",
+    "modified": 1793095376.5204723,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  },
+  {
+    "file": "index-BoFRVS2H.css",
+    "bytes": 608515,
+    "gzip_bytes": 105994,
+    "sha256": "7f09184a723ae0a4ea1a1e43fa9ad81a392aea3baca8605635c69b9fa0ee983c",
+    "modified": 1793095376.5224783,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  },
+  {
+    "file": "index-Bw4jWLpT.js",
+    "bytes": 3601221,
+    "gzip_bytes": 1066207,
+    "sha256": "e3c05b31e4f3d2218aabd278b948f28ac95bccdcaa638f294f56ff64f77699c9",
+    "modified": 1793095376.5364468,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  },
+  {
+    "file": "index.es-Bo4CNV7W.js",
+    "bytes": 150415,
+    "gzip_bytes": 51275,
+    "sha256": "3b5cac0e68c1e9798f7a3e6725e54de35eb8a985724d25efb4677018607153ef",
+    "modified": 1793095376.5204723,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  },
+  {
+    "file": "login_office_bg-C9Yr8Sbv.jpg",
+    "bytes": 710310,
+    "gzip_bytes": 707583,
+    "sha256": "b38154a2cc5df7c2e25b895f574bcdad56d0d020ca066d79d3d6c55cb8974790",
+    "modified": 1793095376.5224783,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  },
+  {
+    "file": "purify.es-BYftNTi7.js",
+    "bytes": 29398,
+    "gzip_bytes": 11278,
+    "sha256": "9f24eccccf33948bbfdda22ccb0db7d9bafa21375319b34be8a0fd908402c5f7",
+    "modified": 1793095376.5204723,
+    "gzip_method": "local gzip level 6; not observed HTTP transfer"
+  }
+]

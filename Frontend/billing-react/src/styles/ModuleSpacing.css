@@ -22,6 +22,7 @@
     .numbering-page-root,
     .settings-page,
     .module-placeholder,
+    .integrations-page,
     .background-jobs-page
   ),
   .app-layout > .app-layout-main > .app-layout-content > :is(.bd-shell, .tax-module) > main,
@@ -65,6 +66,7 @@
     .numbering-page-root,
     .settings-page,
     .module-placeholder,
+    .integrations-page,
     .background-jobs-page
   ),
   .app-layout > .app-layout-main > .app-layout-content > fieldset > main.quotation-page {

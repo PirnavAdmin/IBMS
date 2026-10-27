@@ -646,7 +646,7 @@ test('Valid registration submits the existing payload once and waits for actual 
     assert.deepEqual(calls, [{ name: 'Reddy Sumanth', email: 'admin@example.com', password: 'Password@123', confirmPassword: 'Password@123' }]);
     assert.equal(button(ui.host, 'Create Account'), undefined); assert.ok(ui.host.querySelector('.billing-auth-submit-btn').disabled);
     assert.doesNotMatch(ui.host.textContent, /Account registered!/);
-    await act(async () => resolve({ success: true })); await settle(); assert.match(ui.host.textContent, /Account registered!/);
+    await act(async () => resolve({ success: true })); await settle(); assert.match(document.body.textContent, /Account registered!/);
   } finally { await ui.close(); authApi.register = original; }
 });
 

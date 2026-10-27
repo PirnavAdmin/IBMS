@@ -766,8 +766,8 @@ test("Issue confirmation prevents duplicate submit and shows backend-assigned nu
           }),
         );
         await flush();
-        assert.match(mounted.host.textContent, /BACKEND-0042/);
-        assert.match(mounted.host.textContent, /Issued/);
+        assert.match(document.body.textContent, /BACKEND-0042/);
+        assert.match(document.body.textContent, /issued successfully/);
       } finally {
         await mounted.close();
       }

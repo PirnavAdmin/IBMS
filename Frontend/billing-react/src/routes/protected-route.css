@@ -6,3 +6,21 @@
 .protected-route-loading .ant-spin { color: var(--primary, #674730); }
 .protected-route-state button { margin-top: 20px; padding: 10px 20px; border: 0; border-radius: 8px; background: var(--primary); color: #fff; font: inherit; cursor: pointer; }
 .protected-route-state button:focus-visible { outline: 2px solid var(--secondary); outline-offset: 3px; }
+
+.protected-route-state .connection-state-icon {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  border-radius: 28px;
+  color: var(--primary, #674730);
+  background: var(--bg-main, #f7f0e6);
+  border: 1px solid var(--border, #eadccc);
+}
+.protected-route-state .connection-state-icon svg { width: 76px; height: 76px; }
+.protected-route-state h1 { margin-top: 0; }
+@media (max-width: 480px) {
+  .protected-route-state .connection-state-icon { width: 80px; height: 80px; border-radius: 24px; }
+  .protected-route-state .connection-state-icon svg { width: 64px; height: 64px; }
+}

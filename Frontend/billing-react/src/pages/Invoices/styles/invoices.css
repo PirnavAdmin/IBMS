@@ -2555,6 +2555,16 @@
 }
 
 @media (max-width: 900px) {
+  /* U01: financial labels and values must remain readable in detail cards. */
+  .invoice-detail-kpis .invoice-summary-card :is(span, strong, small) {
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+
+  .invoice-summary-grid.invoice-detail-kpis,
   .invoice-summary-grid,
   .invoice-summary-group > .invoice-summary-grid,
   .invoice-detail-kpis {
@@ -2592,6 +2602,7 @@
     padding: 18px 16px 28px;
   }
 
+  .invoice-summary-grid.invoice-detail-kpis,
   .invoice-summary-grid,
   .invoice-summary-group > .invoice-summary-grid,
   .invoice-detail-kpis,

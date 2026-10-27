@@ -1,5 +1,7 @@
 import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
 import { useEffect, useRef, useState } from 'react';
+import { displayDate } from '../../../utils/localDate';
+import { formatQuotationTimestamp } from '../utils/quotationDates';
 import { apiClient } from 'billing-api-client/apiClient.js';
 import { currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
@@ -35,14 +37,8 @@ const makeAddress = value => typeof value === 'string'
   ? value
   : Object.values(value || {}).filter(part => typeof part === 'string' && part.trim()).join(', ');
 
-function formatCommunicationDate(value) {
-  const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return 'Date unavailable';
-  return date.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  });
-}
+const formatCommunicationDate = value => formatQuotationTimestamp(value);
+
 const amount = value => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
 const exportWidthPx = Math.round((196 / 25.4) * 96);
 const createBarcodePattern = value => `101${Array.from(String(value || 'QUOTATION'), character => character.charCodeAt(0).toString(2).padStart(8, '0')).join('0')}101`;
@@ -135,16 +131,7 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
     for (const [label, amount] of entries) groups.set(label, (groups.get(label) || 0) + amount);
     return groups;
   }, new Map());
-  const formatDate = value => {
-    if (!value) return '';
-    const date = new Date(String(value).slice(0, 10) + 'T00:00:00');
-    return Number.isNaN(date.getTime()) ? String(value) : [
-      String(date.getDate()).padStart(2, '0'),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      date.getFullYear(),
-    ].join('-');
-  };
-  const quotationDate = formatDate(quotation.quotationDate);
+  const quotationDate = displayDate(quotation.quotationDate);
   const invoiceTerms = [
     'Goods once sold are subject to store policy.',
     'Please check quantity and products before leaving the store.',
@@ -329,7 +316,7 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
     {tab === 'Details' && <section className="quote-card quote-details-combined">
       <div className="quote-details-content"><h2>Quotation details</h2><dl className="quote-detail-list">
         <div><dt>Quote number</dt><dd>{quotation.quoteNumber}</dd></div><div><dt>Customer</dt><dd>{quotation.customer.name} ({quotation.customer.code})</dd></div>
-        <div><dt>Quote date</dt><dd>{quotation.quotationDate}</dd></div><div><dt>Valid until</dt><dd>{quotation.validUntil}</dd></div>
+        <div><dt>Quote date</dt><dd>{displayDate(quotation.quotationDate)}</dd></div><div><dt>Valid until</dt><dd>{displayDate(quotation.validUntil)}</dd></div>
         <div><dt>Reference</dt><dd>{quotation.reference || '—'}</dd></div><div><dt>Status</dt><dd><QuotationStatusBadge status={quotation.status} /></dd></div>
         {quotation.status === 'Converted' && quotation.convertedInvoiceId != null && <div><dt>Invoice reference</dt><dd>{quotation.convertedInvoiceId}</dd></div>}
       </dl><h3>Notes</h3><p>{quotation.notes || '—'}</p><h3>Terms & Conditions</h3><p>{quotation.termsAndConditions || '—'}</p></div>

@@ -1,0 +1,1204 @@
+[
+  {
+    "rows": [
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 256,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 256,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 256,
+            "wrap": "normal"
+          }
+        ],
+        "width": 281.6000061035156
+      }
+    ],
+    "thead": "none",
+    "width": 390
+  },
+  {
+    "rows": [
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      },
+      {
+        "cells": [
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Customer code",
+            "label": "Code",
+            "pseudo": "\"Code\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Customer",
+            "label": "Customer",
+            "pseudo": "\"Customer\"",
+            "scroll": 634,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Type",
+            "label": "Type",
+            "pseudo": "\"Type\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Tax ID / GSTIN",
+            "label": "Tax ID",
+            "pseudo": "\"Tax ID\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Contact",
+            "label": "Contact",
+            "pseudo": "\"Contact\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Outstanding",
+            "label": "Outstanding",
+            "pseudo": "\"Outstanding\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 307,
+            "display": "block",
+            "header": "Status",
+            "label": "Status",
+            "pseudo": "\"Status\"",
+            "scroll": 307,
+            "wrap": "normal"
+          },
+          {
+            "align": "left",
+            "client": 634,
+            "display": "block",
+            "header": "Actions",
+            "label": "Actions",
+            "pseudo": "\"Actions\"",
+            "scroll": 634,
+            "wrap": "normal"
+          }
+        ],
+        "width": 659.2000122070312
+      }
+    ],
+    "thead": "none",
+    "width": 768
+  }
+]

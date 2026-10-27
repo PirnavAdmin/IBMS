@@ -729,3 +729,9 @@
 @media (max-width: 600px) {
   .payment-entry-form .payment-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* U07: beat the shared container grid without changing other summary cards. */
+@media screen and (max-width: 600px) {
+  .payments-page .payment-summary-card .payment-summary-totals { grid-template-columns: minmax(0, 1fr); }
+  .payments-page .payment-summary-totals dd { white-space: nowrap; overflow-wrap: normal; }
+}

@@ -1,9 +1,10 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { displayDateTime as formatDateTime } from '../../utils/localDate';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, Snackbar, TextField} from '@mui/material';
+import { Alert, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, TextField} from '@mui/material';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 
 import { Add, ArrowBack, EditOutlined, ImageOutlined, MoreVert, StarOutline, ToggleOff, ToggleOn, VisibilityOutlined } from '@mui/icons-material';
@@ -80,11 +81,7 @@ function TemplateCreationSteps({ step }) {
 }
 
 function TemplateSuccessNotice({ message, onClose }) {
-  return <Snackbar key={message} open={Boolean(message)} autoHideDuration={5000}
-    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-    onClose={(_, reason) => { if (reason !== 'clickaway') onClose(); }}>
-    <Alert severity="success" onClose={onClose}>{message}</Alert>
-  </Snackbar>;
+  return <FeedbackSnackbar message={message} onClose={onClose} />;
 }
 
 function TemplatePage({ title, description, children, notice, actions, hideNavigation = false }) {
@@ -211,7 +208,7 @@ export function InvoiceTemplates() {
         <TextField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField>
       </div>
 
-      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap ibms-table-frame">
+      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap ibms-table-frame" role="region" aria-label="Scrollable invoice templates" tabIndex={0}>
         <table className="template-table">
           <caption className="sr-only">Invoice templates with version and status</caption>
           <thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead>
@@ -362,6 +359,7 @@ function EditorScreen({ mode }) {
   const [loadError, setLoadError] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [saveNotice, setSaveNotice] = useState('');
   const [editDraft, setEditDraft] = useState(() => location.state?.creationFlow === true);
   const hasFlowConfig = Boolean(location.state?.config);
   const update = (key, value) => setConfig((current) => ({ ...current, [key]: value }));
@@ -389,6 +387,7 @@ function EditorScreen({ mode }) {
       const result = edit ? await templateApi.update(templateId, requestFromConfig(config, { changeDescription: 'Updated from invoice template editor' })) : await templateApi.create(requestFromConfig(config));
       draft.clear();
       setSaved(true);
+      setSaveNotice('Template updated successfully.');
       if (!edit) navigate('/templates-branding/branding', { state: { config, templateId: result?.id || result?.Id } });
     } catch (error) { setApiError(asError(error)); }
     finally { setSaving(false); }
@@ -396,7 +395,7 @@ function EditorScreen({ mode }) {
 
   const guidedFlow = !edit || editDraft;
   return <TemplatePage title={edit ? 'Edit template' : 'Create template'} description={edit ? `Template ${templateId} configuration` : 'Complete template details, then continue to branding settings.'} actions={<Button component={Link} to="/templates-branding" startIcon={<ArrowBack />}>Back to list</Button>} hideNavigation={guidedFlow}>
-    {apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}{saved && <Alert severity="success">Template updated successfully.</Alert>}{loading && <div className="template-empty"><CircularProgress size={24} />Loading template…</div>}
+    {apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}<FeedbackSnackbar message={saveNotice} onClose={() => setSaveNotice('')} />{loading && <div className="template-empty"><CircularProgress size={24} />Loading template…</div>}
     {loadError ? <DashboardErrorState title="Unable to load template" message={loadError} onRetry={() => setLoadAttempt(attempt => attempt + 1)} /> : <form className="template-form-card" onSubmit={(event) => { event.preventDefault(); validate(); }} noValidate>
       {guidedFlow && <TemplateCreationSteps step={1} />}
       <div className="template-section-title"><div><h2>{guidedFlow ? 'Step 1 – Template Details' : 'Edit configuration'}</h2></div><Chip label={saved ? 'Saved' : 'Unsaved'} size="small" /></div>

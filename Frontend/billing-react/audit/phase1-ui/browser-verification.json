@@ -1,0 +1,350 @@
+[
+  {
+    "id": "U01",
+    "width": 390,
+    "height": 844,
+    "route": "/invoices/5",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoice-390.png"
+  },
+  {
+    "id": "U01",
+    "width": 768,
+    "height": 900,
+    "route": "/invoices/5",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoice-768.png"
+  },
+  {
+    "id": "U01",
+    "width": 1024,
+    "height": 900,
+    "route": "/invoices/5",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoice-1024.png"
+  },
+  {
+    "id": "U01",
+    "width": 1440,
+    "height": 900,
+    "route": "/invoices/5",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoice-1440.png"
+  },
+  {
+    "id": "U02",
+    "width": 390,
+    "height": 844,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-390.png"
+  },
+  {
+    "id": "U02",
+    "width": 768,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-768.png"
+  },
+  {
+    "id": "U02",
+    "width": 1024,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1024.png"
+  },
+  {
+    "id": "U02",
+    "width": 1440,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "grid_tracks": true,
+      "card_and_amount_no_horizontal_overflow": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1440.png"
+  },
+  {
+    "id": "U03",
+    "width": 390,
+    "height": 844,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "filter_controls_readable": true,
+      "filters_within_bar": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-390.png"
+  },
+  {
+    "id": "U03",
+    "width": 768,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "filter_controls_readable": true,
+      "filters_within_bar": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-768.png"
+  },
+  {
+    "id": "U03",
+    "width": 1024,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "filter_controls_readable": true,
+      "filters_within_bar": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1024.png"
+  },
+  {
+    "id": "U03",
+    "width": 1440,
+    "height": 900,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "filter_controls_readable": true,
+      "filters_within_bar": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1440.png"
+  },
+  {
+    "id": "U04",
+    "width": 390,
+    "height": 844,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "table_minimum_width": true,
+      "contained_scroller": true,
+      "cells_do_not_overflow": true,
+      "header_cell_geometry_alignment": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-390.png"
+  },
+  {
+    "id": "U04",
+    "width": 768,
+    "height": 900,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "table_minimum_width": true,
+      "contained_scroller": true,
+      "cells_do_not_overflow": true,
+      "header_cell_geometry_alignment": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-768.png"
+  },
+  {
+    "id": "U04",
+    "width": 1024,
+    "height": 900,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "table_minimum_width": true,
+      "contained_scroller": true,
+      "cells_do_not_overflow": true,
+      "header_cell_geometry_alignment": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-1024.png"
+  },
+  {
+    "id": "U04",
+    "width": 1440,
+    "height": 900,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "table_minimum_width": true,
+      "contained_scroller": true,
+      "cells_do_not_overflow": true,
+      "header_cell_geometry_alignment": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-1440.png"
+  },
+  {
+    "id": "U05",
+    "width": 390,
+    "height": 844,
+    "route": "/settings/countries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "country_scroller": true,
+      "quick_card_not_clipped": true,
+      "actions_fit_content": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-countries-390.png"
+  },
+  {
+    "id": "U05",
+    "width": 768,
+    "height": 900,
+    "route": "/settings/countries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "country_scroller": true,
+      "quick_card_not_clipped": true,
+      "actions_fit_content": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-countries-768.png"
+  },
+  {
+    "id": "U05",
+    "width": 1024,
+    "height": 900,
+    "route": "/settings/countries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "country_scroller": true,
+      "quick_card_not_clipped": true,
+      "actions_fit_content": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-countries-1024.png"
+  },
+  {
+    "id": "U05",
+    "width": 1440,
+    "height": 900,
+    "route": "/settings/countries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "country_scroller": true,
+      "quick_card_not_clipped": true,
+      "actions_fit_content": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-countries-1440.png"
+  },
+  {
+    "id": "U06",
+    "width": 390,
+    "height": 844,
+    "route": "/settings/notifications",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "four_actions_present": true,
+      "actions_fit_group": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-notifications-390.png"
+  },
+  {
+    "id": "U06",
+    "width": 768,
+    "height": 900,
+    "route": "/settings/notifications",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "four_actions_present": true,
+      "actions_fit_group": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-notifications-768.png"
+  },
+  {
+    "id": "U06",
+    "width": 1024,
+    "height": 900,
+    "route": "/settings/notifications",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "four_actions_present": true,
+      "actions_fit_group": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-notifications-1024.png"
+  },
+  {
+    "id": "U06",
+    "width": 1440,
+    "height": 900,
+    "route": "/settings/notifications",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "four_actions_present": true,
+      "actions_fit_group": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-notifications-1440.png"
+  }
+]

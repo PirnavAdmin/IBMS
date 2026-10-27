@@ -10,7 +10,7 @@ test('explicit UTC and offset timestamps represent the same instant', () => {
   }
 });
 test('conversion handles midnight and preserves explicit timezone offsets', () => {
-  assert.match(formatQuotationTimestamp('2026-09-28T23:45:00Z', { timeZone: 'Asia/Kolkata' }), /29 Sept 2026, 05:15 am/i);
+  assert.match(formatQuotationTimestamp('2026-09-28T23:45:00Z', { timeZone: 'Asia/Kolkata' }), /29\/09\/2026, 05:15 am/i);
   assert.match(formatQuotationTimestamp('2026-09-28T09:36:00Z', { timeZone: 'UTC' }), /09:36 am/i);
 });
 test('invalid or missing timestamps have a readable fallback', () => {

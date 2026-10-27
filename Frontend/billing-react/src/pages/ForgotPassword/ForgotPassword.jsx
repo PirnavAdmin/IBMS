@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -24,6 +25,7 @@ export const ForgotPassword = () => {
   const { handleNav, isExiting } = useAuthNav();
   const [apiError, setApiError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successDismissed, setSuccessDismissed] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(forgotSchema),
@@ -35,6 +37,7 @@ export const ForgotPassword = () => {
     try {
       setApiError(null);
       await authApi.forgotPassword({ email });
+      setSuccessDismissed(false);
       setIsSuccess(true);
       setTimeout(() => handleNav('/verify-otp', { email }), 700);
     } catch (err) {
@@ -56,7 +59,7 @@ export const ForgotPassword = () => {
       alerts={
         <>
           {apiError && <Alert severity="error" onClose={() => setApiError(null)} sx={{ mb: 1.5, borderRadius: 2, py: 0.5 }}>{apiError}</Alert>}
-          {isSuccess && <Alert severity="success" sx={{ mb: 1.5, borderRadius: 2, py: 0.5 }}>Verification code dispatched! Opening OTP screen...</Alert>}
+          {isSuccess && <FeedbackSnackbar message={successDismissed ? '' : 'Verification code dispatched! Opening OTP screen...'} onClose={() => setSuccessDismissed(true)} />}
         </>
       }
     >

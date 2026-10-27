@@ -5,6 +5,7 @@ import { apiClient } from 'billing-api-client';
 import { queryClient } from '../queryClient';
 import { errorPresentation } from '../utils/errorPresentation';
 import { transportErrorMessage } from '../../../billing-api-client/transportError.js';
+import { ConnectionStateIcon } from '../components/ConnectionStateIcon';
 import './protected-route.css';
 
 const readToken = () => localStorage.getItem('billing_auth_token')?.replace(/^(?:Bearer\s+)+/i, '').trim() || '';
@@ -58,6 +59,7 @@ export function ProtectedRoute({ children }) {
   if (status === 'invalid') return <Navigate to="/login" replace state={{ from: location }} />;
   return <main className="protected-route-state">
     {status === 'error' ? <section role="alert">
+      <ConnectionStateIcon error={validation.error} />
       <h1>Unable to load</h1>
       <p>{errorPresentation(validation.error)}</p>
       <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>

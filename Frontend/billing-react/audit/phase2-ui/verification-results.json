@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "command": "node --test tests/css-cascade.test.mjs",
+      "pass": 13,
+      "fail": 0
+    },
+    {
+      "command": "node --test tests/quotation-dates.test.mjs",
+      "pass": 4,
+      "fail": 0
+    },
+    {
+      "command": "node tests/run-phase2-presentation.mjs",
+      "pass": 6,
+      "fail": 0
+    },
+    {
+      "command": "node tests/run-payment-ui.mjs --test-name-pattern=Payment details maps actual|Payment money preserves|Payment query preserves",
+      "pass": 3,
+      "fail": 0
+    }
+  ],
+  "total_pass": 26,
+  "total_fail": 0,
+  "build": {
+    "command": "npm run build",
+    "result": "PASS",
+    "vite": "5.4.21",
+    "modules": 15352,
+    "duration": "1m 15s",
+    "main_asset": "index-Bw4jWLpT.js",
+    "warnings": [
+      "Existing html2pdf static/dynamic import overlap",
+      "Chunk above 500 kB; no performance refactor performed"
+    ]
+  },
+  "git_diff_check": "PASS",
+  "remaining_contract_blocker": "ChargeConfigurationDto and tenant context provide no authoritative charge currency. Fixed values show two decimals and Currency not provided."
+}

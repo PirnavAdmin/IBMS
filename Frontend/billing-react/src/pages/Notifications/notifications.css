@@ -65,7 +65,7 @@
 .notification-preview-frame { display: block; width: 100%; min-height: 420px; border: 1px solid #DCCEBF; border-radius: 8px; background: white; }
 @media (max-width: 900px) {
   .notification-heading { flex-direction: column; gap: 18px; }
-  .notification-heading > .notification-actions { width: 100%; justify-content: flex-start; }
+  .notification-heading > .notification-actions { width: 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-start; }
   .notification-page { padding: 20px; }
   .notification-filters label { flex: 1; }
 }
@@ -76,7 +76,7 @@
   .notification-filters { padding: 16px; gap: 12px; }
   .notification-filters label, .notification-filters .notification-search, .notification-filters .notification-range { width: 100%; min-width: 0; flex: auto; }
   .notification-heading > .notification-actions { width: 100%; }
-  .notification-heading > .notification-actions > a, .notification-heading > .notification-actions > button { flex: 1; }
+  .notification-heading > .notification-actions > a, .notification-heading > .notification-actions > button { flex: 1 1 100%; min-width: 0; max-width: 100%; }
   .notification-heading > .notification-actions > a > button { width: 100%; }
 }
 .notification-page .ant-form-item { margin-bottom: 22px; }

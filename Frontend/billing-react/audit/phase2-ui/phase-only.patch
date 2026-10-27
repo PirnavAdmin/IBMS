@@ -1,0 +1,535 @@
+--- before/src/pages/Customers/styles/customer-list.css
++++ after/src/pages/Customers/styles/customer-list.css
+@@ -569,7 +569,7 @@
+     width: 200px;
+     max-width: 100%;
+     min-width: 0;
+-    margin-inline: auto;
++    margin-inline: 0;
+     text-align: left;
+   }
+   .customers-page .customer-panel .customer-table .customer-contact .customer-email-link {
+@@ -584,7 +584,7 @@
+   }
+   .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-head,
+   .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-body {
+-    text-align: center;
++    text-align: left;
+     vertical-align: middle;
+   }
+   .customers-page .customer-panel .customer-table .customer-identity {
+@@ -595,7 +595,7 @@
+     width: 240px;
+     max-width: 100%;
+     min-width: 0;
+-    margin-inline: auto;
++    margin-inline: 0;
+     text-align: left;
+   }
+   .customers-page .customer-panel .customer-table .customer-identity-copy {
+@@ -604,7 +604,7 @@
+   .customers-page .customer-panel .customer-table :is(.customer-name-heading, .customer-contact-heading) {
+     box-sizing: border-box;
+     max-width: 100%;
+-    margin-inline: auto;
++    margin-inline: 0;
+     text-align: left;
+   }
+   .customers-page .customer-panel .customer-table .customer-name-heading {
+@@ -622,9 +622,9 @@
+     text-overflow: ellipsis;
+   }
+   .customers-page .customer-panel .customer-table .customer-row-actions {
+-    justify-content: center;
++    justify-content: flex-start;
+   }
+   .customers-page .customer-panel .customer-table .customer-status-details {
+-    align-items: center;
+-  }
+-}
++    align-items: flex-start;
++  }
++}
+--- before/src/pages/Quotations/QuotationManagement.jsx
++++ after/src/pages/Quotations/QuotationManagement.jsx
+@@ -1,5 +1,5 @@
+ import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+-import { useEffect, useRef, useState } from 'react';
++import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+ import { Alert, LinearProgress } from '@mui/material';
+ import { useLocation } from 'react-router-dom';
+ import { apiClient } from 'billing-api-client/apiClient.js';
+@@ -70,6 +70,21 @@
+   const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
+   const [listFailed,setListFailed]=useState(false);
+   const locked=useRef(false), generation=useRef(0);
++  const screenRoot=useRef(null), listScroll=useRef(0), previousScreen=useRef({screen:'list',id:null});
++  useLayoutEffect(()=>{
++    const container=screenRoot.current?.closest('.app-layout-content');
++    const previous=previousScreen.current;
++    const id=current?.id ?? null;
++    previousScreen.current={screen,id};
++    const transition=previous.screen!==screen || (screen==='details' && previous.id!==id);
++    if(container && transition) {
++      const top=screen==='list' ? listScroll.current : 0;
++      container.scrollTop=top;
++      // Reapply once after layout so browser scroll anchoring cannot undo the transition.
++      const frame=requestAnimationFrame(()=>{container.scrollTop=top;});
++      return ()=>cancelAnimationFrame(frame);
++    }
++  },[screen,current?.id]);
+   useEffect(()=>{
+     if(!location?.state?.quotationManagementReset)return;
+     setScreen('list');setCurrent(null);setDialog(null);setError('');
+@@ -123,13 +138,16 @@
+       setError(`Configured charges could not be loaded. ${message(e)}`);
+     }
+   };
+-  const open=(mode,q)=>run(async()=>{
++  const open=(mode,q)=>{
++    if(screen==='list')listScroll.current=screenRoot.current?.closest('.app-layout-content')?.scrollTop || 0;
++    return run(async()=>{
+     if(mode==='edit')await refreshConfiguredCharges();
+     const detail=await quotationApi.get(q.id);
+     if(mode==='edit'&&detail.status!=='Draft')throw new Error('Only Draft quotations can be edited.');
+     setCurrent(detail);setScreen(mode);
+     if(mode==='details')await refreshDetails(q.id);
+-  });
++    });
++  };
+   const quotationDraft = useFormDraft(`quotation:${current?.id || 'new'}`);
+   const save=q=>run(async()=>{
+     const saved=await quotationApi.save(q);quotationDraft.clear();replace(saved);setScreen('details');
+@@ -159,7 +177,7 @@
+   return <>
+     {(loading||busy)&&<LinearProgress/>}
+     {error&&!listFailed&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
+-    <fieldset disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
++    <fieldset ref={screenRoot} disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
+       {screen==='create'||screen==='edit'
+         ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>
+         :screen==='details'&&current
+--- before/src/pages/Quotations/pages/QuotationDetails.jsx
++++ after/src/pages/Quotations/pages/QuotationDetails.jsx
+@@ -1,5 +1,7 @@
+ import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
+ import { useEffect, useRef, useState } from 'react';
++import { displayDate } from '../../../utils/localDate';
++import { formatQuotationTimestamp } from '../utils/quotationDates';
+ import { apiClient } from 'billing-api-client/apiClient.js';
+ import { currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
+ import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
+@@ -35,14 +37,8 @@
+   ? value
+   : Object.values(value || {}).filter(part => typeof part === 'string' && part.trim()).join(', ');
+ 
+-function formatCommunicationDate(value) {
+-  const date = value ? new Date(value) : null;
+-  if (!date || Number.isNaN(date.getTime())) return 'Date unavailable';
+-  return date.toLocaleString('en-IN', {
+-    day: '2-digit', month: 'short', year: 'numeric',
+-    hour: '2-digit', minute: '2-digit', hour12: true,
+-  });
+-}
++const formatCommunicationDate = value => formatQuotationTimestamp(value);
++
+ const amount = value => new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
+ const exportWidthPx = Math.round((196 / 25.4) * 96);
+ const createBarcodePattern = value => `101${Array.from(String(value || 'QUOTATION'), character => character.charCodeAt(0).toString(2).padStart(8, '0')).join('0')}101`;
+@@ -135,16 +131,7 @@
+     for (const [label, amount] of entries) groups.set(label, (groups.get(label) || 0) + amount);
+     return groups;
+   }, new Map());
+-  const formatDate = value => {
+-    if (!value) return '';
+-    const date = new Date(String(value).slice(0, 10) + 'T00:00:00');
+-    return Number.isNaN(date.getTime()) ? String(value) : [
+-      String(date.getDate()).padStart(2, '0'),
+-      String(date.getMonth() + 1).padStart(2, '0'),
+-      date.getFullYear(),
+-    ].join('-');
+-  };
+-  const quotationDate = formatDate(quotation.quotationDate);
++  const quotationDate = displayDate(quotation.quotationDate);
+   const invoiceTerms = [
+     'Goods once sold are subject to store policy.',
+     'Please check quantity and products before leaving the store.',
+@@ -329,7 +316,7 @@
+     {tab === 'Details' && <section className="quote-card quote-details-combined">
+       <div className="quote-details-content"><h2>Quotation details</h2><dl className="quote-detail-list">
+         <div><dt>Quote number</dt><dd>{quotation.quoteNumber}</dd></div><div><dt>Customer</dt><dd>{quotation.customer.name} ({quotation.customer.code})</dd></div>
+-        <div><dt>Quote date</dt><dd>{quotation.quotationDate}</dd></div><div><dt>Valid until</dt><dd>{quotation.validUntil}</dd></div>
++        <div><dt>Quote date</dt><dd>{displayDate(quotation.quotationDate)}</dd></div><div><dt>Valid until</dt><dd>{displayDate(quotation.validUntil)}</dd></div>
+         <div><dt>Reference</dt><dd>{quotation.reference || '—'}</dd></div><div><dt>Status</dt><dd><QuotationStatusBadge status={quotation.status} /></dd></div>
+         {quotation.status === 'Converted' && quotation.convertedInvoiceId != null && <div><dt>Invoice reference</dt><dd>{quotation.convertedInvoiceId}</dd></div>}
+       </dl><h3>Notes</h3><p>{quotation.notes || '—'}</p><h3>Terms & Conditions</h3><p>{quotation.termsAndConditions || '—'}</p></div>
+--- before/src/pages/Quotations/pages/QuotationList.jsx
++++ after/src/pages/Quotations/pages/QuotationList.jsx
+@@ -3,6 +3,7 @@
+ import { ListItemIcon, Menu, MenuItem } from '@mui/material';
+ import { Add, ArrowBack, CancelOutlined, CheckCircleOutline, DescriptionOutlined, EditOutlined, FilterList, History, MoreVert, Search, SendOutlined, SwapHorizOutlined, VisibilityOutlined } from '@mui/icons-material';
+ import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
++import { displayDate } from '../../../utils/localDate';
+ import { currency } from '../utils/quotationCalculations';
+ import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
+ import { ThemedSelect } from '../components/ThemedSelect';
+@@ -79,7 +80,7 @@
+     </div>}</div>
+    </div>
+    {!quotationsOpen&&overview}
+-   <div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr>{columns.map(([key,label])=><th key={key}><button onClick={()=>setSort({key,direction:sort.key===key&&sort.direction==='asc'?'desc':'asc'})}>{label} {sort.key===key?(sort.direction==='asc'?'↑':'↓'):''}</button></th>)}<th>Actions</th></tr></thead><tbody>{loading?<tr><td colSpan="7" className="quote-state">Loading quotations…</td></tr>:loadFailed?<tr><td colSpan="7" className="quote-state"><DashboardErrorState title="Unable to load quotations" message={error} onRetry={onRetry} /></td></tr>:!paged.length?<tr><td colSpan="7" className="quote-state">{quotations.length?'No quotations match your search or filters.':'No quotations yet. Create your first quotation.'}</td></tr>:paged.map(q=>{return <tr key={q.id}><td><button className="quote-link" onClick={()=>onView(q)}>{q.quoteNumber}</button></td><td><strong>{q.customer.name}</strong><small>{q.customer.code}</small></td><td>{q.quotationDate}</td><td>{q.validUntil}</td><td><QuotationStatusBadge status={q.status} expired={q.status==='Draft'&&isExpired(q)}/></td><td><strong>{currency(q.totalAmount)}</strong></td><td>{actionButtons(q)}</td></tr>})}</tbody></table></div>
++   <div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr>{columns.map(([key,label])=><th key={key}><button onClick={()=>setSort({key,direction:sort.key===key&&sort.direction==='asc'?'desc':'asc'})}>{label} {sort.key===key?(sort.direction==='asc'?'↑':'↓'):''}</button></th>)}<th>Actions</th></tr></thead><tbody>{loading?<tr><td colSpan="7" className="quote-state">Loading quotations…</td></tr>:loadFailed?<tr><td colSpan="7" className="quote-state"><DashboardErrorState title="Unable to load quotations" message={error} onRetry={onRetry} /></td></tr>:!paged.length?<tr><td colSpan="7" className="quote-state">{quotations.length?'No quotations match your search or filters.':'No quotations yet. Create your first quotation.'}</td></tr>:paged.map(q=>{return <tr key={q.id}><td><button className="quote-link" onClick={()=>onView(q)}>{q.quoteNumber}</button></td><td><strong>{q.customer.name}</strong><small>{q.customer.code}</small></td><td>{displayDate(q.quotationDate)}</td><td>{displayDate(q.validUntil)}</td><td><QuotationStatusBadge status={q.status} expired={q.status==='Draft'&&isExpired(q)}/></td><td><strong>{currency(q.totalAmount)}</strong></td><td>{actionButtons(q)}</td></tr>})}</tbody></table></div>
+    <WorkspacePagination page={page} pageSize={pageSize} totalCount={sorted.length} itemLabel="quotations" onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />
+   </section>
+  </main>;
+--- before/src/pages/Quotations/utils/quotationDates.js
++++ after/src/pages/Quotations/utils/quotationDates.js
+@@ -12,7 +12,8 @@
+   const date = parseQuotationTimestamp(value);
+   if (!date) return value ? 'Date unavailable (missing or invalid timezone)' : 'Date unavailable';
+   return date.toLocaleString('en-IN', {
+-    day: '2-digit', month: 'short', year: 'numeric',
++    day: '2-digit', month: '2-digit', year: 'numeric',
++    timeZone: 'Asia/Kolkata', timeZoneName: 'short',
+     hour: '2-digit', minute: '2-digit', hour12: true,
+     ...options,
+   });
+--- before/src/pages/Settings/ChargesConfiguration.jsx
++++ after/src/pages/Settings/ChargesConfiguration.jsx
+@@ -5,6 +5,7 @@
+ import { SettingsPageHeader } from './SettingsPageHeader';
+ import { AddOutlined, EditOutlined, MoreVert, ToggleOff, ToggleOn } from '@mui/icons-material';
+ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, ListItemIcon, Menu, MenuItem, Select, Switch, TextField } from '@mui/material';
++import { formatChargeValue } from './chargeDisplay';
+ import { phase5Api } from './services/phase5Api';
+ import './settings.css';
+ import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
+@@ -24,7 +25,7 @@
+   if (charge.description.length > 500) errors.description = 'Description cannot exceed 500 characters.';
+   return errors;
+ };
+-const displayValue = (charge) => charge.calculationType === 'Percentage' ? `${charge.value}%` : `₹${Number(charge.value).toLocaleString('en-IN')}`;
++// ChargeConfigurationDto supplies no currency; fixed values remain explicitly unlabelled.
+ 
+ export function ChargesConfiguration() {
+   const draft = useFormDraft('settings:charge-editor');
+@@ -52,10 +53,10 @@
+     finally { requestLock.current = false; setBusy(false); }
+   };
+   return <main className="settings-page"><SettingsPageHeader title="Charges Configuration" description="Configure charges for invoices."><Button variant="contained" startIcon={<AddOutlined />} disabled={busy || loading} onClick={openNew}>Add Charge</Button></SettingsPageHeader>
+-    {apiError && !dialog && !confirm ? <DashboardErrorState title="Unable to load charges" message={apiError} onRetry={load} /> : <section className="settings-panel settings-full"><div className="settings-panel-heading"><div><h2>Configured Charges</h2><p>Shipping, handling, convenience, late fee, and custom charges.</p></div></div>{loading ? <div className="settings-empty">Loading charges...</div> : charges.length ? <div className="settings-table-wrap ibms-table-frame"><table className="settings-table"><thead><tr><th>Charge Name</th><th>Charge Code</th><th>Charge Type</th><th>Calculation</th><th>Value</th><th>Taxable</th><th>Status</th><th>Actions</th></tr></thead><tbody>{charges.map((charge) => <tr key={charge.id}><td><strong>{charge.name}</strong><small className="settings-cell-note">{charge.description}</small></td><td>{charge.code}</td><td>{charge.type}</td><td>{charge.calculationType}</td><td>{displayValue(charge)}</td><td>{charge.taxable ? 'Yes' : 'No'}</td><td><span className={`settings-status ${charge.status === 'Active' ? 'active' : 'inactive'}`}>{validStatus(charge.status) ? charge.status : `Unknown (${charge.status || 'empty'})`}</span></td><td><IconButton className="ibms-row-actions-trigger" size="small" aria-label={`Actions for ${charge.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.charge.id === charge.id} disabled={busy || loading} onClick={(event) => setActionsMenu({ anchor: event.currentTarget, charge })}><MoreVert fontSize="small" /></IconButton></td></tr>)}</tbody></table></div> : <div className="settings-empty"><h2>No charges configured yet.</h2><p>Add a charge to begin defining your billing rules.</p><Button variant="contained" startIcon={<AddOutlined />} disabled={busy || loading} onClick={openNew}>Add Charge</Button></div>}</section>}
++    {apiError && !dialog && !confirm ? <DashboardErrorState title="Unable to load charges" message={apiError} onRetry={load} /> : <section className="settings-panel settings-full"><div className="settings-panel-heading"><div><h2>Configured Charges</h2><p>Shipping, handling, convenience, late fee, and custom charges.</p></div></div>{loading ? <div className="settings-empty">Loading charges...</div> : charges.length ? <div className="settings-table-wrap ibms-table-frame"><table className="settings-table"><thead><tr><th>Charge Name</th><th>Charge Code</th><th>Charge Type</th><th>Calculation</th><th>Value</th><th>Taxable</th><th>Status</th><th>Actions</th></tr></thead><tbody>{charges.map((charge) => <tr key={charge.id}><td><strong>{charge.name}</strong><small className="settings-cell-note">{charge.description}</small></td><td>{charge.code}</td><td>{charge.type}</td><td>{charge.calculationType}</td><td>{formatChargeValue(charge)}{charge.calculationType !== 'Percentage' && <small className="settings-cell-note">Currency not provided</small>}</td><td>{charge.taxable ? 'Yes' : 'No'}</td><td><span className={`settings-status ${charge.status === 'Active' ? 'active' : 'inactive'}`}>{validStatus(charge.status) ? charge.status : `Unknown (${charge.status || 'empty'})`}</span></td><td><IconButton className="ibms-row-actions-trigger" size="small" aria-label={`Actions for ${charge.name}`} aria-haspopup="menu" aria-expanded={actionsMenu?.charge.id === charge.id} disabled={busy || loading} onClick={(event) => setActionsMenu({ anchor: event.currentTarget, charge })}><MoreVert fontSize="small" /></IconButton></td></tr>)}</tbody></table></div> : <div className="settings-empty"><h2>No charges configured yet.</h2><p>Add a charge to begin defining your billing rules.</p><Button variant="contained" startIcon={<AddOutlined />} disabled={busy || loading} onClick={openNew}>Add Charge</Button></div>}</section>}
+     <Menu anchorEl={actionsMenu?.anchor} open={Boolean(actionsMenu)} onClose={() => setActionsMenu(null)} PaperProps={{ className: 'ibms-row-actions-menu' }}>
+       {actionsMenu && <><MenuItem onClick={() => { openEdit(actionsMenu.charge); setActionsMenu(null); }}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem><MenuItem disabled={!validStatus(actionsMenu.charge.status)} onClick={() => { setApiError(''); setConfirm(actionsMenu.charge); setActionsMenu(null); }}><ListItemIcon>{actionsMenu.charge.status === 'Active' ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>{actionsMenu.charge.status === 'Active' ? 'Deactivate' : 'Activate'}</MenuItem></>}
+     </Menu>
+-    <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) closeEditor(); }} fullWidth maxWidth="sm"><DialogTitle>{dialog === 'new' ? 'Add Charge' : 'Edit Charge'}</DialogTitle><DialogContent dividers><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className="settings-dialog-form"><TextField autoFocus required label="Charge Name" value={form.name} onChange={(e) => update('name', e.target.value)} error={Boolean(errors.name)} helperText={errors.name} /><TextField required label="Charge Code" value={form.code} onChange={(e) => update('code', e.target.value)} error={Boolean(errors.code)} helperText={errors.code} inputProps={{ maxLength: 64 }} /><div className="settings-select-field"><label htmlFor="charge-type">Charge Type *</label><Select id="charge-type" inputProps={{ "aria-label": "Charge Type" }} value={form.type} onChange={(e) => update('type', e.target.value)} error={Boolean(errors.type)}>{chargeTypes.map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}</Select></div><div className="settings-select-field"><label htmlFor="calculation-type">Calculation Type *</label><Select id="calculation-type" inputProps={{ "aria-label": "Calculation Type" }} value={form.calculationType} onChange={(e) => update('calculationType', e.target.value)}>{['Fixed', 'Percentage'].map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}</Select></div><TextField required label={`Value${form.calculationType === 'Percentage' ? ' (%)' : ' (₹)'}`} type="number" value={form.value} onChange={(e) => update('value', e.target.value)} error={Boolean(errors.value)} helperText={errors.value} inputProps={{ min: 0, max: form.calculationType === 'Percentage' ? 100 : undefined, step: 'any' }} /><div className="settings-toggle-field"><FormControlLabel control={<Switch checked={form.taxable} onChange={(e) => update('taxable', e.target.checked)} />} label="Taxable" /><div className="settings-select-field"><label htmlFor="charge-status">Status *</label><Select id="charge-status" inputProps={{ "aria-label": "Status" }} value={form.status} onChange={(e) => update('status', e.target.value)} error={Boolean(errors.status)}>{!validStatus(form.status) && <MenuItem disabled value={form.status}>Unknown ({form.status || 'empty'})</MenuItem>}<MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select>{errors.status && <span className="settings-field-error">{errors.status}</span>}</div></div>{!validStatus(form.status) && <Alert severity="warning">This record has an unsupported backend status. Select Active or Inactive before saving.</Alert>}<TextField className="settings-form-span" label="Description" multiline minRows={3} value={form.description} onChange={(e) => update('description', e.target.value)} error={Boolean(errors.description)} helperText={errors.description} /></div></fieldset>{apiError && <Alert severity="error" sx={{ mt: 2 }}>{apiError}</Alert>}</DialogContent><DialogActions><Button disabled={busy} onClick={closeEditor}>Cancel</Button><Button variant="contained" disabled={busy} onClick={submit}>{busy ? 'Saving...' : dialog === 'new' ? 'Add Charge' : 'Save Changes'}</Button></DialogActions></Dialog>
++    <Dialog open={Boolean(dialog)} onClose={() => { if (!busy) closeEditor(); }} fullWidth maxWidth="sm"><DialogTitle>{dialog === 'new' ? 'Add Charge' : 'Edit Charge'}</DialogTitle><DialogContent dividers><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className="settings-dialog-form"><TextField autoFocus required label="Charge Name" value={form.name} onChange={(e) => update('name', e.target.value)} error={Boolean(errors.name)} helperText={errors.name} /><TextField required label="Charge Code" value={form.code} onChange={(e) => update('code', e.target.value)} error={Boolean(errors.code)} helperText={errors.code} inputProps={{ maxLength: 64 }} /><div className="settings-select-field"><label htmlFor="charge-type">Charge Type *</label><Select id="charge-type" inputProps={{ "aria-label": "Charge Type" }} value={form.type} onChange={(e) => update('type', e.target.value)} error={Boolean(errors.type)}>{chargeTypes.map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}</Select></div><div className="settings-select-field"><label htmlFor="calculation-type">Calculation Type *</label><Select id="calculation-type" inputProps={{ "aria-label": "Calculation Type" }} value={form.calculationType} onChange={(e) => update('calculationType', e.target.value)}>{['Fixed', 'Percentage'].map((type) => <MenuItem key={type} value={type}>{type}</MenuItem>)}</Select></div><TextField required label={`Value${form.calculationType === 'Percentage' ? ' (%)' : ' (amount)'}`} type="number" value={form.value} onChange={(e) => update('value', e.target.value)} error={Boolean(errors.value)} helperText={errors.value} inputProps={{ min: 0, max: form.calculationType === 'Percentage' ? 100 : undefined, step: 'any' }} /><div className="settings-toggle-field"><FormControlLabel control={<Switch checked={form.taxable} onChange={(e) => update('taxable', e.target.checked)} />} label="Taxable" /><div className="settings-select-field"><label htmlFor="charge-status">Status *</label><Select id="charge-status" inputProps={{ "aria-label": "Status" }} value={form.status} onChange={(e) => update('status', e.target.value)} error={Boolean(errors.status)}>{!validStatus(form.status) && <MenuItem disabled value={form.status}>Unknown ({form.status || 'empty'})</MenuItem>}<MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select>{errors.status && <span className="settings-field-error">{errors.status}</span>}</div></div>{!validStatus(form.status) && <Alert severity="warning">This record has an unsupported backend status. Select Active or Inactive before saving.</Alert>}<TextField className="settings-form-span" label="Description" multiline minRows={3} value={form.description} onChange={(e) => update('description', e.target.value)} error={Boolean(errors.description)} helperText={errors.description} /></div></fieldset>{apiError && <Alert severity="error" sx={{ mt: 2 }}>{apiError}</Alert>}</DialogContent><DialogActions><Button disabled={busy} onClick={closeEditor}>Cancel</Button><Button variant="contained" disabled={busy} onClick={submit}>{busy ? 'Saving...' : dialog === 'new' ? 'Add Charge' : 'Save Changes'}</Button></DialogActions></Dialog>
+     <Dialog open={Boolean(confirm)} onClose={() => { if (!busy) setConfirm(null); }} fullWidth maxWidth="xs"><DialogTitle>{confirm?.status === 'Active' ? 'Deactivate Charge?' : 'Activate Charge?'}</DialogTitle><DialogContent><p>{confirm?.status === 'Active' ? `Are you sure you want to deactivate ${confirm?.name}?` : `Activate ${confirm?.name}?`}</p>{apiError && <Alert severity="error">{apiError}</Alert>}</DialogContent><DialogActions><Button disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button><Button variant="contained" disabled={busy} color={confirm?.status === 'Active' ? 'error' : 'primary'} onClick={changeStatus}>{confirm?.status === 'Active' ? 'Deactivate' : 'Activate'}</Button></DialogActions></Dialog><FeedbackSnackbar message={toast} onClose={() => setToast('')} /></main>;
+ }
+--- before/src/pages/Settings/chargeDisplay.js
++++ after/src/pages/Settings/chargeDisplay.js
+@@ -0,0 +1,10 @@
++import { formatProductPrice } from '../Products/utils/formatProductPrice';
++import { CURRENCY_CODES } from '../../utils/currencies';
++
++export function formatChargeValue(charge, currency) {
++  if (charge.calculationType === 'Percentage') return `${charge.value}%`;
++  if (CURRENCY_CODES.includes(currency)) return formatProductPrice(charge.value, currency);
++  const value = Number(charge.value);
++  if (charge.value == null || !Number.isFinite(value)) return 'Unavailable';
++  return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
++}
+--- before/src/pages/Taxes/Taxes.jsx
++++ after/src/pages/Taxes/Taxes.jsx
+@@ -1,3 +1,4 @@
++import { displayDate } from '../../utils/localDate';
+ import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
+ import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
+ import "../../styles/Dashboard.css";
+@@ -414,8 +415,8 @@
+                         <td>{tax.rate}%</td>
+                         <td>{tax.calculation}</td>
+                         <td>{tax.priority}</td>
+-                        <td>{tax.effectiveFrom}</td>
+-                        <td>{tax.effectiveTo || "No end date"}</td>
++                        <td>{displayDate(tax.effectiveFrom)}</td>
++                        <td>{tax.effectiveTo ? displayDate(tax.effectiveTo) : "No end date"}</td>
+                         <td>
+                           <span
+                             className={`tax-status tax-status-${tax.status.toLowerCase()}`}
+@@ -445,7 +446,7 @@
+         <section className="tax-detail-panel" aria-label={`${selectedTax.name} details`} aria-live="polite">
+           <div className="tax-detail-heading"><div><span className="tax-eyebrow">TAX RULE DETAILS</span><h2>{selectedTax.name}</h2></div><button type="button" className="tax-secondary-btn" onClick={() => setSelectedTax(null)}>Close</button></div>
+           <dl className="tax-detail-grid">
+-            {[["Tax Code", selectedTax.code], ["Tax Type", selectedTax.type], ["Rate", `${selectedTax.rate}%`], ["Calculation", selectedTax.calculation], ["Priority", selectedTax.priority], ["Effective From", selectedTax.effectiveFrom], ["Effective To", selectedTax.effectiveTo || "No end date"], ["Status", selectedTax.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}
++            {[["Tax Code", selectedTax.code], ["Tax Type", selectedTax.type], ["Rate", `${selectedTax.rate}%`], ["Calculation", selectedTax.calculation], ["Priority", selectedTax.priority], ["Effective From", displayDate(selectedTax.effectiveFrom)], ["Effective To", selectedTax.effectiveTo ? displayDate(selectedTax.effectiveTo) : "No end date"], ["Status", selectedTax.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}
+           </dl>
+         </section>
+       )}
+--- before/src/pages/UserRoleAdministration/UserRoleAdministration.jsx
++++ after/src/pages/UserRoleAdministration/UserRoleAdministration.jsx
+@@ -37,6 +37,7 @@
+   Tab,
+   Tabs,
+   TextField,
++  Tooltip,
+ } from '@mui/material';
+ import { userRoleAdministrationService as service } from './userRoleAdministrationService';
+ import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+@@ -270,7 +271,7 @@
+       title={`Unable to load ${usersQuery.isError ? 'users' : 'roles'}`}
+       message={getError(errorQuery.error)}
+       onRetry={() => { void usersQuery.refetch(); void rolesQuery.refetch(); }}
+-    /> : <><div className="ura-table-wrap"><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
++    /> : <><div className="ura-table-wrap" role="region" aria-label="Scrollable users" tabIndex={0}><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
+       <thead><tr>{assignmentMode ? <><th>Name</th><th>Roles</th><th>Tenant</th><th>Application</th><th>Status</th><th>Actions</th></> : <><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></>}</tr></thead>
+       <tbody>
+         {usersQuery.isPending && <tr><td colSpan={assignmentMode ? 6 : 9}><div className="ura-resource-state"><CircularProgress size={22} /><span>Loading users…</span></div></td></tr>}
+@@ -288,7 +289,10 @@
+           ];
+           return <tr key={id}>
+             <td><strong>{recordValue(user, 'name', 'Name') || '—'}</strong></td>
+-            {!assignmentMode && <><td>{recordValue(user, 'username', 'Username') || '—'}</td><td>{recordValue(user, 'email', 'Email') || '—'}</td></>}
++            {!assignmentMode && ['username', 'email'].map(field => {
++              const value = recordValue(user, field, field === 'username' ? 'Username' : 'Email') || '—';
++              return <td key={field}><Tooltip title={value} describeChild><span className="ura-user-identity-text" tabIndex={0}>{value}</span></Tooltip></td>;
++            })}
+             <td>{Array.isArray(userRoles) && userRoles.length ? userRoles.join(', ') : '—'}</td>
+             <td>{tenant}</td><td>{application}</td>{!assignmentMode && <td>{recordValue(user, 'identityType', 'IdentityType') || '—'}</td>}<td><StatusBadge status={statusValue(user)} /></td>
+             <td className="ura-action-cell"><RowActionsMenu actions={actions} /></td>
+--- before/src/pages/UserRoleAdministration/user-role-administration.css
++++ after/src/pages/UserRoleAdministration/user-role-administration.css
+@@ -74,15 +74,15 @@
+ .ura-table tbody tr:last-child td { border-bottom: 0; }
+ .ura-table td strong { color: #513822; font-weight: 700; }
+ .ura-user-table { min-width: 1380px; table-layout: fixed; }
+-.ura-user-table th:nth-child(1),.ura-user-table td:nth-child(1) { width: 14%; }
+-.ura-user-table th:nth-child(2),.ura-user-table td:nth-child(2) { width: 10%; }
+-.ura-user-table th:nth-child(3),.ura-user-table td:nth-child(3) { width: 15%; }
+-.ura-user-table th:nth-child(4),.ura-user-table td:nth-child(4) { width: 9%; }
+-.ura-user-table th:nth-child(5),.ura-user-table td:nth-child(5) { width: 10%; }
+-.ura-user-table th:nth-child(6),.ura-user-table td:nth-child(6) { width: 11%; }
+-.ura-user-table th:nth-child(7),.ura-user-table td:nth-child(7) { width: 8%; }
+-.ura-user-table th:nth-child(8),.ura-user-table td:nth-child(8) { width: 7%; }
+-.ura-user-table th:nth-child(9),.ura-user-table td:nth-child(9) { width: 64px; text-align: center; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(1),.ura-user-table:not(.ura-assignment-table) td:nth-child(1) { width: 160px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(2),.ura-user-table:not(.ura-assignment-table) td:nth-child(2) { width: 280px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(3),.ura-user-table:not(.ura-assignment-table) td:nth-child(3) { width: 280px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(4),.ura-user-table:not(.ura-assignment-table) td:nth-child(4) { width: 130px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(5),.ura-user-table:not(.ura-assignment-table) td:nth-child(5) { width: 120px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(6),.ura-user-table:not(.ura-assignment-table) td:nth-child(6) { width: 120px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(7),.ura-user-table:not(.ura-assignment-table) td:nth-child(7) { width: 110px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(8),.ura-user-table:not(.ura-assignment-table) td:nth-child(8) { width: 110px; }
++.ura-user-table:not(.ura-assignment-table) th:nth-child(9),.ura-user-table:not(.ura-assignment-table) td:nth-child(9) { width: 80px; text-align: center; }
+ .ura-assignment-table th:nth-child(1),.ura-assignment-table td:nth-child(1) { width: 18%; }
+ .ura-assignment-table th:nth-child(2),.ura-assignment-table td:nth-child(2) { width: 19%; }
+ .ura-assignment-table th:nth-child(3),.ura-assignment-table td:nth-child(3) { width: 17%; }
+@@ -318,3 +318,10 @@
+   .ura-form-actions .MuiButton-root { flex: 1; }
+   .ura-tabs .MuiTab-root { min-width: 112px; padding-inline: 12px; font-size: .78rem; }
+ }
++
++/* U13: keep identities atomic; full values are available on keyboard focus/hover. */
++.ura-user-table:not(.ura-assignment-table) { min-width: 1390px; }
++.ura-user-identity-text { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
++.ura-user-identity-text:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
++.ura-page .ura-table-wrap { min-width: 0; max-width: 100%; }
++.ura-page .ura-table-wrap:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
+--- before/src/pages/Webhooks/DeliveryDetails.jsx
++++ after/src/pages/Webhooks/DeliveryDetails.jsx
+@@ -1,3 +1,4 @@
++import { displayDate } from '../../utils/localDate';
+ import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress } from '@mui/material';
+ import { ContentCopyOutlined } from '@mui/icons-material';
+ 
+@@ -5,7 +6,7 @@
+   if (!value) return <span className="integration-muted">Not provided</span>;
+   const date = new Date(/(?:Z|[+-]\d\d:\d\d)$/i.test(value) ? value : `${value}Z`);
+   if (Number.isNaN(date.getTime())) return 'Not provided';
+-  return <time dateTime={date.toISOString()} className="delivery-time"><span>{new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'UTC' }).format(date)}</span><small>{new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'UTC' }).format(date)} UTC</small></time>;
++  return <time dateTime={date.toISOString()} className="delivery-time"><span>{displayDate(date.toISOString())}</span><small>{new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'UTC' }).format(date)} UTC</small></time>;
+ }
+ export function DeliveryBadge({ status }) {
+   return <Chip size="small" label={status} className={`delivery-status delivery-status-${status.toLowerCase()}`} />;
+--- before/src/styles/Payments.css
++++ after/src/styles/Payments.css
+@@ -729,3 +729,9 @@
+ @media (max-width: 600px) {
+   .payment-entry-form .payment-form-grid { grid-template-columns: minmax(0, 1fr); }
+ }
++
++/* U07: beat the shared container grid without changing other summary cards. */
++@media screen and (max-width: 600px) {
++  .payments-page .payment-summary-card .payment-summary-totals { grid-template-columns: minmax(0, 1fr); }
++  .payments-page .payment-summary-totals dd { white-space: nowrap; overflow-wrap: normal; }
++}
+--- before/tests/css-cascade.test.mjs
++++ after/tests/css-cascade.test.mjs
+@@ -135,3 +135,31 @@
+     [paths.templates, '.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap:focus-visible', '2px solid var(--primary, #70472f)'],
+   ]) expectDeclaration(file, selector, 'outline', expected);
+ });
++
++
++test('U07 payment values stay atomic and the scoped mobile grid beats shared container specificity', () => {
++  expectDeclaration('src/styles/Payments.css', '.payments-page .payment-summary-card .payment-summary-totals', 'grid-template-columns', 'minmax(0, 1fr)', 'screen and (max-width: 600px)');
++  expectDeclaration('src/styles/Payments.css', '.payments-page .payment-summary-totals dd', 'white-space', 'nowrap', 'screen and (max-width: 600px)');
++  expectDeclaration('src/styles/Payments.css', '.payments-page .payment-summary-totals dd', 'overflow-wrap', 'normal', 'screen and (max-width: 600px)');
++});
++
++test('U09 customer header/body use approved left alignment without changing table width', () => {
++  const file = 'src/pages/Customers/styles/customer-list.css';
++  const scope = '.customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root';
++  expectDeclaration(file, scope + '.MuiTableCell-head', 'text-align', 'left', 'screen');
++  expectDeclaration(file, scope + '.MuiTableCell-body', 'text-align', 'left', 'screen');
++});
++
++test('U13 user identities retain readable column widths, focus and local scrolling', () => {
++  const file = 'src/pages/UserRoleAdministration/user-role-administration.css';
++  const scope = '.ura-user-table:not(.ura-assignment-table)';
++  for (const index of [2, 3]) {
++    expectDeclaration(file, `${scope} th:nth-child(${index})`, 'width', '280px');
++    expectDeclaration(file, `${scope} td:nth-child(${index})`, 'width', '280px');
++  }
++  expectDeclaration(file, '.ura-user-identity-text', 'white-space', 'nowrap');
++  expectDeclaration(file, '.ura-user-identity-text', 'text-overflow', 'ellipsis');
++  expectDeclaration(file, '.ura-user-identity-text:focus-visible', 'outline', '2px solid #96704e');
++  expectDeclaration(file, '.ura-table-wrap', 'overflow-x', 'auto');
++  expectDeclaration(file, '.ura-page .ura-table-wrap', 'max-width', '100%');
++});
+--- before/tests/css-cascade-baseline.json
++++ after/tests/css-cascade-baseline.json
+@@ -19,7 +19,7 @@
+         "border-top-color"
+       ]
+     },
+-    "canonicalHash": "6bd186f9f29ba5c8fdf10c4e6e61a3823a7f90ede4061c88415d3f422d87ba83",
++    "canonicalHash": "9e6377fbeb588172af53316247e11ff2ded0b19463d187d57f160d3bc9ee94db",
+     "removed": [
+       {
+         "selector": ".customers-page",
+@@ -99,7 +99,18 @@
+         "value": "var(--text-primary, #292522)",
+         "line": 124
+       }
+-    ]
++    ],
++    "review": {
++      "previousCanonicalHash": "6bd186f9f29ba5c8fdf10c4e6e61a3823a7f90ede4061c88415d3f422d87ba83",
++      "phase": "U09",
++      "canonicalLineEndings": "CRLF",
++      "reviewedChanges": [
++        "Existing customer-register-specific centered cells are now left-aligned, matching approved monetary conventions.",
++        "Existing identity/contact offsets now start at matching header/body positions; action/status subcontainers follow cell alignment.",
++        "No column widths, table borders, scrolling or print declarations changed."
++      ],
++      "printHash": "ea7d77e798fa233bb44f8f9017247d15562a960facf3c7c4addbf6011080c960"
++    }
+   },
+   {
+     "file": "src/pages/Quotations/styles/quotations.css",
+--- before/tests/quotation-dates.test.mjs
++++ after/tests/quotation-dates.test.mjs
+@@ -10,7 +10,7 @@
+   }
+ });
+ test('conversion handles midnight and preserves explicit timezone offsets', () => {
+-  assert.match(formatQuotationTimestamp('2026-09-28T23:45:00Z', { timeZone: 'Asia/Kolkata' }), /29 Sept 2026, 05:15 am/i);
++  assert.match(formatQuotationTimestamp('2026-09-28T23:45:00Z', { timeZone: 'Asia/Kolkata' }), /29\/09\/2026, 05:15 am/i);
+   assert.match(formatQuotationTimestamp('2026-09-28T09:36:00Z', { timeZone: 'UTC' }), /09:36 am/i);
+ });
+ test('invalid or missing timestamps have a readable fallback', () => {
+--- before/tests/phase2-presentation.test.jsx
++++ after/tests/phase2-presentation.test.jsx
+@@ -0,0 +1,59 @@
++import React from 'react';
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { renderToStaticMarkup } from 'react-dom/server';
++import { DeliveryTime } from '../src/pages/Webhooks/DeliveryDetails';
++import { formatChargeValue } from '../src/pages/Settings/chargeDisplay';
++import { displayDate } from '../src/utils/localDate';
++import { formatQuotationTimestamp } from '../src/pages/Quotations/utils/quotationDates';
++
++test('Fixed charge values preserve precision without inventing a missing currency', () => {
++  const charge = { calculationType: 'Fixed', value: 20000 };
++  const before = JSON.stringify(charge);
++  assert.equal(formatChargeValue(charge), '20,000.00');
++  assert.equal(formatChargeValue({ ...charge, value: 100 }), '100.00');
++  assert.equal(formatChargeValue({ ...charge, value: 0 }), '0.00');
++  assert.equal(formatChargeValue(charge, 'unsupported'), '20,000.00');
++  assert.equal(JSON.stringify(charge), before);
++});
++
++test('Confirmed charge currency reuses the shared formatter and percentages remain rates', () => {
++  assert.equal(formatChargeValue({ calculationType: 'Fixed', value: 12.345 }, 'USD'), '$12.35');
++  assert.match(formatChargeValue({ calculationType: 'Fixed', value: 100 }, 'INR'), /100\.00/);
++  assert.equal(formatChargeValue({ calculationType: 'Percentage', value: 7.5 }), '7.5%');
++  assert.equal(formatChargeValue({ calculationType: 'Fixed', value: null }), 'Unavailable');
++  assert.equal(formatChargeValue({ calculationType: 'Fixed', value: Infinity }), 'Unavailable');
++});
++
++test('Delivery timestamp renders invoice-style UTC calendar day and explicit UTC clock', () => {
++  const html = renderToStaticMarkup(<DeliveryTime value="2026-10-27T00:15:00+05:30" />);
++  assert.match(html, /26\/10\/2026/);
++  assert.match(html, /6:45 pm UTC/);
++  assert.match(html, /2026-10-26T18:45:00.000Z/);
++  assert.doesNotMatch(html, /27\/10\/2026/);
++});
++
++test('Delivery preserves legacy timezone-less UTC semantics and missing-date fallback', () => {
++  const html = renderToStaticMarkup(<DeliveryTime value="2026-10-26T18:45:00" />);
++  assert.match(html, /26\/10\/2026/);
++  assert.match(html, /6:45 pm UTC/);
++  for (const value of [null, '', 'invalid']) assert.match(renderToStaticMarkup(<DeliveryTime value={value} />), /Not provided/);
++});
++
++test('Quotation timestamps preserve the instant, expose timezone and reject ambiguous API timestamps', () => {
++  assert.match(formatQuotationTimestamp('2026-10-26T23:45:00Z'), /27\/10\/2026.*05:15 am IST/);
++  assert.match(formatQuotationTimestamp('2026-10-27T05:15:00+05:30'), /27\/10\/2026.*05:15 am IST/);
++  assert.match(formatQuotationTimestamp('2026-10-26T23:45:00Z', { timeZone: 'UTC' }), /26\/10\/2026.*11:45 pm UTC/);
++  assert.match(formatQuotationTimestamp('2026-10-26T23:45:00'), /missing or invalid timezone/);
++});
++
++test('Date-only invoice convention retains the supplied day under multiple browser timezones', () => {
++  const original = process.env.TZ;
++  try {
++    for (const zone of ['Asia/Kolkata', 'America/Los_Angeles', 'UTC']) {
++      process.env.TZ = zone;
++      assert.equal(displayDate('2026-10-26'), '26/10/2026');
++      assert.equal(displayDate('2026-11-25T00:00:00Z'), '25/11/2026');
++    }
++  } finally { if (original === undefined) delete process.env.TZ; else process.env.TZ = original; }
++});
+--- before/tests/run-phase2-presentation.mjs
++++ after/tests/run-phase2-presentation.mjs
+@@ -0,0 +1,29 @@
++import { build } from 'esbuild';
++import { spawnSync } from 'node:child_process';
++import { unlink } from 'node:fs/promises';
++import { fileURLToPath } from 'node:url';
++
++const outfile = new URL('./.phase2-presentation.cjs', import.meta.url);
++try {
++  await build({
++    entryPoints: [fileURLToPath(new URL('./phase2-presentation.test.jsx', import.meta.url))],
++    outfile: fileURLToPath(outfile), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
++    loader: { '.css': 'empty' }, external: ['react', 'react/*', 'react-dom', 'react-dom/*', 'antd', '@mui/*', '@emotion/*', '@tanstack/*', 'axios', 'dayjs', 'jsdom'],
++    alias: Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
++    define: { 'import.meta': '{"env":{}}' },
++    banner: { js: `const { JSDOM } = require('jsdom');
++      const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:3000', pretendToBeVisual: true });
++      for (const key of ['window','localStorage','document','Document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot']) global[key] = dom.window[key];
++      Object.defineProperty(global, 'navigator', { value: dom.window.navigator, configurable: true });
++      global.getComputedStyle = element => dom.window.getComputedStyle(element);
++      global.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
++      global.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
++      window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
++      global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
++      window.scrollTo = () => {}; HTMLElement.prototype.scrollTo = () => {};
++      global.IS_REACT_ACT_ENVIRONMENT = true;` },
++  });
++  // Forward Node test options so focused regression runs do not execute every notification test.
++  const result = spawnSync(process.execPath, ['--test', '--test-force-exit', ...process.argv.slice(2), fileURLToPath(outfile)], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 });
++  process.stdout.write(result.stdout); process.stderr.write(result.stderr); process.exitCode = result.status ?? 1;
++} finally { await unlink(outfile).catch(error => { if (error.code !== 'ENOENT') throw error; }); }

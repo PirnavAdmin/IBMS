@@ -1,0 +1,8 @@
+[
+  {
+    "record_index": 110,
+    "label": "quotation-state-update-before",
+    "route": "/products",
+    "reason": "Observation is not on the quotation route; excluded from verification."
+  }
+]

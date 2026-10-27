@@ -1,0 +1,329 @@
+diff --git a/Frontend/billing-react/tests/css-cascade-baseline.json b/Frontend/billing-react/tests/css-cascade-baseline.json
+index 3b0bcc2b..b24998ea 100644
+--- a/Frontend/billing-react/tests/css-cascade-baseline.json
++++ b/Frontend/billing-react/tests/css-cascade-baseline.json
+@@ -114,7 +114,7 @@
+         "margin-bottom"
+       ]
+     },
+-    "canonicalHash": "1591b585a3a9a9854474af453035b327067fde72eda8d2b8a1ad0a483f9f284f",
++    "canonicalHash": "91e1122efcf56446df2e423dd68a9afb91dfa16c1ca5b284abb2ae0432f0c60b",
+     "removed": [
+       {
+         "selector": ".quote-actions",
+@@ -134,7 +134,17 @@
+         "value": "16px",
+         "line": 78
+       }
+-    ]
++    ],
++    "review": {
++      "previousCanonicalHash": "1591b585a3a9a9854474af453035b327067fde72eda8d2b8a1ad0a483f9f284f",
++      "comparisonCommit": "028d339c",
++      "comparisonCommitMatchesPreviousHashWithCRLF": true,
++      "canonicalLineEndings": "CRLF",
++      "reviewedChanges": [
++        "Previously committed compact quotation filter controls and consistent dropdown arrows; no responsive, print or financial rules removed."
++      ],
++      "printHash": "cb1247877a0dbaaa7328962db58e001a6e7a63142bda9c9780f340752cb584c8"
++    }
+   },
+   {
+     "file": "src/pages/CreditNotes/styles/credit-notes.css",
+@@ -161,7 +171,7 @@
+         "font-size"
+       ]
+     },
+-    "canonicalHash": "f890812068a16de373780713edbfe75caa36a0488146f1728009602825f897dc",
++    "canonicalHash": "7d14c149b4301fd9bd72061269d3b4477fb917753d63d7d4b3545c840770f054",
+     "removed": [
+       {
+         "selector": ".cn-eligibility-summary",
+@@ -235,7 +245,18 @@
+         "value": "#81562f",
+         "line": 151
+       }
+-    ]
++    ],
++    "review": {
++      "previousCanonicalHash": "f890812068a16de373780713edbfe75caa36a0488146f1728009602825f897dc",
++      "comparisonCommit": "028d339c",
++      "comparisonCommitMatchesPreviousHashWithCRLF": true,
++      "canonicalLineEndings": "CRLF",
++      "reviewedChanges": [
++        "Previously committed bounded status menu, pagination controls, detail toolbar/document and refund/empty-state styling.",
++        "Approved U02/U03 screen-scoped summary grid and wrapping search/status/type/date controls; all print rules unchanged."
++      ],
++      "printHash": "2a59d639db87dda2bdeabd1903ec7511969989cc0427f58f8194be17f3a6a016"
++    }
+   },
+   {
+     "file": "src/styles/WorkspaceUI.css",
+@@ -244,7 +265,7 @@
+         "background"
+       ]
+     },
+-    "canonicalHash": "9b838cdbb47f9b80f275f1b5744cfd437a7e02e9b292c286d03294336575cc82",
++    "canonicalHash": "efdb41ac651f44de570e6e7f9f9e4150fbcce0085e14198929aca4255e3aab7c",
+     "removed": [
+       {
+         "selector": ".app-layout .ibms-table-frame",
+@@ -252,6 +273,17 @@
+         "value": "var(--surface)",
+         "line": 49
+       }
+-    ]
++    ],
++    "review": {
++      "previousCanonicalHash": "9b838cdbb47f9b80f275f1b5744cfd437a7e02e9b292c286d03294336575cc82",
++      "comparisonCommit": "028d339c",
++      "comparisonCommitMatchesPreviousHashWithCRLF": true,
++      "canonicalLineEndings": "CRLF",
++      "reviewedChanges": [
++        "Previously committed cappuccino scrollbars and bounded screen-only table viewports; invoice documents excluded.",
++        "Previously committed Ant table overflow-y:auto override retains access to rows; print, theme variables, focus and header alignment unchanged."
++      ],
++      "printHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
++    }
+   }
+ ]
+diff --git a/Frontend/billing-react/tests/css-cascade.test.mjs b/Frontend/billing-react/tests/css-cascade.test.mjs
+index 6b86f2e2..aa91ad85 100644
+--- a/Frontend/billing-react/tests/css-cascade.test.mjs
++++ b/Frontend/billing-react/tests/css-cascade.test.mjs
+@@ -4,10 +4,13 @@ import { readFileSync } from 'node:fs';
+ import { createHash } from 'node:crypto';
+ import postcss from 'postcss';
+ 
++// Preserve the original CRLF snapshot convention on every platform.
++const normalizeLineEndings = source => source.replace(/\r\n?|\n/g, '\r\n');
+ const baseline = JSON.parse(readFileSync(new URL('./css-cascade-baseline.json', import.meta.url)));
+ for (const { file, selectors, canonicalHash, removed } of baseline) {
+   test(`CSS cascade preserved, including responsive/print/theme rules: ${file}`, () => {
+-    const tree = postcss.parse(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
++    // Normalize checkout line endings, preserving all selectors, declarations and rule order.
++    const tree = postcss.parse(normalizeLineEndings(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')));
+     const last = new Map();
+     tree.walkRules(rule => {
+       if (rule.parent.type !== 'root' || !selectors[rule.selector]) return;
+@@ -26,3 +29,109 @@ for (const { file, selectors, canonicalHash, removed } of baseline) {
+     assert.ok(removed.length > 0);
+   });
+ }
++
++// These invariants supplement (never replace) the whole-file hashes above.
++const cssTree = file => postcss.parse(normalizeLineEndings(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')));
++const paths = {
++  invoice: 'src/pages/Invoices/styles/invoices.css',
++  credit: 'src/pages/CreditNotes/styles/credit-notes.css',
++  templates: 'src/pages/InvoiceTemplates/invoice-templates.css',
++  workspace: 'src/styles/WorkspaceUI.css',
++};
++function declaration(file, selector, property, media = null) {
++  let found;
++  cssTree(file).walkRules(rule => {
++    const scope = rule.parent.type === 'atrule' && rule.parent.name === 'media' ? rule.parent.params : null;
++    if (scope !== media || !rule.selectors.includes(selector)) return;
++    rule.nodes.forEach(node => {
++      if (node.type === 'decl' && node.prop === property && (!found?.important || node.important)) found = node;
++    });
++  });
++  assert.ok(found, `Missing ${selector} { ${property} } in ${media || 'root'} (${file})`);
++  return found;
++}
++const expectDeclaration = (file, selector, property, value, media = null) => assert.equal(declaration(file, selector, property, media).value, value, `${selector}: ${property} at ${media || 'root'}`);
++
++test('CSS canonicalization ignores only CRLF/LF differences and still detects styling changes', () => {
++  const canonical = source => {
++    const tree = postcss.parse(normalizeLineEndings(source));
++    const walk = node => node.type === 'comment' ? null : node.type === 'decl'
++      ? [node.prop, node.value, Boolean(node.important)]
++      : [node.type, node.selector || node.name || '', node.params || '', node.nodes?.map(walk).filter(Boolean)];
++    return JSON.stringify(walk(tree));
++  };
++  const sample = '.a,\n.b { color: brown; }\n@media print { .a { overflow: visible !important; } }';
++  assert.equal(canonical(sample), canonical(sample.replace(/\n/g, '\r\n')));
++  assert.notEqual(canonical(sample), canonical(sample.replace('brown', 'red')));
++  assert.notEqual(canonical(sample), canonical(sample.replace(' !important', '')));
++  assert.notEqual(canonical(sample), canonical(sample.replace('@media print', '@media screen')));
++});
++
++test('U01 responsive detail grid matches desktop specificity and keeps financial values visible', () => {
++  const selector = '.invoice-summary-grid.invoice-detail-kpis';
++  expectDeclaration(paths.invoice, selector, 'grid-template-columns', 'repeat(2, minmax(0, 1fr))', '(max-width: 900px)');
++  expectDeclaration(paths.invoice, selector, 'grid-template-columns', '1fr', '(max-width: 680px)');
++  const value = '.invoice-detail-kpis .invoice-summary-card :is(span, strong, small)';
++  for (const [prop, expected] of Object.entries({ 'min-width': '0', 'white-space': 'normal', overflow: 'visible', 'text-overflow': 'clip', 'overflow-wrap': 'anywhere' })) {
++    expectDeclaration(paths.invoice, value, prop, expected, '(max-width: 900px)');
++  }
++});
++
++test('U02/U03 credit summaries and filters keep scoped mobile width and value safeguards', () => {
++  expectDeclaration(paths.credit, '.cn-list-page .cn-summary-grid', 'grid-template-columns', 'repeat(2, minmax(0, 1fr))', 'screen and (max-width: 760px)');
++  expectDeclaration(paths.credit, '.cn-list-page .cn-summary-grid', 'grid-template-columns', 'minmax(0, 1fr)', 'screen and (max-width: 480px)');
++  expectDeclaration(paths.credit, '.cn-list-page .cn-summary-card :is(strong, small, .cn-summary-label)', 'overflow-wrap', 'anywhere', 'screen and (max-width: 760px)');
++  expectDeclaration(paths.credit, '.cn-source-summary strong', 'overflow-wrap', 'anywhere');
++  expectDeclaration(paths.credit, '.cn-summary-card strong', 'font-variant-numeric', 'tabular-nums');
++  expectDeclaration(paths.credit, '.cn-list-page .cn-filter-bar', 'flex-wrap', 'wrap', 'screen and (max-width: 900px)');
++  for (const selector of ['.cn-search', '.cn-status-filter']) {
++    expectDeclaration(paths.credit, `.cn-list-page .cn-filter-bar ${selector}`, 'min-width', '0', 'screen and (max-width: 900px)');
++  }
++});
++
++test('Wide tables retain local scrolling and matching template header/body proportions', () => {
++  const scope = '.template-list-card[aria-labelledby="template-list-heading"]';
++  expectDeclaration(paths.templates, `${scope} .template-table-wrap`, 'overflow-x', 'auto');
++  expectDeclaration(paths.templates, `${scope} .template-table-wrap`, 'max-width', '100%');
++  expectDeclaration(paths.templates, `${scope} .template-table`, 'min-width', '1080px');
++  for (let index = 1; index <= 7; index++) {
++    const header = declaration(paths.templates, `${scope} .template-table th:nth-child(${index})`, 'width');
++    assert.equal(header.value, declaration(paths.templates, `${scope} .template-table td:nth-child(${index})`, 'width').value);
++  }
++  expectDeclaration(paths.templates, `.app-layout ${scope} .template-table thead th.template-actions-heading`, 'text-align', 'center');
++  expectDeclaration(paths.templates, `${scope} .template-table td:nth-child(7)`, 'text-align', 'center');
++  expectDeclaration(paths.workspace, '.app-layout .ibms-table-frame', 'overflow', 'auto');
++  expectDeclaration(paths.workspace, '.app-layout .ibms-table-frame', 'max-width', '100%');
++  expectDeclaration(paths.workspace, '.app-layout .ibms-table-frame th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric)', 'text-align', 'left');
++});
++
++test('Print rules preserve full invoice/credit content and remain independent of screen viewports', () => {
++  const serialize = node => node.type === 'comment' ? null : node.type === 'decl'
++    ? [node.prop, node.value, Boolean(node.important)]
++    : [node.type, node.selector || node.name || '', node.params || '', node.nodes?.map(serialize).filter(Boolean)];
++  for (const entry of baseline.filter(entry => entry.review)) {
++    const prints = [];
++    cssTree(entry.file).walkAtRules('media', rule => { if (rule.params === 'print') prints.push(serialize(rule)); });
++    assert.equal(createHash('sha256').update(JSON.stringify(prints)).digest('hex'), entry.review.printHash, entry.file);
++  }
++  for (const [file, selector] of [
++    [paths.invoice, '.invoice-table-scroll'],
++    [paths.credit, '.cn-list-page .cn-table-wrap'],
++    [paths.credit, '.cn-preview-page .cn-detail-table-wrap'],
++  ]) {
++    const decl = declaration(file, selector, 'overflow', 'print');
++    assert.equal(decl.value, 'visible'); assert.ok(decl.important, `${selector} print overrides screen scrolling`);
++  }
++});
++
++test('Cappuccino theme and visible keyboard focus are protected', () => {
++  expectDeclaration(paths.workspace, '.app-layout', '--ui-table-header-bg', '#f5efe8');
++  expectDeclaration(paths.workspace, '.app-layout', '--ui-row-border', '#f0e6dc');
++  expectDeclaration(paths.credit, '.cn-page', 'background', 'var(--bg-main, #f8f1e7)');
++  expectDeclaration(paths.credit, '.cn-page .MuiButton-contained', 'background', '#5a2508');
++  for (const [file, selector, expected] of [
++    [paths.credit, '.cn-invoice-option:focus-visible', '3px solid #b98354'],
++    [paths.workspace, '.app-layout .premium-stat-link:focus-visible', '2px solid var(--primary)'],
++    [paths.templates, '.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap:focus-visible', '2px solid var(--primary, #70472f)'],
++  ]) expectDeclaration(file, selector, 'outline', expected);
++});
+diff --git a/Frontend/billing-react/tests/notifications-ui.test.jsx b/Frontend/billing-react/tests/notifications-ui.test.jsx
+index 7c5030ec..b7d469d6 100644
+--- a/Frontend/billing-react/tests/notifications-ui.test.jsx
++++ b/Frontend/billing-react/tests/notifications-ui.test.jsx
+@@ -254,7 +254,14 @@ test('Form preview uses unsaved server-rendered request; duplicate save and back
+ });
+ 
+ test('History renders all statuses, failure/retry info, null date and server pagination/filter/search', async () => {
+-  const ui=await mount(`${rootPath}/history`,call=>call.url.endsWith('/history')?envelope(page([historyRow,{...historyRow,id:72,status:'Sent',sentAtUtc:null,failureReason:null},{...historyRow,id:73,status:'Queued',failureReason:null}],45,call.config.params.pageNumber,call.config.params.pageSize)):undefined);
++  const ui=await mount(`${rootPath}/history`,call => {
++    if (!call.url.endsWith('/history')) return undefined;
++    const { pageNumber, pageSize } = call.config.params;
++    const items = pageNumber === 2
++      ? [{ ...historyRow, id: 171, recipient: 'page-two@example.test', subject: 'Second page delivery' }]
++      : [historyRow, { ...historyRow, id: 72, status: 'Sent', sentAtUtc: null, failureReason: null }, { ...historyRow, id: 73, status: 'Queued', failureReason: null }];
++    return envelope(page(items, 45, pageNumber, pageSize));
++  });
+   try {
+     assert.match(ui.host.textContent,/customer@example.test/); assert.match(ui.host.textContent,/SMTP recipient rejected/);
+     for(const status of HISTORY_STATUSES) assert.ok([...ui.host.querySelectorAll('.ant-tag')].some(tag=>tag.textContent===status));
+@@ -262,12 +269,25 @@ test('History renders all statuses, failure/retry info, null date and server pag
+     assert.equal(ui.host.querySelector('[aria-label="Retry notification 72"]'),null); assert.equal(ui.host.querySelector('[aria-label="Retry notification 73"]'),null);
+     assert.equal(ui.host.querySelector('tr[data-row-key="72"]').children[2].textContent,'—');
+     assert.equal(ui.host.querySelector('tr[data-row-key="71"]').children[4].textContent,'2');
+-    await click(ui.host.querySelector('.ant-pagination-item-2')); await until(()=>ui.calls.some(call=>call.config?.params?.pageNumber===2));
++    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 1–20 of 45 notifications/);
++    const pages = ui.host.querySelector('nav[aria-label="notifications pages"]');
++    assert.ok(pages, 'Pagination has an accessible navigation label');
++    await click(pages.querySelector('button[aria-label="Go to next page"]'));
++    await until(() => ui.host.textContent.includes('page-two@example.test'));
++    assert.deepEqual(ui.calls.filter(call => call.url.endsWith('/history')).at(-1).config.params, { pageNumber: 2, pageSize: 20 });
++    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 21–40 of 45 notifications/);
++    assert.equal(ui.host.querySelector('nav[aria-label="notifications pages"] [aria-current]:not([aria-current="false"])').textContent, '2');
++    assert.equal(ui.host.querySelector('tr[data-row-key="71"]'), null, 'Previous-page data is replaced');
++    assert.match(ui.host.querySelector('tr[data-row-key="171"]').textContent, /Second page delivery/);
+     await select('History event filter','Payment Failed'); await select('History status filter','Failed');
+     await type(ui.host.querySelector('[aria-label="Search history"]'),' customer ');
+     await act(async()=>Simulate.submit(ui.host.querySelector('form'))); await settle();
+     const last=ui.calls.filter(call=>call.url.endsWith('/history')).at(-1);
+     assert.deepEqual(last.config.params,{pageNumber:1,pageSize:20,eventType:'PaymentFailed',status:'Failed',searchTerm:'customer'});
++    await until(() => ui.host.querySelector('tr[data-row-key="71"]'));
++    assert.equal(ui.host.querySelector('tr[data-row-key="171"]'), null);
++    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 1–20 of 45 notifications/);
++    assert.equal(ui.host.querySelector('nav[aria-label="notifications pages"] [aria-current]:not([aria-current="false"])').textContent, '1');
+     assert.match(ui.host.textContent,/Date Range \(IST\)/);
+   } finally { await ui.close(); }
+ });
+@@ -471,20 +491,41 @@ test('HTML parser never rewrites unknown tokens containing entity characters', (
+ });
+ 
+ 
+-test('Audit and notification errors use standard connection wording without infrastructure details', async () => {
++test('Audit and notification errors keep transport normalization and accessible friendly errors with recovery', async () => {
+   for (const message of ['Backend unavailable. Check the network connection and ngrok tunnel.', 'Backend unavailable. The ngrok tunnel may be offline.', 'Network Error']) {
+     assert.equal(errorPresentation(message),connectionErrorMessage);
+     assert.equal(notificationError(new Error(message)),connectionErrorMessage);
+   }
+   assert.equal(errorPresentation('Template no longer exists.'),'Template no longer exists.');
+-  const ui=await mount(rootPath,()=>{throw new Error('Backend unavailable. Check the network connection and ngrok tunnel.');});
+-  try {
+-    assert.ok(ui.host.querySelector('.bd-dashboard-error'));
+-    assert.match(ui.host.textContent,/Unable to load data/);
+-    assert.ok(ui.host.textContent.includes(connectionErrorMessage));
+-    assert.doesNotMatch(ui.host.textContent,/Backend unavailable|ngrok|Unable to load notification data/);
+-    assert.ok(button('Retry',ui.host));
+-  } finally { await ui.close(); }
++  for (const [path, endpoint, recoveredText] of [
++    [rootPath, '/notification-templates', 'Customer invoice'],
++    [`${rootPath}/history`, '/history', 'customer@example.test'],
++  ]) {
++    let failed = true;
++    const ui = await mount(path, call => {
++      if (call.method === 'get' && call.url.endsWith(endpoint) && failed) {
++        throw new Error('Backend unavailable. Check the network connection and ngrok tunnel.');
++      }
++    });
++    try {
++      const alert = ui.host.querySelector('[role="alert"]');
++      assert.ok(alert, 'API failure is announced as an alert');
++      assert.equal(alert.querySelector('h2').textContent, 'Unable to load data');
++      assert.equal(alert.querySelector('p').textContent, 'data is temporarily unavailable. Please try again.');
++      assert.doesNotMatch(ui.host.textContent, /Backend unavailable|ngrok|No templates found|No communications found/);
++      assert.equal(ui.host.querySelector('table'), null, 'Failure must not render an empty-success table');
++      const retry = button('Retry', alert);
++      assert.ok(retry && !retry.disabled, 'Retry is an enabled, named button');
++      const before = ui.calls.filter(call => call.url.endsWith(endpoint)).length;
++      failed = false;
++      await click(retry);
++      await until(() => ui.host.textContent.includes(recoveredText));
++      assert.equal(ui.calls.filter(call => call.url.endsWith(endpoint)).length, before + 1, 'Retry refetches once');
++      assert.equal(ui.host.querySelector('[role="alert"]'), null, 'Recovered data replaces the error');
++      assert.ok(ui.host.querySelector('table'));
++      assert.equal(ui.calls.filter(call => call.method !== 'get').length, 0);
++    } finally { await ui.close(); }
++  }
+ });
+ 
+ 
+diff --git a/Frontend/billing-react/tests/run-notification-ui.mjs b/Frontend/billing-react/tests/run-notification-ui.mjs
+index 76b5819d..ffa441c6 100644
+--- a/Frontend/billing-react/tests/run-notification-ui.mjs
++++ b/Frontend/billing-react/tests/run-notification-ui.mjs
+@@ -23,6 +23,7 @@ try {
+       window.scrollTo = () => {}; HTMLElement.prototype.scrollTo = () => {};
+       global.IS_REACT_ACT_ENVIRONMENT = true;` },
+   });
+-  const result = spawnSync(process.execPath, ['--test', '--test-force-exit', fileURLToPath(outfile)], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 });
++  // Forward Node test options so focused regression runs do not execute every notification test.
++  const result = spawnSync(process.execPath, ['--test', '--test-force-exit', ...process.argv.slice(2), fileURLToPath(outfile)], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 });
+   process.stdout.write(result.stdout); process.stderr.write(result.stderr); process.exitCode = result.status ?? 1;
+ } finally { await unlink(outfile).catch(error => { if (error.code !== 'ENOENT') throw error; }); }

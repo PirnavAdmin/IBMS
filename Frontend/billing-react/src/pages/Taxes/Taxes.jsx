@@ -1,3 +1,4 @@
+import { displayDate } from '../../utils/localDate';
 import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
 import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
 import "../../styles/Dashboard.css";
@@ -414,8 +415,8 @@ function TaxList({ search, setSearch }) {
                         <td>{tax.rate}%</td>
                         <td>{tax.calculation}</td>
                         <td>{tax.priority}</td>
-                        <td>{tax.effectiveFrom}</td>
-                        <td>{tax.effectiveTo || "No end date"}</td>
+                        <td>{displayDate(tax.effectiveFrom)}</td>
+                        <td>{tax.effectiveTo ? displayDate(tax.effectiveTo) : "No end date"}</td>
                         <td>
                           <span
                             className={`tax-status tax-status-${tax.status.toLowerCase()}`}
@@ -445,7 +446,7 @@ function TaxList({ search, setSearch }) {
         <section className="tax-detail-panel" aria-label={`${selectedTax.name} details`} aria-live="polite">
           <div className="tax-detail-heading"><div><span className="tax-eyebrow">TAX RULE DETAILS</span><h2>{selectedTax.name}</h2></div><button type="button" className="tax-secondary-btn" onClick={() => setSelectedTax(null)}>Close</button></div>
           <dl className="tax-detail-grid">
-            {[["Tax Code", selectedTax.code], ["Tax Type", selectedTax.type], ["Rate", `${selectedTax.rate}%`], ["Calculation", selectedTax.calculation], ["Priority", selectedTax.priority], ["Effective From", selectedTax.effectiveFrom], ["Effective To", selectedTax.effectiveTo || "No end date"], ["Status", selectedTax.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}
+            {[["Tax Code", selectedTax.code], ["Tax Type", selectedTax.type], ["Rate", `${selectedTax.rate}%`], ["Calculation", selectedTax.calculation], ["Priority", selectedTax.priority], ["Effective From", displayDate(selectedTax.effectiveFrom)], ["Effective To", selectedTax.effectiveTo ? displayDate(selectedTax.effectiveTo) : "No end date"], ["Status", selectedTax.status]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}
           </dl>
         </section>
       )}

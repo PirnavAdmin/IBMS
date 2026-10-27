@@ -1,0 +1,38 @@
+[
+  {
+    "background": "rgb(255, 255, 255)",
+    "color": "rgb(99, 61, 40)",
+    "font": "11.5px",
+    "height": 30,
+    "selector": "ant-btn css-dev-only-do-not-override-oc1rc0 css-var-rc9 ant-btn-default ant-btn-color-default ant-btn-variant-outlined",
+    "text": "Back to Settings",
+    "width": 127.125
+  },
+  {
+    "background": "rgb(255, 255, 255)",
+    "color": "rgb(99, 61, 40)",
+    "font": "11.5px",
+    "height": 30,
+    "selector": "ant-btn css-dev-only-do-not-override-oc1rc0 css-var-rc9 ant-btn-default ant-btn-color-default ant-btn-variant-outlined",
+    "text": "Communication History",
+    "width": 148.6125030517578
+  },
+  {
+    "background": "rgb(255, 255, 255)",
+    "color": "rgb(99, 61, 40)",
+    "font": "11.5px",
+    "height": 30,
+    "selector": "ant-btn css-dev-only-do-not-override-oc1rc0 css-var-rc9 ant-btn-default ant-btn-color-default ant-btn-variant-outlined",
+    "text": "Restore Missing Defaults",
+    "width": 155.85000610351562
+  },
+  {
+    "background": "rgb(99, 61, 40)",
+    "color": "rgb(255, 255, 255)",
+    "font": "11.5px",
+    "height": 30,
+    "selector": "ant-btn css-dev-only-do-not-override-oc1rc0 css-var-rc9 ant-btn-primary ant-btn-color-primary ant-btn-variant-solid",
+    "text": "Create Template",
+    "width": 108.9124984741211
+  }
+]

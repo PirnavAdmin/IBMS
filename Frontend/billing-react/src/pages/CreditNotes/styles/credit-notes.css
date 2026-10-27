@@ -417,6 +417,21 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 @media (max-width: 420px) {
   .cn-document-title { flex-direction: column; }
 }
+/* U02/U03: adapt only the credit-note register, not document/print layouts. */
+@media screen and (max-width: 900px) {
+  .cn-list-page .cn-filter-bar { flex-wrap: wrap; align-items: stretch; }
+  .cn-list-page .cn-filter-bar .cn-search { flex: 1 1 100%; min-width: 0; max-width: none; }
+  .cn-list-page .cn-filter-bar .cn-status-filter { flex: 1 1 180px; min-width: 0; width: auto; }
+  .cn-list-page .cn-filter-bar > .date-range-filter { flex: 1 1 180px; min-width: 0; max-width: none; }
+}
+@media screen and (max-width: 760px) {
+  .cn-list-page .cn-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .cn-list-page .cn-summary-card { padding: 14px; }
+  .cn-list-page .cn-summary-card :is(strong, small, .cn-summary-label) { min-width: 0; overflow-wrap: anywhere; }
+}
+@media screen and (max-width: 480px) {
+  .cn-list-page .cn-summary-grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media print {
   @page { size: A4; margin: 6mm; }
   @page credit-notes-list { size: A4 landscape; margin: 7mm; }

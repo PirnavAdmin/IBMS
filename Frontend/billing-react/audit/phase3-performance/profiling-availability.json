@@ -1,0 +1,14 @@
+{
+  "iab_tab": 1,
+  "capabilities": [
+    "pageAssets",
+    "webmcp"
+  ],
+  "network_trace_capability": false,
+  "performance_read_result": "TypeError: performance is undefined in supported evaluate environment",
+  "react_profiler_access": false,
+  "native_fallback_result": "Computer Use stopped: could not determine the current browser URL on Windows with enough confidence to enforce policy.",
+  "browser_input_stopped": true,
+  "runtime_samples": 0,
+  "no_controller_timings_used_as_app_measurements": true
+}

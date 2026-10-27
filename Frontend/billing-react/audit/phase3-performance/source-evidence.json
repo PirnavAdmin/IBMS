@@ -1,0 +1,514 @@
+[
+  {
+    "file": "src/routes/AppRoutes.jsx",
+    "match": "import { Dashboard }",
+    "line": 14,
+    "start": 12,
+    "end": 25,
+    "excerpt": "12: import { ResetPassword } from '../pages/ResetPassword/ResetPassword';\n13: \n14: import { Dashboard } from '../pages/Dashboard/Dashboard';\n15: import { AppLayout } from '../layouts/AppLayout';\n16: import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';\n17: import { AuditActivity } from '../pages/AuditActivity/AuditActivity';\n18: import { SettingsLanding } from '../pages/Settings/SettingsLanding';\n19: import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';\n20: import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';\n21: import { NotificationHistory } from '../pages/Notifications/NotificationHistory';\n22: import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';\n23: import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';\n24: import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';\n25: "
+  },
+  {
+    "file": "src/routes/AppRoutes.jsx",
+    "match": "import { CreditNoteExportPage }",
+    "line": 46,
+    "start": 44,
+    "end": 57,
+    "excerpt": "44: import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';\n45: import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';\n46: import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';\n47: import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';\n48: import { Integrations } from '../pages/Integrations/Integrations';\n49: import { Webhooks } from '../pages/Webhooks/Webhooks';\n50: import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';\n51: import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';\n52: import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';\n53: \n54: // Customers\n55: import { CustomerListPage } from '../pages/Customers/pages/CustomerListPage';\n56: import { CreateCustomer } from '../pages/Customers/pages/CreateCustomer';\n57: import { EditCustomer } from '../pages/Customers/pages/EditCustomer';"
+  },
+  {
+    "file": "src/routes/AppRoutes.jsx",
+    "match": "<Route path=\"/export-jobs\"",
+    "line": 138,
+    "start": 136,
+    "end": 149,
+    "excerpt": "136:       <Route path=\"/webhooks/deliveries\" element={<PermissionRoute permission=\"integrations.manage\"><DeliveryHistory /></PermissionRoute>} />\n137:       <Route path=\"/background-jobs\" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />\n138:       <Route path=\"/export-jobs\" element={<PermissionRoute permission={['billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />\n139:       <Route path=\"/integration-settings\" element={<Navigate to=\"/integrations\" replace />} />\n140:       <Route path=\"/settings\" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsLanding /></PermissionRoute>} />\n141:       <Route path=\"/user-role-administration/*\" element={<PermissionRoute permission={['users.view', 'roles.view', 'users.assign']}><UserRoleAdministration /></PermissionRoute>} />\n142:       <Route path=\"/settings/notifications\" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationTemplates /></PermissionRoute>} />\n143:       <Route path=\"/settings/notifications/new\" element={<PermissionRoute permission=\"settings.manage\"><NotificationTemplateForm /></PermissionRoute>} />\n144:       <Route path=\"/settings/notifications/:id/edit\" element={<PermissionRoute permission=\"settings.manage\"><NotificationTemplateForm /></PermissionRoute>} />\n145:       <Route path=\"/settings/notifications/history\" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationHistory /></PermissionRoute>} />\n146:       <Route path=\"/settings/countries\" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><CountryConfiguration /></PermissionRoute>} />\n147:       <Route path=\"/settings/country\" element={<Navigate to=\"/settings/countries\" replace />} />\n148:       <Route path=\"/settings/taxes/*\" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><Taxes /></PermissionRoute>} />\n149:       <Route path=\"/taxes/*\" element={<Navigate to=\"/settings/taxes\" replace />} />"
+  },
+  {
+    "file": "src/main.jsx",
+    "match": "<StrictMode>",
+    "line": 6,
+    "start": 4,
+    "end": 6,
+    "excerpt": "4: import './styles/index.css';\n5: \n6: ReactDOM.createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>);"
+  },
+  {
+    "file": "src/hooks/useDashboard.js",
+    "match": "const invoices = useQuery",
+    "line": 13,
+    "start": 11,
+    "end": 16,
+    "excerpt": "11:   // Currency filters the complete loaded ledger locally; only dates change requests.\n12:   const range = { start: filters.start, end: filters.end };\n13:   const invoices = useQuery({ queryKey: ['dashboard', ...scope, 'invoices', range], queryFn: ({ signal }) => getDashboardInvoices(range, signal), enabled: invoicesAllowed, retry: false, staleTime: 60000 });\n14:   const payments = useQuery({ queryKey: ['dashboard', ...scope, 'payments', range], queryFn: ({ signal }) => getDashboardPayments(range, signal), enabled: paymentsAllowed, retry: false, staleTime: 60000 });\n15:   return { invoices, payments, invoicesAllowed, paymentsAllowed, refresh: () => Promise.all([invoicesAllowed && invoices.refetch(), paymentsAllowed && payments.refetch()]) };\n16: };"
+  },
+  {
+    "file": "src/hooks/useDashboard.js",
+    "match": "const payments = useQuery",
+    "line": 14,
+    "start": 12,
+    "end": 16,
+    "excerpt": "12:   const range = { start: filters.start, end: filters.end };\n13:   const invoices = useQuery({ queryKey: ['dashboard', ...scope, 'invoices', range], queryFn: ({ signal }) => getDashboardInvoices(range, signal), enabled: invoicesAllowed, retry: false, staleTime: 60000 });\n14:   const payments = useQuery({ queryKey: ['dashboard', ...scope, 'payments', range], queryFn: ({ signal }) => getDashboardPayments(range, signal), enabled: paymentsAllowed, retry: false, staleTime: 60000 });\n15:   return { invoices, payments, invoicesAllowed, paymentsAllowed, refresh: () => Promise.all([invoicesAllowed && invoices.refetch(), paymentsAllowed && payments.refetch()]) };\n16: };"
+  },
+  {
+    "file": "src/services/dashboardService.js",
+    "match": "getDashboardInvoices",
+    "line": 4,
+    "start": 2,
+    "end": 5,
+    "excerpt": "2: import { paymentService } from '../pages/Payments/paymentService';\n3: import { collectPages, validateBillingRecords } from '../pages/Dashboard/dashboardModel';\n4: export const getDashboardInvoices = async (filters, signal) => validateBillingRecords(await collectPages(page => invoiceService.list({ startDate: filters.start, endDate: filters.end, page, pageSize: 100 }, { signal }), signal), 'invoices');\n5: export const getDashboardPayments = async (filters, signal) => validateBillingRecords(await collectPages(pageNumber => paymentService.getPayments({ from: filters.start ? `${filters.start}T00:00:00Z` : '', to: filters.end ? `${filters.end}T23:59:59.999Z` : '', pageNumber, pageSize: 100, sortBy: 'paymentDate', sortOrder: 'desc' }, { signal }), signal), 'payments');"
+  },
+  {
+    "file": "src/services/dashboardService.js",
+    "match": "getDashboardPayments",
+    "line": 5,
+    "start": 3,
+    "end": 5,
+    "excerpt": "3: import { collectPages, validateBillingRecords } from '../pages/Dashboard/dashboardModel';\n4: export const getDashboardInvoices = async (filters, signal) => validateBillingRecords(await collectPages(page => invoiceService.list({ startDate: filters.start, endDate: filters.end, page, pageSize: 100 }, { signal }), signal), 'invoices');\n5: export const getDashboardPayments = async (filters, signal) => validateBillingRecords(await collectPages(pageNumber => paymentService.getPayments({ from: filters.start ? `${filters.start}T00:00:00Z` : '', to: filters.end ? `${filters.end}T23:59:59.999Z` : '', pageNumber, pageSize: 100, sortBy: 'paymentDate', sortOrder: 'desc' }, { signal }), signal), 'payments');"
+  },
+  {
+    "file": "src/pages/Dashboard/dashboardModel.js",
+    "match": "export async function collectPages",
+    "line": 9,
+    "start": 7,
+    "end": 20,
+    "excerpt": "7: };\n8: export const money = (value, currency) => new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);\n9: export async function collectPages(load, signal, limit = 2000) {\n10:   const first = await load(1, signal);\n11:   if (first.totalCount > limit) throw new Error(`This range contains more than ${limit.toLocaleString()} records. Narrow the dates to load accurate analytics.`);\n12:   const rows = [...first.items];\n13:   const pages = Math.ceil(first.totalCount / first.pageSize);\n14:   for (let page = 2; page <= pages; page++) {\n15:     if (signal?.aborted) throw new Error('Request cancelled.');\n16:     const next = await load(page, signal);\n17:     if (next.totalCount !== first.totalCount) throw new Error('Billing records changed while loading. Refresh to calculate accurate totals.');\n18:     rows.push(...next.items);\n19:   }\n20:   if (rows.length !== first.totalCount || new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('Incomplete billing response. Refresh and try again.');"
+  },
+  {
+    "file": "src/pages/Dashboard/dashboardModel.js",
+    "match": "for (let page = 2",
+    "line": 14,
+    "start": 12,
+    "end": 25,
+    "excerpt": "12:   const rows = [...first.items];\n13:   const pages = Math.ceil(first.totalCount / first.pageSize);\n14:   for (let page = 2; page <= pages; page++) {\n15:     if (signal?.aborted) throw new Error('Request cancelled.');\n16:     const next = await load(page, signal);\n17:     if (next.totalCount !== first.totalCount) throw new Error('Billing records changed while loading. Refresh to calculate accurate totals.');\n18:     rows.push(...next.items);\n19:   }\n20:   if (rows.length !== first.totalCount || new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('Incomplete billing response. Refresh and try again.');\n21:   return rows;\n22: }\n23: export function billingInsights(invoices, payments, currency, now = new Date()) {\n24:   validateBillingRecords(invoices, 'invoices');\n25:   validateBillingRecords(payments, 'payments');"
+  },
+  {
+    "file": "src/pages/Dashboard/Dashboard.jsx",
+    "match": "const currencies =",
+    "line": 28,
+    "start": 26,
+    "end": 39,
+    "excerpt": "26:   const { invoices, payments, invoicesAllowed, paymentsAllowed, refresh } = useDashboard(filters);\n27:   const user = authApi.getCurrentUser();\n28:   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);\n29:   const currency = selectDashboardCurrency(currencies, filters.currency || '');\n30:   const result = useMemo(() => {\n31:     if (!currency) return { data: null };\n32:     try { return { data: billingInsights(invoices.isError ? [] : invoices.data || [], payments.isError ? [] : payments.data || [], currency) }; }\n33:     catch (error) { return { error }; }\n34:   }, [invoices.data, payments.data, invoices.isError, payments.isError, currency]);\n35:   const loading = (invoicesAllowed && invoices.isPending) || (paymentsAllowed && payments.isPending);\n36:   const invoiceReady = invoicesAllowed && invoices.isSuccess;\n37:   const paymentReady = paymentsAllowed && payments.isSuccess;\n38:   const matchesRecord = row => {\n39:     const term = recordsSearch.trim().toLowerCase();"
+  },
+  {
+    "file": "src/pages/Dashboard/Dashboard.jsx",
+    "match": "const result = useMemo",
+    "line": 30,
+    "start": 28,
+    "end": 41,
+    "excerpt": "28:   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);\n29:   const currency = selectDashboardCurrency(currencies, filters.currency || '');\n30:   const result = useMemo(() => {\n31:     if (!currency) return { data: null };\n32:     try { return { data: billingInsights(invoices.isError ? [] : invoices.data || [], payments.isError ? [] : payments.data || [], currency) }; }\n33:     catch (error) { return { error }; }\n34:   }, [invoices.data, payments.data, invoices.isError, payments.isError, currency]);\n35:   const loading = (invoicesAllowed && invoices.isPending) || (paymentsAllowed && payments.isPending);\n36:   const invoiceReady = invoicesAllowed && invoices.isSuccess;\n37:   const paymentReady = paymentsAllowed && payments.isSuccess;\n38:   const matchesRecord = row => {\n39:     const term = recordsSearch.trim().toLowerCase();\n40:     return !term || [row.invoiceNumber, row.paymentNumber, row.customerName, row.customer?.name, row.status, row.id].some(value => String(value ?? '').toLowerCase().includes(term));\n41:   };"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "const loadTenantProfile",
+    "line": 47,
+    "start": 45,
+    "end": 58,
+    "excerpt": "45:   };\n46: };\n47: const loadTenantProfile = async () => {\n48:   const [userResponse,templatesResponse]=await Promise.all([\n49:     apiClient.get('/api/Auth/me'),\n50:     templateApi.list({Status:'Active',PageNumber:1,PageSize:20}),\n51:   ]);\n52:   const userProfile=tenantProfileFrom(unwrap(userResponse));\n53:   const templatePayload=templatesResponse?.data||templatesResponse||{};\n54:   const templates=Array.isArray(templatePayload)\n55:     ?templatePayload\n56:     :templatePayload.items||templatePayload.Items||[];\n57:   const activeTemplate=templates.find(template=>template.status===2||template.status==='Active'||template.Status===2||template.Status==='Active');\n58:   if(!activeTemplate)return userProfile;"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "const results=await Promise.allSettled",
+    "line": 94,
+    "start": 92,
+    "end": 105,
+    "excerpt": "92:   const load=async()=>{\n93:     const version=++generation.current; setLoading(true); setError('');\n94:     const results=await Promise.allSettled([\n95:       fetchAllPages(quotationApi.list),\n96:       fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/customers',{params}))),\n97:       fetchAllPages(async params=>unwrap(await apiClient.get('/api/v1/products',{params}))),\n98:       loadTenantProfile(),\n99:       phase5Api.getCharges(),\n100:     ]);\n101:     if(version!==generation.current)return;\n102:     try {\n103:       const [q,c,p,profile,charges]=results; setListFailed(results.some(result=>result.status==='rejected'));\n104:       if(q.status==='fulfilled')setQuotes(q.value.map(normalizeQuotation));\n105:       if(c.status==='fulfilled')setCustomers(c.value.map(parseCustomerResponse).filter(Boolean).map(row=>({...row,id:String(row.id),code:row.customerCode,mobile:row.phone,billingAddress:address(row.billingAddress),shippingAddress:address(row.shippingAddress),taxInfo:row.taxId||''})));"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "const enrich=q",
+    "line": 114,
+    "start": 112,
+    "end": 125,
+    "excerpt": "112:   };\n113:   useEffect(()=>{load();return()=>{generation.current++;};},[]);\n114:   const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});\n115:   const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};\n116:   const refreshDetails=async id=>{\n117:     const detail=await quotationApi.get(id);\n118:     const [communication,audit]=await Promise.allSettled([quotationApi.communication(id),quotationApi.audit(id)]);\n119:     const refreshed={\n120:       ...detail,\n121:       communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,\n122:       auditLogs:audit.status==='fulfilled'&&Array.isArray(audit.value)?audit.value:detail.auditLogs||[],\n123:     };\n124:     replace(refreshed);\n125:     const failures=[communication,audit].filter(result=>result.status==='rejected');"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "const refreshDetails=async",
+    "line": 116,
+    "start": 114,
+    "end": 127,
+    "excerpt": "114:   const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});\n115:   const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};\n116:   const refreshDetails=async id=>{\n117:     const detail=await quotationApi.get(id);\n118:     const [communication,audit]=await Promise.allSettled([quotationApi.communication(id),quotationApi.audit(id)]);\n119:     const refreshed={\n120:       ...detail,\n121:       communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,\n122:       auditLogs:audit.status==='fulfilled'&&Array.isArray(audit.value)?audit.value:detail.auditLogs||[],\n123:     };\n124:     replace(refreshed);\n125:     const failures=[communication,audit].filter(result=>result.status==='rejected');\n126:     if(failures.length)setError(`History could not be loaded. ${[...new Set(failures.map(result=>message(result.reason)))].join(' ')}`);\n127:     return refreshed;"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "const open=(mode,q)",
+    "line": 141,
+    "start": 139,
+    "end": 152,
+    "excerpt": "139:     }\n140:   };\n141:   const open=(mode,q)=>{\n142:     if(screen==='list')listScroll.current=screenRoot.current?.closest('.app-layout-content')?.scrollTop || 0;\n143:     return run(async()=>{\n144:     if(mode==='edit')await refreshConfiguredCharges();\n145:     const detail=await quotationApi.get(q.id);\n146:     if(mode==='edit'&&detail.status!=='Draft')throw new Error('Only Draft quotations can be edited.');\n147:     setCurrent(detail);setScreen(mode);\n148:     if(mode==='details')await refreshDetails(q.id);\n149:     });\n150:   };\n151:   const quotationDraft = useFormDraft(`quotation:${current?.id || 'new'}`);\n152:   const save=q=>run(async()=>{"
+  },
+  {
+    "file": "src/pages/Quotations/QuotationManagement.jsx",
+    "match": "useEffect(()=>{load();",
+    "line": 113,
+    "start": 111,
+    "end": 124,
+    "excerpt": "111:     }catch(e){setListFailed(true);setError(message(e));}finally{setLoading(false);}\n112:   };\n113:   useEffect(()=>{load();return()=>{generation.current++;};},[]);\n114:   const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});\n115:   const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};\n116:   const refreshDetails=async id=>{\n117:     const detail=await quotationApi.get(id);\n118:     const [communication,audit]=await Promise.allSettled([quotationApi.communication(id),quotationApi.audit(id)]);\n119:     const refreshed={\n120:       ...detail,\n121:       communications:communication.status==='fulfilled'&&Array.isArray(communication.value)?communication.value.map(normalizeCommunication):detail.communications,\n122:       auditLogs:audit.status==='fulfilled'&&Array.isArray(audit.value)?audit.value:detail.auditLogs||[],\n123:     };\n124:     replace(refreshed);"
+  },
+  {
+    "file": "../billing-api-client/quotationApi.js",
+    "match": "export async function fetchAllPages",
+    "line": 56,
+    "start": 54,
+    "end": 67,
+    "excerpt": "54:     taxCategory: type, taxRate: p.taxRate ?? (rate ? Number(rate[1]) : 0) };\n55: }\n56: export async function fetchAllPages(fetchPage) {\n57:   const rows=[];\n58:   for (let pageNumber=1;;pageNumber++) {\n59:     const page=await fetchPage({pageNumber,pageSize:100});\n60:     const items=Array.isArray(page)?page:page?.items;\n61:     if (!Array.isArray(items)) throw new Error('Invalid list response.');\n62:     rows.push(...items);\n63:     if (Array.isArray(page) || !items.length || rows.length>=page.totalCount || pageNumber>=page.totalPages ||\n64:       (page.totalCount == null && page.totalPages == null && items.length<100)) return rows;\n65:   }\n66: }\n67: export const quotationApi = {"
+  },
+  {
+    "file": "../billing-api-client/quotationApi.js",
+    "match": "list: async params",
+    "line": 68,
+    "start": 66,
+    "end": 78,
+    "excerpt": "66: }\n67: export const quotationApi = {\n68:   list: async params => unwrap(await apiClient.get(base,{params})),\n69:   get: async id => normalizeQuotation(unwrap(await apiClient.get(path(id)))),\n70:   save: async q => normalizeQuotation(unwrap(await (q.id ? apiClient.put(path(q.id),quotationPayload(q)) : apiClient.post(base,quotationPayload(q))))),\n71:   action: async (id,action,reason) => {\n72:     if (!['send','approve','cancel','convert'].includes(action)) throw new Error('Invalid quotation action.');\n73:     if (action==='cancel' && !reason?.trim()) throw new Error('Cancellation reason is required.');\n74:     return unwrap(await apiClient.post(`${path(id)}/${action}`,action==='cancel'?{reason:reason.trim()}:undefined));\n75:   },\n76:   communication: async id => unwrap(await apiClient.get(`${path(id)}/communication`)),\n77:   audit: async id => (unwrap(await apiClient.get(`${path(id)}/audit`)) || []).map(normalizeAuditLog),\n78: };"
+  },
+  {
+    "file": "src/pages/Quotations/pages/QuotationList.jsx",
+    "match": "const [search,setSearch]",
+    "line": 53,
+    "start": 51,
+    "end": 64,
+    "excerpt": "51: };\n52: export function QuotationList({ quotations, customers, onCreate, onView, onEdit, onAction, loading = false, loadFailed = false, error = '', onRetry }) {\n53:  const [search,setSearch]=useState(''); const [filters,setFilters]=useState({status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'}); const [applied,setApplied]=useState(filters); const [filtersOpen,setFiltersOpen]=useState(false); const [auditOpen,setAuditOpen]=useState(false); const [auditCategory,setAuditCategory]=useState(auditCategories[0]); const [quotationsOpen,setQuotationsOpen]=useState(false); const [sort,setSort]=useState({key:'quoteNumber',direction:'asc'}); const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(5); const [actionAnchor,setActionAnchor]=useState(null); const [actionQuote,setActionQuote]=useState(null);\n54:  useEffect(()=>setPage(1),[search,applied,auditCategory,pageSize]);\n55:  const toggleQuotations=()=>{const next=!quotationsOpen;setQuotationsOpen(next);setFiltersOpen(false);setAuditOpen(false);setPageSizeOpen(false);if(!next)return;const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setSearch('');setFilters(reset);setApplied(reset);setAuditCategory(auditCategories[0]);setSort({key:'quoteNumber',direction:'asc'});setPageSize(5);setPage(1);};\n56:  const filtered=useMemo(()=>quotations.filter(q=>{const query=search.toLowerCase(); const customer=q.customer; const found=!query || [q.quoteNumber,customer.name,customer.code,customer.email,customer.mobile].some(value=>String(value || '').toLowerCase().includes(query)); const validity=applied.validity==='All'||(applied.validity==='Expired'&&isExpired(q))||(applied.validity==='Active'&&!isExpired(q)&&q.validUntil>new Date(Date.now()+7*864e5).toISOString().slice(0,10))||(applied.validity==='Expiring Soon'&&!isExpired(q)&&q.validUntil<=new Date(Date.now()+7*864e5).toISOString().slice(0,10)); return found&&(applied.status==='All'||q.status===applied.status)&&(!applied.customer||q.customerId===applied.customer)&&(!applied.from||q.quotationDate>=applied.from)&&(!applied.to||q.quotationDate<=applied.to)&&validity&&matchesAuditCategory(q,auditCategory);}),[quotations,search,applied,auditCategory]);\n57:  const sorted=useMemo(()=>[...filtered].sort((a,b)=>{if(sort.key==='createdAtUtc')return compareQuotationCreations(a,b,applied.sortBy==='oldest'?'asc':'desc');if(sort.key==='updatedAtUtc')return compareQuotationUpdates(a,b,sort.direction);if(sort.key==='quoteNumber')return compareQuotationNumbers(a,b,sort.direction);const av=sort.key==='customer'?a.customer.name:a[sort.key]; const bv=sort.key==='customer'?b.customer.name:b[sort.key];return String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'})*(sort.direction==='asc'?1:-1)}),[filtered,sort,applied.sortBy]); const paged=sorted.slice((page-1)*pageSize,page*pageSize);\n58:  const recentQuotes=useMemo(()=>[...filtered].sort((a,b)=>compareQuotationCreations(a,b,'desc')).slice(0,5),[filtered]);\n59:  const overview=<section className=\"quote-overview\" aria-label=\"Recently created quotations\"><h3>Recently created quotations</h3>{recentQuotes.length?<div className=\"quote-table-wrap quote-overview-table-wrap ibms-table-frame\"><table className=\"quote-list-table quote-overview-table\"><thead><tr><th>Quote Number</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentQuotes.map(quote=><tr key={quote.id}><td><button className=\"quote-link\" onClick={()=>onView(quote)}>{quote.quoteNumber}</button></td><td>{quote.customer?.name||quote.customerName||'\u2014'}</td><td><QuotationStatusBadge status={quote.status}/></td><td><strong>{currency(quote.totalAmount)}</strong></td></tr>)}</tbody></table></div>:<p className=\"quote-state\">No quotations yet.</p>}</section>;\n60:  const closeActionMenu=()=>{setActionAnchor(null);setActionQuote(null);};\n61:  const performAction=(action)=>{const quote=actionQuote;closeActionMenu();if(!quote)return;if(action==='view')onView(quote);else if(action==='edit')onEdit(quote);else onAction(action,quote);};\n62:  const actionButtons=q=><><button type=\"button\" className=\"quote-action-icon quote-row-actions-trigger ibms-row-actions-trigger\"  aria-label={`Actions for ${q.quoteNumber}`} aria-haspopup=\"menu\" aria-expanded={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClick={event=>{setActionAnchor(event.currentTarget);setActionQuote(q);}}><MoreVert /></button><Menu anchorEl={actionQuote?.id===q.id?actionAnchor:null} PaperProps={{className:'ibms-row-actions-menu'}} anchorOrigin={{vertical:'bottom',horizontal:'right'}} transformOrigin={{vertical:'top',horizontal:'right'}} open={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClose={closeActionMenu}><MenuItem onClick={()=>performAction('view')}><ListItemIcon><VisibilityOutlined fontSize=\"small\" /></ListItemIcon>View quotation</MenuItem>{q.status==='Draft'&&<>{(hasPermission('quotations.edit') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('edit')}><ListItemIcon><EditOutlined fontSize=\"small\" /></ListItemIcon>Edit draft</MenuItem>}<MenuItem onClick={()=>performAction('send')}><ListItemIcon><SendOutlined fontSize=\"small\" /></ListItemIcon>Send quotation</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Sent'&&<>{(hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('approve')}><ListItemIcon><CheckCircleOutline fontSize=\"small\" /></ListItemIcon>Approve quotation</MenuItem>}<MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Approved'&&<><MenuItem onClick={()=>performAction('convert')}><ListItemIcon><SwapHorizOutlined fontSize=\"small\" /></ListItemIcon>Convert to invoice</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}</Menu></>;\n63:  if (loadFailed && !loading) return <main className=\"quotation-page\"><header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div></header><DashboardErrorState title=\"Unable to load quotations\" message={error} onRetry={onRetry} /></main>;\n64:  return <main className=\"quotation-page\">"
+  },
+  {
+    "file": "src/pages/Quotations/pages/QuotationList.jsx",
+    "match": "const filtered=useMemo",
+    "line": 56,
+    "start": 54,
+    "end": 67,
+    "excerpt": "54:  useEffect(()=>setPage(1),[search,applied,auditCategory,pageSize]);\n55:  const toggleQuotations=()=>{const next=!quotationsOpen;setQuotationsOpen(next);setFiltersOpen(false);setAuditOpen(false);setPageSizeOpen(false);if(!next)return;const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setSearch('');setFilters(reset);setApplied(reset);setAuditCategory(auditCategories[0]);setSort({key:'quoteNumber',direction:'asc'});setPageSize(5);setPage(1);};\n56:  const filtered=useMemo(()=>quotations.filter(q=>{const query=search.toLowerCase(); const customer=q.customer; const found=!query || [q.quoteNumber,customer.name,customer.code,customer.email,customer.mobile].some(value=>String(value || '').toLowerCase().includes(query)); const validity=applied.validity==='All'||(applied.validity==='Expired'&&isExpired(q))||(applied.validity==='Active'&&!isExpired(q)&&q.validUntil>new Date(Date.now()+7*864e5).toISOString().slice(0,10))||(applied.validity==='Expiring Soon'&&!isExpired(q)&&q.validUntil<=new Date(Date.now()+7*864e5).toISOString().slice(0,10)); return found&&(applied.status==='All'||q.status===applied.status)&&(!applied.customer||q.customerId===applied.customer)&&(!applied.from||q.quotationDate>=applied.from)&&(!applied.to||q.quotationDate<=applied.to)&&validity&&matchesAuditCategory(q,auditCategory);}),[quotations,search,applied,auditCategory]);\n57:  const sorted=useMemo(()=>[...filtered].sort((a,b)=>{if(sort.key==='createdAtUtc')return compareQuotationCreations(a,b,applied.sortBy==='oldest'?'asc':'desc');if(sort.key==='updatedAtUtc')return compareQuotationUpdates(a,b,sort.direction);if(sort.key==='quoteNumber')return compareQuotationNumbers(a,b,sort.direction);const av=sort.key==='customer'?a.customer.name:a[sort.key]; const bv=sort.key==='customer'?b.customer.name:b[sort.key];return String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'})*(sort.direction==='asc'?1:-1)}),[filtered,sort,applied.sortBy]); const paged=sorted.slice((page-1)*pageSize,page*pageSize);\n58:  const recentQuotes=useMemo(()=>[...filtered].sort((a,b)=>compareQuotationCreations(a,b,'desc')).slice(0,5),[filtered]);\n59:  const overview=<section className=\"quote-overview\" aria-label=\"Recently created quotations\"><h3>Recently created quotations</h3>{recentQuotes.length?<div className=\"quote-table-wrap quote-overview-table-wrap ibms-table-frame\"><table className=\"quote-list-table quote-overview-table\"><thead><tr><th>Quote Number</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentQuotes.map(quote=><tr key={quote.id}><td><button className=\"quote-link\" onClick={()=>onView(quote)}>{quote.quoteNumber}</button></td><td>{quote.customer?.name||quote.customerName||'\u2014'}</td><td><QuotationStatusBadge status={quote.status}/></td><td><strong>{currency(quote.totalAmount)}</strong></td></tr>)}</tbody></table></div>:<p className=\"quote-state\">No quotations yet.</p>}</section>;\n60:  const closeActionMenu=()=>{setActionAnchor(null);setActionQuote(null);};\n61:  const performAction=(action)=>{const quote=actionQuote;closeActionMenu();if(!quote)return;if(action==='view')onView(quote);else if(action==='edit')onEdit(quote);else onAction(action,quote);};\n62:  const actionButtons=q=><><button type=\"button\" className=\"quote-action-icon quote-row-actions-trigger ibms-row-actions-trigger\"  aria-label={`Actions for ${q.quoteNumber}`} aria-haspopup=\"menu\" aria-expanded={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClick={event=>{setActionAnchor(event.currentTarget);setActionQuote(q);}}><MoreVert /></button><Menu anchorEl={actionQuote?.id===q.id?actionAnchor:null} PaperProps={{className:'ibms-row-actions-menu'}} anchorOrigin={{vertical:'bottom',horizontal:'right'}} transformOrigin={{vertical:'top',horizontal:'right'}} open={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClose={closeActionMenu}><MenuItem onClick={()=>performAction('view')}><ListItemIcon><VisibilityOutlined fontSize=\"small\" /></ListItemIcon>View quotation</MenuItem>{q.status==='Draft'&&<>{(hasPermission('quotations.edit') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('edit')}><ListItemIcon><EditOutlined fontSize=\"small\" /></ListItemIcon>Edit draft</MenuItem>}<MenuItem onClick={()=>performAction('send')}><ListItemIcon><SendOutlined fontSize=\"small\" /></ListItemIcon>Send quotation</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Sent'&&<>{(hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('approve')}><ListItemIcon><CheckCircleOutline fontSize=\"small\" /></ListItemIcon>Approve quotation</MenuItem>}<MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Approved'&&<><MenuItem onClick={()=>performAction('convert')}><ListItemIcon><SwapHorizOutlined fontSize=\"small\" /></ListItemIcon>Convert to invoice</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}</Menu></>;\n63:  if (loadFailed && !loading) return <main className=\"quotation-page\"><header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div></header><DashboardErrorState title=\"Unable to load quotations\" message={error} onRetry={onRetry} /></main>;\n64:  return <main className=\"quotation-page\">\n65:   <header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div>{(hasPermission('quotations.create') || hasPermission('quotations.manage')) && <button className=\"quote-btn primary\" onClick={onCreate}><Add /> Create Quotation</button>}</header>\n66:   <section className=\"quote-card quote-list-card\">\n67:    <div className=\"quote-list-toolbar\">"
+  },
+  {
+    "file": "src/pages/Quotations/pages/QuotationList.jsx",
+    "match": "const sorted=useMemo",
+    "line": 57,
+    "start": 55,
+    "end": 68,
+    "excerpt": "55:  const toggleQuotations=()=>{const next=!quotationsOpen;setQuotationsOpen(next);setFiltersOpen(false);setAuditOpen(false);setPageSizeOpen(false);if(!next)return;const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setSearch('');setFilters(reset);setApplied(reset);setAuditCategory(auditCategories[0]);setSort({key:'quoteNumber',direction:'asc'});setPageSize(5);setPage(1);};\n56:  const filtered=useMemo(()=>quotations.filter(q=>{const query=search.toLowerCase(); const customer=q.customer; const found=!query || [q.quoteNumber,customer.name,customer.code,customer.email,customer.mobile].some(value=>String(value || '').toLowerCase().includes(query)); const validity=applied.validity==='All'||(applied.validity==='Expired'&&isExpired(q))||(applied.validity==='Active'&&!isExpired(q)&&q.validUntil>new Date(Date.now()+7*864e5).toISOString().slice(0,10))||(applied.validity==='Expiring Soon'&&!isExpired(q)&&q.validUntil<=new Date(Date.now()+7*864e5).toISOString().slice(0,10)); return found&&(applied.status==='All'||q.status===applied.status)&&(!applied.customer||q.customerId===applied.customer)&&(!applied.from||q.quotationDate>=applied.from)&&(!applied.to||q.quotationDate<=applied.to)&&validity&&matchesAuditCategory(q,auditCategory);}),[quotations,search,applied,auditCategory]);\n57:  const sorted=useMemo(()=>[...filtered].sort((a,b)=>{if(sort.key==='createdAtUtc')return compareQuotationCreations(a,b,applied.sortBy==='oldest'?'asc':'desc');if(sort.key==='updatedAtUtc')return compareQuotationUpdates(a,b,sort.direction);if(sort.key==='quoteNumber')return compareQuotationNumbers(a,b,sort.direction);const av=sort.key==='customer'?a.customer.name:a[sort.key]; const bv=sort.key==='customer'?b.customer.name:b[sort.key];return String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'})*(sort.direction==='asc'?1:-1)}),[filtered,sort,applied.sortBy]); const paged=sorted.slice((page-1)*pageSize,page*pageSize);\n58:  const recentQuotes=useMemo(()=>[...filtered].sort((a,b)=>compareQuotationCreations(a,b,'desc')).slice(0,5),[filtered]);\n59:  const overview=<section className=\"quote-overview\" aria-label=\"Recently created quotations\"><h3>Recently created quotations</h3>{recentQuotes.length?<div className=\"quote-table-wrap quote-overview-table-wrap ibms-table-frame\"><table className=\"quote-list-table quote-overview-table\"><thead><tr><th>Quote Number</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentQuotes.map(quote=><tr key={quote.id}><td><button className=\"quote-link\" onClick={()=>onView(quote)}>{quote.quoteNumber}</button></td><td>{quote.customer?.name||quote.customerName||'\u2014'}</td><td><QuotationStatusBadge status={quote.status}/></td><td><strong>{currency(quote.totalAmount)}</strong></td></tr>)}</tbody></table></div>:<p className=\"quote-state\">No quotations yet.</p>}</section>;\n60:  const closeActionMenu=()=>{setActionAnchor(null);setActionQuote(null);};\n61:  const performAction=(action)=>{const quote=actionQuote;closeActionMenu();if(!quote)return;if(action==='view')onView(quote);else if(action==='edit')onEdit(quote);else onAction(action,quote);};\n62:  const actionButtons=q=><><button type=\"button\" className=\"quote-action-icon quote-row-actions-trigger ibms-row-actions-trigger\"  aria-label={`Actions for ${q.quoteNumber}`} aria-haspopup=\"menu\" aria-expanded={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClick={event=>{setActionAnchor(event.currentTarget);setActionQuote(q);}}><MoreVert /></button><Menu anchorEl={actionQuote?.id===q.id?actionAnchor:null} PaperProps={{className:'ibms-row-actions-menu'}} anchorOrigin={{vertical:'bottom',horizontal:'right'}} transformOrigin={{vertical:'top',horizontal:'right'}} open={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClose={closeActionMenu}><MenuItem onClick={()=>performAction('view')}><ListItemIcon><VisibilityOutlined fontSize=\"small\" /></ListItemIcon>View quotation</MenuItem>{q.status==='Draft'&&<>{(hasPermission('quotations.edit') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('edit')}><ListItemIcon><EditOutlined fontSize=\"small\" /></ListItemIcon>Edit draft</MenuItem>}<MenuItem onClick={()=>performAction('send')}><ListItemIcon><SendOutlined fontSize=\"small\" /></ListItemIcon>Send quotation</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Sent'&&<>{(hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('approve')}><ListItemIcon><CheckCircleOutline fontSize=\"small\" /></ListItemIcon>Approve quotation</MenuItem>}<MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Approved'&&<><MenuItem onClick={()=>performAction('convert')}><ListItemIcon><SwapHorizOutlined fontSize=\"small\" /></ListItemIcon>Convert to invoice</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}</Menu></>;\n63:  if (loadFailed && !loading) return <main className=\"quotation-page\"><header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div></header><DashboardErrorState title=\"Unable to load quotations\" message={error} onRetry={onRetry} /></main>;\n64:  return <main className=\"quotation-page\">\n65:   <header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div>{(hasPermission('quotations.create') || hasPermission('quotations.manage')) && <button className=\"quote-btn primary\" onClick={onCreate}><Add /> Create Quotation</button>}</header>\n66:   <section className=\"quote-card quote-list-card\">\n67:    <div className=\"quote-list-toolbar\">\n68:     <label className=\"quote-search\"><Search/><input placeholder=\"Search quote, customer, code, email or mobile\" value={search} onChange={e=>setSearch(e.target.value)}/></label>"
+  },
+  {
+    "file": "src/pages/Quotations/pages/QuotationList.jsx",
+    "match": "const recentQuotes=useMemo",
+    "line": 58,
+    "start": 56,
+    "end": 69,
+    "excerpt": "56:  const filtered=useMemo(()=>quotations.filter(q=>{const query=search.toLowerCase(); const customer=q.customer; const found=!query || [q.quoteNumber,customer.name,customer.code,customer.email,customer.mobile].some(value=>String(value || '').toLowerCase().includes(query)); const validity=applied.validity==='All'||(applied.validity==='Expired'&&isExpired(q))||(applied.validity==='Active'&&!isExpired(q)&&q.validUntil>new Date(Date.now()+7*864e5).toISOString().slice(0,10))||(applied.validity==='Expiring Soon'&&!isExpired(q)&&q.validUntil<=new Date(Date.now()+7*864e5).toISOString().slice(0,10)); return found&&(applied.status==='All'||q.status===applied.status)&&(!applied.customer||q.customerId===applied.customer)&&(!applied.from||q.quotationDate>=applied.from)&&(!applied.to||q.quotationDate<=applied.to)&&validity&&matchesAuditCategory(q,auditCategory);}),[quotations,search,applied,auditCategory]);\n57:  const sorted=useMemo(()=>[...filtered].sort((a,b)=>{if(sort.key==='createdAtUtc')return compareQuotationCreations(a,b,applied.sortBy==='oldest'?'asc':'desc');if(sort.key==='updatedAtUtc')return compareQuotationUpdates(a,b,sort.direction);if(sort.key==='quoteNumber')return compareQuotationNumbers(a,b,sort.direction);const av=sort.key==='customer'?a.customer.name:a[sort.key]; const bv=sort.key==='customer'?b.customer.name:b[sort.key];return String(av).localeCompare(String(bv),undefined,{numeric:true,sensitivity:'base'})*(sort.direction==='asc'?1:-1)}),[filtered,sort,applied.sortBy]); const paged=sorted.slice((page-1)*pageSize,page*pageSize);\n58:  const recentQuotes=useMemo(()=>[...filtered].sort((a,b)=>compareQuotationCreations(a,b,'desc')).slice(0,5),[filtered]);\n59:  const overview=<section className=\"quote-overview\" aria-label=\"Recently created quotations\"><h3>Recently created quotations</h3>{recentQuotes.length?<div className=\"quote-table-wrap quote-overview-table-wrap ibms-table-frame\"><table className=\"quote-list-table quote-overview-table\"><thead><tr><th>Quote Number</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentQuotes.map(quote=><tr key={quote.id}><td><button className=\"quote-link\" onClick={()=>onView(quote)}>{quote.quoteNumber}</button></td><td>{quote.customer?.name||quote.customerName||'\u2014'}</td><td><QuotationStatusBadge status={quote.status}/></td><td><strong>{currency(quote.totalAmount)}</strong></td></tr>)}</tbody></table></div>:<p className=\"quote-state\">No quotations yet.</p>}</section>;\n60:  const closeActionMenu=()=>{setActionAnchor(null);setActionQuote(null);};\n61:  const performAction=(action)=>{const quote=actionQuote;closeActionMenu();if(!quote)return;if(action==='view')onView(quote);else if(action==='edit')onEdit(quote);else onAction(action,quote);};\n62:  const actionButtons=q=><><button type=\"button\" className=\"quote-action-icon quote-row-actions-trigger ibms-row-actions-trigger\"  aria-label={`Actions for ${q.quoteNumber}`} aria-haspopup=\"menu\" aria-expanded={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClick={event=>{setActionAnchor(event.currentTarget);setActionQuote(q);}}><MoreVert /></button><Menu anchorEl={actionQuote?.id===q.id?actionAnchor:null} PaperProps={{className:'ibms-row-actions-menu'}} anchorOrigin={{vertical:'bottom',horizontal:'right'}} transformOrigin={{vertical:'top',horizontal:'right'}} open={actionQuote?.id===q.id&&Boolean(actionAnchor)} onClose={closeActionMenu}><MenuItem onClick={()=>performAction('view')}><ListItemIcon><VisibilityOutlined fontSize=\"small\" /></ListItemIcon>View quotation</MenuItem>{q.status==='Draft'&&<>{(hasPermission('quotations.edit') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('edit')}><ListItemIcon><EditOutlined fontSize=\"small\" /></ListItemIcon>Edit draft</MenuItem>}<MenuItem onClick={()=>performAction('send')}><ListItemIcon><SendOutlined fontSize=\"small\" /></ListItemIcon>Send quotation</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Sent'&&<>{(hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <MenuItem onClick={()=>performAction('approve')}><ListItemIcon><CheckCircleOutline fontSize=\"small\" /></ListItemIcon>Approve quotation</MenuItem>}<MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}{q.status==='Approved'&&<><MenuItem onClick={()=>performAction('convert')}><ListItemIcon><SwapHorizOutlined fontSize=\"small\" /></ListItemIcon>Convert to invoice</MenuItem><MenuItem className=\"is-destructive\" onClick={()=>performAction('cancel')}><ListItemIcon><CancelOutlined fontSize=\"small\" /></ListItemIcon>Cancel quotation</MenuItem></>}</Menu></>;\n63:  if (loadFailed && !loading) return <main className=\"quotation-page\"><header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div></header><DashboardErrorState title=\"Unable to load quotations\" message={error} onRetry={onRetry} /></main>;\n64:  return <main className=\"quotation-page\">\n65:   <header className=\"quotation-header quotation-list-header\"><div><span className=\"quote-eyebrow\">SALES WORKSPACE</span><h1>Quotation Management</h1><p>Create, manage, send, approve and convert customer quotations.</p></div>{(hasPermission('quotations.create') || hasPermission('quotations.manage')) && <button className=\"quote-btn primary\" onClick={onCreate}><Add /> Create Quotation</button>}</header>\n66:   <section className=\"quote-card quote-list-card\">\n67:    <div className=\"quote-list-toolbar\">\n68:     <label className=\"quote-search\"><Search/><input placeholder=\"Search quote, customer, code, email or mobile\" value={search} onChange={e=>setSearch(e.target.value)}/></label>\n69:     <button aria-label={quotationsOpen?'Hide quotations':'Show quotations'} type=\"button\" className={`quote-btn secondary quote-running-button${quotationsOpen?' active':''}`} aria-pressed={quotationsOpen}  onClick={toggleQuotations}><DescriptionOutlined /> Quotations</button>"
+  },
+  {
+    "file": "src/pages/Quotations/components/QuotationForm.jsx",
+    "match": "const selectedCustomer =",
+    "line": 49,
+    "start": 47,
+    "end": 60,
+    "excerpt": "47:   const [taxRows, setTaxRows] = useDraftState(draftKey, 'taxRows', []);\n48:   const [discountRows, setDiscountRows] = useDraftState(draftKey, 'discountRows', []);\n49:   const selectedCustomer = customers.find(customer => String(customer.id) === String(form.customerId)); const taxAdjustedItems = useMemo(() => applyAdditionalTaxes(form.items, taxRows), [form.items, taxRows]); const totals = useMemo(() => quotationTotals(taxAdjustedItems, form.invoiceDiscount, form.charges || [], [], discountRows), [taxAdjustedItems, form, discountRows]);\n50:   const patch = data => setForm(current => ({ ...current, ...data }));\n51:   const patchItem = (index, data) => {\n52:     patch({ items: form.items.map((item, i) => i === index ? { ...item, ...data } : item) });\n53:     setErrors(current => {\n54:       const next = { ...current };\n55:       delete next[`item-${index}`];\n56:       return next;\n57:     });\n58:   };\n59:   const addTax = () => setTaxRows(rows => [...rows, { id: `tax-${Date.now()}-${Math.random()}`, itemId: '', taxType: 'GST', taxRate: '', customTax: false }]);\n60:   const removeTaxRow = rowId => setTaxRows(rows => rows.filter(item => item.id !== rowId));"
+  },
+  {
+    "file": "src/pages/Products/ProductList.jsx",
+    "match": "const catalog = useQuery",
+    "line": 44,
+    "start": 42,
+    "end": 55,
+    "excerpt": "42:   const [exportError, setExportError] = useState('');\n43:   useSearchCommit(search, value => setParams(previous => searchParams(previous, value)));\n44:   const catalog = useQuery({ queryKey: ['products', 'metadata'], queryFn: ({ signal }) => productService.getCatalogMetadata({ signal }), staleTime: 60000 });\n45:   const query = useQuery({ queryKey: ['products', 'list', params], queryFn: ({ signal }) => productService.getProducts(params, { signal }), placeholderData: keepPreviousData });\n46:   const change = patch => setParams(previous => ({ ...previous, ...patch, pageNumber: 1 }));\n47:   const clear = () => { setSearch(''); setParams(previous => ({ ...initialParams, pageSize: previous.pageSize })); };\n48:   const selectedCard = params.type === 'Service' ? 'services' : params.status === 'Active' && !params.type ? 'active' : params.status === 'Inactive' && !params.type ? 'inactive' : !params.status && !params.type ? 'total' : '';\n49:   const selectCard = key => setParams(previous => ({ ...previous, status: key === 'active' ? 'Active' : key === 'inactive' ? 'Inactive' : '', type: key === 'services' ? 'Service' : '', pageNumber: 1 }));\n50:   const active = Boolean(search || params.search || params.category || params.status || params.type || params.sortBy || params.sortOrder);\n51:   const loading = query.isPending || catalog.isPending;\n52:   const updating = search.trim() !== params.search || query.isFetching;\n53:   const error = query.error || catalog.error || categoriesQuery.error;\n54: \n55:   const exportPdf = async () => {"
+  },
+  {
+    "file": "src/pages/Products/ProductList.jsx",
+    "match": "<ProductTable items=",
+    "line": 81,
+    "start": 79,
+    "end": 85,
+    "excerpt": "79:       <div className=\"product-panel-heading\"><div className=\"product-panel-title\"><span className=\"product-panel-icon\"><Inventory2Outlined fontSize=\"small\" /></span><div><h2>Product catalog</h2><p>Everything you bill, organized in one place.</p></div></div><span className=\"product-result-count\" role=\"status\">{loading ? 'Loading catalog\u2026' : error ? 'Catalog unavailable' : updating ? 'Updating results?' : `${query.data?.totalCount ?? 0} ${active ? 'matching ' : ''}items`}</span></div>\n80:       <ProductFilters search={search} onSearch={setSearch} params={params} onChange={change} categories={categories} categoriesLoading={categoriesQuery.isPending || categoriesQuery.isError} active={active} onClear={clear} />\n81:       <ProductTable items={(query.data?.items || []).map(product => ({ ...product, category: categories.find(category => String(category.id) === String(product.categoryId))?.name || product.category || '-' }))} loading={loading} error={error} params={params} onSort={sortBy => change({ sortBy, sortOrder: params.sortBy === sortBy && params.sortOrder === 'asc' ? 'desc' : 'asc' })} filtered={Boolean(params.search || params.category || params.status)} onClear={clear} onRetry={() => { query.refetch(); catalog.refetch(); categoriesQuery.refetch(); }} />\n82:       {!loading && !error && query.data && <ProductPagination data={query.data} disabled={updating} onPage={pageNumber => setParams(previous => ({ ...previous, pageNumber }))} onPageSize={pageSize => { saveProductPageSize(pageSize); change({ pageSize }); }} />}\n83:     </section>\n84:   </main>;\n85: }"
+  },
+  {
+    "file": "src/pages/Products/services/productService.js",
+    "match": "async getProducts(params",
+    "line": 58,
+    "start": 56,
+    "end": 69,
+    "excerpt": "56: \n57: export const productApiService = {\n58:   async getProducts(params = {}) {\n59:     const { category, ...rest } = params;\n60:     const request = { ...rest, ...(category ? { categoryId: Number(category) } : {}) };\n61:     return normalizeProductPage(await productApi.getProducts(request), params);\n62:   },\n63:   async getCatalogMetadata() {\n64:     // Use real server totals rather than counting one page or showing mock statistics.\n65:     const [total, active, inactive, services] = await Promise.all([\n66:       {}, { status: 'Active' }, { status: 'Inactive' }, { type: 'Service' },\n67:     ].map(params => this.getProducts({ ...params, pageSize: 1, pageNumber: 1 })));\n68:     return { summary: { total: total.totalCount, active: active.totalCount, inactive: inactive.totalCount, services: services.totalCount } };\n69:   },"
+  },
+  {
+    "file": "src/pages/Products/services/productService.js",
+    "match": "async getCatalogMetadata",
+    "line": 63,
+    "start": 61,
+    "end": 74,
+    "excerpt": "61:     return normalizeProductPage(await productApi.getProducts(request), params);\n62:   },\n63:   async getCatalogMetadata() {\n64:     // Use real server totals rather than counting one page or showing mock statistics.\n65:     const [total, active, inactive, services] = await Promise.all([\n66:       {}, { status: 'Active' }, { status: 'Inactive' }, { type: 'Service' },\n67:     ].map(params => this.getProducts({ ...params, pageSize: 1, pageNumber: 1 })));\n68:     return { summary: { total: total.totalCount, active: active.totalCount, inactive: inactive.totalCount, services: services.totalCount } };\n69:   },\n70:   async getProductById(id) { return normalizeProduct(await productApi.getProductById(id)); },\n71:   createProduct: data => productApi.createProduct(productPayload(data)),\n72:   updateProduct: (id, data) => productApi.updateProduct(id, productPayload(data)),\n73:   getNextProductCode: () => productApi.getNextProductCode(),\n74: };"
+  },
+  {
+    "file": "../billing-api-client/productApi.js",
+    "match": "getProducts: async",
+    "line": 13,
+    "start": 11,
+    "end": 24,
+    "excerpt": "11: \n12: export const productApi = {\n13:   getProducts: async (params = {}) => {\n14:     try {\n15:       const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.BASE, { params });\n16:       return ensureSuccess(response);\n17:     } catch (err) {\n18:       throw productRequestError(err, 'Failed to load products.');\n19:     }\n20:   },\n21: \n22:   getProductById: async (id) => {\n23:     try {\n24:       const endpoint = API_ENDPOINTS.PRODUCTS.BY_ID(encodeURIComponent(id));"
+  },
+  {
+    "file": "../billing-api-client/productApi.js",
+    "match": "apiClient.get(API_ENDPOINTS.PRODUCTS.BASE",
+    "line": 15,
+    "start": 13,
+    "end": 26,
+    "excerpt": "13:   getProducts: async (params = {}) => {\n14:     try {\n15:       const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.BASE, { params });\n16:       return ensureSuccess(response);\n17:     } catch (err) {\n18:       throw productRequestError(err, 'Failed to load products.');\n19:     }\n20:   },\n21: \n22:   getProductById: async (id) => {\n23:     try {\n24:       const endpoint = API_ENDPOINTS.PRODUCTS.BY_ID(encodeURIComponent(id));\n25:       const response = await apiClient.get(endpoint);\n26:       const product = ensureSuccess(response);"
+  },
+  {
+    "file": "src/pages/Products/services/categoryService.js",
+    "match": "async getAll",
+    "line": 49,
+    "start": 47,
+    "end": 60,
+    "excerpt": "47: \n48: export const categoryService = {\n49:   async getAll({ signal } = {}) {\n50:     const response = await categoryApi.getCategories({ paged: false, status: 'All' }, { signal });\n51:     const items = Array.isArray(response) ? response : response?.items ?? response?.categories;\n52:     if (!Array.isArray(items)) throw new Error('Invalid category list response.');\n53:     // Never silently use only a partial result for dropdowns or duplicate checks.\n54:     if (!Array.isArray(response) && Number(response.totalCount ?? items.length) > items.length) throw new Error('Incomplete category list response.');\n55:     return items.map(normalizeCategory);\n56:   },\n57:   async getById(id, options) { return normalizeCategory(await categoryApi.getCategoryById(id, options)); },\n58:   async save(values, id, categories = []) {\n59:     const error = validateCategory(values, categories, id);\n60:     if (error) throw new Error(error);"
+  },
+  {
+    "file": "src/pages/Products/services/categoryService.js",
+    "match": "export const useCategories",
+    "line": 68,
+    "start": 66,
+    "end": 72,
+    "excerpt": "66: };\n67: \n68: export const useCategories = () => useQuery({ queryKey: ['categories', 'list'], queryFn: ({ signal }) => categoryService.getAll({ signal }), retry: false });\n69: export const invalidateCategories = queryClient => Promise.all([\n70:   queryClient.invalidateQueries({ queryKey: ['categories'] }),\n71:   queryClient.invalidateQueries({ queryKey: ['products'] }),\n72: ]);"
+  },
+  {
+    "file": "src/pages/Invoices/InvoiceList.jsx",
+    "match": "const list = useQuery",
+    "line": 115,
+    "start": 113,
+    "end": 126,
+    "excerpt": "113:   const invalidDates =\n114:     filters.startDate && filters.endDate && filters.startDate > filters.endDate;\n115:   const list = useQuery({\n116:     queryKey: [\"invoices\", \"list\", filters, querySearch],\n117:     queryFn: ({ signal }) =>\n118:       invoiceService.list({ ...filters, search: querySearch }, { signal }),\n119:     enabled: user.permissions.view && !invalidDates,\n120:     retry: false,\n121:     staleTime: 0,\n122:   });\n123:   const summary = useQuery({\n124:     queryKey: [\"invoices\", \"summary\"],\n125:     queryFn: ({ signal }) => invoiceService.summary({ signal }),\n126:     enabled: user.permissions.view,"
+  },
+  {
+    "file": "src/pages/Invoices/InvoiceList.jsx",
+    "match": "const summary = useQuery",
+    "line": 123,
+    "start": 121,
+    "end": 134,
+    "excerpt": "121:     staleTime: 0,\n122:   });\n123:   const summary = useQuery({\n124:     queryKey: [\"invoices\", \"summary\"],\n125:     queryFn: ({ signal }) => invoiceService.summary({ signal }),\n126:     enabled: user.permissions.view,\n127:     retry: false,\n128:     staleTime: 0,\n129:   });\n130:   const customers = useQuery({\n131:     queryKey: [\"invoices\", \"customers\", customerTerm],\n132:     queryFn: () => invoiceService.customers(customerTerm),\n133:     enabled: user.permissions.view,\n134:     retry: false,"
+  },
+  {
+    "file": "src/pages/Invoices/InvoiceList.jsx",
+    "match": "const customers = useQuery",
+    "line": 130,
+    "start": 128,
+    "end": 141,
+    "excerpt": "128:     staleTime: 0,\n129:   });\n130:   const customers = useQuery({\n131:     queryKey: [\"invoices\", \"customers\", customerTerm],\n132:     queryFn: () => invoiceService.customers(customerTerm),\n133:     enabled: user.permissions.view,\n134:     retry: false,\n135:   });\n136:   const sort = (field) =>\n137:     setFilters((previous) => ({\n138:       ...previous,\n139:       sortBy: field,\n140:       sortOrder:\n141:         previous.sortBy === field && previous.sortOrder === \"asc\""
+  },
+  {
+    "file": "src/pages/Invoices/components/InvoiceShared.jsx",
+    "match": "queryKey: [\"auth-user\"]",
+    "line": 29,
+    "start": 27,
+    "end": 40,
+    "excerpt": "27: export function useInvoiceUser() {\n28:   const query = useQuery({\n29:     queryKey: [\"auth-user\"],\n30:     queryFn: () => apiClient.get(\"/api/Auth/me\"),\n31:     retry: false,\n32:     staleTime: 60000,\n33:   });\n34:   const resolved = resolveCurrentUser(query.data);\n35:   return {\n36:     ...query,\n37:     data: resolved || query.data,\n38:     permissions: invoicePermissions(query.data || resolved),\n39:   };\n40: }"
+  },
+  {
+    "file": "src/pages/Invoices/components/InvoiceShared.jsx",
+    "match": "export function useDebounced",
+    "line": 19,
+    "start": 17,
+    "end": 30,
+    "excerpt": "17: } from \"../services/invoiceService\";\n18: import \"../styles/invoices.css\";\n19: export function useDebounced(value, wait = 275) {\n20:   const [debounced, setDebounced] = useState(value);\n21:   useEffect(() => {\n22:     const timer = setTimeout(() => setDebounced(value), wait);\n23:     return () => clearTimeout(timer);\n24:   }, [value, wait]);\n25:   return debounced;\n26: }\n27: export function useInvoiceUser() {\n28:   const query = useQuery({\n29:     queryKey: [\"auth-user\"],\n30:     queryFn: () => apiClient.get(\"/api/Auth/me\"),"
+  },
+  {
+    "file": "src/pages/Payments/Payments.jsx",
+    "match": "useSearchCommit(search",
+    "line": 80,
+    "start": 78,
+    "end": 91,
+    "excerpt": "78:   const [search, setSearch] = useState(''); const [reverse, setReverse] = useState(null);\n79:   const user = usePaymentUser();\n80:   useSearchCommit(search, value => setFilters(previous => ({ ...previous, search: value, pageNumber: 1 })));\n81:   const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));\n82:   const dateError = Boolean(filters.from && filters.to && filters.from > filters.to);\n83:   const query = useQuery({ queryKey: ['payments', 'list', filters], queryFn: ({ signal }) => paymentService.getPayments(filters, { signal }), enabled: !dateError, retry: false });\n84:   const loadError = query.error || user.error;\n85:   const items = dateError ? [] : query.data?.items || [];\n86:   const printList = async () => {\n87:     if (printing) return;\n88:     setPrinting(true); setPrintError('');\n89:     try { printPaymentDocument(buildPaymentListReport(await getPaymentReportRows(filters))); }\n90:     catch (error) { setPrintError(error.message || 'Unable to prepare the payments report.'); }\n91:     finally { setPrinting(false); }"
+  },
+  {
+    "file": "src/pages/Payments/Payments.jsx",
+    "match": "const query = useQuery",
+    "line": 83,
+    "start": 81,
+    "end": 94,
+    "excerpt": "81:   const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));\n82:   const dateError = Boolean(filters.from && filters.to && filters.from > filters.to);\n83:   const query = useQuery({ queryKey: ['payments', 'list', filters], queryFn: ({ signal }) => paymentService.getPayments(filters, { signal }), enabled: !dateError, retry: false });\n84:   const loadError = query.error || user.error;\n85:   const items = dateError ? [] : query.data?.items || [];\n86:   const printList = async () => {\n87:     if (printing) return;\n88:     setPrinting(true); setPrintError('');\n89:     try { printPaymentDocument(buildPaymentListReport(await getPaymentReportRows(filters))); }\n90:     catch (error) { setPrintError(error.message || 'Unable to prepare the payments report.'); }\n91:     finally { setPrinting(false); }\n92:   };\n93:   return <PaymentShell title=\"Payment Management\" actions={<>{user.permissions.create && <Button component={Link} to=\"/payments/new\" variant=\"contained\" startIcon={<Add />}>Record Payment</Button>}<Button aria-label=\"Refresh payments\" variant=\"outlined\"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label=\"Print all filtered payments\" variant=\"outlined\"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button></>}>\n94:     <FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity=\"error\" />"
+  },
+  {
+    "file": "src/pages/Payments/PaymentShared.jsx",
+    "match": "export function usePaymentUser",
+    "line": 32,
+    "start": 30,
+    "end": 39,
+    "excerpt": "30:   return <>{error && <DashboardErrorState title=\"Unable to load payment data\" message={typeof error === 'string' ? error : paymentError(error)} onRetry={onRetry} />}{empty && !error && <p className=\"payments-state\">{empty}</p>}</>;\n31: }\n32: export function usePaymentUser() {\n33:   const query = useQuery({ queryKey: ['payment-user'], queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }), retry: false, staleTime: 60000 });\n34:   return { ...query, permissions: paymentPermissions(query.data) };\n35: }\n36: \n37: export function PaymentStatus({ status }) {\n38:   return <span className=\"payment-status\" data-status={status}>{status}</span>;\n39: }"
+  },
+  {
+    "file": "src/pages/Customers/hooks/useCustomers.js",
+    "match": "export const useCustomers",
+    "line": 4,
+    "start": 2,
+    "end": 10,
+    "excerpt": "2: import { deactivateCustomer, getCustomers, getCustomerSummary } from '../api/customerApi';\n3: \n4: export const useCustomers = (params) => useQuery({ queryKey: ['customers', 'list', params], queryFn: ({ signal }) => getCustomers(params, signal), placeholderData: keepPreviousData, retry: false });\n5: export const useCustomerSummary = () => useQuery({ queryKey: ['customers', 'summary'], queryFn: ({ signal }) => getCustomerSummary(signal), staleTime: 60000, retry: false });\n6: export function useCustomerStatus() {\n7:   const client = useQueryClient();\n8:   return useMutation({ mutationFn: (customer) => deactivateCustomer(customer.id, customer.reason),\n9:     onSuccess: (_, customer) => Promise.all([['customers'], ['customer', String(customer.id)], ['customer-details', String(customer.id)], ['customer-audit', String(customer.id)]].map(queryKey => client.invalidateQueries({ queryKey }))) });\n10: }"
+  },
+  {
+    "file": "src/pages/Customers/hooks/useCustomers.js",
+    "match": "export const useCustomerSummary",
+    "line": 5,
+    "start": 3,
+    "end": 10,
+    "excerpt": "3: \n4: export const useCustomers = (params) => useQuery({ queryKey: ['customers', 'list', params], queryFn: ({ signal }) => getCustomers(params, signal), placeholderData: keepPreviousData, retry: false });\n5: export const useCustomerSummary = () => useQuery({ queryKey: ['customers', 'summary'], queryFn: ({ signal }) => getCustomerSummary(signal), staleTime: 60000, retry: false });\n6: export function useCustomerStatus() {\n7:   const client = useQueryClient();\n8:   return useMutation({ mutationFn: (customer) => deactivateCustomer(customer.id, customer.reason),\n9:     onSuccess: (_, customer) => Promise.all([['customers'], ['customer', String(customer.id)], ['customer-details', String(customer.id)], ['customer-audit', String(customer.id)]].map(queryKey => client.invalidateQueries({ queryKey }))) });\n10: }"
+  },
+  {
+    "file": "src/pages/Customers/pages/CustomerListPage.jsx",
+    "match": "useSearchCommit(search.trim()",
+    "line": 305,
+    "start": 303,
+    "end": 316,
+    "excerpt": "303:     setSearch(params.search);\n304:   }, [params.search]);\n305:   useSearchCommit(search.trim(), (nextSearch) => {\n306:     if (nextSearch !== params.search) {\n307:       change({ search: nextSearch, page: 1 });\n308:     }\n309:   });\n310:   const query = useCustomers(params);\n311:   const mutation = useCustomerStatus();\n312:   const statusLock = useRef(false);\n313:   const [confirm, setConfirm] = useState(null);\n314:   const [inactiveDetails, setInactiveDetails] = useState(null);\n315:   const [reason, setReason] = useState(\"\");\n316:   const cardView = params.outstanding === \"Has Outstanding\" ? \"outstanding\" : params.status || \"total\";"
+  },
+  {
+    "file": "src/utils/search.js",
+    "match": "export const SEARCH_DELAY",
+    "line": 1,
+    "start": 1,
+    "end": 12,
+    "excerpt": "1: export const SEARCH_DELAY = 300;\n2: \n3: export function scheduleSearch(value, commit) {\n4:   const timer = setTimeout(() => commit(value.trim()), SEARCH_DELAY);\n5:   return () => clearTimeout(timer);\n6: }\n7: \n8: export function searchParams(previous, value, pageKey = 'pageNumber') {\n9:   const search = value.trim();\n10:   return previous.search === search ? previous : { ...previous, search, [pageKey]: 1 };\n11: }\n12: "
+  },
+  {
+    "file": "src/pages/Notifications/NotificationTemplates.jsx",
+    "match": "const query = useQuery",
+    "line": 30,
+    "start": 28,
+    "end": 41,
+    "excerpt": "28:   const [actionError, setActionError] = useState(null);\n29:   const locked = useRef(false);\n30:   const query = useQuery({ queryKey: ['notification-templates', filters], queryFn: ({ signal }) => notificationService.getTemplates(filters, { signal }), retry: false });\n31:   const confirm = value => { setActionError(null); setConfirmation(value); };\n32:   const perform = async () => {\n33:     if (locked.current) return;\n34:     locked.current = true; setPending(true); setActionError(null);\n35:     try {\n36:       if (confirmation.type === 'delete') await notificationService.deleteTemplate(confirmation.template.id);\n37:       else await notificationService.seedDefaults();\n38:       toast.success(confirmation.type === 'delete' ? 'Template deleted.' : 'Missing default templates added.');\n39:       setConfirmation(null);\n40:       await client.invalidateQueries({ queryKey: ['notification-templates'] });\n41:     } catch (error) { setActionError(error); }"
+  },
+  {
+    "file": "src/pages/Notifications/NotificationTemplates.jsx",
+    "match": "dataSource={(query.data",
+    "line": 68,
+    "start": 66,
+    "end": 79,
+    "excerpt": "66:         <Button onClick={() => query.refetch()} disabled={query.isFetching}>Refresh</Button>\n67:       </div>\n68:       <Table className=\"ibms-table-frame notification-data-table\" aria-label=\"Notification templates\" rowKey=\"id\" columns={columns} dataSource={(query.data || []).slice((page - 1) * pageSize, page * pageSize)} loading={query.isFetching} size=\"middle\" scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <NotificationEmpty /> }} />\n69:       {query.data?.length > 0 && <WorkspacePagination page={page} pageSize={pageSize} totalCount={query.data.length} itemLabel=\"templates\" disabled={query.isFetching} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />}\n70:     </section>}\n71:     {preview && <NotificationPreview payload={preview} onClose={() => setPreview(null)} />}\n72:     <Modal open={Boolean(confirmation)} title={confirmation?.type === 'delete' ? 'Delete notification template?' : 'Restore missing default templates?'} onCancel={() => { if (!locked.current) setConfirmation(null); }} closable={!pending} mask={{ closable: !pending }}\n73:       footer={<><Button disabled={pending} onClick={() => setConfirmation(null)}>Cancel</Button><Button danger={confirmation?.type === 'delete'} type=\"primary\" loading={pending} onClick={perform}>{confirmation?.type === 'delete' ? 'Delete Template' : 'Restore Missing Defaults'}</Button></>} className=\"notification-modal\">\n74:       <p>{confirmation?.type === 'delete' ? `Delete \u201c${confirmation.template.name}\u201d? This action cannot be undone.` : 'Restore any missing default notification templates? Existing customized templates will not be overwritten.'}</p>\n75:       {actionError && <Alert type=\"error\" showIcon title={notificationError(actionError)} />}\n76:     </Modal>\n77:   </NotificationShell>;\n78: }\n79: "
+  },
+  {
+    "file": "src/pages/Notifications/NotificationTemplates.jsx",
+    "match": "function FriendlySubject",
+    "line": 80,
+    "start": 78,
+    "end": 85,
+    "excerpt": "78: }\n79: \n80: function FriendlySubject({ text, eventType }) {\n81:   const variables = useQuery({ queryKey: ['notification-variables', eventType], queryFn: ({ signal }) => notificationService.getVariables(eventType, { signal }), enabled: Boolean(eventType), retry: false, staleTime: 60000 });\n82:   const parts = parseTemplateToVisualModel(text, variables.data);\n83:   const display = parts.map((part, index) => part.type === 'token' ? <span className=\"notification-inline-field\" key={index}>{part.label}</span> : part.text);\n84:   return <Tooltip title={<span className=\"notification-subject-tooltip\">{display}</span>}><span className=\"notification-truncate\">{display}</span></Tooltip>;\n85: }"
+  },
+  {
+    "file": "src/pages/Notifications/notificationService.js",
+    "match": "async getTemplates",
+    "line": 40,
+    "start": 38,
+    "end": 51,
+    "excerpt": "38: const templates = '/api/v1/notification-templates';\n39: export const notificationService = {\n40:   async getTemplates(params = {}, { signal } = {}) {\n41:     const query = {};\n42:     if (params.eventType) query.eventType = params.eventType;\n43:     if (typeof params.isActive === 'boolean') query.isActive = params.isActive;\n44:     return arrayData(await apiClient.get(templates, { params: query, signal }));\n45:   },\n46:   async getTemplateById(id, { signal } = {}) {\n47:     const data = unwrap(await apiClient.get(`${templates}/${encodeURIComponent(id)}`, { signal }));\n48:     if (!data || data.id == null || typeof data.subjectTemplate !== 'string' || typeof data.bodyTemplate !== 'string') throw new Error('The notification service returned an invalid template.');\n49:     return data;\n50:   },\n51:   async createTemplate(data) { return unwrap(await apiClient.post(templates, templatePayload(data))); },"
+  },
+  {
+    "file": "src/pages/BackgroundJobs/ExportJobStatus.jsx",
+    "match": "const user = useQuery",
+    "line": 35,
+    "start": 33,
+    "end": 46,
+    "excerpt": "33:   const [pageSize, setPageSize] = useState(20);\n34:   const [feedback, setFeedback] = useState(null);\n35:   const user = useQuery({\n36:     queryKey: ['auth-user'],\n37:     queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }),\n38:     retry: false,\n39:     staleTime: 60000,\n40:   });\n41:   const allowed = integrationAccess(user.data);\n42:   const profile = user.data?.data ?? user.data;\n43:   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';\n44:   const query = useQuery({\n45:     queryKey: ['export-jobs', tenantKey, page, pageSize, filterJobType, status],\n46:     queryFn: ({ signal }) => backgroundJobService.getExports({ page, pageSize, jobType: filterJobType, status }, signal),"
+  },
+  {
+    "file": "src/pages/BackgroundJobs/ExportJobStatus.jsx",
+    "match": "const query = useQuery",
+    "line": 44,
+    "start": 42,
+    "end": 55,
+    "excerpt": "42:   const profile = user.data?.data ?? user.data;\n43:   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';\n44:   const query = useQuery({\n45:     queryKey: ['export-jobs', tenantKey, page, pageSize, filterJobType, status],\n46:     queryFn: ({ signal }) => backgroundJobService.getExports({ page, pageSize, jobType: filterJobType, status }, signal),\n47:     enabled: allowed,\n48:     retry: false,\n49:     refetchInterval: current => current.state.data?.items.some(job => ['Pending', 'Processing'].includes(job.status)) ? 5000 : false,\n50:   });\n51:   const createJob = useMutation({\n52:     mutationFn: () => backgroundJobService.createExport({ jobType, exportFormat }),\n53:     onSuccess: job => {\n54:       setPage(1);\n55:       setFilterJobType('');"
+  },
+  {
+    "file": "src/pages/BackgroundJobs/ExportJobStatus.jsx",
+    "match": "refetchInterval:",
+    "line": 49,
+    "start": 47,
+    "end": 60,
+    "excerpt": "47:     enabled: allowed,\n48:     retry: false,\n49:     refetchInterval: current => current.state.data?.items.some(job => ['Pending', 'Processing'].includes(job.status)) ? 5000 : false,\n50:   });\n51:   const createJob = useMutation({\n52:     mutationFn: () => backgroundJobService.createExport({ jobType, exportFormat }),\n53:     onSuccess: job => {\n54:       setPage(1);\n55:       setFilterJobType('');\n56:       setStatus('');\n57:       setFeedback({ severity: 'success', message: 'Export queued.' });\n58:       void client.invalidateQueries({ queryKey: ['export-jobs'] });\n59:     },\n60:     onError: error => setFeedback({ severity: 'error', message: backgroundJobError(error) }),"
+  },
+  {
+    "file": "src/pages/BackgroundJobs/backgroundJobService.js",
+    "match": "async getExports",
+    "line": 66,
+    "start": 64,
+    "end": 77,
+    "excerpt": "64:     return data.map(mapBackgroundJob);\n65:   },\n66:   async getExports({ page = 1, pageSize = 20, jobType = '', status = '' }, signal) {\n67:     const data = unwrap(await apiClient.get(exportsBase, {\n68:       signal,\n69:       params: { page, pageSize, ...(jobType ? { jobType } : {}), ...(status ? { status } : {}) },\n70:     }), 'export');\n71:     if (!Array.isArray(data?.items) || !Number.isInteger(data.totalCount) ||\n72:         !Number.isInteger(data.pageNumber) || !Number.isInteger(data.pageSize)) {\n73:       throw new Error('The export service returned an invalid export job list.');\n74:     }\n75:     return {\n76:       items: data.items.map(mapExportJob),\n77:       totalCount: data.totalCount,"
+  },
+  {
+    "file": "src/routes/ProtectedRoute.jsx",
+    "match": "queryClient.clear();",
+    "line": 28,
+    "start": 26,
+    "end": 39,
+    "excerpt": "26:   useEffect(() => {\n27:     // Protected children have not mounted yet; discard data from any prior login.\n28:     queryClient.clear();\n29:     if (!token) return;\n30:     const controller = new AbortController();\n31:     const current = () => !controller.signal.aborted && readToken() === token;\n32:     apiClient.get('/api/Auth/me', { signal: controller.signal, skipAuthRedirect: true })\n33:       .then(response => {\n34:         if (!current()) return;\n35:         const profile = response?.data ?? response;\n36:         if (!profile || typeof profile !== 'object' || !(profile.userId ?? profile.UserId)) {\n37:           throw new Error('The server returned an invalid session response. Please try again.');\n38:         }\n39:         localStorage.setItem('billing_auth_user', JSON.stringify(profile));"
+  },
+  {
+    "file": "src/routes/ProtectedRoute.jsx",
+    "match": "apiClient.get('/api/Auth/me'",
+    "line": 32,
+    "start": 30,
+    "end": 43,
+    "excerpt": "30:     const controller = new AbortController();\n31:     const current = () => !controller.signal.aborted && readToken() === token;\n32:     apiClient.get('/api/Auth/me', { signal: controller.signal, skipAuthRedirect: true })\n33:       .then(response => {\n34:         if (!current()) return;\n35:         const profile = response?.data ?? response;\n36:         if (!profile || typeof profile !== 'object' || !(profile.userId ?? profile.UserId)) {\n37:           throw new Error('The server returned an invalid session response. Please try again.');\n38:         }\n39:         localStorage.setItem('billing_auth_user', JSON.stringify(profile));\n40:         setValidation({ token, attempt, status: 'authenticated' });\n41:       })\n42:       .catch(error => {\n43:         if (!current()) return;"
+  },
+  {
+    "file": "src/queryClient.js",
+    "match": "new QueryClient",
+    "line": 2,
+    "start": 1,
+    "end": 2,
+    "excerpt": "1: import { QueryClient } from '@tanstack/react-query';\n2: export const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 300000 } } });"
+  },
+  {
+    "file": "src/pages/CreditNotes/pages/CreditNoteExportPage.jsx",
+    "match": "import html2pdf",
+    "line": 6,
+    "start": 4,
+    "end": 17,
+    "excerpt": "4: import { ArrowBack, DownloadOutlined, PictureAsPdfOutlined } from '@mui/icons-material';\n5: import { Breadcrumbs, Button, MenuItem, TextField } from '@mui/material';\n6: import html2pdf from 'html2pdf.js';\n7: import { creditNoteService } from '../services/creditNoteService';\n8: import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';\n9: import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';\n10: import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';\n11: import { formatDate, formatDateTime, money } from '../utils/creditNoteCalculations';\n12: import '../styles/credit-notes.css';\n13: \n14: const safeName = (value) => value.replace(/[<>:\"/\\\\|?*\\u0000-\\u001f]/g, '-').trim().replace(/\\s+/g, '-') || 'credit-note';\n15: \n16: export function CreditNoteExportPage() {\n17:   const { id } = useParams();"
+  },
+  {
+    "file": "src/pages/Quotations/pages/QuotationDetails.jsx",
+    "match": "await import('html2pdf.js')",
+    "line": 254,
+    "start": 252,
+    "end": 265,
+    "excerpt": "252:       invoice.style.backgroundColor = '#fff';\n253: \n254:       const { default: html2pdf } = await import('html2pdf.js');\n255:       const fileName = `${String(quotation.quoteNumber || 'invoice').replace(/[^a-zA-Z0-9-_]/g, '-')}.pdf`;\n256:       const worker = html2pdf()\n257:         .set({\n258:           margin: [6, 7, 6, 7],\n259:           filename: fileName,\n260:           image: { type: 'jpeg', quality: 0.98 },\n261:           html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 816 },\n262:           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },\n263:           pagebreak: { mode: [] },\n264:         })\n265:         .from(invoiceRef.current)"
+  },
+  {
+    "file": "../../Backend/Billing.API/Controllers/QuotationsController.cs",
+    "match": "GetQuotations([FromQuery]",
+    "line": 49,
+    "start": 47,
+    "end": 60,
+    "excerpt": "47:     [HttpGet]\n48:     [ProducesResponseType(typeof(ApiResponse<PagedResult<QuotationResponse>>), StatusCodes.Status200OK)]\n49:     public async Task<IActionResult> GetQuotations([FromQuery] QuotationListFilterRequest filter)\n50:     {\n51:         var tenantId = GetTenantId();\n52:         if (!tenantId.HasValue) return Forbid();\n53: \n54:         var result = await _quotationService.GetPagedListAsync(filter ?? new QuotationListFilterRequest(), tenantId.Value);\n55:         return Ok(result);\n56:     }\n57: \n58:     /// <summary>\n59:     /// Retrieve complete quotation details by ID with line items and snapshot.\n60:     /// </summary>"
+  },
+  {
+    "file": "../../Backend/Billing.Contracts/Quotation/QuotationContracts.cs",
+    "match": "public class QuotationListFilterRequest",
+    "line": 159,
+    "start": 157,
+    "end": 170,
+    "excerpt": "157: }\n158: \n159: public class QuotationListFilterRequest\n160: {\n161:     public string? Search { get; set; }\n162:     public string? Status { get; set; }\n163:     public int? CustomerId { get; set; }\n164:     public DateTime? FromDate { get; set; }\n165:     public DateTime? ToDate { get; set; }\n166:     public string? Validity { get; set; }\n167:     public int PageNumber { get; set; } = 1;\n168:     public int PageSize { get; set; } = 10;\n169:     public string? SortBy { get; set; } = \"QuotationDate\";\n170:     public string? SortOrder { get; set; } = \"desc\";"
+  },
+  {
+    "file": "../../Backend/Billing.Infrastructure/Repositories/QuotationRepository.cs",
+    "match": "GetPagedListAsync(int tenantId",
+    "line": 64,
+    "start": 62,
+    "end": 75,
+    "excerpt": "62:     }\n63: \n64:     public async Task<(List<Quotation> Items, int TotalCount)> GetPagedListAsync(int tenantId, QuotationListFilterRequest filter)\n65:     {\n66:         var query = _context.Quotations\n67:             .AsNoTracking()\n68:             .Include(q => q.Customer)\n69:             .Include(q => q.Items)\n70:             .Where(q => q.TenantId == tenantId);\n71: \n72:         // Search Filter\n73:         if (!string.IsNullOrWhiteSpace(filter.Search))\n74:         {\n75:             var search = filter.Search.Trim().ToLower();"
+  },
+  {
+    "file": "../../Backend/Billing.Infrastructure/Repositories/QuotationRepository.cs",
+    "match": "var pageNumber =",
+    "line": 125,
+    "start": 123,
+    "end": 136,
+    "excerpt": "123:         };\n124: \n125:         var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;\n126:         var pageSize = filter.PageSize < 1 ? 10 : (filter.PageSize > 100 ? 100 : filter.PageSize);\n127: \n128:         var items = await query\n129:             .Skip((pageNumber - 1) * pageSize)\n130:             .Take(pageSize)\n131:             .ToListAsync();\n132: \n133:         return (items, totalCount);\n134:     }\n135: \n136:     public async Task<Quotation> AddAsync(Quotation quotation)"
+  },
+  {
+    "file": "../../Backend/Billing.Infrastructure/Repositories/QuotationRepository.cs",
+    "match": "\"quotenumber\"",
+    "line": 117,
+    "start": 115,
+    "end": 128,
+    "excerpt": "115:         query = (filter.SortBy?.ToLowerInvariant()) switch\n116:         {\n117:             \"quotenumber\" => isAscending ? query.OrderBy(q => q.QuoteNumber) : query.OrderByDescending(q => q.QuoteNumber),\n118:             \"customer\" or \"customername\" => isAscending ? query.OrderBy(q => q.Customer != null ? q.Customer.Name : string.Empty) : query.OrderByDescending(q => q.Customer != null ? q.Customer.Name : string.Empty),\n119:             \"totalamount\" => isAscending ? query.OrderBy(q => q.TotalAmount) : query.OrderByDescending(q => q.TotalAmount),\n120:             \"status\" => isAscending ? query.OrderBy(q => q.Status) : query.OrderByDescending(q => q.Status),\n121:             \"validuntil\" => isAscending ? query.OrderBy(q => q.ValidUntil) : query.OrderByDescending(q => q.ValidUntil),\n122:             _ => isAscending ? query.OrderBy(q => q.QuotationDate) : query.OrderByDescending(q => q.QuotationDate)\n123:         };\n124: \n125:         var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;\n126:         var pageSize = filter.PageSize < 1 ? 10 : (filter.PageSize > 100 ? 100 : filter.PageSize);\n127: \n128:         var items = await query"
+  },
+  {
+    "file": "../../Backend/Billing.Infrastructure/Repositories/QuotationRepository.cs",
+    "match": "var totalCount =",
+    "line": 111,
+    "start": 109,
+    "end": 122,
+    "excerpt": "109:         }\n110: \n111:         var totalCount = await query.CountAsync();\n112: \n113:         // Sorting\n114:         var isAscending = string.Equals(filter.SortOrder, \"asc\", StringComparison.OrdinalIgnoreCase);\n115:         query = (filter.SortBy?.ToLowerInvariant()) switch\n116:         {\n117:             \"quotenumber\" => isAscending ? query.OrderBy(q => q.QuoteNumber) : query.OrderByDescending(q => q.QuoteNumber),\n118:             \"customer\" or \"customername\" => isAscending ? query.OrderBy(q => q.Customer != null ? q.Customer.Name : string.Empty) : query.OrderByDescending(q => q.Customer != null ? q.Customer.Name : string.Empty),\n119:             \"totalamount\" => isAscending ? query.OrderBy(q => q.TotalAmount) : query.OrderByDescending(q => q.TotalAmount),\n120:             \"status\" => isAscending ? query.OrderBy(q => q.Status) : query.OrderByDescending(q => q.Status),\n121:             \"validuntil\" => isAscending ? query.OrderBy(q => q.ValidUntil) : query.OrderByDescending(q => q.ValidUntil),\n122:             _ => isAscending ? query.OrderBy(q => q.QuotationDate) : query.OrderByDescending(q => q.QuotationDate)"
+  }
+]

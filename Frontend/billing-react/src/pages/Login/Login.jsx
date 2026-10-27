@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useState, useEffect } from 'react';
 import {
   Link as RouterLink,
@@ -937,17 +938,7 @@ export const Login = () => {
           ================================================== */}
 
           {recoverySuccess && (
-            <Alert
-              severity="success"
-              onClose={() => setRecoverySuccess(null)}
-              sx={{
-                mb: 2,
-                borderRadius: 2,
-                py: 0.3,
-              }}
-            >
-              {recoverySuccess}
-            </Alert>
+            <FeedbackSnackbar message={recoverySuccess} onClose={() => setRecoverySuccess(null)} />
           )}
 
           {/* ==================================================
