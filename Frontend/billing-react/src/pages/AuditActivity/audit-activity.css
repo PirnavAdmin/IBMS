@@ -11,8 +11,8 @@
 .audit-card { background:var(--surface,#fff); border:1px solid var(--border,#d5c6b5); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-card,0 3px 12px #35231c12); }
 .audit-section-heading { display:flex; align-items:center; gap:10px; margin-bottom:20px; color:var(--primary,#674730); }
 .audit-section-heading h2,.audit-results-heading h2 { margin:0; font-size:19px; }
-.audit-filter-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1.2fr)) repeat(2,minmax(155px,1fr)); gap:12px; }
-.audit-page .audit-filter-grid .date-range-filter.ant-btn { height:56px; border-color:var(--border,#d5c6b5); border-radius:8px; background:#fff; color:var(--text-primary,#35271f); font-size:16px; font-weight:700; }
+.audit-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.audit-page .audit-filter-grid .date-range-filter.ant-btn { width:100%; max-width:none; min-width:0; height:40px; min-height:40px; justify-self:stretch; margin-right:0; padding-inline:8px; border-color:var(--border,#d5c6b5); border-radius:8px; background:#fff; color:var(--text-primary,#35271f); font-size:13px; font-weight:700; }
 .audit-page .audit-filter-grid .date-range-filter.ant-btn:hover { border-color:var(--secondary,#8a6548); background:#fff; color:var(--text-primary,#35271f); }
 .audit-filter-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:18px; }
 .audit-filter-actions > span { margin-right:auto; color:var(--text-secondary,#756354); font-size:13px; }

@@ -6,7 +6,7 @@ import { displayDate } from '../utils/localDate';
 import '../styles/DateRangeFilter.css';
 
 // UI values remain local YYYY-MM-DD strings; callers own their existing API mapping.
-export function DateRangeFilter({ startDate = '', endDate = '', onApply }) {
+export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown /> }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({ startDate: '', endDate: '' });
@@ -26,7 +26,7 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply }) {
       {invalid && <span id={`${id}-error`} role="alert" className="date-range-error">To Date must be on or after From Date.</span>}
       <div className="date-range-actions"><Button htmlType="button" onClick={() => apply({ startDate: '', endDate: '' })}>Clear</Button><Button type="primary" htmlType="submit" disabled={invalid}>Apply</Button></div>
     </form>}>
-      <Button htmlType="button" className="invoice-filter-date-range date-range-filter" icon={<CalendarTodayOutlined />} aria-label={`Date Range: ${label}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}>{label}<ArrowDropDown /></Button>
+      <Button htmlType="button" className="invoice-filter-date-range date-range-filter" icon={<CalendarTodayOutlined />} aria-label={`Date Range: ${label}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}>{label}{dropdownIcon}</Button>
     </Popover>
   </ConfigProvider>;
 }

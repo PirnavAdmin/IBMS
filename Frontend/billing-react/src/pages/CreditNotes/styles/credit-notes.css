@@ -147,7 +147,6 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-source-summary div { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
 .cn-source-summary small { color: #8b7968; font-size: .67rem; }
 .cn-source-summary strong { overflow-wrap: anywhere; color: #51351f; font-size: .77rem; }
-.cn-eligibility-summary {     }
 .cn-eligibility-summary > div,.cn-eligibility-summary > button { display: flex; min-width: 0; min-height: 62px; flex-direction: column; justify-content: space-between; gap: 5px; padding: 9px 10px; border: 1px solid #e8ddd1; border-radius: 9px; background: #fff; }
 .cn-eligibility-summary > .cn-eligibility-choice { appearance: none; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
 .cn-eligibility-summary > .cn-eligibility-choice:hover { border-color: #bd9876; background: #fcf6ee; }
@@ -155,7 +154,6 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-eligibility-summary > .cn-eligibility-choice:focus-visible { outline: 3px solid #b98354; outline-offset: 2px; }
 .cn-eligibility-summary small { color: #897a6b; font-size: .66rem; line-height: 1.3; }
 .cn-eligibility-summary strong {    overflow-wrap: anywhere; }
-.cn-eligibility-summary .cn-eligibility-highlight {   }
 .cn-eligibility-highlight strong { color: #62391e; font-size: .9rem; }
 .cn-previous-credit-warning { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; padding: 11px 13px; border: 1px solid #efd3af;    }
 .cn-previous-credit-warning strong { font-size: .78rem; }

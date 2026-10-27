@@ -4,7 +4,7 @@ import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
 
-export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, onRecordsSearch, currencies = [], currency = '' }) => {
+export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, currencies = [], currency = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const periods = dashboardPeriods();
@@ -38,10 +38,10 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, on
     setIsOpen(false);
   };
 
-  const reset = () => { onChange(defaultDashboardFilters()); onRecordsSearch?.(''); };
+  const reset = () => { onChange(defaultDashboardFilters()); };
 
   return <section className="premium-filters" aria-label="Dashboard filters">
-    <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} /></div>
+    <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} dropdownIcon={<KeyboardArrowDown fontSize="small" />} /></div>
 
     <div className="premium-filter-field premium-period-field" ref={dropdownRef}>
       <span className="premium-filter-label">Period</span>
