@@ -235,3 +235,100 @@
     overflow-y: auto !important;
   }
 }
+
+/* Keep the column headings above the row-only vertical scroll track. */
+@media screen {
+  .app-layout [data-table-scroll-header] > table > thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--ui-table-header-bg, #f5eee6);
+  }
+  .app-layout [data-table-scroll-header] > table > thead > tr > th {
+    background: var(--ui-table-header-bg, #f5eee6);
+  }
+  @supports selector(::-webkit-scrollbar) {
+    /* Standard scrollbar-width overrides WebKit's track margins in Chromium. */
+    .app-layout .app-layout-content [data-table-scroll-header]:has(> table) {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+    .app-layout [data-table-scroll-header]::-webkit-scrollbar:vertical {
+      background: linear-gradient(to bottom,
+        var(--ui-table-header-bg, #f5eee6) 0 var(--table-scroll-header-height),
+        #f1e7dc var(--table-scroll-header-height) 100%);
+    }
+    .app-layout [data-table-scroll-header]::-webkit-scrollbar-track:vertical {
+      margin-top: var(--table-scroll-header-height, 0px);
+      margin-bottom: 2px;
+    }
+    .app-layout [data-table-scroll-header]::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+  }
+}
+
+/* Let desktop lists use the available card width before adding a scroll bar. */
+@media screen {
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table {
+    width: 100%;
+    min-width: 900px;
+    table-layout: fixed;
+  }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table :is(th, td) {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 12px 7px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th { font-size: 11px; letter-spacing: .02em; overflow-wrap: normal; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(1) { width: 16%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(2) { width: 10%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(3) { width: 17%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(4) { width: 17%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(5) { width: 9%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(6) { width: 12%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(7) { width: 12%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] > table th:nth-child(8) { width: 7%; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] :is(th, td):last-child { text-align: center; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] .MuiTableSortLabel-root { max-width: 100%; white-space: normal; }
+  .app-layout .payments-page .payment-list-table[data-table-scroll-header] .MuiTableSortLabel-icon { font-size: 16px; margin-inline: 2px; }
+
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table {
+    width: 100%;
+    min-width: 1040px;
+    table-layout: fixed;
+  }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table :is(th, td) {
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 12px 7px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th { font-size: 11px; letter-spacing: .02em; overflow-wrap: normal; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(1) { width: 10%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(2) { width: 14%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(3) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(4) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(5) { width: 5%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(6) { width: 10%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(7) { width: 9%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(8) { width: 10%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(9) { width: 12%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(10) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(11) { width: 6%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] .MuiTableSortLabel-root { max-width: 100%; white-space: normal; }
+  .app-layout .customers-page .customer-table:not(.is-inactive-view) > table {
+    width: 100%;
+    min-width: 900px;
+    table-layout: fixed;
+  }
+  .app-layout .customers-page .customer-table:not(.is-inactive-view) > table :is(th, td) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

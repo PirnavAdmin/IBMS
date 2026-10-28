@@ -1,3 +1,4 @@
+import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -109,14 +110,14 @@ export function ExportJobStatus() {
               <div className="export-job-list-heading">
                 <h2>Export history</h2>
                 <div>
-                  <TextField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
+                  <FilterSelectField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
                     <MenuItem value="">All statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
-                  </TextField>
-                  <TextField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
+                  </FilterSelectField>
+                  <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
                     {jobTypes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
-                  </TextField>
+                  </FilterSelectField>
                 </div>
               </div>
               {query.isError ? <DashboardErrorState title="Unable to load exports" message={backgroundJobError(query.error)} onRetry={refresh} />

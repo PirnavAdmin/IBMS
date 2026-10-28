@@ -1,3 +1,4 @@
+import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
@@ -142,9 +143,9 @@ export function Integrations() {
               <TextField size="small" type="search" label="Search applications" placeholder="Search by application name" value={search}
                 onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-              <TextField select size="small" label="Status" value={filters.status} onChange={event => setFilters(previous => ({ ...previous, status: event.target.value, pageNumber: 1 }))}>
+              <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => setFilters(previous => ({ ...previous, status: event.target.value, pageNumber: 1 }))}>
                 <MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
-              </TextField>
+              </FilterSelectField>
               <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} application${page.totalCount === 1 ? '' : 's'}` : ''}</span>
               <div className="integrations-heading-actions">
                 <Button variant="outlined" startIcon={<Refresh />} disabled={!allowed || waiting} onClick={refresh}>Refresh</Button>

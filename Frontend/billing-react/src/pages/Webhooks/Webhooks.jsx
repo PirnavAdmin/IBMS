@@ -1,3 +1,4 @@
+import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -121,7 +122,7 @@ export function Webhooks() {
       <section className="integrations-panel" aria-label="Configured webhooks">
         <div className="integrations-toolbar webhook-toolbar">
           <TextField size="small" type="search" label="Search webhooks" placeholder="Search by name or URL" value={search} onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-          <TextField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</TextField>
+          <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
           <TextField select size="small" label="Event Type" InputLabelProps={{ shrink: true }} value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)} SelectProps={{ displayEmpty: true, renderValue: selected => selected || 'All events', MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'webhook-event-options-menu', sx: { maxHeight: 260 } } } }}><MenuItem value="">All events</MenuItem>{(events.data || []).filter(event => event.eventType !== '*').map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
           <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} webhook${page.totalCount === 1 ? '' : 's'}` : ''}</span>
         </div>

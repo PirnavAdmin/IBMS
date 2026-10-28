@@ -710,12 +710,14 @@ test("Add/remove multiple item lines retains backend calculation display", async
       await flush(420);
       await click(button("Add Line"));
       assert.equal(
-        document.querySelectorAll('[aria-label^="Remove line"]').length,
+        document.querySelectorAll('[aria-label^="Actions for line"]').length,
         2,
       );
-      await click(document.querySelector('[aria-label="Remove line 2"]'));
+      assert.equal(document.querySelectorAll('[aria-label^="Move line"]').length, 0);
+      await click(document.querySelector('[aria-label="Actions for line 2"]'));
+      await click(document.querySelector('[role="menuitem"]'));
       assert.equal(
-        document.querySelectorAll('[aria-label^="Remove line"]').length,
+        document.querySelectorAll('[aria-label^="Actions for line"]').length,
         1,
       );
     } finally {

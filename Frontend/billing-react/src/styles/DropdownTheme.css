@@ -34,3 +34,14 @@ body:has(.app-layout) :is([role="option"], .quote-picker-menu > button, .quote-t
 body:has(.app-layout) .ant-select-item-option-state { color: var(--dropdown-accent); }
 body:has(.app-layout) select option { background: var(--dropdown-surface); color: var(--dropdown-text); }
 body:has(.app-layout) select option:checked { background: var(--dropdown-selected); color: var(--dropdown-accent); }
+
+/* Long filter options wrap inside their popup instead of widening it. */
+body:has(.app-layout) :is(.MuiMenu-paper:has([role="listbox"]), .MuiAutocomplete-paper, .ant-select-dropdown) {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+}
+body:has(.app-layout) :is([role="option"], .ant-select-item-option-content) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}

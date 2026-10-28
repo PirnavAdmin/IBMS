@@ -1,3 +1,4 @@
+import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -407,7 +408,7 @@ export function InvoiceList() {
               ),
             }}
           />
-          <TextField
+          <FilterSelectField
             select
             size="small"
             label="Status"
@@ -421,7 +422,7 @@ export function InvoiceList() {
                 {status}
               </MenuItem>
             ))}
-          </TextField>
+          </FilterSelectField>
           <Autocomplete
             className="invoice-filter-customer"
             size="small"
@@ -445,7 +446,7 @@ export function InvoiceList() {
               ...previous, ...dates, page: 1,
             }))}
           />
-          <TextField
+          <FilterSelectField
             select
             size="small"
             label="Payment state"
@@ -461,7 +462,7 @@ export function InvoiceList() {
                 </MenuItem>
               ),
             )}
-          </TextField>
+          </FilterSelectField>
           <Button
             variant="outlined"
             size="small"

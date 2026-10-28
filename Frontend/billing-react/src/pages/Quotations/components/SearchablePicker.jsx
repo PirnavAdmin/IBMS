@@ -1,17 +1,12 @@
+import { dropdownPosition } from '../../../utils/dropdownPosition';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Search } from '@mui/icons-material';
 
 function menuPosition(anchor) {
-  const rect = anchor.getBoundingClientRect();
-  const top = rect.bottom + 4;
-  const width = Math.min(rect.width, window.innerWidth - 16);
-  return {
-    top,
-    left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
-    width,
-    maxHeight: Math.max(0, Math.min(210, window.innerHeight - top - 8)),
-  };
+  return dropdownPosition(anchor.getBoundingClientRect(), {
+    width: window.innerWidth, height: window.innerHeight,
+  }, 210);
 }
 
 export function SearchablePicker({ value, onChange, items = [], getLabel, getSearchText, placeholder, disabled = false, className = '', ariaLabel, showSearchIcon = true, showDropdownIcon = false }) {

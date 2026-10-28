@@ -1,6 +1,6 @@
 .workspace-pagination {
   display: flex;
-  min-height: 72px;
+  min-height: 64px;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
@@ -11,19 +11,22 @@
   box-sizing: border-box;
 }
 .workspace-pagination-range { font-size: 13px; }
-.workspace-pagination-controls { display: flex; align-items: center; justify-content: flex-end; gap: 22px; min-width: 0; }
-.workspace-pagination-size { width: 144px; }
+.workspace-pagination-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 16px; min-width: 0; }
+.workspace-pagination-size-field { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.workspace-pagination-size-field > span { white-space: nowrap; font-size: 12px; }
+.app-layout .workspace-pagination .workspace-pagination-size { width: 72px; min-width: 72px; margin: 0; flex: 0 0 72px; }
+.app-layout .workspace-pagination-size .MuiOutlinedInput-root { height: 36px; min-height: 36px; border-radius: 8px; font-size: 13px; }
 .workspace-pagination .MuiOutlinedInput-root { border-radius: 10px; background: #fbf8f3; }
 .workspace-pagination .MuiOutlinedInput-notchedOutline { border-color: #d9c7b3; }
 .workspace-pagination .MuiInputLabel-root { color: #897766; }
-.workspace-pagination .MuiSelect-select { padding: 10px 34px 10px 14px; }
+.app-layout .workspace-pagination-size .MuiSelect-select { min-height: 0; padding: 7px 28px 7px 10px; line-height: 20px; }
 .workspace-pagination-menu { border: 1px solid #dfcbb6; border-radius: 9px !important; background: #fffdfb !important; box-shadow: 0 5px 14px rgba(62, 39, 25, 0.16) !important; }
-.workspace-pagination-menu .MuiMenuItem-root { min-height: 44px; color: #4a2927; }
+.workspace-pagination-menu .MuiMenuItem-root { min-height: 32px; padding: 6px 10px; font-size: 13px; color: #4a2927; }
 .workspace-pagination-menu .MuiMenuItem-root.Mui-selected { background: #f1e2cf; }
 .workspace-pagination-menu .MuiMenuItem-root.Mui-selected:hover { background: #ead7c0; }
 .workspace-pagination-menu .MuiMenuItem-root:hover { background: #f8f0e7; }
 .workspace-pagination .MuiPagination-ul { flex-wrap: nowrap; gap: 4px; }
-.workspace-pagination .MuiPaginationItem-root { min-width: 40px; height: 40px; border-radius: 12px; color: #9a918a; font-size: 13px; }
+.workspace-pagination .MuiPaginationItem-root { min-width: 36px; height: 36px; border-radius: 8px; color: #9a918a; font-size: 13px; }
 .workspace-pagination .MuiPaginationItem-page.Mui-selected { background: #4a2927; color: #fff; }
 .workspace-pagination .MuiPaginationItem-page.Mui-selected:hover { background: #5b332f; }
 .workspace-pagination .MuiPaginationItem-previousNext { padding-inline: 12px; font-size: 13px; }

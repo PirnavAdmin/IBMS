@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { MenuItem, Pagination, PaginationItem, TextField } from '@mui/material';
 import './WorkspacePagination.css';
 
@@ -14,6 +15,7 @@ export function WorkspacePagination({
   disabled = false,
   className = '',
 }) {
+  const pageSizeLabelId = useId();
   const safeTotal = Math.max(0, Number(totalCount) || 0);
   const safeSize = Math.max(1, Number(pageSize) || 1);
   const pageCount = Math.max(1, Math.ceil(safeTotal / safeSize));
@@ -27,26 +29,29 @@ export function WorkspacePagination({
         Showing {first}–{last} of {safeTotal} {itemLabel}
       </span>
       <div className="workspace-pagination-controls">
-        <TextField
-          select
-          size="small"
-          label="Rows per page"
-          value={safeSize}
-          disabled={disabled}
-          onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="workspace-pagination-size"
-          SelectProps={{
-            MenuProps: {
-              anchorOrigin: { vertical: 'top', horizontal: 'left' },
-              transformOrigin: { vertical: 'bottom', horizontal: 'left' },
-              PaperProps: { className: 'workspace-pagination-menu' },
-            },
-          }}
-        >
-          {PAGE_SIZE_OPTIONS.map((size) => (
-            <MenuItem key={size} value={size}>{size}</MenuItem>
-          ))}
-        </TextField>
+        <div className="workspace-pagination-size-field">
+          <span id={pageSizeLabelId}>Rows per page</span>
+          <TextField
+            select
+            size="small"
+            value={safeSize}
+            disabled={disabled}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            className="workspace-pagination-size"
+            SelectProps={{
+              labelId: pageSizeLabelId,
+              MenuProps: {
+                anchorOrigin: { vertical: 'top', horizontal: 'left' },
+                transformOrigin: { vertical: 'bottom', horizontal: 'left' },
+                PaperProps: { className: 'workspace-pagination-menu' },
+              },
+            }}
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <MenuItem key={size} value={size}>{size}</MenuItem>
+            ))}
+          </TextField>
+        </div>
         <Pagination
           count={pageCount}
           page={currentPage}

@@ -1497,3 +1497,128 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Create/edit quotation: aligned sections and a compact financial summary. */
+.quotation-form-page .quote-form-main {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+.quotation-form-page .quote-form-main > section { grid-column: 1 / -1; min-width: 0; }
+.quotation-form-page .quote-form-main > .quote-customer-card { grid-column: span 5; }
+.quotation-form-page .quote-form-main > .quote-details-card { grid-column: span 7; }
+.quotation-form-page .quote-card { padding: 22px; }
+.quotation-form-page .quote-card h2 { margin-bottom: 18px; font-size: 1.05rem; }
+.quotation-form-page .quote-customer-card .quote-fields { grid-template-columns: minmax(0, 1fr); }
+.quotation-form-page .quote-details-card .quote-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.quotation-form-page .quote-fields label { min-width: 0; gap: 8px; }
+.quotation-form-page .quote-fields input { box-sizing: border-box; min-height: 42px; }
+.quotation-form-page .quote-picker-input input { min-height: 40px; }
+.quotation-form-page .quote-customer-preview { gap: 8px; line-height: 1.5; overflow-wrap: anywhere; }
+.quotation-form-page .quote-section-heading { align-items: center; gap: 16px; margin-bottom: 18px; }
+.quotation-form-page .quote-section-heading h2 { margin-bottom: 4px; }
+.quotation-form-page .quote-items-actions { flex-wrap: wrap; justify-content: flex-end; }
+.quotation-form-page .quote-items-actions > strong { display: none; }
+.quotation-form-page .quote-items-actions > .quote-btn { min-height: 40px; }
+.quotation-form-page .quote-form-main > .quote-notes-card { grid-column: span 8; }
+.quotation-form-page .quote-form-main > .quote-summary-card { grid-column: span 4; }
+.quotation-form-page .quote-summary-card .quote-summary-rows { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.quotation-form-page .quote-summary-card .quote-summary-rows > div {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 0;
+}
+.quotation-form-page .quote-summary-card .quote-summary-rows > div span { font-size: .84rem; }
+.quotation-form-page .quote-summary-card .quote-summary-rows > div strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.quotation-form-page .quote-summary-card .quote-summary-rows .quote-grand-total { padding-top: 16px; margin-top: 10px; }
+.quotation-form-page .quote-notes-card textarea { box-sizing: border-box; min-height: 196px; line-height: 1.6; resize: vertical; }
+.quotation-form-page .quote-footer-actions {
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  gap: 16px;
+  margin-top: 20px;
+}
+.quotation-form-page .quote-draft-hint { color: var(--text-secondary); font-size: .86rem; margin: 0; }
+.quotation-form-page .quote-footer-buttons { display: flex; gap: 12px; margin-left: auto; }
+.quotation-form-page .quote-footer-buttons .quote-btn { min-height: 42px; min-width: 108px; }
+.quotation-form-page .quote-btn:disabled { cursor: not-allowed; background: #ece5dd; border-color: #ded3c7; color: #8a7d70; box-shadow: none; }
+@media (max-width: 1100px) {
+  .quotation-form-page .quote-form-main > .quote-customer-card,
+  .quotation-form-page .quote-form-main > .quote-details-card { grid-column: 1 / -1; }
+  .quotation-form-page .quote-form-main > .quote-notes-card,
+  .quotation-form-page .quote-form-main > .quote-summary-card { grid-column: span 6; }
+  .quotation-form-page .quote-notes-card .quote-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 700px) {
+  .quotation-form-page .quote-form-main { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .quotation-form-page .quote-form-main > section { grid-column: 1 / -1 !important; }
+  .quotation-form-page .quote-card { padding: 18px 16px; }
+  .quotation-form-page .quote-details-card .quote-fields { grid-template-columns: minmax(0, 1fr); }
+  .quotation-form-page .quote-section-heading { align-items: flex-start; }
+  .quotation-form-page .quote-notes-card textarea { min-height: 140px; }
+  .quotation-form-page .quote-footer-actions { flex-direction: column; align-items: stretch; padding: 16px; }
+  .quotation-form-page .quote-footer-buttons { margin: 0; }
+  .quotation-form-page .quote-footer-buttons .quote-btn { flex: 1; min-width: 0; }
+}
+
+/* One enclosing card for the entire quotation form, including its actions. */
+.quotation-form-page .quote-form-card {
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+.quotation-form-page .quote-form-card .quote-form-main {
+  gap: 24px;
+}
+.quotation-form-page .quote-form-card .quote-form-main > section {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.quotation-form-page .quote-form-card .quote-form-main > section:nth-child(n + 3) {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.quotation-form-page .quote-form-card .quote-footer-actions {
+  margin-top: 24px;
+  padding: 20px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+@media (max-width: 1100px) {
+  .quotation-form-page .quote-form-card .quote-details-card {
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+}
+@media (max-width: 700px) {
+  .quotation-form-page .quote-form-card { padding: 18px 16px; }
+  .quotation-form-page .quote-form-card .quote-form-main { gap: 20px; }
+  .quotation-form-page .quote-form-card .quote-form-main > section:nth-child(n + 2) {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+}
+/* Reserve the scrollbar lane so it cannot cover custom dropdown options. */
+.quote-picker-menu, .quote-themed-select-menu {
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}

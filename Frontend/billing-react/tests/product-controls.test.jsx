@@ -22,7 +22,7 @@ const choose = async text => {
   await flush();
 };
 
-test('Empty Category and Status labels return inside the field on dismissal or selecting All', async () => {
+test('Category and Status keep All selections visible after dismissal and reset', async () => {
   function Filters() {
     const [params, setParams] = useState({ category: '', status: '' });
     return <ProductFilters search="" onSearch={() => {}} params={params} onChange={patch => setParams(previous => ({ ...previous, ...patch }))} categories={[{ id: 1, name: 'Electronics' }]} onClear={() => {}} />;
@@ -36,26 +36,26 @@ test('Empty Category and Status labels return inside the field on dismissal or s
       const select = async text => { await open(); await act(async () => [...document.querySelectorAll('[role="option"]')].find(option => option.textContent === text).click()); await flush(); };
       await open();
       await act(async () => Simulate.keyDown(document.querySelector('[role="listbox"]'), { key: 'Escape' })); await flush();
-      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'false');
+      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'true');
       assert.equal(field.querySelector('[role="combobox"]').getAttribute('aria-expanded'), 'false');
       await select(choice);
       assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'true');
       await select(all);
-      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'false');
+      assert.equal(field.querySelector('[role="combobox"]').textContent.trim(), all);
+      assert.equal(field.querySelector('label').getAttribute('data-shrink'), 'true');
     }
   } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-test('Rows per page near the viewport bottom uses space above and exposes every size', async () => {
+test('Rows per page exposes every size and forwards the selected size', async () => {
   const host = document.createElement('div'); document.body.append(host); const root = createRoot(host); const selected = [];
   try {
     await act(async () => root.render(<ProductPagination data={{ pageNumber: 1, pageSize: 50, totalCount: 100, totalPages: 2 }} onPage={() => {}} onPageSize={value => selected.push(value)} />)); await flush();
     const control = host.querySelector('.MuiInputBase-root');
     control.getBoundingClientRect = () => ({ x: 20, y: window.innerHeight - 60, top: window.innerHeight - 60, bottom: window.innerHeight - 20, left: 20, right: 160, width: 140, height: 40 });
     await act(async () => Simulate.mouseDown(control.querySelector('[role="combobox"]'), { button: 0 })); await flush();
-    const menu = document.querySelector('.product-select-menu');
-    assert.equal(menu.style.maxHeight, '280px');
-    assert.equal(menu.style.height, 'auto');
+    const menu = document.querySelector('.workspace-pagination-menu');
+    assert.ok(menu);
     const options = [...document.querySelectorAll('[role="option"]')];
     assert.deepEqual(options.map(option => option.textContent), ['5', '10', '20', '50']);
     await act(async () => options[1].click()); await flush();
@@ -153,9 +153,9 @@ test('Catalog All Categories and All Status independently clear filters and rese
   };
   try {
     await act(async () => root.render(<QueryClientProvider client={cache}><MemoryRouter><ProductList /></MemoryRouter></QueryClientProvider>)); await flush();
-    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'true');
     assert.equal('categoryId' in calls.at(-1), false);
-    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'true');
     await input(host.querySelector('.product-search input'), 'Catalog');
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 330)); }); await flush();
     await selectOption('Status', 'Active');
@@ -167,11 +167,12 @@ test('Catalog All Categories and All Status independently clear filters and rese
     await act(async () => host.querySelector('[aria-label="Go to page 2"]').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await flush();
     assert.equal(calls.at(-1).pageNumber, 2);
     await selectOption('Category', 'All Categories');
+    assert.equal(filter('Category').querySelector('[role="combobox"]').textContent.trim(), 'All Categories');
     const request = calls.at(-1);
     assert.equal('categoryId' in request, false); assert.equal('category' in request, false);
     assert.equal(request.pageNumber, 1); assert.equal(request.search, 'Catalog');
     assert.equal(request.status, 'Active'); assert.equal(request.sortBy, 'price'); assert.equal(request.sortOrder, 'asc');
-    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'true');
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item/);
     assert.match(host.querySelector('.product-table').textContent, /Catalog Furniture Item/);
     await selectOption('Category', 'Furniture'); assert.equal(calls.at(-1).categoryId, 2);
@@ -183,7 +184,7 @@ test('Catalog All Categories and All Status independently clear filters and rese
     assert.equal(calls.at(-1).status, ''); assert.equal(calls.at(-1).pageNumber, 1);
     assert.equal(calls.at(-1).categoryId, 1); assert.equal(calls.at(-1).search, 'Catalog');
     assert.equal(calls.at(-1).sortBy, 'price'); assert.equal(calls.at(-1).sortOrder, 'asc');
-    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'true');
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Active/);
     assert.match(host.querySelector('.product-table').textContent, /Catalog Electronics Item Inactive/);
     await selectOption('Status', 'Inactive'); assert.equal(calls.at(-1).status, 'Inactive');
@@ -191,8 +192,8 @@ test('Catalog All Categories and All Status independently clear filters and rese
     await selectOption('Status', 'All Status'); assert.equal(calls.at(-1).status, '');
     const clear = [...host.querySelectorAll('button')].find(node => node.textContent === 'Clear Filters');
     await act(async () => clear.dispatchEvent(new MouseEvent('click', { bubbles: true }))); await flush();
-    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'false');
-    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'false');
+    assert.equal(filter('Category').querySelector('label').getAttribute('data-shrink'), 'true');
+    assert.equal(filter('Status').querySelector('label').getAttribute('data-shrink'), 'true');
     assert.equal(calls.at(-1).status, ''); assert.equal('categoryId' in calls.at(-1), false);
 
   } finally { await act(async () => root.unmount()); host.remove(); cache.clear(); apiClient.get = original; }

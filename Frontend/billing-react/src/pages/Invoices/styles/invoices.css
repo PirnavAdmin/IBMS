@@ -2179,193 +2179,59 @@
   width: 100%;
 }
 
-.invoice-edit-table {
+/* Keep editor columns within the frame and align every primary control. */
+.app-layout .ibms-table-frame .invoice-edit-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1180px;
   table-layout: fixed;
   border-collapse: collapse;
 }
-
-.invoice-edit-table th {
-  padding: 10px 8px;
+.app-layout .ibms-table-frame .invoice-edit-table :is(th, td) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: none;
+  padding: 16px 8px;
+  text-align: left;
+}
+.app-layout .ibms-table-frame .invoice-edit-table th {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: .02em;
+  white-space: normal;
+}
+.app-layout .ibms-table-frame .invoice-edit-table td {
+  vertical-align: top;
+}
+.invoice-edit-table :is(th, td):nth-child(1) { width: 3%; }
+.invoice-edit-table :is(th, td):nth-child(2) { width: 23%; }
+.invoice-edit-table :is(th, td):nth-child(3) { width: 9%; }
+.invoice-edit-table :is(th, td):nth-child(4) { width: 7%; }
+.invoice-edit-table :is(th, td):nth-child(5) { width: 10%; }
+.invoice-edit-table :is(th, td):nth-child(6) { width: 10%; }
+.invoice-edit-table :is(th, td):nth-child(7) { width: 12%; }
+.invoice-edit-table :is(th, td):nth-child(8) { width: 10%; }
+.invoice-edit-table :is(th, td):nth-child(9) { width: 11%; }
+.invoice-edit-table :is(th, td):nth-child(10) { width: 5%; }
+.app-layout .ibms-table-frame .invoice-edit-table :is(th, td):last-child {
+  text-align: center;
+}
+.invoice-edit-table .MuiTextField-root { width: 100%; margin: 0; }
+.invoice-edit-table .MuiInputBase-root { min-height: 40px; background: #fff; font-size: 13px; }
+.invoice-edit-table .MuiInputBase-input { font-size: 13px; }
+.invoice-edit-table .MuiInputLabel-root { font-size: 13px; }
+.invoice-edit-table .MuiFormHelperText-root { margin: 6px 0 0; }
+.invoice-edit-table td:nth-child(2) > .MuiTextField-root { margin-top: 12px; }
+.invoice-edit-table .invoice-unit-badge { margin-top: 8px; }
+.invoice-edit-table :is(.invoice-row-index, .MuiIconButton-root) { margin-top: 4px; }
+.app-layout .ibms-table-frame .invoice-edit-table td:nth-child(8),
+.app-layout .ibms-table-frame .invoice-edit-table td:nth-child(9) {
+  padding-top: 26px;
   white-space: nowrap;
-  text-align: left !important;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
 }
-
-.invoice-edit-table td {
-  padding: 8px 6px;
-  vertical-align: middle;
-  border-bottom: 1px solid #f0e6dc;
-  text-align: left !important;
-}
-
-.invoice-edit-table input[id^="invoice-line-discount-"] {
-  -moz-appearance: textfield;
-}
-
+.invoice-edit-table input[id^="invoice-line-discount-"] { -moz-appearance: textfield; }
 .invoice-edit-table input[id^="invoice-line-discount-"]::-webkit-inner-spin-button,
-.invoice-edit-table input[id^="invoice-line-discount-"]::-webkit-outer-spin-button {
-  margin: 0;
-  -webkit-appearance: none;
-}
-
-.invoice-edit-table td:first-child,
-.invoice-edit-table th:first-child {
-  width: 4%;
-  min-width: 32px;
-  max-width: 44px;
-  text-align: left !important;
-  padding-left: 6px;
-  padding-right: 4px;
-}
-
-.invoice-edit-table td:first-child {
-  padding-top: 14px;
-}
-
-/* 2. Product / Service & Description */
-.invoice-edit-table th:nth-child(2),
-.invoice-edit-table td:nth-child(2) {
-  width: 23%;
-  min-width: 190px;
-  text-align: left !important;
-}
-
-.invoice-edit-table td:nth-child(n + 3):nth-child(-n + 7) {
-  vertical-align: middle;
-}
-
-/* 3. HSN/SAC */
-.invoice-edit-table th:nth-child(3),
-.invoice-edit-table td:nth-child(3) {
-  width: 9%;
-  min-width: 78px;
-  text-align: left !important;
-}
-
-/* 4. Quantity */
-.invoice-edit-table th:nth-child(4),
-.invoice-edit-table td:nth-child(4) {
-  width: 8%;
-  min-width: 68px;
-  text-align: left !important;
-}
-
-/* 5. Unit Price */
-.invoice-edit-table th:nth-child(5),
-.invoice-edit-table td:nth-child(5) {
-  width: 10%;
-  min-width: 85px;
-  text-align: left !important;
-}
-
-/* 6. Discount */
-.invoice-edit-table th:nth-child(6),
-.invoice-edit-table td:nth-child(6) {
-  width: 12%;
-  min-width: 105px;
-  text-align: left !important;
-}
-
-/* 7. Tax Rate */
-.invoice-edit-table th:nth-child(7),
-.invoice-edit-table td:nth-child(7) {
-  width: 11%;
-  min-width: 100px;
-  text-align: left !important;
-}
-
-/* 8. Tax Amount */
-.invoice-edit-table th:nth-child(8),
-.invoice-edit-table td:nth-child(8) {
-  width: 8%;
-  min-width: 75px;
-  text-align: left !important;
-  white-space: nowrap;
-}
-
-.invoice-edit-table td:nth-child(8) {
-  padding-top: 14px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 9. Line Total */
-.invoice-edit-table th:nth-child(9),
-.invoice-edit-table td:nth-child(9) {
-  width: 9%;
-  min-width: 85px;
-  text-align: left !important;
-  white-space: nowrap;
-}
-
-.invoice-edit-table td:nth-child(9) {
-  padding-top: 14px;
-  font-size: 13.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 10. Actions */
-.invoice-edit-table th:last-child,
-.invoice-edit-table td:last-child {
-  width: 6%;
-  min-width: 65px;
-  text-align: left !important;
-}
-
-.invoice-edit-table td:last-child {
-  padding-top: 10px;
-}
-
-.invoice-edit-table td:last-child .MuiIconButton-root {
-  padding: 3px;
-}
-
-.invoice-edit-table .MuiTextField-root {
-  width: 100%;
-  margin: 2px 0;
-}
-
-.invoice-edit-table .MuiInputBase-root {
-  font-size: 13px;
-  background: #ffffff;
-}
-
-.invoice-edit-table .MuiInputBase-input {
-  padding: 6px 8px !important;
-  font-size: 12.5px;
-}
-
-.invoice-edit-table .MuiInputLabel-root {
-  font-size: 11.5px;
-}
-
-.invoice-edit-table .MuiInputLabel-shrink {
-  transform: translate(14px, -7px) scale(0.85);
-}
-
-.invoice-edit-table .MuiSelect-select {
-  padding: 6px 20px 6px 8px !important;
-  font-size: 12px;
-}
-
-.invoice-edit-table td:nth-child(2) .MuiTextField-root:nth-child(2) {
-  margin-top: 10px;
-}
-
-@media (max-width: 899px) {
-  .invoice-line-items-panel .invoice-table-scroll {
-    overflow-x: auto;
-  }
-  .invoice-edit-table {
-    min-width: 1050px;
-    table-layout: auto;
-  }
-}
+.invoice-edit-table input[id^="invoice-line-discount-"]::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 
 /* Dialog Styles */
 .invoice-preview-dialog-paper {

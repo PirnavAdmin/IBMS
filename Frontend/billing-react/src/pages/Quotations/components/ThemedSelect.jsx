@@ -1,12 +1,11 @@
+import { dropdownPosition } from '../../../utils/dropdownPosition';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 function menuPosition(anchor) {
-  const rect = anchor.getBoundingClientRect();
-  const top = rect.bottom + 4;
-  const maxHeight = Math.max(0, Math.min(240, window.innerHeight - top - 8));
-  const width = Math.min(rect.width, window.innerWidth - 16);
-  return { top, left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), width, maxHeight };
+  return dropdownPosition(anchor.getBoundingClientRect(), {
+    width: window.innerWidth, height: window.innerHeight,
+  }, 240);
 }
 
 export function ThemedSelect({ value, onChange, options, disabled = false, label, className = '' }) {
