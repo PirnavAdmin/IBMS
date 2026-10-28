@@ -13,7 +13,7 @@ import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-import { formatDate, formatDateTime, money, refundableBalance } from '../utils/creditNoteCalculations';
+import { formatDate, formatDateTime, money, refundableBalance, roundCurrency, splitTaxAmount } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
 const actionLabels = { submit: 'Submit for approval', approve: 'Approve credit', reject: 'Reject credit', issue: 'Issue credit note', cancel: 'Cancel credit note', refund: 'Record refund' };
@@ -36,13 +36,20 @@ export function CreditNoteDetails() {
   const isPreview = location.pathname.endsWith('/preview');
   const balance = refundableBalance(note);
   const taxBreakdown = (note?.items || []).reduce((sum, item) => {
-    const taxable = Math.max(0, Number(item.quantity || 0) * Number(item.unitPrice || 0) - Number(item.discountAmount || 0));
-    const tax = Number(item.taxAmount || taxable * Number(item.taxRate || 0) / 100);
+    const taxable = roundCurrency(Math.max(0, Number(item.quantity || 0) * Number(item.unitPrice || 0) - Number(item.discountAmount || 0)));
+    const tax = item.taxAmount != null ? Number(item.taxAmount) : roundCurrency(taxable * Number(item.taxRate || 0) / 100);
+    const split = splitTaxAmount(tax, item.taxMode);
     sum.taxable += taxable;
-    if (item.taxMode === 'inter-state') sum.igst += tax;
-    else { sum.cgst += tax / 2; sum.sgst += tax / 2; }
+    sum.cgst += split.cgst;
+    sum.sgst += split.sgst;
+    sum.igst += split.igst;
     return sum;
   }, { taxable: 0, cgst: 0, sgst: 0, igst: 0 });
+  taxBreakdown.taxable = roundCurrency(taxBreakdown.taxable);
+  taxBreakdown.cgst = roundCurrency(taxBreakdown.cgst);
+  taxBreakdown.sgst = roundCurrency(taxBreakdown.sgst);
+  taxBreakdown.igst = roundCurrency(taxBreakdown.igst);
+  const roundingAdjustment = note ? roundCurrency(Number(note.total || 0) - Number(note.subtotal || 0) - Number(note.taxAmount || 0)) : 0;
 
   useEffect(() => {
     if (!query.isSuccess) return;
@@ -122,7 +129,7 @@ export function CreditNoteDetails() {
           <section className="cn-detail-card"><div className="cn-detail-card-heading"><div><h2>Credit summary</h2><p>Credit and tax amounts from the linked invoice lines.</p></div></div>
             <div className="cn-amount-summary"><div><small>Credit subtotal</small><strong>{money(note.subtotal, note.currency)}</strong></div><div><small>Tax adjustment</small><strong>{money(note.taxAmount, note.currency)}</strong></div><div className="emphasis"><small>Total credit</small><strong>{money(note.total, note.currency)}</strong></div></div>
             <div className="cn-detail-table-wrap ibms-table-frame"><Table size="small"><TableHead><TableRow><TableCell>Description</TableCell><TableCell>Code</TableCell><TableCell align="right">Qty</TableCell><TableCell align="right">Unit price</TableCell><TableCell align="right">Tax</TableCell><TableCell align="right">Total</TableCell></TableRow></TableHead><TableBody>{note.items.map((item, index) => <TableRow key={`${item.id}-${index}`}><TableCell><strong>{item.description}</strong></TableCell><TableCell>{item.code}</TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{money(item.unitPrice, note.currency)}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right">{money(item.totalAmount, note.currency)}</TableCell></TableRow>)}</TableBody></Table></div>
-            <div className="cn-detail-tax-breakdown"><span>Taxable credit <strong>{money(taxBreakdown.taxable, note.currency)}</strong></span>{taxBreakdown.cgst > 0 && <span>CGST <strong>{money(taxBreakdown.cgst, note.currency)}</strong></span>}{taxBreakdown.sgst > 0 && <span>SGST <strong>{money(taxBreakdown.sgst, note.currency)}</strong></span>}{taxBreakdown.igst > 0 && <span>IGST <strong>{money(taxBreakdown.igst, note.currency)}</strong></span>}<span>Tax adjustment <strong>{money(note.taxAmount, note.currency)}</strong></span></div>
+            <div className="cn-detail-tax-breakdown"><span>Taxable credit <strong>{money(taxBreakdown.taxable, note.currency)}</strong></span>{taxBreakdown.cgst > 0 && <span>CGST <strong>{money(taxBreakdown.cgst, note.currency)}</strong></span>}{taxBreakdown.sgst > 0 && <span>SGST <strong>{money(taxBreakdown.sgst, note.currency)}</strong></span>}{taxBreakdown.igst > 0 && <span>IGST <strong>{money(taxBreakdown.igst, note.currency)}</strong></span>}<span>Tax adjustment <strong>{money(note.taxAmount, note.currency)}</strong></span>{roundingAdjustment !== 0 && <span>Rounding adjustment <strong>{money(roundingAdjustment, note.currency)}</strong></span>}</div>
             <div className="cn-detail-total"><span>Total credit</span><strong>{money(note.total, note.currency)}</strong></div>
           </section>
 
