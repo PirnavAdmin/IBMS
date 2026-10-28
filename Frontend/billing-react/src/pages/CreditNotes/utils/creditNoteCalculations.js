@@ -16,16 +16,21 @@ export const creditLineAmounts = (item, quantity = item.quantity) => {
   return { subtotal, tax, total: roundCurrency(subtotal + tax) };
 };
 
+export const splitTaxAmount = (amount, taxMode) => {
+  const tax = roundCurrency(amount);
+  if (taxMode === 'inter-state') return { cgst: 0, sgst: 0, igst: tax };
+  const cgst = roundCurrency(tax / 2);
+  return { cgst, sgst: roundCurrency(tax - cgst), igst: 0 };
+};
+
 export const calculateCredit = (items = []) => {
   const subtotal = roundCurrency(items.reduce((sum, item) => sum + creditLineAmounts(item).subtotal, 0));
   const tax = items.reduce((sum, item) => {
     const amount = creditLineAmounts(item).tax;
-    if (item.taxMode === 'inter-state') sum.igst += amount;
-    else {
-      const cgst = roundCurrency(amount / 2);
-      sum.cgst += cgst;
-      sum.sgst += amount - cgst;
-    }
+    const split = splitTaxAmount(amount, item.taxMode);
+    sum.cgst += split.cgst;
+    sum.sgst += split.sgst;
+    sum.igst += split.igst;
     return sum;
   }, { cgst: 0, sgst: 0, igst: 0 });
   const cgst = roundCurrency(tax.cgst);

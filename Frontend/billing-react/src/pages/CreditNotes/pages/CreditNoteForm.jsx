@@ -73,7 +73,7 @@ export function CreditNoteForm() {
 
   useEffect(() => {
     const note = noteQuery.data;
-    if (!note) return;suces
+    if (!note) return;
     if (note.status !== 'Draft') {
       navigate(`/credit-notes/${id}`, { replace: true });
       return;
@@ -203,7 +203,7 @@ export function CreditNoteForm() {
           <footer className="cn-form-actions"><Button component={Link} to={isEditing ? `/credit-notes/${id}` : '/credit-notes'} onClick={() => draft.clear()} color="inherit">Cancel</Button><div>{step > 0 && <Button startIcon={<ArrowBack />} onClick={() => { setError(''); setStep((current) => current - 1); }}>Previous</Button>}{step < steps.length - 1 ? <Button variant="contained" endIcon={<ArrowForward />} onClick={continueStep}>Continue</Button> : <><Button variant="outlined" disabled={mutation.isPending} onClick={() => save(false)}>{mutation.isPending ? 'Saving…' : 'Save draft'}</Button><Button variant="contained" disabled={mutation.isPending} onClick={() => save(true)}>{mutation.isPending ? 'Submitting…' : 'Submit for approval'}</Button></>}</div></footer>
         </section>
 
-        <aside className="cn-calculation-card"><div className="cn-calc-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Credit calculation</h2><small>Live preview · {selectedInvoice?.currency || 'INR'}</small></div></div><div className="cn-calc-row"><span>Credit subtotal</span><strong>{money(totals.subtotal, selectedInvoice?.currency)}</strong></div><div className="cn-calc-row"><span>Tax adjustment</span><strong>{money(totals.taxAmount, selectedInvoice?.currency)}</strong></div><div className="cn-calc-row cn-calc-total"><span>Total credit</span><strong>{money(totals.total, selectedInvoice?.currency)}</strong></div><div className="cn-calc-balance"><small>Eligible invoice credit</small><strong>{money(eligibleAmount, selectedInvoice?.currency)}</strong><span>{eligibleAmount ? `${Math.max(0, (eligibleAmount - totals.total) / eligibleAmount * 100).toFixed(0)}% remains after this credit` : 'Choose an invoice to see eligibility'}</span></div><div className="cn-calc-lock"><span>✓</span><p>Credit total is capped by the selected invoice’s remaining eligibility.</p></div></aside>
+        <aside className="cn-calculation-card"><div className="cn-calc-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Credit calculation</h2><small>Live preview · {selectedInvoice?.currency || 'INR'}</small></div></div><div className="cn-calc-row"><span>Credit subtotal</span><strong>{money(totals.subtotal, selectedInvoice?.currency)}</strong></div><div className="cn-calc-row"><span>Tax adjustment</span><strong>{money(totals.taxAmount, selectedInvoice?.currency)}</strong></div>{totals.rounding !== 0 && <div className="cn-calc-row"><span>Rounding adjustment</span><strong>{money(totals.rounding, selectedInvoice?.currency)}</strong></div>}<div className="cn-calc-row cn-calc-total"><span>Total credit</span><strong>{money(totals.total, selectedInvoice?.currency)}</strong></div><div className="cn-calc-balance"><small>Eligible invoice credit</small><strong>{money(eligibleAmount, selectedInvoice?.currency)}</strong><span>{eligibleAmount ? `${Math.max(0, (eligibleAmount - totals.total) / eligibleAmount * 100).toFixed(0)}% remains after this credit` : 'Choose an invoice to see eligibility'}</span></div><div className="cn-calc-lock"><span>✓</span><p>Credit total is capped by the selected invoice’s remaining eligibility.</p></div></aside>
       </div>
     </main>
   );
