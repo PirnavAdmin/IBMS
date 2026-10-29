@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
+import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
 import { Add, ArrowBack, DeleteOutline, MoreVert } from '@mui/icons-material';
 import { applyAdditionalDiscounts, applyAdditionalTaxes, currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { validateQuotation } from '../utils/quotationValidation';
@@ -27,7 +28,7 @@ export function quotationChargeSelection(configuredCharges, namePreset) {
   };
 }
 export function newQuotation() { const date = new Date().toISOString().slice(0, 10); const until = new Date(); until.setDate(until.getDate() + 30); return { customerId: '', quotationDate: date, validUntil: until.toISOString().slice(0, 10), reference: '', items: [emptyItem()], invoiceDiscount: { type: 'percentage', value: 0 }, charges: [], notes: 'Thank you for your business.', termsAndConditions: 'Goods once sold are subject to store policy.\nPlease check quantity and products before leaving the store.\nGST is applicable as per product category.\nKeep this invoice for returns and warranty claims.\nNo exchange or refund on opened products.' }; }
-export function QuotationForm({ initial, customers = [], products = [], configuredCharges = [], onSave, onCancel, onBack, readOnly = false }) {
+export function QuotationForm({ initial, customers = [], products = [], configuredCharges = [], onSave, onCancel, onBack, onNotice, readOnly = false }) {
   const draftKey = `quotation:${initial?.id || 'new'}`;
   const draft = useFormDraft(draftKey);
   const cancel = () => { draft.clear(); onCancel?.(); };
@@ -44,10 +45,27 @@ export function QuotationForm({ initial, customers = [], products = [], configur
     };
   }); const [errors, setErrors] = useState({});
   const [itemsActionsOpen, setItemsActionsOpen] = useState(false);
+  const itemsActionsRef = useRef(null);
+  useExclusiveDropdown(itemsActionsOpen, setItemsActionsOpen);
   const [taxRows, setTaxRows] = useDraftState(draftKey, 'taxRows', []);
   const [discountRows, setDiscountRows] = useDraftState(draftKey, 'discountRows', []);
   const selectedCustomer = customers.find(customer => String(customer.id) === String(form.customerId)); const taxAdjustedItems = useMemo(() => applyAdditionalTaxes(form.items, taxRows), [form.items, taxRows]); const totals = useMemo(() => quotationTotals(taxAdjustedItems, form.invoiceDiscount, form.charges || [], [], discountRows), [taxAdjustedItems, form, discountRows]);
   const patch = data => setForm(current => ({ ...current, ...data }));
+  useEffect(() => {
+    if (!itemsActionsOpen) return undefined;
+    const closeWhenAnotherControlOpens = event => {
+      if (!itemsActionsRef.current?.contains(event.target)) setItemsActionsOpen(false);
+    };
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setItemsActionsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeWhenAnotherControlOpens);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeWhenAnotherControlOpens);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [itemsActionsOpen]);
   const patchItem = (index, data) => {
     patch({ items: form.items.map((item, i) => i === index ? { ...item, ...data } : item) });
     setErrors(current => {
@@ -77,6 +95,10 @@ export function QuotationForm({ initial, customers = [], products = [], configur
     return [baseTax, ...additionalTaxes].join(' + ');
   };
   const addDiscount = () => setDiscountRows(rows => [...rows, { id: `discount-${Date.now()}-${Math.random()}`, itemId: '', discountType: 'percentage', discountValue: '0' }]);
+  const handleAddTax = () => { addTax(); setItemsActionsOpen(false); onNotice?.('Tax row added.'); };
+  const handleAddDiscount = () => { addDiscount(); setItemsActionsOpen(false); onNotice?.('Discount row added.'); };
+  const handleAddItem = () => { patch({ items: [...form.items, emptyItem()] }); setItemsActionsOpen(false); onNotice?.('Quotation item added.'); };
+  const handleAddCharge = () => { patch({ charges: [...(form.charges || []), { id: `charge-${Date.now()}`, itemId: '', name: "", type: "fixed", amount: 0 }] }); setItemsActionsOpen(false); onNotice?.('Additional charge added.'); };
   const updateDiscountRow = (rowId, data) => {
     const row = discountRows.find(item => item.id === rowId);
     if (!row) return;
@@ -120,7 +142,7 @@ export function QuotationForm({ initial, customers = [], products = [], configur
       <section className="quote-card quote-customer-card"><h2>Customer information</h2><div className="quote-fields two"><label>Customer *<SearchablePicker ariaLabel="Customer" disabled={readOnly} value={form.customerId} onChange={customerId => patch({ customerId })} items={customers} getLabel={customer => `${customer.name} · ${customer.code}`} getSearchText={customer => `${customer.name} ${customer.code} ${customer.email} ${customer.mobile}`} placeholder="Search name, code, email or mobile" />{errors.customerId && <small className="quote-error">{errors.customerId}</small>}</label></div>{selectedCustomer && <div className="quote-customer-preview"><strong>{selectedCustomer.name} <span>{selectedCustomer.code}</span></strong><span>{selectedCustomer.email} · {selectedCustomer.mobile}</span><span><b>Billing:</b> {selectedCustomer.billingAddress}</span><span><b>Shipping:</b> {selectedCustomer.shippingAddress}</span><span><b>Tax:</b> {selectedCustomer.taxInfo}</span></div>}</section>
       <section className="quote-card quote-details-card"><h2>Quotation details</h2><div className="quote-fields three"><label>Quote number<input value={initial?.quoteNumber || 'Auto-generated on save'} readOnly /></label><label>Quotation date<ThemedDatePicker label="Quotation date" disabled={readOnly} value={form.quotationDate} onChange={quotationDate => patch({ quotationDate })} />{errors.quotationDate && <small className="quote-error">{errors.quotationDate}</small>}</label><label>Valid until<ThemedDatePicker label="Valid until" disabled={readOnly} value={form.validUntil} onChange={validUntil => patch({ validUntil })} />{errors.validUntil && <small className="quote-error">{errors.validUntil}</small>}</label><label>Reference (Optional)<input disabled={readOnly} placeholder="REF-PO-2026-001" value={form.reference} onChange={event => patch({ reference: event.target.value })} /></label></div></section>
       <section className="quote-card">
-        <div className="quote-section-heading"><div><h2>Line items</h2><p>Select products or services and review quantities, rates and taxes.</p></div>{!readOnly && <div className="quote-items-actions"><button type="button" className="quote-btn primary" onClick={() => patch({ items: [...form.items, emptyItem()] })}><Add /> Add item</button><strong>Actions</strong><button type="button" className="quote-items-actions-trigger ibms-row-actions-trigger" aria-label="Items actions" aria-haspopup="menu" aria-expanded={itemsActionsOpen} onClick={() => setItemsActionsOpen(open => !open)}><MoreVert /></button>{itemsActionsOpen && <div className="quote-items-actions-menu ibms-row-actions-menu" role="menu" aria-label="Items actions"><button type="button" role="menuitem" onClick={() => { addTax(); setItemsActionsOpen(false); }}><Add /> Add tax</button><button type="button" role="menuitem" onClick={() => { addDiscount(); setItemsActionsOpen(false); }}><Add /> Add discount</button><button type="button" role="menuitem" onClick={() => { patch({ items: [...form.items, emptyItem()] }); setItemsActionsOpen(false); }}><Add /> Add item</button><button type="button" role="menuitem" onClick={() => { patch({ charges: [...(form.charges || []), { id: `charge-${Date.now()}`, itemId: '', name: "", type: "fixed", amount: 0 }] }); setItemsActionsOpen(false); }}><Add /> Add charge</button></div>}</div>}</div>
+        <div className="quote-section-heading"><div><h2>Line items</h2><p>Select products or services and review quantities, rates and taxes.</p></div>{!readOnly && <div className="quote-items-actions" ref={itemsActionsRef}><button type="button" className="quote-btn primary" onClick={handleAddItem}><Add /> Add item</button><strong>Actions</strong><button type="button" className="quote-items-actions-trigger ibms-row-actions-trigger" aria-label="Items actions" aria-haspopup="menu" aria-expanded={itemsActionsOpen} onClick={() => setItemsActionsOpen(open => !open)}><MoreVert /></button>{itemsActionsOpen && <div className="quote-items-actions-menu ibms-row-actions-menu" role="menu" aria-label="Items actions"><button type="button" role="menuitem" onClick={handleAddTax}><Add /> Add tax</button><button type="button" role="menuitem" onClick={handleAddDiscount}><Add /> Add discount</button><button type="button" role="menuitem" onClick={handleAddItem}><Add /> Add item</button><button type="button" role="menuitem" onClick={handleAddCharge}><Add /> Add charge</button></div>}</div>}</div>
         {errors.items && <p className="quote-error">{errors.items}</p>}
         <div className="quote-table-wrap ibms-table-frame"><table className="quote-items-table">
           <thead><tr><th>Product / Service</th><th>Description</th><th>Qty</th><th>Unit Price</th><th>Discount (%)</th><th>Tax</th><th>Total</th><th>Remove</th></tr></thead>

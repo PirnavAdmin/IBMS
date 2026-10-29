@@ -27,11 +27,15 @@
 .workspace-pagination-menu .MuiMenuItem-root:hover { background: #f8f0e7; }
 .workspace-pagination .MuiPagination-ul { flex-wrap: nowrap; gap: 4px; }
 .workspace-pagination .MuiPaginationItem-root { min-width: 36px; height: 36px; border-radius: 8px; color: #9a918a; font-size: 13px; }
+.workspace-pagination .MuiPaginationItem-page:not(.Mui-selected) { color: #674730; font-weight: 500; }
+.workspace-pagination .MuiPaginationItem-page:not(.Mui-selected):hover { background: #f1e2cf; }
 .workspace-pagination .MuiPaginationItem-page.Mui-selected { background: #4a2927; color: #fff; }
 .workspace-pagination .MuiPaginationItem-page.Mui-selected:hover { background: #5b332f; }
 .workspace-pagination .MuiPaginationItem-previousNext { padding-inline: 12px; font-size: 13px; }
-.workspace-pagination .MuiPaginationItem-previousNext.Mui-disabled { color: #b7b0aa; }
-.workspace-pagination .MuiPaginationItem-ellipsis { color: #9a918a; }
+.workspace-pagination .MuiPaginationItem-previousNext:not(.Mui-disabled) { color: #674730; font-weight: 600; }
+.workspace-pagination .MuiPaginationItem-previousNext:not(.Mui-disabled):hover { background: #f1e2cf; }
+.workspace-pagination .MuiPaginationItem-previousNext.Mui-disabled { color: #b7b0aa; opacity: 0.62; cursor: default; }
+.workspace-pagination .MuiPaginationItem-ellipsis { color: #806b59; }
 @media (max-width: 640px) {
   .workspace-pagination { align-items: flex-start; flex-direction: column; gap: 12px; padding: 14px; }
   .workspace-pagination-controls { width: 100%; justify-content: space-between; gap: 10px; }

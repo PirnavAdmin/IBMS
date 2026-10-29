@@ -1,4 +1,5 @@
 import { dropdownPosition } from '../../../utils/dropdownPosition';
+import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -10,6 +11,7 @@ function menuPosition(anchor) {
 
 export function ThemedSelect({ value, onChange, options, disabled = false, label, className = '' }) {
   const [open, setOpen] = useState(false);
+  useExclusiveDropdown(open, setOpen);
   const [position, setPosition] = useState(null);
   const rootRef = useRef(null);
   const menuRef = useRef(null);

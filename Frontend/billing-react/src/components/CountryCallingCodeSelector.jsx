@@ -7,6 +7,7 @@ import {
 } from '../services/regionalSettingsService';
 import { CountryFlag } from './CountryFlag';
 import './CountryCallingCodeSelector.css';
+import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 
 /**
  * CountryCallingCodeSelector
@@ -39,6 +40,7 @@ export function CountryCallingCodeSelector({
   } = useRegionalSettings();
 
   const [isOpen, setIsOpen] = useState(false);
+  useExclusiveDropdown(isOpen, setIsOpen);
   const [search, setSearch] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedCountryObj, setSelectedCountryObj] = useState(null);

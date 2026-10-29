@@ -3,12 +3,14 @@ import { Button, ConfigProvider, Popover } from 'antd';
 import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
 import { ArrowDropDown, CalendarTodayOutlined } from '@mui/icons-material';
 import { displayDate } from '../utils/localDate';
+import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 // UI values remain local YYYY-MM-DD strings; callers own their existing API mapping.
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown /> }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  useExclusiveDropdown(open, setOpen);
   const [draft, setDraft] = useState({ startDate: '', endDate: '' });
   const invalid = Boolean(draft.startDate && draft.endDate && draft.endDate < draft.startDate);
   const label = startDate && endDate ? `${displayDate(startDate)} \u2013 ${displayDate(endDate)}`

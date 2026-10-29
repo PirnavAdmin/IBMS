@@ -3,9 +3,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
+import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 
 export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, currencies = [], currency = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
+  useExclusiveDropdown(isOpen, setIsOpen);
   const dropdownRef = useRef(null);
   const periods = dashboardPeriods();
   const selectedPeriod = periods.find(period => period.start === values.start && period.end === values.end)?.id || 'custom';

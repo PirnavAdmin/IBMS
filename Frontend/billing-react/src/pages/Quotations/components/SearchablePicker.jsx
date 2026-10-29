@@ -1,4 +1,5 @@
 import { dropdownPosition } from '../../../utils/dropdownPosition';
+import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Search } from '@mui/icons-material';
@@ -29,6 +30,7 @@ export function SearchablePicker({ value, onChange, items = [], getLabel, getSea
       });
   }, [items, query, getLabel, getSearchText]);
   const showMenu = open && !disabled && (showDropdownIcon || !(selected && query === selectedLabel));
+  useExclusiveDropdown(showMenu, setOpen);
 
   useEffect(() => {
     if (!showMenu) {
