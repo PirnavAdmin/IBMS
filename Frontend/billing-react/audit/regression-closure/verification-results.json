@@ -1,0 +1,15 @@
+{
+  "notification_focused": {
+    "pass": 3,
+    "fail": 0
+  },
+  "css": {
+    "pass": 10,
+    "fail": 0
+  },
+  "build": "PASS",
+  "git_diff_check": "PASS",
+  "application_source_files_checked": 275,
+  "application_source_changes": [],
+  "blockers": []
+}

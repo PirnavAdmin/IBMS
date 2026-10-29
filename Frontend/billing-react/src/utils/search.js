@@ -1,6 +1,16 @@
 export const SEARCH_DELAY = 300;
 
+export const EMPTY_SEARCH_GUIDANCE = "Enter a search term, or leave this field blank to show all records matching the other filters.";
+
+export function searchInputError(value) {
+  const term = String(value ?? "").trim();
+  if (!term) return "";
+  if (/[\u0000-\u001f\u007f]/.test(term)) return "Remove control characters from the search term.";
+  return /[\p{L}\p{N}]/u.test(term) ? "" : "Enter at least one letter or number. Symbols alone cannot be searched.";
+}
+
 export function scheduleSearch(value, commit) {
+  if (searchInputError(value)) return () => {};
   const timer = setTimeout(() => commit(value.trim()), SEARCH_DELAY);
   return () => clearTimeout(timer);
 }

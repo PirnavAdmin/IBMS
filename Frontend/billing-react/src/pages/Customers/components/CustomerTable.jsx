@@ -1,3 +1,4 @@
+import { SearchField } from '../../../components/SearchField';
 import { DateRangeFilter } from '../../../components/DateRangeFilter';
 ﻿import { useEffect, useState } from 'react';
 import { useSearchDebounce } from '../../../hooks/useSearchDebounce';
@@ -14,7 +15,7 @@ export function CustomerFilters({ title, filters, onChange, selects = [], dates 
     onChange(next);
   };
   return <div className="customer-toolbar">
-    <TextField size="small" label={`Search ${title.toLowerCase()}`} value={filters.search || ''} onChange={(e) => update('search', e.target.value)} />
+    <SearchField size="small" label={`Search ${title.toLowerCase()}`} value={filters.search || ''} onChange={(e) => update('search', e.target.value)} />
     {selects.map(({ key, label, options }) => <TextField select size="small" label={label} key={key} SelectProps={{ displayEmpty: true, MenuProps: { classes: { paper: 'customer-dropdown-menu' } } }} InputLabelProps={{ shrink: true }} value={filters[key] || ''} onChange={(e) => update(key, e.target.value)}><MenuItem value="">All</MenuItem>{options.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}</TextField>)}
     {dates && <DateRangeFilter startDate={filters.start} endDate={filters.end} onApply={({ startDate, endDate }) => onChange({ ...filters, start: startDate, end: endDate })} />}
     <Button onClick={() => onChange({ ...emptyFilters })}>Clear Filters</Button>{extra}

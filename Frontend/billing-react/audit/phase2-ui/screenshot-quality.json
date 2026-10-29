@@ -1,0 +1,1106 @@
+[
+  {
+    "file": "evidence/after-charges-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-charges-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-charges-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-charges-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-credit-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-credit-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-credit-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-credit-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-card-layout-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-card-layout-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-filtered-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-page-two-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-customers-sorted-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-deliveries-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-deliveries-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-deliveries-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-deliveries-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-invoices-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-invoices-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-invoices-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-invoices-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-overview-dates-1024.png",
+    "width": 1500,
+    "height": 289,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-dates-1440.png",
+    "width": 1500,
+    "height": 213,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-dates-390.png",
+    "width": 1500,
+    "height": 674,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-dates-768.png",
+    "width": 1500,
+    "height": 377,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-layout-1024.png",
+    "width": 1200,
+    "height": 289,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-layout-1440.png",
+    "width": 1200,
+    "height": 213,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-layout-390.png",
+    "width": 1200,
+    "height": 674,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-overview-layout-768.png",
+    "width": 1200,
+    "height": 377,
+    "partially_rendered": false
+  },
+  {
+    "file": "evidence/after-payment-details-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payment-details-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payment-details-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payment-details-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payment-summary-mobile-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payments-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payments-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payments-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-payments-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-product-menu-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-products-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-products-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-products-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-products-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-products-sorted-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-back-position-final-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-back-position-stable-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-before-open-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-communication-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-communication-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-detail-position-final-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-detail-position-stable-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-details-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-details-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-details-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-details-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-final-guard-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-list-position-final-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-list-position-stable-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-list-scrolled-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-open-reset-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-preview-after-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-preview-before-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-return-position-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-state-update-after-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotation-state-update-before-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotations-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotations-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotations-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-quotations-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-taxes-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-taxes-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-taxes-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-taxes-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-template-menu-mobile-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-templates-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-templates-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-templates-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-templates-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-actions-mobile-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/after-users-keyboard-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-charges-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-charges-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-charges-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-charges-768.png",
+    "width": 416,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-credit-1024.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-credit-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-credit-390.png",
+    "width": 390,
+    "height": 457,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-credit-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-customers-1024.png",
+    "width": 1024,
+    "height": 640,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-customers-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-customers-390.png",
+    "width": 390,
+    "height": 457,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-customers-768.png",
+    "width": 768,
+    "height": 675,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-deliveries-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-deliveries-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-deliveries-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-deliveries-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-invoices-1024.png",
+    "width": 1024,
+    "height": 640,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-invoices-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-invoices-390.png",
+    "width": 390,
+    "height": 457,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-invoices-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-payment-details-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-payment-details-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-payment-details-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-payment-details-768.png",
+    "width": 416,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-payments-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-payments-1440.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-payments-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-payments-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-products-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-products-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-products-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-products-768.png",
+    "width": 416,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotation-details-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotation-details-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotation-details-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-quotation-details-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotations-1024.png",
+    "width": 1024,
+    "height": 640,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotations-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-quotations-390.png",
+    "width": 390,
+    "height": 457,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-quotations-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-taxes-1024.png",
+    "width": 1024,
+    "height": 640,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-taxes-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-taxes-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-taxes-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-templates-1024.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-templates-1440.png",
+    "width": 1024,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-templates-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-templates-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": true,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-users-1024.png",
+    "width": 1024,
+    "height": 640,
+    "partially_rendered": false,
+    "dimensions_match_viewport": false,
+    "usable_full_frame": false
+  },
+  {
+    "file": "evidence/before-users-1440.png",
+    "width": 1440,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-users-390.png",
+    "width": 390,
+    "height": 843,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  },
+  {
+    "file": "evidence/before-users-768.png",
+    "width": 768,
+    "height": 900,
+    "partially_rendered": false,
+    "dimensions_match_viewport": true,
+    "usable_full_frame": true
+  }
+]

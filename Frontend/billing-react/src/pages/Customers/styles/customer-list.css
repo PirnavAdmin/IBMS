@@ -569,7 +569,7 @@
     width: 200px;
     max-width: 100%;
     min-width: 0;
-    margin-inline: auto;
+    margin-inline: 0;
     text-align: left;
   }
   .customers-page .customer-panel .customer-table .customer-contact .customer-email-link {
@@ -584,7 +584,7 @@
   }
   .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-head,
   .customers-page .customer-panel .customer-table .MuiTable-root .MuiTableCell-root.MuiTableCell-body {
-    text-align: center;
+    text-align: left;
     vertical-align: middle;
   }
   .customers-page .customer-panel .customer-table .customer-identity {
@@ -595,7 +595,7 @@
     width: 240px;
     max-width: 100%;
     min-width: 0;
-    margin-inline: auto;
+    margin-inline: 0;
     text-align: left;
   }
   .customers-page .customer-panel .customer-table .customer-identity-copy {
@@ -604,7 +604,7 @@
   .customers-page .customer-panel .customer-table :is(.customer-name-heading, .customer-contact-heading) {
     box-sizing: border-box;
     max-width: 100%;
-    margin-inline: auto;
+    margin-inline: 0;
     text-align: left;
   }
   .customers-page .customer-panel .customer-table .customer-name-heading {
@@ -622,9 +622,9 @@
     text-overflow: ellipsis;
   }
   .customers-page .customer-panel .customer-table .customer-row-actions {
-    justify-content: center;
+    justify-content: flex-start;
   }
   .customers-page .customer-panel .customer-table .customer-status-details {
-    align-items: center;
+    align-items: flex-start;
   }
 }

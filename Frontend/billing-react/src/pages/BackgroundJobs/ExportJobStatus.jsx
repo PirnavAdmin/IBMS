@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { FilterSelectField } from '../../components/FilterSelectField';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, MenuItem, TextField } from '@mui/material';
 import { Download, Refresh } from '@mui/icons-material';
@@ -31,11 +33,6 @@ export function ExportJobStatus() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [feedback, setFeedback] = useState(null);
-  useEffect(() => {
-    if (!feedback) return undefined;
-    const timeoutId = window.setTimeout(() => setFeedback(null), 2000);
-    return () => window.clearTimeout(timeoutId);
-  }, [feedback]);
   const user = useQuery({
     queryKey: ['auth-user'],
     queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }),
@@ -92,7 +89,7 @@ export function ExportJobStatus() {
       <div><span className="background-jobs-eyebrow">Operations</span><h1>Export Jobs</h1><p>Queue data exports, track progress, and download completed files.</p></div>
       <Button variant="outlined" startIcon={<Refresh />} onClick={refresh} disabled={!allowed || query.isFetching}>Refresh</Button>
     </header>
-    {feedback && <Alert className="export-job-feedback" severity={feedback.severity} onClose={() => setFeedback(null)}>{feedback.message}</Alert>}
+    <FeedbackSnackbar message={feedback?.message || ''} severity={feedback?.severity} onClose={() => setFeedback(null)} />
     {user.isPending ? <div role="status">Checking access…</div>
       : user.isError ? <DashboardErrorState title="Unable to check access" message={backgroundJobError(user.error)} onRetry={() => user.refetch()} />
         : !allowed ? <Alert severity="warning">Export jobs are available to TenantAdmin, SuperAdmin, and User roles.</Alert>
@@ -113,14 +110,14 @@ export function ExportJobStatus() {
               <div className="export-job-list-heading">
                 <h2>Export history</h2>
                 <div>
-                  <TextField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
+                  <FilterSelectField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
                     <MenuItem value="">All statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
-                  </TextField>
-                  <TextField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
+                  </FilterSelectField>
+                  <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
                     {jobTypes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
-                  </TextField>
+                  </FilterSelectField>
                 </div>
               </div>
               {query.isError ? <DashboardErrorState title="Unable to load exports" message={backgroundJobError(query.error)} onRetry={refresh} />

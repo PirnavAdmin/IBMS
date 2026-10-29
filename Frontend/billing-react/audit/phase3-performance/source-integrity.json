@@ -1,0 +1,10 @@
+{
+  "files_checked": 422,
+  "source_test_config_changes": [],
+  "production_assets_checked": 6,
+  "asset_changes": [],
+  "application_source_modified_by_audit": false,
+  "backend_modified_by_audit": false,
+  "financial_or_configuration_writes": false,
+  "all_checked_hashes_unchanged": true
+}

@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useState } from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -6,7 +7,7 @@ import * as yup from 'yup';
 import {
   Alert, Box, Button, CircularProgress, IconButton, InputAdornment, Link, Stack, TextField, Typography
 } from '@mui/material';
-import { CheckCircle, LockOutlined, Visibility, VisibilityOff } from '@mui/icons-material';
+import { LockOutlined, Visibility, VisibilityOff } from '@mui/icons-material';
 import { authApi } from 'billing-api-client';
 import { AuthCardLayout, useAuthNav } from 'billing-react';
 import '../../styles/Login.css';
@@ -25,6 +26,7 @@ export const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successDismissed, setSuccessDismissed] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(resetSchema),
@@ -36,6 +38,7 @@ export const ResetPassword = () => {
     try {
       setApiError(null);
       await authApi.resetPassword({ email, newPassword, confirmPassword });
+      setSuccessDismissed(false);
       setIsSuccess(true);
       setTimeout(() => handleNav('/login', { resetSuccess: true, prefillEmail: email }), 1200);
     } catch (err) {
@@ -65,9 +68,7 @@ export const ResetPassword = () => {
           )}
           {apiError && <Alert severity="error" onClose={() => setApiError(null)} sx={{ mb: 1.5, borderRadius: 2, py: 0.5 }}>{apiError}</Alert>}
           {isSuccess && (
-            <Alert icon={<CheckCircle fontSize="inherit" />} severity="success" sx={{ mb: 1.5, borderRadius: 2, py: 0.5 }}>
-              Password reset successfully! Redirecting to sign in...
-            </Alert>
+            <FeedbackSnackbar message={successDismissed ? '' : 'Password reset successfully! Redirecting to sign in...'} onClose={() => setSuccessDismissed(true)} />
           )}
         </>
       }

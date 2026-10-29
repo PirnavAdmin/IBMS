@@ -1,0 +1,13 @@
+{
+  "source_files_checked": 275,
+  "changed": [
+    "src/pages/InvoiceTemplates/invoice-templates.css",
+    "src/pages/InvoiceTemplates/InvoiceTemplates.jsx",
+    "src/pages/Notifications/notifications.css",
+    "src/pages/Settings/CountryConfiguration.jsx",
+    "src/pages/Settings/settings.css",
+    "src/pages/CreditNotes/styles/credit-notes.css",
+    "src/pages/Invoices/styles/invoices.css"
+  ],
+  "expected_only": true
+}

@@ -1,0 +1,19 @@
+{
+  "source_files_before": 275,
+  "source_files_after": 276,
+  "changed": [
+    "src/styles/Payments.css",
+    "src/pages/Quotations/QuotationManagement.jsx",
+    "src/pages/Settings/chargeDisplay.js",
+    "src/pages/Settings/ChargesConfiguration.jsx",
+    "src/pages/Taxes/Taxes.jsx",
+    "src/pages/UserRoleAdministration/user-role-administration.css",
+    "src/pages/UserRoleAdministration/UserRoleAdministration.jsx",
+    "src/pages/Webhooks/DeliveryDetails.jsx",
+    "src/pages/Customers/styles/customer-list.css",
+    "src/pages/Quotations/pages/QuotationDetails.jsx",
+    "src/pages/Quotations/pages/QuotationList.jsx",
+    "src/pages/Quotations/utils/quotationDates.js"
+  ],
+  "only_expected": true
+}

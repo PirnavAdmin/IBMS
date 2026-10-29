@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { displayDate } from '../src/utils/localDate.js';
 import { transform } from 'esbuild';
 import { validateQuotation } from '../src/pages/Quotations/utils/quotationValidation.js';
 import { quotationQuery, initialQuotationQuery, compareQuotationCreations, compareQuotationNumbers, compareQuotationUpdates, quotationUpdatedTimestamp } from '../src/pages/Quotations/utils/quotationQuery.js';
@@ -14,7 +15,7 @@ async function load(relative,imports={}){
  const {code}=await transform(source,{loader:relative.endsWith('jsx')?'jsx':'js',format:'cjs'});
  const module={exports:{}};
  const react={createElement:(type,props,...children)=>({type,props:{...props,children}}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],useMemo:factory=>factory(),useEffect:()=>{},useRef:initial=>({current:initial})};
- vm.runInNewContext(code,{module,exports:module.exports,React:react,require:id=>imports[id]|| (id==='react'?react:new Proxy({},{get:(_,key)=>key}))});
+ vm.runInNewContext(code,{module,exports:module.exports,React:react,require:id=>imports[id]|| (id.endsWith('/localDate')?{displayDate}:id.endsWith('/useExclusiveDropdown')?{useExclusiveDropdown:()=>{}}:id==='react'?react:new Proxy({},{get:(_,key)=>key}))});
  return module.exports;
 }
 function text(node){if(node==null||typeof node==='boolean')return '';if(typeof node!=='object')return String(node);return [node.props?.children].flat(Infinity).map(text).join(' ');}
@@ -237,12 +238,12 @@ test('quotation form retains the existing item controls and table layout',async(
  assert.match(source,/<SearchablePicker className="quote-product-picker" ariaLabel="Product or service"/);
  assert.match(source,/placeholder="Select product"/);
  assert.doesNotMatch(source,/placeholder="Search product or code"/);
- assert.match(source,/<td className="quote-item-discount"><input aria-label="Product discount" readOnly value=\{!item\.productId \? '' : item\.discountAllowed && Number\(item\.discountRate\) > 0 \? `\$\{Number\(item\.discountRate\)\}%` : 'N\/A'\} \/><\/td>/);
+ assert.match(source,/<td className="quote-item-discount"><input aria-label="Product discount"[^>]*readOnly value=\{!item\.productId \? '' : item\.discountAllowed && Number\(item\.discountRate\) > 0 \? `\$\{Number\(item\.discountRate\)\}%` : 'N\/A'\} \/><\/td>/);
  assert.match(source,/discountAllowed = product\.discountAllowed === true \|\| product\.DiscountAllowed === true/);
  assert.match(source,/discountRate,\s*discountAmount: 0,\s*discountAllowed: discountAllowed && discountRate > 0/);
  assert.match(source,/if \(!product\) return patchItem\(index, \{ productId, quantity: productId \? 1 : 0 \}\)/);
  assert.match(source,/quantity: 1,\s*unitPrice: product\.price/);
- assert.match(source,/<td><input className="quote-item-tax" aria-label="Product tax" readOnly value=\{itemTaxLabel\(item\)\} \/><\/td>/);
+ assert.match(source,/<td><input className="quote-item-tax" aria-label="Product tax"[^>]*readOnly value=\{itemTaxLabel\(item\)\} \/><\/td>/);
  const inputs=[];
  const selects=[];
  const pickers=[];
@@ -276,7 +277,7 @@ test('quotation tax type dropdown can add an additional tax row',async()=>{
 test('searchable quotation dropdowns render above clipped containers and stay within the viewport',async()=>{
  const source=await readFile(new URL('../src/pages/Quotations/components/SearchablePicker.jsx',import.meta.url),'utf8');
  assert.match(source,/import \{ createPortal \} from 'react-dom'/);
- assert.match(source,/maxHeight: Math\.max\(0, Math\.min\(210, window\.innerHeight - top - 8\)\)/);
+ assert.match(source,/return dropdownPosition\(anchor\.getBoundingClientRect\(\)/);
  assert.match(source,/className="quote-picker-menu" role="listbox" style=\{\{ position: 'fixed', \.\.\.position \}\}/);
 });
 test('themed quotation dropdown options use compact text without individual borders',async()=>{
@@ -295,4 +296,74 @@ test('themed quotation dropdown options use compact text without individual bord
  const form=await readFile(new URL('../src/pages/Quotations/components/QuotationForm.jsx',import.meta.url),'utf8');
  assert.match(form,/<h2>Additional charges<\/h2>/);
  assert.match(form,/<Add \/> Add charge/);
+});
+
+test('Save Draft stays disabled for incomplete quotations and guards direct submission',async()=>{
+ let seeded;
+ const saved=[];
+ const imports={
+  '../utils/quotationCalculations':{applyAdditionalDiscounts,applyAdditionalTaxes,currency,lineTotals,quotationTotals},
+  '../utils/quotationValidation':{validateQuotation},
+  '../../../context/FormDraftContext':{
+   useFormDraft:()=>({clear:()=>{}}),
+   useDraftState:(_key,slot,initial)=>[slot==='form' ? seeded : typeof initial==='function'?initial():initial,()=>{}],
+  },
+ };
+ const {QuotationForm,newQuotation}=await load('../src/pages/Quotations/components/QuotationForm.jsx',imports);
+ const find=(node,predicate)=>{
+  if(!node || typeof node!=='object')return undefined;
+  if(predicate(node))return node;
+  return [node.props?.children].flat(Infinity).map(child=>find(child,predicate)).find(Boolean);
+ };
+ const render=()=>QuotationForm({initial:seeded,onSave:value=>saved.push(value)});
+ for(const value of [newQuotation(),{...newQuotation(),notes:'Entered notes'},
+  {...newQuotation(),customerId:'1'}, {...form(),customerId:''}, {...form(),items:[]},
+  {...form(),validUntil:'2026-09-27'}, {...form(),items:[{...form().items[0],quantity:-1}]}]){
+  seeded=value;
+  const save=find(render(),n=>n.type==='button' && text(n).trim()==='Save Draft');
+  assert.ok(save);
+  assert.equal(save.props.disabled,true);
+  save.props.onClick();
+  assert.equal(saved.length,0);
+ }
+ seeded=form();
+ let save=find(render(),n=>n.type==='button' && text(n).trim()==='Save Draft');
+ assert.equal(save.props.disabled,false);
+ save.props.onClick();
+ assert.equal(saved.length,1);
+ assert.equal(saved[0].customerId,'1');
+ seeded={...form(),items:[...form().items,{productId:'',quantity:0,unitPrice:0,taxRate:0}]};
+ save=find(render(),n=>n.type==='button' && text(n).trim()==='Save Draft');
+ assert.equal(save.props.disabled,true);
+ seeded=form();
+ const readonly=QuotationForm({initial:seeded,readOnly:true,onSave:value=>saved.push(value)});
+ assert.equal(find(readonly,n=>n.type==='button' && text(n).trim()==='Save Draft'),undefined);
+});
+
+test('Item actions require a selected product, while Add item stays available',async()=>{
+ let seeded;
+ const imports={
+  '../utils/quotationCalculations':{applyAdditionalDiscounts,applyAdditionalTaxes,currency,lineTotals,quotationTotals},
+  '../utils/quotationValidation':{validateQuotation},
+  '../../../context/FormDraftContext':{
+   useFormDraft:()=>({clear:()=>{}}),
+   useDraftState:(_key,slot,initial)=>[slot==='form'?seeded:typeof initial==='function'?initial():initial,()=>{}],
+  },
+ };
+ const {QuotationForm,newQuotation}=await load('../src/pages/Quotations/components/QuotationForm.jsx',imports);
+ const nodes=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(nodes)];
+ for(const initial of [newQuotation(),{...newQuotation(),items:[]},{...newQuotation(),items:[{...form().items[0],productId:' '}]}]){
+  seeded=initial;
+  const tree=nodes(QuotationForm({initial:seeded,onSave:()=>{}}));
+  assert.equal(tree.find(n=>n.props?.['aria-label']==='Items actions').props.disabled,true);
+  const add=tree.find(n=>n.type==='button'&&text(n).trim()==='Add item');
+  assert.ok(add); assert.ok(!add.props.disabled);
+  assert.match(text(tree[0]),/Select a product or service to enable/);
+  assert.equal(tree.some(n=>n.props?.role==='menu'),false);
+ }
+ seeded=form();
+ const tree=nodes(QuotationForm({initial:seeded,onSave:()=>{}}));
+ assert.equal(tree.find(n=>n.props?.['aria-label']==='Items actions').props.disabled,false);
+ const readonly=nodes(QuotationForm({initial:seeded,readOnly:true}));
+ assert.equal(readonly.some(n=>n.props?.['aria-label']==='Items actions'),false);
 });

@@ -13,7 +13,7 @@ try {
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:3000', pretendToBeVisual: true });
-      for (const key of ['CustomEvent','window','localStorage','document','Document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot']) global[key] = dom.window[key];
+      for (const key of ['CustomEvent','window','localStorage','document','Document','HTMLElement','HTMLBodyElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot']) global[key] = dom.window[key];
       Object.defineProperty(global, 'navigator', { value: dom.window.navigator, configurable: true });
       global.getComputedStyle = element => dom.window.getComputedStyle(element);
       global.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);

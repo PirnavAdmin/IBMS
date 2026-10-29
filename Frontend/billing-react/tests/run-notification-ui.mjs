@@ -23,6 +23,7 @@ try {
       window.scrollTo = () => {}; HTMLElement.prototype.scrollTo = () => {};
       global.IS_REACT_ACT_ENVIRONMENT = true;` },
   });
-  const result = spawnSync(process.execPath, ['--test', '--test-force-exit', fileURLToPath(outfile)], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 });
+  // Forward Node test options so focused regression runs do not execute every notification test.
+  const result = spawnSync(process.execPath, ['--test', '--test-force-exit', ...process.argv.slice(2), fileURLToPath(outfile)], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 });
   process.stdout.write(result.stdout); process.stderr.write(result.stderr); process.exitCode = result.status ?? 1;
 } finally { await unlink(outfile).catch(error => { if (error.code !== 'ENOENT') throw error; }); }

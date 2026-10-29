@@ -744,3 +744,21 @@
 }
 
 
+
+/* U05: country columns scroll within their list instead of sizing the page. */
+.country-config-page .country-config-layout,
+.country-config-page .country-list-section,
+.country-config-page .country-list-card,
+.country-config-page .country-quick-card { min-width: 0; max-width: 100%; }
+.country-config-page .country-list-scroll { min-width: 0; max-width: 100%; overflow-x: auto; }
+.country-config-page .country-list-scroll:focus-visible { outline: 2px solid var(--primary, #582407); outline-offset: -2px; }
+.country-config-page .country-items-header,
+.country-config-page .country-items-list { min-width: 585px; }
+@media screen and (max-width: 960px) {
+  .country-config-page .country-config-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media screen and (max-width: 600px) {
+  .country-config-page .country-search-field { flex-basis: 100%; min-width: 0; }
+  .country-config-page .country-list-actions { flex-wrap: wrap; }
+  .country-config-page .quick-card-actions .MuiButton-root { min-width: 0; max-width: 100%; white-space: normal; }
+}

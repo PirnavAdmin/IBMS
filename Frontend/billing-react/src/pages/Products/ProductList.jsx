@@ -17,7 +17,7 @@ import './styles/product-list.css';
 import { useCategories } from './services/categoryService';
 
 import { useSearchCommit } from '../../hooks/useSearchDebounce';
-import { searchParams } from '../../utils/search';
+import { searchParams, searchInputError } from '../../utils/search';
 import { getProductPageSize, saveProductPageSize } from './utils/productPageSize';
 
 const initialParams = { search: '', category: '', status: '', type: '', pageNumber: 1, pageSize: 10, sortBy: '', sortOrder: '' };
@@ -49,7 +49,7 @@ export function ProductList() {
   const selectCard = key => setParams(previous => ({ ...previous, status: key === 'active' ? 'Active' : key === 'inactive' ? 'Inactive' : '', type: key === 'services' ? 'Service' : '', pageNumber: 1 }));
   const active = Boolean(search || params.search || params.category || params.status || params.type || params.sortBy || params.sortOrder);
   const loading = query.isPending || catalog.isPending;
-  const updating = search.trim() !== params.search || query.isFetching;
+  const updating = (!searchInputError(search) && search.trim() !== params.search) || query.isFetching;
   const error = query.error || catalog.error || categoriesQuery.error;
 
   const exportPdf = async () => {
@@ -76,7 +76,7 @@ export function ProductList() {
     <ProductSummaryCards summary={catalog.data?.summary} selected={selectedCard} onSelect={selectCard} />
     {exportError && <FeedbackSnackbar message={exportError} onClose={() => setExportError('')} severity="error" />}
     <section className="product-panel" aria-label="Product list">
-      <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><Inventory2Outlined fontSize="small" /></span><div><h2>Product catalog</h2><p>Everything you bill, organized in one place.</p></div></div><span className="product-result-count" role="status">{loading ? 'Loading catalog…' : error ? 'Catalog unavailable' : updating ? 'Updating results?' : `${query.data?.totalCount ?? 0} ${active ? 'matching ' : ''}items`}</span></div>
+      <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><Inventory2Outlined fontSize="small" /></span><div><h2>Product catalog</h2><p>Everything you bill, organized in one place.</p></div></div><span className="product-result-count" role="status">{loading ? 'Loading catalog…' : error ? 'Catalog unavailable' : updating ? 'Updating results…' : `${query.data?.totalCount ?? 0} ${active ? 'matching ' : ''}items`}</span></div>
       <ProductFilters search={search} onSearch={setSearch} params={params} onChange={change} categories={categories} categoriesLoading={categoriesQuery.isPending || categoriesQuery.isError} active={active} onClear={clear} />
       <ProductTable items={(query.data?.items || []).map(product => ({ ...product, category: categories.find(category => String(category.id) === String(product.categoryId))?.name || product.category || '-' }))} loading={loading} error={error} params={params} onSort={sortBy => change({ sortBy, sortOrder: params.sortBy === sortBy && params.sortOrder === 'asc' ? 'desc' : 'asc' })} filtered={Boolean(params.search || params.category || params.status)} onClear={clear} onRetry={() => { query.refetch(); catalog.refetch(); categoriesQuery.refetch(); }} />
       {!loading && !error && query.data && <ProductPagination data={query.data} disabled={updating} onPage={pageNumber => setParams(previous => ({ ...previous, pageNumber }))} onPageSize={pageSize => { saveProductPageSize(pageSize); change({ pageSize }); }} />}

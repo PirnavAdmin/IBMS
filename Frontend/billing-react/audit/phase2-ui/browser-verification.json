@@ -1,0 +1,722 @@
+[
+  {
+    "label": "payment-details",
+    "width": 390,
+    "route": "/payments/6",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "amounts_single_line": true,
+      "amounts_fit": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payment-details-390.png"
+  },
+  {
+    "label": "payment-details",
+    "width": 768,
+    "route": "/payments/6",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "amounts_single_line": true,
+      "amounts_fit": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payment-details-768.png"
+  },
+  {
+    "label": "payment-details",
+    "width": 1024,
+    "route": "/payments/6",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "amounts_single_line": true,
+      "amounts_fit": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payment-details-1024.png"
+  },
+  {
+    "label": "payment-details",
+    "width": 1440,
+    "route": "/payments/6",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "amounts_single_line": true,
+      "amounts_fit": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payment-details-1440.png"
+  },
+  {
+    "label": "quotations",
+    "width": 390,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotations-390.png"
+  },
+  {
+    "label": "quotations",
+    "width": 768,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotations-768.png"
+  },
+  {
+    "label": "quotations",
+    "width": 1024,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotations-1024.png"
+  },
+  {
+    "label": "quotations",
+    "width": 1440,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotations-1440.png"
+  },
+  {
+    "label": "quotation-details",
+    "width": 390,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "opens_at_top": true,
+      "heading_visible": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotation-details-390.png"
+  },
+  {
+    "label": "quotation-details",
+    "width": 768,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "opens_at_top": true,
+      "heading_visible": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotation-details-768.png"
+  },
+  {
+    "label": "quotation-details",
+    "width": 1024,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "opens_at_top": true,
+      "heading_visible": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotation-details-1024.png"
+  },
+  {
+    "label": "quotation-details",
+    "width": 1440,
+    "route": "/quotations",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "opens_at_top": true,
+      "heading_visible": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-quotation-details-1440.png"
+  },
+  {
+    "label": "customers",
+    "width": 390,
+    "route": "/customers",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-customers-390.png"
+  },
+  {
+    "label": "customers",
+    "width": 768,
+    "route": "/customers",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-customers-768.png"
+  },
+  {
+    "label": "customers",
+    "width": 1024,
+    "route": "/customers",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-customers-1024.png"
+  },
+  {
+    "label": "customers",
+    "width": 1440,
+    "route": "/customers",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-customers-1440.png"
+  },
+  {
+    "label": "products",
+    "width": 390,
+    "route": "/products",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-products-390.png"
+  },
+  {
+    "label": "products",
+    "width": 768,
+    "route": "/products",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-products-768.png"
+  },
+  {
+    "label": "products",
+    "width": 1024,
+    "route": "/products",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-products-1024.png"
+  },
+  {
+    "label": "products",
+    "width": 1440,
+    "route": "/products",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-products-1440.png"
+  },
+  {
+    "label": "payments",
+    "width": 390,
+    "route": "/payments",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payments-390.png"
+  },
+  {
+    "label": "payments",
+    "width": 768,
+    "route": "/payments",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payments-768.png"
+  },
+  {
+    "label": "payments",
+    "width": 1024,
+    "route": "/payments",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payments-1024.png"
+  },
+  {
+    "label": "payments",
+    "width": 1440,
+    "route": "/payments",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-payments-1440.png"
+  },
+  {
+    "label": "invoices",
+    "width": 390,
+    "route": "/invoices",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoices-390.png"
+  },
+  {
+    "label": "invoices",
+    "width": 768,
+    "route": "/invoices",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoices-768.png"
+  },
+  {
+    "label": "invoices",
+    "width": 1024,
+    "route": "/invoices",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoices-1024.png"
+  },
+  {
+    "label": "invoices",
+    "width": 1440,
+    "route": "/invoices",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-invoices-1440.png"
+  },
+  {
+    "label": "credit",
+    "width": 390,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-390.png"
+  },
+  {
+    "label": "credit",
+    "width": 768,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-768.png"
+  },
+  {
+    "label": "credit",
+    "width": 1024,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1024.png"
+  },
+  {
+    "label": "credit",
+    "width": 1440,
+    "route": "/credit-notes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-credit-1440.png"
+  },
+  {
+    "label": "templates",
+    "width": 390,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-390.png"
+  },
+  {
+    "label": "templates",
+    "width": 768,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-768.png"
+  },
+  {
+    "label": "templates",
+    "width": 1024,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-1024.png"
+  },
+  {
+    "label": "templates",
+    "width": 1440,
+    "route": "/templates-branding",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-templates-1440.png"
+  },
+  {
+    "label": "taxes",
+    "width": 390,
+    "route": "/settings/taxes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-taxes-390.png"
+  },
+  {
+    "label": "taxes",
+    "width": 768,
+    "route": "/settings/taxes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-taxes-768.png"
+  },
+  {
+    "label": "taxes",
+    "width": 1024,
+    "route": "/settings/taxes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-taxes-1024.png"
+  },
+  {
+    "label": "taxes",
+    "width": 1440,
+    "route": "/settings/taxes",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-taxes-1440.png"
+  },
+  {
+    "label": "charges",
+    "width": 390,
+    "route": "/settings/charges",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-charges-390.png"
+  },
+  {
+    "label": "charges",
+    "width": 768,
+    "route": "/settings/charges",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-charges-768.png"
+  },
+  {
+    "label": "charges",
+    "width": 1024,
+    "route": "/settings/charges",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-charges-1024.png"
+  },
+  {
+    "label": "charges",
+    "width": 1440,
+    "route": "/settings/charges",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-charges-1440.png"
+  },
+  {
+    "label": "users",
+    "width": 390,
+    "route": "/user-role-administration",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-users-390.png"
+  },
+  {
+    "label": "users",
+    "width": 768,
+    "route": "/user-role-administration",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-users-768.png"
+  },
+  {
+    "label": "users",
+    "width": 1024,
+    "route": "/user-role-administration",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-users-1024.png"
+  },
+  {
+    "label": "users",
+    "width": 1440,
+    "route": "/user-role-administration",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "header_body_or_card_label_alignment": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-users-1440.png"
+  },
+  {
+    "label": "deliveries",
+    "width": 390,
+    "route": "/webhooks/deliveries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-deliveries-390.png"
+  },
+  {
+    "label": "deliveries",
+    "width": 768,
+    "route": "/webhooks/deliveries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-deliveries-768.png"
+  },
+  {
+    "label": "deliveries",
+    "width": 1024,
+    "route": "/webhooks/deliveries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-deliveries-1024.png"
+  },
+  {
+    "label": "deliveries",
+    "width": 1440,
+    "route": "/webhooks/deliveries",
+    "checks": {
+      "document_no_horizontal_overflow": true,
+      "content_no_horizontal_overflow": true,
+      "screenshot_dimensions": true,
+      "screenshot_fully_rendered": true
+    },
+    "pass": true,
+    "screenshot": "evidence/after-deliveries-1440.png"
+  }
+]

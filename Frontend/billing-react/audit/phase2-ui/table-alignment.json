@@ -1,0 +1,3690 @@
+[
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Customer code",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Code"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Customer",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Customer"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Type",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Type"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Tax ID / GSTIN",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Tax ID"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Contact",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Contact"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Outstanding",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Outstanding"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Status",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Status"
+  },
+  {
+    "module": "customers",
+    "width": 390,
+    "column": "Actions",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Actions"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Customer code",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Code"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Customer",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Customer"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Type",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Type"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Tax ID / GSTIN",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Tax ID"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Contact",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Contact"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Outstanding",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Outstanding"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Status",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Status"
+  },
+  {
+    "module": "customers",
+    "width": 768,
+    "column": "Actions",
+    "mode": "existing responsive cards",
+    "geometry": "N/A: header hidden",
+    "label_alignment_pass": true,
+    "pass": true,
+    "expected_compact_label": "Actions"
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Customer code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Tax ID / GSTIN",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Contact",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Customer code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Tax ID / GSTIN",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Contact",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "customers",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 7,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Product Code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Product Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Category",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Unit",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Unit Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Final Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Product Code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Product Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Category",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Unit",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Unit Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Final Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Product Code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Product Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Category",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Unit",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Unit Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Final Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Product Code",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Product Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Category",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Unit",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Unit Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Final Price",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "products",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Payment Number / ID",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Method",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Payment Number / ID",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Method",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Payment Number / ID",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Method",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Payment Number / ID",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Method",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "payments",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 6,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Invoice Number",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Invoice Date \u2193",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Due Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Currency",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Subtotal",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Charges",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Rounding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Grand Total",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Paid",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Invoice Number",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Invoice Date \u2193",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Due Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Currency",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Subtotal",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Charges",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Rounding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Grand Total",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Paid",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Invoice Number",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Invoice Date \u2193",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Due Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Currency",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Subtotal",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Charges",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Rounding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Grand Total",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Paid",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Invoice Number",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Customer",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Invoice Date \u2193",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Due Date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Currency",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Subtotal",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Discount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Tax",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Charges",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Rounding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Grand Total",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Paid",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Outstanding",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "invoices",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 5,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Credit note",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Customer / invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Credit amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Refunded",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Remaining refundable",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Created",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "right",
+    "body_align": [
+      "right"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Credit note",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Customer / invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Credit amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Refunded",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Remaining refundable",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Created",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "right",
+    "body_align": [
+      "right"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Credit note",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Customer / invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Credit amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Refunded",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Remaining refundable",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Created",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "right",
+    "body_align": [
+      "right"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Credit note",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Customer / invoice",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Credit amount",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Refunded",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Remaining refundable",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Created",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "credit",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "right",
+    "body_align": [
+      "right"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Template name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Style",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Version",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Last modified date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Last modified user",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Template name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Style",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Version",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Last modified date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Last modified user",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Template name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Style",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Version",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Last modified date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Last modified user",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Template name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Style",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Version",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Last modified date",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Last modified user",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "templates",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0.0,
+    "rows_measured": 2,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Username",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Email",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Role",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Tenant",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Application",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Identity type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 390,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Username",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Email",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Role",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Tenant",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Application",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Identity type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 768,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Username",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Email",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Role",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Tenant",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Application",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Identity type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1024,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Name",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Username",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Email",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Role",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Tenant",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Application",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Identity type",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Status",
+    "mode": "table",
+    "header_align": "left",
+    "body_align": [
+      "left"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  },
+  {
+    "module": "users",
+    "width": 1440,
+    "column": "Actions",
+    "mode": "table",
+    "header_align": "center",
+    "body_align": [
+      "center"
+    ],
+    "max_x_difference": 0.0,
+    "max_width_difference": 0,
+    "rows_measured": 3,
+    "pass": true
+  }
+]

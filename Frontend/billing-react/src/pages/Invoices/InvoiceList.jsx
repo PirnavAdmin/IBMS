@@ -1,3 +1,6 @@
+import { searchInputError } from '../../utils/search';
+import { SearchField } from '../../components/SearchField';
+import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -102,7 +105,8 @@ export function InvoiceList() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
-  const querySearch = useDebounced(context.searchQuery || search);
+  const searchError = searchInputError(context.searchQuery || search);
+  const querySearch = useDebounced((context.searchQuery || search).trim());
   const customerTerm = useDebounced(customerSearch);
   useEffect(
     () => setFilters((previous) => ({ ...previous, page: 1 })),
@@ -116,7 +120,7 @@ export function InvoiceList() {
     queryKey: ["invoices", "list", filters, querySearch],
     queryFn: ({ signal }) =>
       invoiceService.list({ ...filters, search: querySearch }, { signal }),
-    enabled: user.permissions.view && !invalidDates,
+    enabled: user.permissions.view && !invalidDates && !searchError,
     retry: false,
     staleTime: 0,
   });
@@ -155,7 +159,7 @@ export function InvoiceList() {
   );
   const rows = list.data?.items || [];
   const exportCsv = async () => {
-    if (exportLock.current || !user.permissions.view || invalidDates) return;
+    if (exportLock.current || !user.permissions.view || invalidDates || searchError) return;
     exportLock.current = true;
     setExporting(true);
     setExportMessage(null);
@@ -175,7 +179,7 @@ export function InvoiceList() {
       subtitle="Create, issue and manage customer invoices."
       actions={
         <>
-          <Button variant="outlined" disabled={exporting || !user.permissions.view || Boolean(invalidDates)} onClick={exportCsv}>
+          <Button variant="outlined" disabled={exporting || !user.permissions.view || Boolean(invalidDates) || Boolean(searchError)} onClick={exportCsv}>
             {exporting ? 'Exporting CSV...' : 'Export CSV'}
           </Button>
           <Button
@@ -185,7 +189,7 @@ export function InvoiceList() {
               list.refetch();
               summary.refetch();
             }}
-            disabled={list.isFetching || !user.permissions.view}
+            disabled={list.isFetching || !user.permissions.view || Boolean(searchError)}
           >
             Refresh
           </Button>
@@ -385,8 +389,9 @@ export function InvoiceList() {
       })}
       <section className="invoice-panel invoice-list-panel">
         <div className="invoice-filters">
-          <TextField
+          <SearchField
             className="invoice-filter-search"
+            error={Boolean(searchError)} helperText={searchError}
             placeholder="Search Invoice Number"
             value={search}
             onChange={(event) => {
@@ -407,7 +412,7 @@ export function InvoiceList() {
               ),
             }}
           />
-          <TextField
+          <FilterSelectField
             select
             size="small"
             label="Status"
@@ -421,7 +426,7 @@ export function InvoiceList() {
                 {status}
               </MenuItem>
             ))}
-          </TextField>
+          </FilterSelectField>
           <Autocomplete
             className="invoice-filter-customer"
             size="small"
@@ -445,7 +450,7 @@ export function InvoiceList() {
               ...previous, ...dates, page: 1,
             }))}
           />
-          <TextField
+          <FilterSelectField
             select
             size="small"
             label="Payment state"
@@ -461,7 +466,7 @@ export function InvoiceList() {
                 </MenuItem>
               ),
             )}
-          </TextField>
+          </FilterSelectField>
           <Button
             variant="outlined"
             size="small"

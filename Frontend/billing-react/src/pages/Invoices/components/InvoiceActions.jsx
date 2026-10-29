@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useRef, useState } from "react";
 import {
   Alert,
@@ -11,7 +12,6 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
-  Snackbar,
   TextField,
 } from "@mui/material";
 import {
@@ -277,21 +277,7 @@ export function InvoiceActions({ invoice, permissions }) {
           {error}
         </Alert>
       )}
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={5000}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        onClose={() => setNotice("")}
-      >
-        <Alert
-          severity="success"
-          variant="filled"
-          onClose={() => setNotice("")}
-          sx={{ width: "100%", alignItems: "center" }}
-        >
-          {notice}
-        </Alert>
-      </Snackbar>
+      <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
       <Dialog
         open={Boolean(review)}
         onClose={busy ? undefined : () => setReview(null)}

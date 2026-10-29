@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
@@ -40,6 +41,7 @@ export const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successDismissed, setSuccessDismissed] = useState(false);
   const [registering, setRegistering] = useState(false);
 
   const {
@@ -84,6 +86,7 @@ export const Register = () => {
       setApiError(null);
       const response = await authApi.register({ name: formData.fullName, email: formData.email, password: formData.password, confirmPassword: formData.confirmPassword });
       if (response?.success === false || response?.Success === false) throw new Error(response.message || response.Message || 'Registration failed. Please check your details and try again.');
+      setSuccessDismissed(false);
       setIsSuccess(true);
       redirectTimer.current = setTimeout(() => navigate('/login', { state: { registeredEmail: formData.email, registeredSuccess: true } }), 900);
     } catch (err) {
@@ -158,9 +161,7 @@ export const Register = () => {
           )}
 
           {isSuccess && (
-            <Alert severity="success" sx={{ mb: 2, borderRadius: 2, py: 0.3 }}>
-              Account registered! Redirecting to sign in...
-            </Alert>
+            <FeedbackSnackbar message={successDismissed ? '' : 'Account registered! Redirecting to sign in...'} onClose={() => setSuccessDismissed(true)} />
           )}
 
           <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>

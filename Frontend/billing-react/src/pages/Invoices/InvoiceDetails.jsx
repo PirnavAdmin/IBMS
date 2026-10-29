@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { hasPermission } from "../../utils/permissionUtils";
 import { useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Snackbar,
   Tab,
   Tabs,
 } from "@mui/material";
@@ -234,18 +234,7 @@ export function InvoiceDetails() {
         </>
       }
     >
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={5000}
-        onClose={(_, reason) => {
-          if (reason !== "clickaway") setNotice("");
-        }}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        <Alert severity="success" variant="filled" onClose={() => setNotice("")}>
-          {notice}
-        </Alert>
-      </Snackbar>
+      <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
       {pdfError && (
         <Alert severity="error" onClose={() => setPdfError("")} sx={{ mb: 2 }}>
           {pdfError}
@@ -1244,25 +1233,10 @@ export function InvoiceDetails() {
       )}
 
       {/* Invoice Email Confirmation Dialog */}
-      <Dialog
-        open={sendSuccessOpen}
+      <FeedbackSnackbar
+        message={sendSuccessOpen ? `Invoice ${row ? identifier(row) : ''} was emailed successfully to ${customerData?.email || ''}.` : ''}
         onClose={() => setSendSuccessOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Email Sent Successfully</DialogTitle>
-        <DialogContent>
-          <Alert severity="success">
-            Invoice {row ? identifier(row) : ""} was emailed successfully to{" "}
-            <strong>{customerData?.email}</strong>.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="contained" onClick={() => setSendSuccessOpen(false)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+      />
 
       <Dialog
         open={sendDialogOpen}

@@ -1,0 +1,10 @@
+[
+  {
+    "action": "Invoice search: six sequential characters 000004; input-to-first-observation including automation",
+    "ms": 1343
+  },
+  {
+    "action": "Invoice Grand Total sort: click-to-first-observation including automation",
+    "ms": 1307
+  }
+]

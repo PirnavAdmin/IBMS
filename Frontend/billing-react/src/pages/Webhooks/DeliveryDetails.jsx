@@ -1,3 +1,4 @@
+import { displayDate } from '../../utils/localDate';
 import { Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress } from '@mui/material';
 import { ContentCopyOutlined } from '@mui/icons-material';
 
@@ -5,7 +6,7 @@ export function DeliveryTime({ value }) {
   if (!value) return <span className="integration-muted">Not provided</span>;
   const date = new Date(/(?:Z|[+-]\d\d:\d\d)$/i.test(value) ? value : `${value}Z`);
   if (Number.isNaN(date.getTime())) return 'Not provided';
-  return <time dateTime={date.toISOString()} className="delivery-time"><span>{new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'UTC' }).format(date)}</span><small>{new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'UTC' }).format(date)} UTC</small></time>;
+  return <time dateTime={date.toISOString()} className="delivery-time"><span>{displayDate(date.toISOString())}</span><small>{new Intl.DateTimeFormat('en-IN', { timeStyle: 'short', timeZone: 'UTC' }).format(date)} UTC</small></time>;
 }
 export function DeliveryBadge({ status }) {
   return <Chip size="small" label={status} className={`delivery-status delivery-status-${status.toLowerCase()}`} />;

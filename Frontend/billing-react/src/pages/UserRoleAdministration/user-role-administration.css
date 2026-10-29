@@ -74,15 +74,15 @@
 .ura-table tbody tr:last-child td { border-bottom: 0; }
 .ura-table td strong { color: #513822; font-weight: 700; }
 .ura-user-table { min-width: 1380px; table-layout: fixed; }
-.ura-user-table th:nth-child(1),.ura-user-table td:nth-child(1) { width: 14%; }
-.ura-user-table th:nth-child(2),.ura-user-table td:nth-child(2) { width: 10%; }
-.ura-user-table th:nth-child(3),.ura-user-table td:nth-child(3) { width: 15%; }
-.ura-user-table th:nth-child(4),.ura-user-table td:nth-child(4) { width: 9%; }
-.ura-user-table th:nth-child(5),.ura-user-table td:nth-child(5) { width: 10%; }
-.ura-user-table th:nth-child(6),.ura-user-table td:nth-child(6) { width: 11%; }
-.ura-user-table th:nth-child(7),.ura-user-table td:nth-child(7) { width: 8%; }
-.ura-user-table th:nth-child(8),.ura-user-table td:nth-child(8) { width: 7%; }
-.ura-user-table th:nth-child(9),.ura-user-table td:nth-child(9) { width: 64px; text-align: center; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(1),.ura-user-table:not(.ura-assignment-table) td:nth-child(1) { width: 160px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(2),.ura-user-table:not(.ura-assignment-table) td:nth-child(2) { width: 280px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(3),.ura-user-table:not(.ura-assignment-table) td:nth-child(3) { width: 280px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(4),.ura-user-table:not(.ura-assignment-table) td:nth-child(4) { width: 130px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(5),.ura-user-table:not(.ura-assignment-table) td:nth-child(5) { width: 120px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(6),.ura-user-table:not(.ura-assignment-table) td:nth-child(6) { width: 120px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(7),.ura-user-table:not(.ura-assignment-table) td:nth-child(7) { width: 110px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(8),.ura-user-table:not(.ura-assignment-table) td:nth-child(8) { width: 110px; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(9),.ura-user-table:not(.ura-assignment-table) td:nth-child(9) { width: 80px; text-align: center; }
 .ura-assignment-table th:nth-child(1),.ura-assignment-table td:nth-child(1) { width: 18%; }
 .ura-assignment-table th:nth-child(2),.ura-assignment-table td:nth-child(2) { width: 19%; }
 .ura-assignment-table th:nth-child(3),.ura-assignment-table td:nth-child(3) { width: 17%; }
@@ -318,3 +318,10 @@
   .ura-form-actions .MuiButton-root { flex: 1; }
   .ura-tabs .MuiTab-root { min-width: 112px; padding-inline: 12px; font-size: .78rem; }
 }
+
+/* U13: keep identities atomic; full values are available on keyboard focus/hover. */
+.ura-user-table:not(.ura-assignment-table) { min-width: 1390px; }
+.ura-user-identity-text { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.ura-user-identity-text:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
+.ura-page .ura-table-wrap { min-width: 0; max-width: 100%; }
+.ura-page .ura-table-wrap:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }

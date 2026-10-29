@@ -1,0 +1,26 @@
+{
+  "cards": [
+    {
+      "text": "GRAND TOTAL\n₹89,578.00\nTotal Invoiced (INR)",
+      "width": 62
+    },
+    {
+      "text": "PAID AMOUNT\n₹30,000.00\nSettled by Payments",
+      "width": 62
+    },
+    {
+      "text": "OUTSTANDING BALANCE\n₹59,578.00\nAwaiting Settlement",
+      "width": 62
+    },
+    {
+      "text": "PAYMENT TERMS\n43\nDue Date: 25/11/2026",
+      "width": 62
+    }
+  ],
+  "grid": [
+    {
+      "columns": "63.4px 63.4px 63.4px 63.4px",
+      "width": 302
+    }
+  ]
+}

@@ -47,6 +47,8 @@
   margin-bottom: 18px;
 }
 .product-list-page .product-summary-card {
+  --product-accent: #956541;
+  --product-glow: #95654124;
   display: grid;
   grid-template-rows: auto auto 1fr;
   align-items: start;
@@ -64,8 +66,12 @@
   cursor: pointer;
   transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, outline-color 180ms ease;
 }
+.product-list-page .product-summary-card.tone-active { --product-accent: #378362; --product-glow: #37836224; }
+.product-list-page .product-summary-card.tone-inactive { --product-accent: #d14343; --product-glow: #d1434324; }
+.product-list-page .product-summary-card.tone-services { --product-accent: #8d66ad; --product-glow: #8d66ad24; }
 .product-list-page .product-summary-card:hover { transform: translateY(-1px); box-shadow: 0 6px 14px #462a0e12; }
-.product-list-page .product-summary-card.selected { outline: 2px solid #8d6e63; outline-offset: 2px; box-shadow: 0 4px 14px #462a0e14; }
+.product-list-page .product-summary-card.selected { border-color: var(--product-accent); background: color-mix(in srgb, var(--product-accent) 8%, white); box-shadow: 0 6px 16px var(--product-glow); }
+.product-list-page .product-summary-card.selected .product-summary-icon { background: var(--product-accent); color: #fff; }
 .product-list-page .product-summary-card:focus-visible { outline: 3px solid #8d6e63; outline-offset: 3px; }
 .product-list-page .product-summary-top {
   display: flex;

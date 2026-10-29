@@ -12,7 +12,8 @@ export function formatQuotationTimestamp(value, options = {}) {
   const date = parseQuotationTimestamp(value);
   if (!date) return value ? 'Date unavailable (missing or invalid timezone)' : 'Date unavailable';
   return date.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: 'Asia/Kolkata', timeZoneName: 'short',
     hour: '2-digit', minute: '2-digit', hour12: true,
     ...options,
   });

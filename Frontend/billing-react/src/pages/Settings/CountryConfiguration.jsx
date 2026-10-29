@@ -270,6 +270,7 @@ export function CountryConfiguration() {
               </div>
             </div>
 
+            <div className="country-list-scroll" role="region" aria-label="Scrollable country details" tabIndex={0}>
             <div className="country-items-header">
               <span>Select</span>
               <span>Country</span>
@@ -350,6 +351,7 @@ export function CountryConfiguration() {
                   </Button>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </section>

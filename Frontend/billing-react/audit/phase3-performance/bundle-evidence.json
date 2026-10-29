@@ -1,0 +1,232 @@
+{
+  "route_imports": [
+    {
+      "line": 6,
+      "text": "import { Landing } from '../pages/Landing/Landing';"
+    },
+    {
+      "line": 7,
+      "text": "import { Login } from '../pages/Login/Login';"
+    },
+    {
+      "line": 8,
+      "text": "import { Register } from '../pages/Register/Register';"
+    },
+    {
+      "line": 9,
+      "text": "import { TermsAndConditions, PrivacyPolicy } from '../pages/Legal/LegalPages';"
+    },
+    {
+      "line": 10,
+      "text": "import { ForgotPassword } from '../pages/ForgotPassword/ForgotPassword';"
+    },
+    {
+      "line": 11,
+      "text": "import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';"
+    },
+    {
+      "line": 12,
+      "text": "import { ResetPassword } from '../pages/ResetPassword/ResetPassword';"
+    },
+    {
+      "line": 14,
+      "text": "import { Dashboard } from '../pages/Dashboard/Dashboard';"
+    },
+    {
+      "line": 16,
+      "text": "import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';"
+    },
+    {
+      "line": 17,
+      "text": "import { AuditActivity } from '../pages/AuditActivity/AuditActivity';"
+    },
+    {
+      "line": 18,
+      "text": "import { SettingsLanding } from '../pages/Settings/SettingsLanding';"
+    },
+    {
+      "line": 19,
+      "text": "import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';"
+    },
+    {
+      "line": 20,
+      "text": "import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';"
+    },
+    {
+      "line": 21,
+      "text": "import { NotificationHistory } from '../pages/Notifications/NotificationHistory';"
+    },
+    {
+      "line": 22,
+      "text": "import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';"
+    },
+    {
+      "line": 23,
+      "text": "import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';"
+    },
+    {
+      "line": 24,
+      "text": "import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';"
+    },
+    {
+      "line": 26,
+      "text": "import { Payments } from '../pages/Payments/Payments';"
+    },
+    {
+      "line": 27,
+      "text": "import { RecordPayment } from '../pages/Payments/RecordPayment';"
+    },
+    {
+      "line": 28,
+      "text": "import { PaymentDetails } from '../pages/Payments/PaymentDetails';"
+    },
+    {
+      "line": 29,
+      "text": "import { InvoiceList } from '../pages/Invoices/InvoiceList';"
+    },
+    {
+      "line": 30,
+      "text": "import { InvoiceForm } from '../pages/Invoices/InvoiceForm';"
+    },
+    {
+      "line": 31,
+      "text": "import { InvoiceDetails } from '../pages/Invoices/InvoiceDetails';"
+    },
+    {
+      "line": 32,
+      "text": "import { InvoicePreview } from '../pages/Invoices/InvoicePreview';"
+    },
+    {
+      "line": 33,
+      "text": "import { Taxes } from '../pages/Taxes/Taxes';"
+    },
+    {
+      "line": 34,
+      "text": "import { CategoryList } from '../pages/Products/pages/CategoryList';"
+    },
+    {
+      "line": 35,
+      "text": "import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';"
+    },
+    {
+      "line": 36,
+      "text": "import { ProductList } from '../pages/Products/ProductList';"
+    },
+    {
+      "line": 37,
+      "text": "import { ProductDetails } from '../pages/Products/pages/ProductDetails';"
+    },
+    {
+      "line": 38,
+      "text": "import { CreateProduct } from '../pages/Products/pages/CreateProduct';"
+    },
+    {
+      "line": 39,
+      "text": "import { EditProduct } from '../pages/Products/pages/EditProduct';"
+    },
+    {
+      "line": 40,
+      "text": "import { NumberingSettings } from '../pages/NumberingSettings';"
+    },
+    {
+      "line": 41,
+      "text": "import { QuotationManagement } from '../pages/Quotations';"
+    },
+    {
+      "line": 42,
+      "text": "import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory } from '../pages/InvoiceTemplates/InvoiceTemplates';"
+    },
+    {
+      "line": 43,
+      "text": "import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';"
+    },
+    {
+      "line": 44,
+      "text": "import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';"
+    },
+    {
+      "line": 45,
+      "text": "import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';"
+    },
+    {
+      "line": 46,
+      "text": "import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';"
+    },
+    {
+      "line": 47,
+      "text": "import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';"
+    },
+    {
+      "line": 48,
+      "text": "import { Integrations } from '../pages/Integrations/Integrations';"
+    },
+    {
+      "line": 49,
+      "text": "import { Webhooks } from '../pages/Webhooks/Webhooks';"
+    },
+    {
+      "line": 50,
+      "text": "import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';"
+    },
+    {
+      "line": 51,
+      "text": "import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';"
+    },
+    {
+      "line": 52,
+      "text": "import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';"
+    },
+    {
+      "line": 55,
+      "text": "import { CustomerListPage } from '../pages/Customers/pages/CustomerListPage';"
+    },
+    {
+      "line": 56,
+      "text": "import { CreateCustomer } from '../pages/Customers/pages/CreateCustomer';"
+    },
+    {
+      "line": 57,
+      "text": "import { EditCustomer } from '../pages/Customers/pages/EditCustomer';"
+    },
+    {
+      "line": 58,
+      "text": "import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';"
+    },
+    {
+      "line": 59,
+      "text": "import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';"
+    }
+  ],
+  "route_declarations": 76,
+  "lazy_in_AppRoutes": false,
+  "suspense_in_AppRoutes": false,
+  "initial_script": "index-Bw4jWLpT.js",
+  "main_bundle_markers": {
+    "html2pdf": {
+      "count": 6,
+      "first_offset": 2893596,
+      "snippet": "t.offsetHeight)+\"px\"),this.prop.overlay=s(\"div\",{className:\"html2pdf__overlay\",style:{position:\"fixed\",overflow:\"hidden\",zIndex:1e3,left:\"-100000px\",right:0,bot"
+    },
+    "html2canvas": {
+      "count": 32,
+      "first_offset": 2477873,
+      "snippet": "argin:[6,7,6,7],filename:Ne,image:{type:\"jpeg\",quality:.98},html2canvas:{scale:2,useCORS:!0,backgroundColor:\"#ffffff\",windowWidth:816},jsPDF:{unit:\"mm\",format:\""
+    },
+    "jsPDF": {
+      "count": 99,
+      "first_offset": 2477948,
+      "snippet": "ale:2,useCORS:!0,backgroundColor:\"#ffffff\",windowWidth:816},jsPDF:{unit:\"mm\",format:\"a4\",orientation:\"portrait\"},pagebreak:{mode:[]}}).from(y.current).toCanvas("
+    },
+    "jspdf": {
+      "count": 9,
+      "first_offset": 2944894,
+      "snippet": "9/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\" xmlns:jspdf=\"'+this.internal.__metadata__.namespaceuri+'\"><jspdf:metadata>',s=unescape(encodeURIComponent("
+    },
+    "DOMPurify": {
+      "count": 2,
+      "first_offset": 2890173,
+      "snippet": "on(l){return l.default?l.default:l})}function n(){return(dr.DOMPurify?Promise.resolve(dr.DOMPurify):qS(()=>import(\"./purify.es-BYftNTi7.js\"),[])).catch(function"
+    }
+  },
+  "html2canvas_stub": "import{g as c,r as f}from\"./index-Bw4jWLpT.js\";function l(r,n){for(var o=0;o<n.length;o++){const e=n[o];if(typeof e!=\"string\"&&!Array.isArray(e)){for(const t in e)if(t!==\"default\"&&!(t in r)){const a=Object.getOwnPropertyDescriptor(e,t);a&&Object.defineProperty(r,t,a.get?a:{enumerable:!0,get:()=>e[t]})}}}return Object.freeze(Object.defineProperty(r,Symbol.toStringTag,{value:\"Module\"}))}var s=f();const i=c(s),u=l({__proto__:null,default:i},[s]);export{u as h};\n"
+}

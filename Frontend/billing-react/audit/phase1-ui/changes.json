@@ -1,0 +1,30 @@
+{
+  "src/pages/Invoices/styles/invoices.css": {
+    "before": "2c0e9dfe12b2f8abb8906c358115b9d6864e5f4264f9976eee3eafed4c195d03",
+    "after": "f70201e6847a47464221eb5412adafa97940573637ad9c88814169c3c8eaaff8"
+  },
+  "src/pages/CreditNotes/styles/credit-notes.css": {
+    "before": "f02afbd5b1d94ccd949861d2d12b2adaca82f747339b27dd85a651a3f72b96f7",
+    "after": "d187fe2e2ff86f649e2a7e9b0e855d46da5a657b95ac35c6a8893f61980ccf08"
+  },
+  "src/pages/InvoiceTemplates/invoice-templates.css": {
+    "before": "d98883b1e65e8dda4f177038107882ff4eb2c04aa5840ba3692f8e5f1b641f0a",
+    "after": "6d87e76b4b2fed1a0bdc5806ac095409aa4d43d66d7cbb0a2a11d8b79f866199"
+  },
+  "src/pages/InvoiceTemplates/InvoiceTemplates.jsx": {
+    "before": "4625c38793d2bbc1c559678307ef763c55c501c3c20becc898610b356e44c68d",
+    "after": "ab4adf8bb633651d00b94b060882a424952550f58bef78e5aa5554891e50fd8f"
+  },
+  "src/pages/Settings/CountryConfiguration.jsx": {
+    "before": "c7313ab0aeca9186a05490fb73b15e2f4640d4268b361f032b228421dd23a98b",
+    "after": "c14ed1feb1590d67cbc2b3ac8a5c971487362660755bdc8df23c87cf19becb22"
+  },
+  "src/pages/Settings/settings.css": {
+    "before": "47295e6ce3ae5902c841995f1f744d68c9b7a2ddcb4e1a59279630a69554652d",
+    "after": "7e5d7b1ae9fee8f06637141d8e184a0ca74551c679d7240db6639842f0f73be1"
+  },
+  "src/pages/Notifications/notifications.css": {
+    "before": "d015ff43beb735f960b3d84631ae8fa4aff7beec34def74ddf432af668170310",
+    "after": "f6d6c5a11e3df5aa651d2b06d5b20888522c193da599fa1dcbfb7a6da2b549b9"
+  }
+}

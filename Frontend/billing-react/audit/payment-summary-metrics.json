@@ -1,0 +1,26 @@
+{
+  "amounts": [
+    {
+      "font": "24px",
+      "height": 72,
+      "text": "₹20,000.00",
+      "width": 126,
+      "wrap": "anywhere"
+    },
+    {
+      "font": "20px",
+      "height": 30,
+      "text": "₹20,000.00",
+      "width": 126,
+      "wrap": "anywhere"
+    }
+  ],
+  "grid": [
+    {
+      "columns": "126px 126px",
+      "width": 316
+    }
+  ],
+  "rootFont": "16px",
+  "width": 390
+}

@@ -19,7 +19,7 @@
         "border-top-color"
       ]
     },
-    "canonicalHash": "6bd186f9f29ba5c8fdf10c4e6e61a3823a7f90ede4061c88415d3f422d87ba83",
+    "canonicalHash": "9e6377fbeb588172af53316247e11ff2ded0b19463d187d57f160d3bc9ee94db",
     "removed": [
       {
         "selector": ".customers-page",
@@ -99,7 +99,18 @@
         "value": "var(--text-primary, #292522)",
         "line": 124
       }
-    ]
+    ],
+    "review": {
+      "previousCanonicalHash": "6bd186f9f29ba5c8fdf10c4e6e61a3823a7f90ede4061c88415d3f422d87ba83",
+      "phase": "U09",
+      "canonicalLineEndings": "CRLF",
+      "reviewedChanges": [
+        "Existing customer-register-specific centered cells are now left-aligned, matching approved monetary conventions.",
+        "Existing identity/contact offsets now start at matching header/body positions; action/status subcontainers follow cell alignment.",
+        "No column widths, table borders, scrolling or print declarations changed."
+      ],
+      "printHash": "ea7d77e798fa233bb44f8f9017247d15562a960facf3c7c4addbf6011080c960"
+    }
   },
   {
     "file": "src/pages/Quotations/styles/quotations.css",
@@ -114,7 +125,7 @@
         "margin-bottom"
       ]
     },
-    "canonicalHash": "1591b585a3a9a9854474af453035b327067fde72eda8d2b8a1ad0a483f9f284f",
+    "canonicalHash": "91e1122efcf56446df2e423dd68a9afb91dfa16c1ca5b284abb2ae0432f0c60b",
     "removed": [
       {
         "selector": ".quote-actions",
@@ -134,7 +145,17 @@
         "value": "16px",
         "line": 78
       }
-    ]
+    ],
+    "review": {
+      "previousCanonicalHash": "1591b585a3a9a9854474af453035b327067fde72eda8d2b8a1ad0a483f9f284f",
+      "comparisonCommit": "028d339c",
+      "comparisonCommitMatchesPreviousHashWithCRLF": true,
+      "canonicalLineEndings": "CRLF",
+      "reviewedChanges": [
+        "Previously committed compact quotation filter controls and consistent dropdown arrows; no responsive, print or financial rules removed."
+      ],
+      "printHash": "cb1247877a0dbaaa7328962db58e001a6e7a63142bda9c9780f340752cb584c8"
+    }
   },
   {
     "file": "src/pages/CreditNotes/styles/credit-notes.css",
@@ -161,7 +182,7 @@
         "font-size"
       ]
     },
-    "canonicalHash": "f890812068a16de373780713edbfe75caa36a0488146f1728009602825f897dc",
+    "canonicalHash": "7d14c149b4301fd9bd72061269d3b4477fb917753d63d7d4b3545c840770f054",
     "removed": [
       {
         "selector": ".cn-eligibility-summary",
@@ -235,7 +256,18 @@
         "value": "#81562f",
         "line": 151
       }
-    ]
+    ],
+    "review": {
+      "previousCanonicalHash": "f890812068a16de373780713edbfe75caa36a0488146f1728009602825f897dc",
+      "comparisonCommit": "028d339c",
+      "comparisonCommitMatchesPreviousHashWithCRLF": true,
+      "canonicalLineEndings": "CRLF",
+      "reviewedChanges": [
+        "Previously committed bounded status menu, pagination controls, detail toolbar/document and refund/empty-state styling.",
+        "Approved U02/U03 screen-scoped summary grid and wrapping search/status/type/date controls; all print rules unchanged."
+      ],
+      "printHash": "2a59d639db87dda2bdeabd1903ec7511969989cc0427f58f8194be17f3a6a016"
+    }
   },
   {
     "file": "src/styles/WorkspaceUI.css",
@@ -244,7 +276,7 @@
         "background"
       ]
     },
-    "canonicalHash": "9b838cdbb47f9b80f275f1b5744cfd437a7e02e9b292c286d03294336575cc82",
+    "canonicalHash": "efdb41ac651f44de570e6e7f9f9e4150fbcce0085e14198929aca4255e3aab7c",
     "removed": [
       {
         "selector": ".app-layout .ibms-table-frame",
@@ -252,6 +284,17 @@
         "value": "var(--surface)",
         "line": 49
       }
-    ]
+    ],
+    "review": {
+      "previousCanonicalHash": "9b838cdbb47f9b80f275f1b5744cfd437a7e02e9b292c286d03294336575cc82",
+      "comparisonCommit": "028d339c",
+      "comparisonCommitMatchesPreviousHashWithCRLF": true,
+      "canonicalLineEndings": "CRLF",
+      "reviewedChanges": [
+        "Previously committed cappuccino scrollbars and bounded screen-only table viewports; invoice documents excluded.",
+        "Previously committed Ant table overflow-y:auto override retains access to rows; print, theme variables, focus and header alignment unchanged."
+      ],
+      "printHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
   }
 ]

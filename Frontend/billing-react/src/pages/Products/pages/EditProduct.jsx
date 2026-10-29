@@ -1,3 +1,4 @@
+import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import React, { useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ export function EditProduct() {
   const draft = useFormDraft(`product:${id}`);
   const navigate = useNavigate();
   const location = useLocation();
+  const [notice, setNotice] = useState(location.state?.productNotice || '');
   const queryClient = useQueryClient();
   const requestLock = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,7 +115,7 @@ export function EditProduct() {
         </Button>
       </header>
 
-      {location.state?.productNotice && <Alert severity="success">{location.state.productNotice}</Alert>}
+      <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
 
       <ProductForm
         mode="edit"

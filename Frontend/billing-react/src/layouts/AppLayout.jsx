@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { queryClient } from '../queryClient';
+import { useTableScrollHeaders } from '../hooks/useTableScrollHeaders';
 import '../styles/Dashboard.css';
 import '../styles/ModuleSpacing.css';
 import '../styles/AppTheme.css';
@@ -38,6 +39,7 @@ const routeModules = {
 };
 
 export const AppLayout = () => {
+  const tableScrollRoot = useTableScrollHeaders();
   const navigate = useNavigate();
   const { pathname, search: locationSearch, state: locationState } = useLocation();
   const searchScope = pathname + locationSearch;
@@ -68,7 +70,7 @@ export const AppLayout = () => {
     navigate('/login');
   };
 
-  return <div className={`app-layout${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+  return <div ref={tableScrollRoot} className={`app-layout${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
     <button type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'}  aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
     <DashboardSidebar activeItem={activeItem} open={sidebarOpen} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => setSidebarOpen(false)} />
     <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={searchQuery} onSearch={onSearch} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery, onSearch }} /></div></div>

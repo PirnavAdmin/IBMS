@@ -254,7 +254,14 @@ test('Form preview uses unsaved server-rendered request; duplicate save and back
 });
 
 test('History renders all statuses, failure/retry info, null date and server pagination/filter/search', async () => {
-  const ui=await mount(`${rootPath}/history`,call=>call.url.endsWith('/history')?envelope(page([historyRow,{...historyRow,id:72,status:'Sent',sentAtUtc:null,failureReason:null},{...historyRow,id:73,status:'Queued',failureReason:null}],45,call.config.params.pageNumber,call.config.params.pageSize)):undefined);
+  const ui=await mount(`${rootPath}/history`,call => {
+    if (!call.url.endsWith('/history')) return undefined;
+    const { pageNumber, pageSize } = call.config.params;
+    const items = pageNumber === 2
+      ? [{ ...historyRow, id: 171, recipient: 'page-two@example.test', subject: 'Second page delivery' }]
+      : [historyRow, { ...historyRow, id: 72, status: 'Sent', sentAtUtc: null, failureReason: null }, { ...historyRow, id: 73, status: 'Queued', failureReason: null }];
+    return envelope(page(items, 45, pageNumber, pageSize));
+  });
   try {
     assert.match(ui.host.textContent,/customer@example.test/); assert.match(ui.host.textContent,/SMTP recipient rejected/);
     for(const status of HISTORY_STATUSES) assert.ok([...ui.host.querySelectorAll('.ant-tag')].some(tag=>tag.textContent===status));
@@ -262,12 +269,25 @@ test('History renders all statuses, failure/retry info, null date and server pag
     assert.equal(ui.host.querySelector('[aria-label="Retry notification 72"]'),null); assert.equal(ui.host.querySelector('[aria-label="Retry notification 73"]'),null);
     assert.equal(ui.host.querySelector('tr[data-row-key="72"]').children[2].textContent,'—');
     assert.equal(ui.host.querySelector('tr[data-row-key="71"]').children[4].textContent,'2');
-    await click(ui.host.querySelector('.ant-pagination-item-2')); await until(()=>ui.calls.some(call=>call.config?.params?.pageNumber===2));
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 1–20 of 45 notifications/);
+    const pages = ui.host.querySelector('nav[aria-label="notifications pages"]');
+    assert.ok(pages, 'Pagination has an accessible navigation label');
+    await click(pages.querySelector('button[aria-label="Go to next page"]'));
+    await until(() => ui.host.textContent.includes('page-two@example.test'));
+    assert.deepEqual(ui.calls.filter(call => call.url.endsWith('/history')).at(-1).config.params, { pageNumber: 2, pageSize: 20 });
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 21–40 of 45 notifications/);
+    assert.equal(ui.host.querySelector('nav[aria-label="notifications pages"] [aria-current]:not([aria-current="false"])').textContent, '2');
+    assert.equal(ui.host.querySelector('tr[data-row-key="71"]'), null, 'Previous-page data is replaced');
+    assert.match(ui.host.querySelector('tr[data-row-key="171"]').textContent, /Second page delivery/);
     await select('History event filter','Payment Failed'); await select('History status filter','Failed');
     await type(ui.host.querySelector('[aria-label="Search history"]'),' customer ');
     await act(async()=>Simulate.submit(ui.host.querySelector('form'))); await settle();
     const last=ui.calls.filter(call=>call.url.endsWith('/history')).at(-1);
     assert.deepEqual(last.config.params,{pageNumber:1,pageSize:20,eventType:'PaymentFailed',status:'Failed',searchTerm:'customer'});
+    await until(() => ui.host.querySelector('tr[data-row-key="71"]'));
+    assert.equal(ui.host.querySelector('tr[data-row-key="171"]'), null);
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /Showing 1–20 of 45 notifications/);
+    assert.equal(ui.host.querySelector('nav[aria-label="notifications pages"] [aria-current]:not([aria-current="false"])').textContent, '1');
     assert.match(ui.host.textContent,/Date Range \(IST\)/);
   } finally { await ui.close(); }
 });
@@ -471,20 +491,41 @@ test('HTML parser never rewrites unknown tokens containing entity characters', (
 });
 
 
-test('Audit and notification errors use standard connection wording without infrastructure details', async () => {
+test('Audit and notification errors keep transport normalization and accessible friendly errors with recovery', async () => {
   for (const message of ['Backend unavailable. Check the network connection and ngrok tunnel.', 'Backend unavailable. The ngrok tunnel may be offline.', 'Network Error']) {
     assert.equal(errorPresentation(message),connectionErrorMessage);
     assert.equal(notificationError(new Error(message)),connectionErrorMessage);
   }
   assert.equal(errorPresentation('Template no longer exists.'),'Template no longer exists.');
-  const ui=await mount(rootPath,()=>{throw new Error('Backend unavailable. Check the network connection and ngrok tunnel.');});
-  try {
-    assert.ok(ui.host.querySelector('.bd-dashboard-error'));
-    assert.match(ui.host.textContent,/Unable to load data/);
-    assert.ok(ui.host.textContent.includes(connectionErrorMessage));
-    assert.doesNotMatch(ui.host.textContent,/Backend unavailable|ngrok|Unable to load notification data/);
-    assert.ok(button('Retry',ui.host));
-  } finally { await ui.close(); }
+  for (const [path, endpoint, recoveredText] of [
+    [rootPath, '/notification-templates', 'Customer invoice'],
+    [`${rootPath}/history`, '/history', 'customer@example.test'],
+  ]) {
+    let failed = true;
+    const ui = await mount(path, call => {
+      if (call.method === 'get' && call.url.endsWith(endpoint) && failed) {
+        throw new Error('Backend unavailable. Check the network connection and ngrok tunnel.');
+      }
+    });
+    try {
+      const alert = ui.host.querySelector('[role="alert"]');
+      assert.ok(alert, 'API failure is announced as an alert');
+      assert.equal(alert.querySelector('h2').textContent, 'Unable to load data');
+      assert.equal(alert.querySelector('p').textContent, 'data is temporarily unavailable. Please try again.');
+      assert.doesNotMatch(ui.host.textContent, /Backend unavailable|ngrok|No templates found|No communications found/);
+      assert.equal(ui.host.querySelector('table'), null, 'Failure must not render an empty-success table');
+      const retry = button('Retry', alert);
+      assert.ok(retry && !retry.disabled, 'Retry is an enabled, named button');
+      const before = ui.calls.filter(call => call.url.endsWith(endpoint)).length;
+      failed = false;
+      await click(retry);
+      await until(() => ui.host.textContent.includes(recoveredText));
+      assert.equal(ui.calls.filter(call => call.url.endsWith(endpoint)).length, before + 1, 'Retry refetches once');
+      assert.equal(ui.host.querySelector('[role="alert"]'), null, 'Recovered data replaces the error');
+      assert.ok(ui.host.querySelector('table'));
+      assert.equal(ui.calls.filter(call => call.method !== 'get').length, 0);
+    } finally { await ui.close(); }
+  }
 });
 
 

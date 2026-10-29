@@ -37,6 +37,7 @@ import {
   Tab,
   Tabs,
   TextField,
+  Tooltip,
 } from '@mui/material';
 import { userRoleAdministrationService as service } from './userRoleAdministrationService';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
@@ -270,7 +271,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
       title={`Unable to load ${usersQuery.isError ? 'users' : 'roles'}`}
       message={getError(errorQuery.error)}
       onRetry={() => { void usersQuery.refetch(); void rolesQuery.refetch(); }}
-    /> : <><div className="ura-table-wrap"><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
+    /> : <><div className="ura-table-wrap" role="region" aria-label="Scrollable users" tabIndex={0}><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
       <thead><tr>{assignmentMode ? <><th>Name</th><th>Roles</th><th>Tenant</th><th>Application</th><th>Status</th><th>Actions</th></> : <><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></>}</tr></thead>
       <tbody>
         {usersQuery.isPending && <tr><td colSpan={assignmentMode ? 6 : 9}><div className="ura-resource-state"><CircularProgress size={22} /><span>Loading users…</span></div></td></tr>}
@@ -288,7 +289,10 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
           ];
           return <tr key={id}>
             <td><strong>{recordValue(user, 'name', 'Name') || '—'}</strong></td>
-            {!assignmentMode && <><td>{recordValue(user, 'username', 'Username') || '—'}</td><td>{recordValue(user, 'email', 'Email') || '—'}</td></>}
+            {!assignmentMode && ['username', 'email'].map(field => {
+              const value = recordValue(user, field, field === 'username' ? 'Username' : 'Email') || '—';
+              return <td key={field}><Tooltip title={value} describeChild><span className="ura-user-identity-text" tabIndex={0}>{value}</span></Tooltip></td>;
+            })}
             <td>{Array.isArray(userRoles) && userRoles.length ? userRoles.join(', ') : '—'}</td>
             <td>{tenant}</td><td>{application}</td>{!assignmentMode && <td>{recordValue(user, 'identityType', 'IdentityType') || '—'}</td>}<td><StatusBadge status={statusValue(user)} /></td>
             <td className="ura-action-cell"><RowActionsMenu actions={actions} /></td>

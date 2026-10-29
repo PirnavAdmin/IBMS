@@ -1,0 +1,142 @@
+--- before/src/pages/Invoices/styles/invoices.css
++++ after/src/pages/Invoices/styles/invoices.css
+@@ -2555,6 +2555,16 @@
+ }
+ 
+ @media (max-width: 900px) {
++  /* U01: financial labels and values must remain readable in detail cards. */
++  .invoice-detail-kpis .invoice-summary-card :is(span, strong, small) {
++    min-width: 0;
++    white-space: normal;
++    overflow: visible;
++    text-overflow: clip;
++    overflow-wrap: anywhere;
++  }
++
++  .invoice-summary-grid.invoice-detail-kpis,
+   .invoice-summary-grid,
+   .invoice-summary-group > .invoice-summary-grid,
+   .invoice-detail-kpis {
+@@ -2592,6 +2602,7 @@
+     padding: 18px 16px 28px;
+   }
+ 
++  .invoice-summary-grid.invoice-detail-kpis,
+   .invoice-summary-grid,
+   .invoice-summary-group > .invoice-summary-grid,
+   .invoice-detail-kpis,
+--- before/src/pages/CreditNotes/styles/credit-notes.css
++++ after/src/pages/CreditNotes/styles/credit-notes.css
+@@ -417,6 +417,21 @@
+ @media (max-width: 420px) {
+   .cn-document-title { flex-direction: column; }
+ }
++/* U02/U03: adapt only the credit-note register, not document/print layouts. */
++@media screen and (max-width: 900px) {
++  .cn-list-page .cn-filter-bar { flex-wrap: wrap; align-items: stretch; }
++  .cn-list-page .cn-filter-bar .cn-search { flex: 1 1 100%; min-width: 0; max-width: none; }
++  .cn-list-page .cn-filter-bar .cn-status-filter { flex: 1 1 180px; min-width: 0; width: auto; }
++  .cn-list-page .cn-filter-bar > .date-range-filter { flex: 1 1 180px; min-width: 0; max-width: none; }
++}
++@media screen and (max-width: 760px) {
++  .cn-list-page .cn-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
++  .cn-list-page .cn-summary-card { padding: 14px; }
++  .cn-list-page .cn-summary-card :is(strong, small, .cn-summary-label) { min-width: 0; overflow-wrap: anywhere; }
++}
++@media screen and (max-width: 480px) {
++  .cn-list-page .cn-summary-grid { grid-template-columns: minmax(0, 1fr); }
++}
+ @media print {
+   @page { size: A4; margin: 6mm; }
+   @page credit-notes-list { size: A4 landscape; margin: 7mm; }
+--- before/src/pages/InvoiceTemplates/invoice-templates.css
++++ after/src/pages/InvoiceTemplates/invoice-templates.css
+@@ -20,7 +20,14 @@
+ .template-table { width:100%; border-collapse:collapse; text-align:left; font-size:13px; }
+ .template-table th { padding:12px; background:#f5eee7; color:#4b3525; white-space:nowrap; }
+ .template-table td { padding:10px 12px; border-top:1px solid #eee7e0; }
+-.template-list-card[aria-labelledby="template-list-heading"] .template-table { table-layout:fixed; }
++/* U04: keep column geometry inside a keyboard-scrollable table viewport. */
++.template-list-card[aria-labelledby="template-list-heading"] { min-width: 0; }
++.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; }
++.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap:focus-visible { outline: 2px solid var(--primary, #70472f); outline-offset: 2px; }
++.template-list-card[aria-labelledby="template-list-heading"] .template-table { table-layout: fixed; min-width: 1080px; }
++.template-list-card[aria-labelledby="template-list-heading"] .template-name-cell { max-width: 100%; flex-wrap: wrap; }
++.template-list-card[aria-labelledby="template-list-heading"] .template-name-link { min-width: 0; overflow-wrap: anywhere; }
++.app-layout .template-list-card[aria-labelledby="template-list-heading"] .template-table thead th.template-actions-heading { text-align: center; }
+ .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(1),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(1) { width:22%; }
+ .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(2),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(2) { width:12%; }
+ .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(3),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(3) { width:9%; }
+--- before/src/pages/InvoiceTemplates/InvoiceTemplates.jsx
++++ after/src/pages/InvoiceTemplates/InvoiceTemplates.jsx
+@@ -208,7 +208,7 @@
+         <TextField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField>
+       </div>
+ 
+-      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap ibms-table-frame">
++      {loading ? <div className="template-empty"><CircularProgress size={24} /><span>Loading templates…</span></div> : loadError ? <DashboardErrorState title="Unable to load templates" message={loadError} onRetry={load} /> : <div className="template-table-wrap ibms-table-frame" role="region" aria-label="Scrollable invoice templates" tabIndex={0}>
+         <table className="template-table">
+           <caption className="sr-only">Invoice templates with version and status</caption>
+           <thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead>
+--- before/src/pages/Settings/CountryConfiguration.jsx
++++ after/src/pages/Settings/CountryConfiguration.jsx
+@@ -270,6 +270,7 @@
+               </div>
+             </div>
+ 
++            <div className="country-list-scroll" role="region" aria-label="Scrollable country details" tabIndex={0}>
+             <div className="country-items-header">
+               <span>Select</span>
+               <span>Country</span>
+@@ -351,6 +352,7 @@
+                 </div>
+               )}
+             </div>
++            </div>
+           </div>
+         </section>
+ 
+--- before/src/pages/Settings/settings.css
++++ after/src/pages/Settings/settings.css
+@@ -744,3 +744,21 @@
+ }
+ 
+ 
++
++/* U05: country columns scroll within their list instead of sizing the page. */
++.country-config-page .country-config-layout,
++.country-config-page .country-list-section,
++.country-config-page .country-list-card,
++.country-config-page .country-quick-card { min-width: 0; max-width: 100%; }
++.country-config-page .country-list-scroll { min-width: 0; max-width: 100%; overflow-x: auto; }
++.country-config-page .country-list-scroll:focus-visible { outline: 2px solid var(--primary, #582407); outline-offset: -2px; }
++.country-config-page .country-items-header,
++.country-config-page .country-items-list { min-width: 585px; }
++@media screen and (max-width: 960px) {
++  .country-config-page .country-config-layout { grid-template-columns: minmax(0, 1fr); }
++}
++@media screen and (max-width: 600px) {
++  .country-config-page .country-search-field { flex-basis: 100%; min-width: 0; }
++  .country-config-page .country-list-actions { flex-wrap: wrap; }
++  .country-config-page .quick-card-actions .MuiButton-root { min-width: 0; max-width: 100%; white-space: normal; }
++}
+--- before/src/pages/Notifications/notifications.css
++++ after/src/pages/Notifications/notifications.css
+@@ -65,7 +65,7 @@
+ .notification-preview-frame { display: block; width: 100%; min-height: 420px; border: 1px solid #DCCEBF; border-radius: 8px; background: white; }
+ @media (max-width: 900px) {
+   .notification-heading { flex-direction: column; gap: 18px; }
+-  .notification-heading > .notification-actions { width: 100%; justify-content: flex-start; }
++  .notification-heading > .notification-actions { width: 100%; min-width: 0; flex-wrap: wrap; justify-content: flex-start; }
+   .notification-page { padding: 20px; }
+   .notification-filters label { flex: 1; }
+ }
+@@ -76,7 +76,7 @@
+   .notification-filters { padding: 16px; gap: 12px; }
+   .notification-filters label, .notification-filters .notification-search, .notification-filters .notification-range { width: 100%; min-width: 0; flex: auto; }
+   .notification-heading > .notification-actions { width: 100%; }
+-  .notification-heading > .notification-actions > a, .notification-heading > .notification-actions > button { flex: 1; }
++  .notification-heading > .notification-actions > a, .notification-heading > .notification-actions > button { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+   .notification-heading > .notification-actions > a > button { width: 100%; }
+ }
+ .notification-page .ant-form-item { margin-bottom: 22px; }

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, LinearProgress, Snackbar } from '@mui/material';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Alert, LinearProgress } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 import { apiClient } from 'billing-api-client/apiClient.js';
 import { authApi } from 'billing-api-client/authApi.js';
@@ -69,6 +70,21 @@ export function QuotationManagement() {
   const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
   const [listFailed,setListFailed]=useState(false);
   const locked=useRef(false), generation=useRef(0);
+  const screenRoot=useRef(null), listScroll=useRef(0), previousScreen=useRef({screen:'list',id:null});
+  useLayoutEffect(()=>{
+    const container=screenRoot.current?.closest('.app-layout-content');
+    const previous=previousScreen.current;
+    const id=current?.id ?? null;
+    previousScreen.current={screen,id};
+    const transition=previous.screen!==screen || (screen==='details' && previous.id!==id);
+    if(container && transition) {
+      const top=screen==='list' ? listScroll.current : 0;
+      container.scrollTop=top;
+      // Reapply once after layout so browser scroll anchoring cannot undo the transition.
+      const frame=requestAnimationFrame(()=>{container.scrollTop=top;});
+      return ()=>cancelAnimationFrame(frame);
+    }
+  },[screen,current?.id]);
   useEffect(()=>{
     if(!location?.state?.quotationManagementReset)return;
     setScreen('list');setCurrent(null);setDialog(null);setError('');
@@ -122,13 +138,16 @@ export function QuotationManagement() {
       setError(`Configured charges could not be loaded. ${message(e)}`);
     }
   };
-  const open=(mode,q)=>run(async()=>{
+  const open=(mode,q)=>{
+    if(screen==='list')listScroll.current=screenRoot.current?.closest('.app-layout-content')?.scrollTop || 0;
+    return run(async()=>{
     if(mode==='edit')await refreshConfiguredCharges();
     const detail=await quotationApi.get(q.id);
     if(mode==='edit'&&detail.status!=='Draft')throw new Error('Only Draft quotations can be edited.');
     setCurrent(detail);setScreen(mode);
     if(mode==='details')await refreshDetails(q.id);
-  });
+    });
+  };
   const quotationDraft = useFormDraft(`quotation:${current?.id || 'new'}`);
   const save=q=>run(async()=>{
     const saved=await quotationApi.save(q);quotationDraft.clear();replace(saved);setScreen('details');
@@ -158,14 +177,14 @@ export function QuotationManagement() {
   return <>
     {(loading||busy)&&<LinearProgress/>}
     {error&&!listFailed&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
-    <fieldset disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
+    <fieldset ref={screenRoot} disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
       {screen==='create'||screen==='edit'
-        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>
+        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')} onNotice={setNotice}/>
         :screen==='details'&&current
           ?<QuotationDetails quotation={enrich(current)} tenantProfile={tenantProfile} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
           :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>run(async()=>{await refreshConfiguredCharges();setCurrent(null);setScreen('create');})} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
       <QuotationDialog key={dialog||'closed'} type={dialog} quotation={current&&enrich(current)} error={error} onClose={()=>setDialog(null)} onConfirm={transition}/>
     </fieldset>
-    <Snackbar open={!!notice} autoHideDuration={5000} onClose={()=>setNotice('')}><Alert severity="success">{notice}</Alert></Snackbar>
+    <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />
   </>;
 }

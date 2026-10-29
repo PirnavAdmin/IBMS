@@ -16,7 +16,7 @@ try {
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const {JSDOM}=require('jsdom');
       const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'http://localhost:3000/integrations',pretendToBeVisual:true});
-      for(const key of ['window','document','Document','HTMLElement','HTMLBodyElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot'])global[key]=dom.window[key];
+      for(const key of ['window','document','Document','HTMLElement','HTMLBodyElement','HTMLBodyElement','HTMLInputElement','HTMLTextAreaElement','MouseEvent','Event','Node','Element','DocumentFragment','SVGElement','ShadowRoot'])global[key]=dom.window[key];
       Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});
       global.localStorage=dom.window.localStorage;global.sessionStorage=dom.window.sessionStorage;
       global.getComputedStyle=dom.window.getComputedStyle;global.requestAnimationFrame=dom.window.requestAnimationFrame.bind(dom.window);global.cancelAnimationFrame=dom.window.cancelAnimationFrame.bind(dom.window);

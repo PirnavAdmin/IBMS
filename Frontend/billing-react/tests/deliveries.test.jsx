@@ -104,9 +104,9 @@ test('URL webhook selection, date filters, status/event filters, paging and rese
     await select('Status', 'Retrying'); assert.equal(calls.at(-1).status, 'Retrying'); assert.equal(calls.at(-1).pageNumber, 1);
     await select('Event Type', 'invoice.test'); assert.equal(calls.at(-1).eventType, 'invoice.test');
     await click(document.querySelector('.delivery-date-range'));
-    await input(labeled('From Date (UTC)'), '2026-10-10'); await input(labeled('To Date (UTC)'), '2026-10-15'); assert.equal(calls.at(-1).startDate, '2026-10-10');
+    await input(labeled('From Date (UTC)'), '2026-10-10'); await input(labeled('To Date (UTC)'), '2026-10-15');
     const before = calls.length; await input(labeled('To Date (UTC)'), '2026-10-09'); assert.equal(calls.length, before); assert.match(document.body.textContent, /To Date must be on or after/);
-    await click(button('Done')); await flush(250);
+    await input(labeled('To Date (UTC)'), '2026-10-15'); await click(button('Apply')); await flush(250);
     await click(button('Reset Filters')); assert.equal(calls.at(-1).webhookId, ''); assert.equal(calls.at(-1).startDate, ''); assert.equal(document.querySelector('[data-testid="location"]').textContent, '/webhooks/deliveries');
   });
 });
@@ -119,12 +119,12 @@ test('Date Range preserves URL dates across reopening and clears only dates in e
     await click(document.querySelector('.delivery-date-range'));
     assert.equal(labeled('From Date (UTC)').value, '2026-10-10'); assert.equal(labeled('To Date (UTC)').value, '2026-10-15');
     await input(labeled('From Date (UTC)'), '2026-10-11');
+    await click(button('Apply')); await flush(250);
     assert.equal(calls.at(-1).startDate, '2026-10-11'); assert.equal(calls.at(-1).endDate, '2026-10-15');
-    await click(button('Done')); await flush(250);
     await click(document.querySelector('.delivery-date-range')); assert.equal(labeled('From Date (UTC)').value, '2026-10-11');
-    await click(button('Clear Dates')); assert.equal(calls.at(-1).startDate, ''); assert.equal(calls.at(-1).endDate, '');
+    await click(button('Clear')); assert.equal(calls.at(-1).startDate, ''); assert.equal(calls.at(-1).endDate, '');
     assert.equal(calls.at(-1).webhookId, '7'); assert.equal(calls.at(-1).status, 'DeadLetter');
-    await click(button('Done')); await flush(250); assert.equal(document.querySelector('.delivery-date-range').textContent, 'Date Range');
+    await flush(250); assert.equal(document.querySelector('.delivery-date-range').textContent, 'Date Range');
     await click([...document.querySelectorAll('[role="tab"]')].find(el => el.textContent === 'Delivery History'));
     assert.equal(document.querySelector('.delivery-date-range').textContent, 'Date Range');
   }, { path: '/webhooks/deliveries?webhookId=7&status=DeadLetter&startDate=2026-10-10&endDate=2026-10-15' });

@@ -20,7 +20,14 @@
 .template-table { width:100%; border-collapse:collapse; text-align:left; font-size:13px; }
 .template-table th { padding:12px; background:#f5eee7; color:#4b3525; white-space:nowrap; }
 .template-table td { padding:10px 12px; border-top:1px solid #eee7e0; }
-.template-list-card[aria-labelledby="template-list-heading"] .template-table { table-layout:fixed; }
+/* U04: keep column geometry inside a keyboard-scrollable table viewport. */
+.template-list-card[aria-labelledby="template-list-heading"] { min-width: 0; }
+.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; }
+.template-list-card[aria-labelledby="template-list-heading"] .template-table-wrap:focus-visible { outline: 2px solid var(--primary, #70472f); outline-offset: 2px; }
+.template-list-card[aria-labelledby="template-list-heading"] .template-table { table-layout: fixed; min-width: 1080px; }
+.template-list-card[aria-labelledby="template-list-heading"] .template-name-cell { max-width: 100%; flex-wrap: wrap; }
+.template-list-card[aria-labelledby="template-list-heading"] .template-name-link { min-width: 0; overflow-wrap: anywhere; }
+.app-layout .template-list-card[aria-labelledby="template-list-heading"] .template-table thead th.template-actions-heading { text-align: center; }
 .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(1),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(1) { width:22%; }
 .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(2),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(2) { width:12%; }
 .template-list-card[aria-labelledby="template-list-heading"] .template-table th:nth-child(3),.template-list-card[aria-labelledby="template-list-heading"] .template-table td:nth-child(3) { width:9%; }

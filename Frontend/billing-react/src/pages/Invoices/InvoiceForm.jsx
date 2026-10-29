@@ -6,14 +6,14 @@ import {
   Button,
   IconButton,
   InputAdornment,
+  Menu,
   MenuItem,
   TextField,
 } from "@mui/material";
 import {
   Add,
   ArrowBack,
-  ArrowDownward,
-  ArrowUpward,
+  MoreVert,
   DeleteOutline,
   PersonOutline,
   ReceiptLongOutlined,
@@ -116,6 +116,7 @@ export function InvoiceForm() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [lineMenu, setLineMenu] = useState(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [chargeId, setChargeId] = useState("");
   const guard = useRef(createSubmissionGuard());
@@ -204,6 +205,7 @@ export function InvoiceForm() {
     (!id || persisted.data?.status === "Draft") &&
     !blockers.length &&
     (id ? (user.permissions.edit || user.permissions.canEdit || user.permissions.manage) : (user.permissions.create || user.permissions.canCreate || user.permissions.manage));
+  const hasSelectedProducts = form.items.some(item => Boolean(String(item.productId ?? '').trim()));
   const valid = Object.keys(validateInvoice(form)).length === 0;
   const debounceForm = useDebounced(form, 350);
   const calculation = useQuery({
@@ -272,17 +274,6 @@ export function InvoiceForm() {
     } else if (!id && !form.currency && defaultCurrency) {
       change("currency", defaultCurrency);
     }
-  };
-  const moveItem = (index, direction) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= form.items.length) return;
-    setForm((previous) => {
-      const updated = [...previous.items];
-      const temp = updated[index];
-      updated[index] = updated[targetIndex];
-      updated[targetIndex] = temp;
-      return { ...previous, items: updated };
-    });
   };
   const isDirty = useMemo(() => {
     if (!loaded) return false;
@@ -391,7 +382,7 @@ export function InvoiceForm() {
     }
   }
   async function applyCharge() {
-    if (!chargeId || !guard.current.acquire()) return;
+    if (!editable || !hasSelectedProducts || !chargeId || !guard.current.acquire()) return;
     setBusy(true);
     setError("");
     try {
@@ -800,6 +791,7 @@ export function InvoiceForm() {
                         <TextField
                           size="small"
                           label="Description"
+                          placeholder="Optional item description"
                           value={item.description}
                           onChange={(event) =>
                             changeItem(index, "description", event.target.value)
@@ -892,6 +884,7 @@ export function InvoiceForm() {
                           select
                           size="small"
                           label="Tax Rate"
+                          SelectProps={{ displayEmpty: true }}
                           InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
@@ -982,58 +975,46 @@ export function InvoiceForm() {
                           : money(freshCalculation.items[index].lineTotal, form.currency)}
                       </td>
                       <td>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-
-                            <span>
-                              <IconButton
-                                size="small"
-                                aria-label={`Move line ${index + 1} up`}
-                                disabled={index === 0}
-                                onClick={() => moveItem(index, -1)}
-                              >
-                                <ArrowUpward fontSize="small" />
-                              </IconButton>
-                            </span>
-
-
-                            <span>
-                              <IconButton
-                                size="small"
-                                aria-label={`Move line ${index + 1} down`}
-                                disabled={index === form.items.length - 1}
-                                onClick={() => moveItem(index, 1)}
-                              >
-                                <ArrowDownward fontSize="small" />
-                              </IconButton>
-                            </span>
-
-
-                            <span>
-                              <IconButton
-                                size="small"
-                                aria-label={`Remove line ${index + 1}`}
-                                className="invoice-delete-line-btn"
-                                disabled={form.items.length === 1}
-                                onClick={() => {
-                                  setForm((previous) => ({
-                                    ...previous,
-                                    items: previous.items.filter(
-                                      (_, i) => i !== index,
-                                    ),
-                                  }));
-                                }}
-                              >
-                                <DeleteOutline fontSize="small" />
-                              </IconButton>
-                            </span>
-
-                        </div>
+                        <IconButton
+                          id={"invoice-line-actions-" + index}
+                          size="small"
+                          aria-label={"Actions for line " + (index + 1)}
+                          aria-haspopup="menu"
+                          aria-controls={lineMenu?.index === index ? "invoice-line-menu" : undefined}
+                          aria-expanded={lineMenu?.index === index ? "true" : undefined}
+                          disabled={busy || !editable || form.items.length === 1}
+                          onClick={(event) => setLineMenu({ anchor: event.currentTarget, index })}
+                        >
+                          <MoreVert fontSize="small" />
+                        </IconButton>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <Menu
+              id="invoice-line-menu"
+              anchorEl={lineMenu?.anchor}
+              open={Boolean(lineMenu)}
+              onClose={() => setLineMenu(null)}
+              MenuListProps={{ "aria-labelledby": lineMenu ? "invoice-line-actions-" + lineMenu.index : undefined }}
+            >
+              <MenuItem
+                disabled={busy || !editable || form.items.length === 1}
+                onClick={() => {
+                  const index = lineMenu.index;
+                  setLineMenu(null);
+                  setForm((previous) => ({
+                    ...previous,
+                    items: previous.items.filter((_, i) => i !== index),
+                  }));
+                }}
+                sx={{ color: "error.main", gap: 1 }}
+              >
+                <DeleteOutline fontSize="small" /> Remove line item
+              </MenuItem>
+            </Menu>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
           </section>
           <div className="invoice-form-bottom">
@@ -1144,8 +1125,9 @@ export function InvoiceForm() {
                     <Button
                       variant="outlined"
                       onClick={applyCharge}
+                      title={!hasSelectedProducts ? "Select a product or service before applying charges." : undefined}
                       disabled={
-                        !chargeId ||
+                        !hasSelectedProducts || !editable || !chargeId ||
                         charges.isPending ||
                         Boolean(charges.error) ||
                         busy
