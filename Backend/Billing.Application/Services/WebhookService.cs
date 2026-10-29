@@ -72,6 +72,9 @@ public class WebhookService : IWebhookService
             TargetUrl = request.TargetUrl.Trim(),
             SecretKey = secretKey,
             SubscribedEventsJson = JsonSerializer.Serialize(request.SubscribedEvents ?? new List<string> { "*" }),
+            CustomHeadersJson = request.CustomHeaders != null ? JsonSerializer.Serialize(request.CustomHeaders) : "{}",
+            PayloadFormat = string.IsNullOrWhiteSpace(request.PayloadFormat) ? "Standard" : request.PayloadFormat.Trim(),
+            CustomTemplateJson = request.CustomTemplate?.Trim(),
             Status = request.Status?.Trim() ?? "Active",
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -102,6 +105,9 @@ public class WebhookService : IWebhookService
         webhook.TargetUrl = request.TargetUrl.Trim();
         webhook.ApplicationId = request.ApplicationId;
         webhook.SubscribedEventsJson = JsonSerializer.Serialize(request.SubscribedEvents ?? new List<string>());
+        webhook.CustomHeadersJson = request.CustomHeaders != null ? JsonSerializer.Serialize(request.CustomHeaders) : webhook.CustomHeadersJson;
+        webhook.PayloadFormat = string.IsNullOrWhiteSpace(request.PayloadFormat) ? webhook.PayloadFormat : request.PayloadFormat.Trim();
+        webhook.CustomTemplateJson = request.CustomTemplate?.Trim();
         webhook.Status = request.Status?.Trim() ?? webhook.Status;
 
         await _webhookRepository.UpdateAsync(webhook);
@@ -199,7 +205,9 @@ public class WebhookService : IWebhookService
             StatusCode = result.ResponseStatusCode ?? 0,
             Message = result.Status == "Success" ? "Ping delivered successfully." : result.FailureReason ?? "Ping failed.",
             LatencyMs = result.ExecutionDurationMs ?? 0,
-            ResponseBody = result.ResponseBody
+            ResponseBody = result.ResponseBody,
+            RequestHeaders = result.RequestHeadersJson,
+            RequestPayload = pingDelivery.PayloadJson
         };
 
         return ApiResponse<WebhookPingResponse>.Ok(pingResponse, pingResponse.Message);
@@ -240,6 +248,19 @@ public class WebhookService : IWebhookService
             events = new List<string>();
         }
 
+        Dictionary<string, string> headers = new();
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(webhook.CustomHeadersJson))
+            {
+                headers = JsonSerializer.Deserialize<Dictionary<string, string>>(webhook.CustomHeadersJson) ?? new();
+            }
+        }
+        catch
+        {
+            headers = new();
+        }
+
         return new WebhookDto
         {
             Id = webhook.Id,
@@ -250,6 +271,9 @@ public class WebhookService : IWebhookService
             TargetUrl = webhook.TargetUrl,
             SecretKeyPreview = _securityService.MaskSecret(webhook.SecretKey),
             SubscribedEvents = events,
+            CustomHeaders = headers,
+            PayloadFormat = string.IsNullOrWhiteSpace(webhook.PayloadFormat) ? "Standard" : webhook.PayloadFormat,
+            CustomTemplate = webhook.CustomTemplateJson,
             Status = webhook.Status,
             ConsecutiveFailureCount = webhook.ConsecutiveFailureCount,
             LastTriggeredAtUtc = webhook.LastTriggeredAtUtc,

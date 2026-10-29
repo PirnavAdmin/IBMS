@@ -1,8 +1,17 @@
 import { useRef, useState } from 'react';
 import {
-  Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle,
+  Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   FormControlLabel, Switch, TextField,
 } from '@mui/material';
+
+const APP_PRESETS = [
+  { name: 'Slack Notifications', desc: 'Direct webhook integration to Slack workspace channel' },
+  { name: 'Discord Alerts', desc: 'Direct webhook notifications to Discord channel' },
+  { name: 'Microsoft Excel Sync', desc: 'Syncs invoices, payments, and customers directly to Excel workbook' },
+  { name: 'Google Sheets Automation', desc: 'Appends rows into Google Sheets for live bookkeeping' },
+  { name: 'Custom CRM / ERP Connector', desc: 'Custom webhook endpoint with Bearer auth for external ERP' },
+  { name: 'Zapier / Make / n8n', desc: 'Automation middleware bridge for custom integrations' },
+];
 import { ContentCopyOutlined } from '@mui/icons-material';
 import { REGISTRATION_FLAGS } from './integrationService';
 
@@ -30,6 +39,7 @@ export function ApplicationEditor({ application, busy, error, onClose, onSave })
       <DialogTitle id="integration-editor-title">{title}</DialogTitle>
       <DialogContent className="integration-form">
         {error && <Alert severity="error">{error}</Alert>}
+        {!application && <div style={{marginBottom: 12}}><p style={{fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 6px'}}>Quick Presets for External Apps:</p><div style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}>{APP_PRESETS.map(p => <Chip key={p.name} size="small" label={p.name} variant="outlined" onClick={() => { setName(p.name); setDescription(p.desc); }} clickable disabled={busy} />)}</div></div>}
         <TextField autoFocus required fullWidth label="Application Name" value={name} disabled={busy}
           onChange={event => setName(event.target.value)} error={submitted && !name.trim()}
           helperText={submitted && !name.trim() ? 'Application name is required.' : undefined} />

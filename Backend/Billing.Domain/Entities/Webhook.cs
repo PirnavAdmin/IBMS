@@ -18,6 +18,12 @@ public class Webhook
 
     public string SubscribedEventsJson { get; set; } = "[]";
 
+    public string? CustomHeadersJson { get; set; } = "{}";
+
+    public string PayloadFormat { get; set; } = "Standard";
+
+    public string? CustomTemplateJson { get; set; }
+
     public string Status { get; set; } = "Active";
 
     public int ConsecutiveFailureCount { get; set; } = 0;

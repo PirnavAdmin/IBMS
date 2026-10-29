@@ -170,6 +170,32 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("ChargeConfigurations");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.CountrySetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CountriesJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("countrysettings", (string)null);
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.CreditNote", b =>
                 {
                     b.Property<int>("Id")
@@ -2765,6 +2791,12 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("CustomHeadersJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("CustomTemplateJson")
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime?>("LastTriggeredAtUtc")
                         .HasColumnType("datetime(6)");
 
@@ -2772,6 +2804,13 @@ namespace Billing.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
+
+                    b.Property<string>("PayloadFormat")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasDefaultValue("Standard");
 
                     b.Property<string>("SecretKey")
                         .IsRequired()

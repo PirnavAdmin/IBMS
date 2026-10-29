@@ -372,4 +372,76 @@ public class WebhookServiceTests
         Assert.Equal(55, response.Data!.DeliveryId);
         _dispatcherMock.Verify(d => d.DispatchDeliveryAsync(delivery, webhook), Times.Once);
     }
+
+    [Fact]
+    public async Task CreateWebhook_WithCustomHeadersAndPayloadFormat_SavesAndMapsCorrectly()
+    {
+        var tenantId = 1;
+        var request = new CreateWebhookRequest
+        {
+            Name = "Slack Channel Webhook",
+            TargetUrl = "https://hooks.slack.com/services/T00/B00/X00",
+            SubscribedEvents = new List<string> { "invoice.issued" },
+            PayloadFormat = "Slack",
+            CustomHeaders = new Dictionary<string, string>
+            {
+                ["Authorization"] = "Bearer test-slack-token",
+                ["x-api-key"] = "test-key-123"
+            }
+        };
+
+        _webhookRepoMock.Setup(r => r.AddAsync(It.IsAny<Webhook>()))
+            .ReturnsAsync((Webhook w) =>
+            {
+                w.Id = 101;
+                return w;
+            });
+
+        var result = await _webhookService.CreateWebhookAsync(request, tenantId);
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Data);
+        Assert.Equal("Slack Channel Webhook", result.Data.Name);
+        Assert.Equal("Slack", result.Data.PayloadFormat);
+        Assert.Equal(2, result.Data.CustomHeaders.Count);
+        Assert.Equal("Bearer test-slack-token", result.Data.CustomHeaders["Authorization"]);
+        Assert.Equal("test-key-123", result.Data.CustomHeaders["x-api-key"]);
+    }
+
+    [Fact]
+    public async Task UpdateWebhook_WithCustomTemplate_UpdatesAndReturnsCorrectly()
+    {
+        var tenantId = 1;
+        var existingWebhook = new Webhook
+        {
+            Id = 5,
+            TenantId = tenantId,
+            Name = "Custom CRM Hook",
+            TargetUrl = "https://api.crm.com/leads",
+            SubscribedEventsJson = "[\"customer.created\"]",
+            CustomHeadersJson = "{\"x-custom-auth\":\"token123\"}",
+            PayloadFormat = "Standard",
+            Status = "Active"
+        };
+
+        _webhookRepoMock.Setup(r => r.GetByIdAsync(5, tenantId)).ReturnsAsync(existingWebhook);
+        _webhookRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Webhook>())).Returns(Task.CompletedTask);
+
+        var updateReq = new UpdateWebhookRequest
+        {
+            Name = "Custom CRM Hook Updated",
+            TargetUrl = "https://api.crm.com/v2/leads",
+            SubscribedEvents = new List<string> { "customer.created", "customer.updated" },
+            PayloadFormat = "Custom",
+            CustomTemplate = "{\"client_name\":\"{{customer}}\",\"event\":\"{{event}}\"}",
+            CustomHeaders = new Dictionary<string, string> { ["Authorization"] = "Bearer new-token" }
+        };
+
+        var result = await _webhookService.UpdateWebhookAsync(5, updateReq, tenantId);
+
+        Assert.True(result.Success);
+        Assert.Equal("Custom", result.Data!.PayloadFormat);
+        Assert.Equal("{\"client_name\":\"{{customer}}\",\"event\":\"{{event}}\"}", result.Data.CustomTemplate);
+        Assert.Equal("Bearer new-token", result.Data.CustomHeaders["Authorization"]);
+    }
 }

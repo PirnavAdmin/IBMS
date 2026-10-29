@@ -2,6 +2,13 @@ import { apiClient } from 'billing-api-client';
 
 const base = '/api/v1/webhooks';
 export const WEBHOOK_STATUSES = ['Active', 'Disabled', 'Suspended'];
+export const PAYLOAD_FORMATS = [
+  { value: 'Standard', label: 'Standard JSON (Default / Zapier / Excel / REST API)' },
+  { value: 'Slack', label: 'Slack Incoming Webhook (formatted message text)' },
+  { value: 'Discord', label: 'Discord Webhook (channel content message)' },
+  { value: 'Custom', label: 'Custom JSON Template (Field Mapping)' },
+];
+
 export function webhookError(error) {
   const status = error?.response?.status ?? error?.status;
   if (status === 401) return 'Your session has expired. Please sign in again.';
@@ -15,33 +22,65 @@ export function webhookError(error) {
     409: 'The webhook changed. Reload its details before trying again.', 422: 'The webhook did not pass validation.',
   })[status] || error?.userMessage || error?.message || 'Unable to reach the webhook service.';
 }
+
 function unwrap(response) {
   if (response?.success !== true || response.data == null) throw Object.assign(new Error(response?.message || 'Invalid webhook response.'), { response: { status: 400, data: response } });
   return response.data;
 }
+
 export function mapWebhook(data) {
   if (!Number.isInteger(data?.id) || typeof data.name !== 'string' || typeof data.targetUrl !== 'string' ||
       !WEBHOOK_STATUSES.includes(data.status) || !Array.isArray(data.subscribedEvents) ||
       data.subscribedEvents.some(event => typeof event !== 'string') || !Number.isInteger(data.consecutiveFailureCount)) throw new Error('Invalid webhook response.');
   // Never pass raw secret fields through to query caches or detail views.
-  return { id: data.id, applicationId: data.applicationId ?? null, applicationName: data.applicationName ?? null,
-    name: data.name, targetUrl: data.targetUrl, subscribedEvents: [...data.subscribedEvents], status: data.status,
-    consecutiveFailureCount: data.consecutiveFailureCount, lastTriggeredAtUtc: data.lastTriggeredAtUtc ?? null,
-    createdAtUtc: data.createdAtUtc ?? null, updatedAtUtc: data.updatedAtUtc ?? null,
-    secretKeyPreview: data.secretKeyPreview ?? '' };
+  return {
+    id: data.id,
+    applicationId: data.applicationId ?? null,
+    applicationName: data.applicationName ?? null,
+    name: data.name,
+    targetUrl: data.targetUrl,
+    subscribedEvents: [...data.subscribedEvents],
+    customHeaders: data.customHeaders && typeof data.customHeaders === 'object' ? { ...data.customHeaders } : {},
+    payloadFormat: typeof data.payloadFormat === 'string' && data.payloadFormat ? data.payloadFormat : 'Standard',
+    customTemplate: data.customTemplate ?? '',
+    status: data.status,
+    consecutiveFailureCount: data.consecutiveFailureCount,
+    lastTriggeredAtUtc: data.lastTriggeredAtUtc ?? null,
+    createdAtUtc: data.createdAtUtc ?? null,
+    updatedAtUtc: data.updatedAtUtc ?? null,
+    secretKeyPreview: data.secretKeyPreview ?? ''
+  };
 }
+
 export function validateWebhook(form) {
   const errors = {};
-  if (!form.name.trim()) errors.name = 'Webhook name is required.';
-  try { const url = new URL(form.targetUrl.trim()); if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) throw new Error(); }
-  catch { errors.targetUrl = 'Enter a valid HTTP or HTTPS destination URL.'; }
-  if (!form.subscribedEvents.length) errors.subscribedEvents = 'Select at least one event.';
+  if (!form.name?.trim()) errors.name = 'Webhook name is required.';
+  try {
+    const url = new URL(form.targetUrl?.trim());
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) throw new Error();
+  } catch {
+    errors.targetUrl = 'Enter a valid HTTP or HTTPS destination URL.';
+  }
+  if (!form.subscribedEvents?.length) errors.subscribedEvents = 'Select at least one event.';
+  if (form.payloadFormat === 'Custom' && !form.customTemplate?.trim()) {
+    errors.customTemplate = 'Custom JSON template is required when Custom format is selected.';
+  }
   return errors;
 }
+
 export function webhookDto(form) {
-  return { applicationId: form.applicationId ?? null, name: form.name.trim(), targetUrl: form.targetUrl.trim(),
-    subscribedEvents: [...form.subscribedEvents], status: form.status };
+  return {
+    applicationId: form.applicationId ?? null,
+    name: form.name.trim(),
+    targetUrl: form.targetUrl.trim(),
+    subscribedEvents: [...form.subscribedEvents],
+    customHeaders: form.customHeaders || {},
+    payloadFormat: form.payloadFormat || 'Standard',
+    customTemplate: form.payloadFormat === 'Custom' ? (form.customTemplate || '').trim() : null,
+    status: form.status
+  };
 }
+
 export const webhookService = {
   async list({ status, eventType, searchTerm, pageNumber = 1, pageSize = 20 }, signal) {
     const data = unwrap(await apiClient.get(base, { signal, params: {
@@ -71,7 +110,15 @@ export const webhookService = {
   async ping(id) {
     const data = unwrap(await apiClient.post(`${base}/${id}/ping`));
     if (typeof data.success !== 'boolean' || !Number.isInteger(data.statusCode) || !Number.isFinite(data.latencyMs) || typeof data.message !== 'string') throw new Error('Invalid webhook ping response.');
-    return { success: data.success, statusCode: data.statusCode, latencyMs: data.latencyMs, message: data.message };
+    return {
+      success: data.success,
+      statusCode: data.statusCode,
+      latencyMs: data.latencyMs,
+      message: data.message,
+      responseBody: data.responseBody ?? '',
+      requestHeaders: data.requestHeaders ?? '',
+      requestPayload: data.requestPayload ?? ''
+    };
   },
   async rotate(id) {
     // Imperative only: one-time credentials must not enter a React Query mutation cache.
