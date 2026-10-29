@@ -572,11 +572,11 @@
 .invoice-filters {
   display: grid;
   grid-template-columns:
-    minmax(12rem, 1.6fr)
-    minmax(7rem, .8fr)
+    minmax(16rem, 1.6fr)
+    minmax(10rem, .9fr)
     minmax(9rem, 1fr)
     max-content
-    minmax(10rem, 1fr)
+    minmax(12rem, 1.1fr)
     max-content;
   justify-content: start;
   align-items: center;
@@ -586,7 +586,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 20px;
-  overflow-x: auto;
+  overflow: visible;
 }
 
 .invoice-filters > [class*="invoice-filter-"] {
@@ -2399,8 +2399,8 @@
    12. Responsive Adjustments
    -------------------------------------------------------------------------- */
 @media (max-width: 1279px) {
-  .invoice-summary-grid,
-  .invoice-summary-group > .invoice-summary-grid {
+  .invoice-summary-grid.invoice-detail-kpis,
+  .invoice-detail-kpis {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
@@ -2555,6 +2555,13 @@
 }
 
 /* Reflow the six list filters without leaving an empty currency slot. */
-@media (max-width: 1200px) { .invoice-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1600px) { .invoice-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 700px) { .invoice-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 440px) { .invoice-filters { grid-template-columns: minmax(0, 1fr); } }
+
+/* Desktop summary keeps all five metrics together across nearby zoom widths. */
+.invoice-summary-group > .invoice-summary-grid > .invoice-summary-card { min-width: 0; }
+.invoice-summary-group .invoice-summary-card :is(.invoice-kpi-label, strong, small) { max-width: 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+
+/* Keep the full invoice search prompt readable on small filter grids. */
+@media (max-width: 700px) { .invoice-filters > .invoice-filter-search { grid-column: 1 / -1; } }

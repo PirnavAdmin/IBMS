@@ -59,7 +59,9 @@ export function RecordPayment() {
   };
   const field=(key)=>{
     const options=key==='clearingStatus'?['Cleared','Uncleared','Pending','Bounced']:key==='callbackStatus'?['Completed','Captured','Verified','Pending','Failed']:null;
-    return <TextField key={key} select={Boolean(options)} type={key.endsWith('Date')?'date':'text'} label={labels[key]} value={form[key]} onChange={change(key)} InputLabelProps={key.endsWith('Date')?{shrink:true}:undefined} error={Boolean(errors[key])} helperText={errors[key]}>
+    const required = (key === 'reference' && (form.method === 'BankTransfer' || (['UPI','Card','Gateway'].includes(form.method) && !form.providerTransactionId?.trim()))) || (key === 'providerName' && form.method === 'Gateway') || (['chequeNumber','chequeDate'].includes(key) && form.method === 'Cheque') || (key === 'customMethodName' && form.method === 'Custom');
+    const guidance = ['reference','providerTransactionId'].includes(key) && ['UPI','Card','Gateway'].includes(form.method) ? 'Enter a transaction reference or provider transaction ID.' : undefined;
+    return <TextField key={key} required={required} select={Boolean(options)} type={key.endsWith('Date')?'date':'text'} label={labels[key]} value={form[key]} onChange={change(key)} InputLabelProps={key.endsWith('Date')?{shrink:true}:undefined} error={Boolean(errors[key])} helperText={errors[key] || guidance}>
       {options && [<MenuItem key="none" value="">Select status</MenuItem>,...options.map(option=><MenuItem key={option} value={option}>{option}</MenuItem>)]}
     </TextField>;
   };

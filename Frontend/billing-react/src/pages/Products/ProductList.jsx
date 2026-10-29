@@ -17,7 +17,7 @@ import './styles/product-list.css';
 import { useCategories } from './services/categoryService';
 
 import { useSearchCommit } from '../../hooks/useSearchDebounce';
-import { searchParams } from '../../utils/search';
+import { searchParams, searchInputError } from '../../utils/search';
 import { getProductPageSize, saveProductPageSize } from './utils/productPageSize';
 
 const initialParams = { search: '', category: '', status: '', type: '', pageNumber: 1, pageSize: 10, sortBy: '', sortOrder: '' };
@@ -49,7 +49,7 @@ export function ProductList() {
   const selectCard = key => setParams(previous => ({ ...previous, status: key === 'active' ? 'Active' : key === 'inactive' ? 'Inactive' : '', type: key === 'services' ? 'Service' : '', pageNumber: 1 }));
   const active = Boolean(search || params.search || params.category || params.status || params.type || params.sortBy || params.sortOrder);
   const loading = query.isPending || catalog.isPending;
-  const updating = search.trim() !== params.search || query.isFetching;
+  const updating = (!searchInputError(search) && search.trim() !== params.search) || query.isFetching;
   const error = query.error || catalog.error || categoriesQuery.error;
 
   const exportPdf = async () => {

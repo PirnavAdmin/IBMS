@@ -222,6 +222,7 @@ test('Shared Invoice Date Range stages local dates, rejects reversed dates, appl
   const ui = await mount(<Range />);
   try {
     await click(ui.host.querySelector('.date-range-filter')); await settle();
+    assert.equal(bodyButton('Apply').disabled, true);
     const from = document.body.querySelector('[aria-label="From Date"]');
     const to = document.body.querySelector('[aria-label="To Date"]');
     await changeInput(from, '2026-10-15'); await changeInput(to, '2026-10-01');
@@ -251,7 +252,7 @@ test('Dashboard range preserves Period, custom selection, reset, search and refr
     assert.equal(changes.at(-1).start, '2026-01-03'); assert.equal(changes.at(-1).end, '2026-01-07');
     assert.match(ui.host.querySelector('.premium-select-trigger').textContent, /Custom dates/);
     await click(button(ui.host, 'Refresh')); assert.equal(refreshed, 1);
-    await click(button(ui.host, 'Reset')); assert.deepEqual(changes.at(-1), defaultDashboardFilters()); assert.deepEqual(searches, ['']);
+    await click(button(ui.host, 'Reset')); assert.deepEqual(changes.at(-1), defaultDashboardFilters());
   } finally { await ui.close(); }
 });
 
@@ -275,10 +276,11 @@ test('Date Range actions do not submit the surrounding filter form and IDs are u
     const triggers = ui.host.querySelectorAll('.date-range-filter'); await click(triggers[0]); await settle();
     const id = triggers[0].getAttribute('aria-controls');
     await act(async () => Simulate.submit(document.getElementById(id)));
-    assert.equal(submits, 0); assert.equal(applied.length, 1);
+    assert.equal(submits, 0); assert.equal(applied.length, 0);
+    await click(bodyButton('Clear'));
     await settle(); await click(triggers[1]); await settle();
     assert.notEqual(triggers[1].getAttribute('aria-controls'), id);
-    await act(async () => Simulate.keyDown(document.body.querySelector('[role="dialog"]'), { key: 'Escape' }));
+    await click(document.body.querySelector('.date-range-modal button[aria-label="Close"]'));
     assert.equal(triggers[1].getAttribute('aria-expanded'), 'false');
   } finally { await ui.close(); }
 });

@@ -1493,9 +1493,7 @@
 }
 .quote-filter-dropdown .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 /* Create/edit quotation: aligned sections and a compact financial summary. */
@@ -1622,3 +1620,23 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
+
+.quotation-form-page .quote-items-actions-trigger:disabled,
+.quotation-form-page .quote-items-actions-trigger:disabled:hover {
+  cursor: not-allowed;
+  opacity: .45;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.quotation-form-page .quote-item-field-help { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.quotation-form-page .quote-items-table input::placeholder { color: #78695c; opacity: 1; }
+
+.quotation-form-page .quote-required { color: #b42318; font-weight: 700; }
+.quotation-form-page .quote-field-guidance { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 400; line-height: 1.6; }
+
+.quote-search-group { min-width: 0; }
+.quote-search-group .quote-search { width: 100%; box-sizing: border-box; }
+.quote-search-group small { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; }
+.quote-search-guidance { color: var(--text-secondary); }

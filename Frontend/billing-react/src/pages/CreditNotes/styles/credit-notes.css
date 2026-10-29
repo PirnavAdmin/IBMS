@@ -59,7 +59,6 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-list-heading p { margin-top: 4px; color: #89796c; font-size: .78rem; }
 .cn-result-count { padding: 5px 10px; border-radius: 999px; background: #f4eadf; color: #775536; font-size: .72rem; font-weight: 750; }
 .cn-filter-bar { display: flex; align-items: center; gap: 11px; padding: 15px 20px; background: #fcf8f3; border-bottom: 1px solid #f0e6dc; }
-.cn-status-menu-space { height: 248px; }
 .cn-status-options-menu { max-height: 240px !important; overflow-y: auto !important; }
 .cn-search { flex: 1 1 420px; max-width: 620px; }
 .cn-search .MuiInputBase-root { min-height: 42px; }

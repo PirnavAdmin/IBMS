@@ -44,9 +44,7 @@
 .premium-filters .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .premium-filters .premium-select-trigger:hover,
 .premium-filters .date-range-filter.ant-btn:hover {

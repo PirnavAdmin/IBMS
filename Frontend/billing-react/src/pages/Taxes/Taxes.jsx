@@ -1,3 +1,4 @@
+import { SearchField } from '../../components/SearchField';
 import { displayDate } from '../../utils/localDate';
 import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
 import { DashboardErrorState } from "../../components/dashboard/DashboardStates";
@@ -331,12 +332,12 @@ function TaxList({ search, setSearch }) {
           </section>
           <section className="tax-card" id="tax-register" tabIndex={-1}>
             <div className="tax-toolbar">
-              <Field
+              <SearchField
                 name="search"
                 label="Search Tax"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name or code"
+                placeholder="Name or code"
                 type="search"
               />
               <Field

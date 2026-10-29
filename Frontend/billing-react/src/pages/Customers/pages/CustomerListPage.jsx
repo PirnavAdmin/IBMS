@@ -1,3 +1,4 @@
+import { SearchField } from '../../../components/SearchField';
 import { hasPermission } from "../../../utils/permissionUtils";
 import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
@@ -437,13 +438,13 @@ export function CustomerListPage() {
           </span>
         </div>
         <div className="customer-filters">
-          <TextField
+          <SearchField
             disabled={!customerCapabilities.search}
             className="customer-search"
             size="small"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name, code, email or mobile…"
+            placeholder="Name or code" searchHint="Search by customer name, code, email or mobile."
             inputProps={{ "aria-label": "Search customers" }}
             InputProps={{
               startAdornment: (

@@ -205,6 +205,7 @@ export function InvoiceForm() {
     (!id || persisted.data?.status === "Draft") &&
     !blockers.length &&
     (id ? (user.permissions.edit || user.permissions.canEdit || user.permissions.manage) : (user.permissions.create || user.permissions.canCreate || user.permissions.manage));
+  const hasSelectedProducts = form.items.some(item => Boolean(String(item.productId ?? '').trim()));
   const valid = Object.keys(validateInvoice(form)).length === 0;
   const debounceForm = useDebounced(form, 350);
   const calculation = useQuery({
@@ -381,7 +382,7 @@ export function InvoiceForm() {
     }
   }
   async function applyCharge() {
-    if (!chargeId || !guard.current.acquire()) return;
+    if (!editable || !hasSelectedProducts || !chargeId || !guard.current.acquire()) return;
     setBusy(true);
     setError("");
     try {
@@ -790,6 +791,7 @@ export function InvoiceForm() {
                         <TextField
                           size="small"
                           label="Description"
+                          placeholder="Optional item description"
                           value={item.description}
                           onChange={(event) =>
                             changeItem(index, "description", event.target.value)
@@ -882,6 +884,7 @@ export function InvoiceForm() {
                           select
                           size="small"
                           label="Tax Rate"
+                          SelectProps={{ displayEmpty: true }}
                           InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
@@ -979,7 +982,7 @@ export function InvoiceForm() {
                           aria-haspopup="menu"
                           aria-controls={lineMenu?.index === index ? "invoice-line-menu" : undefined}
                           aria-expanded={lineMenu?.index === index ? "true" : undefined}
-                          disabled={busy || !editable}
+                          disabled={busy || !editable || form.items.length === 1}
                           onClick={(event) => setLineMenu({ anchor: event.currentTarget, index })}
                         >
                           <MoreVert fontSize="small" />
@@ -1122,8 +1125,9 @@ export function InvoiceForm() {
                     <Button
                       variant="outlined"
                       onClick={applyCharge}
+                      title={!hasSelectedProducts ? "Select a product or service before applying charges." : undefined}
                       disabled={
-                        !chargeId ||
+                        !hasSelectedProducts || !editable || !chargeId ||
                         charges.isPending ||
                         Boolean(charges.error) ||
                         busy

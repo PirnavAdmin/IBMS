@@ -1,32 +1,50 @@
 import { useId, useState } from 'react';
-import { Button, ConfigProvider, Popover } from 'antd';
+import { Button, ConfigProvider, Modal } from 'antd';
+import dayjs from 'dayjs';
 import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
 import { ArrowDropDown, CalendarTodayOutlined } from '@mui/icons-material';
-import { displayDate } from '../utils/localDate';
+import { displayDate, localCalendarDate } from '../utils/localDate';
+import { dateRangeError } from '../utils/dateRangeValidation';
 import '../styles/DateRangeFilter.css';
 
-// UI values remain local YYYY-MM-DD strings; callers own their existing API mapping.
-export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown /> }) {
+export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
+  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '' }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  const [notice, setNotice] = useState('');
   const [draft, setDraft] = useState({ startDate: '', endDate: '' });
-  const invalid = Boolean(draft.startDate && draft.endDate && draft.endDate < draft.startDate);
-  const label = startDate && endDate ? `${displayDate(startDate)} \u2013 ${displayDate(endDate)}`
-    : startDate ? `From ${displayDate(startDate)}` : endDate ? `Until ${displayDate(endDate)}` : 'Date Range';
-  const apply = value => { onApply(value); setOpen(false); };
+  const today = latestDate || localCalendarDate();
+  const error = dateRangeError(draft, today);
+  const label = startDate && endDate ? displayDate(startDate) + ' – ' + displayDate(endDate)
+    : startDate ? 'From ' + displayDate(startDate) : endDate ? 'Until ' + displayDate(endDate) : 'Date Range';
+  const apply = value => {
+    onApply(value);
+    setOpen(false);
+    setNotice({ key: value.startDate + '|' + value.endDate, message: value.startDate ? confirmationMessage || 'Date range applied: ' + displayDate(value.startDate) + ' – ' + displayDate(value.endDate) : 'Date filter cleared.' });
+  };
   return <ConfigProvider theme={dateRangeTheme}>
-    <Popover arrow={false} classNames={{ container: 'date-range-popover-content' }} destroyOnHidden trigger="click" placement="bottomLeft" open={open} onOpenChange={next => {
-      if (next) setDraft({ startDate, endDate });
-      setOpen(next);
-    }} content={<form id={id} role="dialog" aria-label="Date Range" className="date-range-form" onKeyDown={event => {
-      if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); }
-    }} onSubmit={event => { event.preventDefault(); event.stopPropagation(); if (!invalid) apply(draft); }}>
-      <label htmlFor={`${id}-from`}>From Date<DateRangeDatePicker id={`${id}-from`} aria-label="From Date" value={draft.startDate} onChange={startDate => setDraft(previous => ({ ...previous, startDate }))} /></label>
-      <label htmlFor={`${id}-to`}>To Date<DateRangeDatePicker id={`${id}-to`} aria-label="To Date" value={draft.endDate} status={invalid ? 'error' : undefined} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} onChange={endDate => setDraft(previous => ({ ...previous, endDate }))} /></label>
-      {invalid && <span id={`${id}-error`} role="alert" className="date-range-error">To Date must be on or after From Date.</span>}
-      <div className="date-range-actions"><Button htmlType="button" onClick={() => apply({ startDate: '', endDate: '' })}>Clear</Button><Button type="primary" htmlType="submit" disabled={invalid}>Apply</Button></div>
-    </form>}>
-      <Button htmlType="button" className="invoice-filter-date-range date-range-filter" icon={<CalendarTodayOutlined />} aria-label={`Date Range: ${label}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}>{label}{dropdownIcon}</Button>
-    </Popover>
+    <div className="date-range-control">
+      <Button htmlType="button" className={"invoice-filter-date-range date-range-filter " + className} icon={<CalendarTodayOutlined />}
+        aria-label={'Date Range: ' + label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
+        onClick={() => { setDraft({ startDate, endDate }); setOpen(true); }}><span className="date-range-label">{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{dropdownIcon}</Button>
+      {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback" role="status">{notice.message}</span>}
+    </div>
+    <Modal title={title} open={open} onCancel={() => setOpen(false)} footer={null} width={400}
+      centered zIndex={2000} destroyOnHidden className="date-range-modal">
+      <form id={id} aria-label={title} className="date-range-form" onSubmit={event => {
+        event.preventDefault(); event.stopPropagation();
+        if (!dateRangeError(draft, today)) apply(draft);
+      }}>
+        <label htmlFor={id + '-from'}>{fromLabel}<DateRangeDatePicker id={id + '-from'} aria-label={fromLabel}
+          value={draft.startDate} maxDate={dayjs(today)} onChange={startDate => setDraft(previous => ({ ...previous, startDate }))} /></label>
+        <label htmlFor={id + '-to'}>{toLabel}<DateRangeDatePicker id={id + '-to'} aria-label={toLabel}
+          value={draft.endDate} maxDate={dayjs(today)} status={draft.startDate && draft.endDate && error ? 'error' : undefined}
+          aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined}
+          onChange={endDate => setDraft(previous => ({ ...previous, endDate }))} /></label>
+        {error && <span id={id + '-error'} role="alert" className="date-range-error">{error}</span>}
+        <div className="date-range-actions"><Button htmlType="button" onClick={() => apply({ startDate: '', endDate: '' })}>Clear</Button>
+          <Button type="primary" htmlType="submit" disabled={Boolean(error)}>Apply</Button></div>
+      </form>
+    </Modal>
   </ConfigProvider>;
 }

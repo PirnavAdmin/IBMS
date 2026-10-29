@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { QueryClient, QueryObserver, keepPreviousData } from '@tanstack/react-query';
-import { scheduleSearch, searchParams, prioritizePrefix } from '../src/utils/search.js';
+import { scheduleSearch, searchParams, prioritizePrefix, searchInputError } from '../src/utils/search.js';
 import { filterCustomerRows } from '../src/pages/Customers/components/customerTableUtils.js';
 
 test('first non-space character commits after 300ms; rapid typing cancels pending searches', t => {
@@ -71,3 +71,20 @@ for (const module of ['customers', 'products']) {
     } finally { unsubscribe(); client.clear(); }
   });
 }
+
+
+test('search validation accepts identifiers, email punctuation and Unicode while rejecting symbol-only input', () => {
+  for (const value of ['', '   ', 'INV-2026-10-000004', "O'Neil", 'sai@example.com', 'తెలుగు', '३४५', 'A & B']) assert.equal(searchInputError(value), '', value);
+  for (const value of ['@@@', ' -- ', '💥', '\u0001INV']) assert.ok(searchInputError(value), value);
+});
+
+test('invalid searches never commit, and clearing still resets to all records', t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const values = [];
+  scheduleSearch('@@@', value => values.push(value));
+  t.mock.timers.tick(300);
+  assert.deepEqual(values, []);
+  scheduleSearch('   ', value => values.push(value));
+  t.mock.timers.tick(300);
+  assert.deepEqual(values, ['']);
+});

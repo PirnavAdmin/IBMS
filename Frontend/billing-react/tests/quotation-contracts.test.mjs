@@ -238,12 +238,12 @@ test('quotation form retains the existing item controls and table layout',async(
  assert.match(source,/<SearchablePicker className="quote-product-picker" ariaLabel="Product or service"/);
  assert.match(source,/placeholder="Select product"/);
  assert.doesNotMatch(source,/placeholder="Search product or code"/);
- assert.match(source,/<td className="quote-item-discount"><input aria-label="Product discount" readOnly value=\{!item\.productId \? '' : item\.discountAllowed && Number\(item\.discountRate\) > 0 \? `\$\{Number\(item\.discountRate\)\}%` : 'N\/A'\} \/><\/td>/);
+ assert.match(source,/<td className="quote-item-discount"><input aria-label="Product discount"[^>]*readOnly value=\{!item\.productId \? '' : item\.discountAllowed && Number\(item\.discountRate\) > 0 \? `\$\{Number\(item\.discountRate\)\}%` : 'N\/A'\} \/><\/td>/);
  assert.match(source,/discountAllowed = product\.discountAllowed === true \|\| product\.DiscountAllowed === true/);
  assert.match(source,/discountRate,\s*discountAmount: 0,\s*discountAllowed: discountAllowed && discountRate > 0/);
  assert.match(source,/if \(!product\) return patchItem\(index, \{ productId, quantity: productId \? 1 : 0 \}\)/);
  assert.match(source,/quantity: 1,\s*unitPrice: product\.price/);
- assert.match(source,/<td><input className="quote-item-tax" aria-label="Product tax" readOnly value=\{itemTaxLabel\(item\)\} \/><\/td>/);
+ assert.match(source,/<td><input className="quote-item-tax" aria-label="Product tax"[^>]*readOnly value=\{itemTaxLabel\(item\)\} \/><\/td>/);
  const inputs=[];
  const selects=[];
  const pickers=[];
@@ -338,4 +338,32 @@ test('Save Draft stays disabled for incomplete quotations and guards direct subm
  seeded=form();
  const readonly=QuotationForm({initial:seeded,readOnly:true,onSave:value=>saved.push(value)});
  assert.equal(find(readonly,n=>n.type==='button' && text(n).trim()==='Save Draft'),undefined);
+});
+
+test('Item actions require a selected product, while Add item stays available',async()=>{
+ let seeded;
+ const imports={
+  '../utils/quotationCalculations':{applyAdditionalDiscounts,applyAdditionalTaxes,currency,lineTotals,quotationTotals},
+  '../utils/quotationValidation':{validateQuotation},
+  '../../../context/FormDraftContext':{
+   useFormDraft:()=>({clear:()=>{}}),
+   useDraftState:(_key,slot,initial)=>[slot==='form'?seeded:typeof initial==='function'?initial():initial,()=>{}],
+  },
+ };
+ const {QuotationForm,newQuotation}=await load('../src/pages/Quotations/components/QuotationForm.jsx',imports);
+ const nodes=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(nodes)];
+ for(const initial of [newQuotation(),{...newQuotation(),items:[]},{...newQuotation(),items:[{...form().items[0],productId:' '}]}]){
+  seeded=initial;
+  const tree=nodes(QuotationForm({initial:seeded,onSave:()=>{}}));
+  assert.equal(tree.find(n=>n.props?.['aria-label']==='Items actions').props.disabled,true);
+  const add=tree.find(n=>n.type==='button'&&text(n).trim()==='Add item');
+  assert.ok(add); assert.ok(!add.props.disabled);
+  assert.match(text(tree[0]),/Select a product or service to enable/);
+  assert.equal(tree.some(n=>n.props?.role==='menu'),false);
+ }
+ seeded=form();
+ const tree=nodes(QuotationForm({initial:seeded,onSave:()=>{}}));
+ assert.equal(tree.find(n=>n.props?.['aria-label']==='Items actions').props.disabled,false);
+ const readonly=nodes(QuotationForm({initial:seeded,readOnly:true}));
+ assert.equal(readonly.some(n=>n.props?.['aria-label']==='Items actions'),false);
 });

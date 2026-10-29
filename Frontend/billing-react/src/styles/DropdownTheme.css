@@ -45,3 +45,6 @@ body:has(.app-layout) :is([role="option"], .ant-select-item-option-content) {
   overflow-wrap: anywhere;
   min-width: 0;
 }
+/* Selected filter values remain readable, even in narrow columns. */
+.app-layout .ibms-filter-select .MuiInputBase-root { height: auto; min-height: 40px; }
+.app-layout .ibms-filter-select .MuiSelect-select { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.45; }

@@ -1,3 +1,4 @@
+import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
@@ -96,7 +97,7 @@ export const Payments = () => {
     <section className="payment-panel payment-table-card" aria-label="Payment list">
       <header className="payment-card-heading"><div><h2>Payments</h2><p>All recorded customer payments</p></div>{query.data?.totalCount > 0 && <span className="payment-count">{query.data.totalCount} payments{filters.currency ? ` ? ${filters.currency}` : ''}</span>}</header>
     <div className="payment-filters" role="search" aria-label="Payment filters">
-      <TextField size="small" className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} label="Search payments" placeholder="Payment number, invoice or customer" value={search} onChange={event => setSearch(event.target.value)} />
+      <SearchField size="small" className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} label="Search payments" placeholder="Number or customer" searchHint="Search by payment number, invoice number or customer." value={search} onChange={event => setSearch(event.target.value)} />
       <FilterSelectField size="small" select label="Status" value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
       <FilterSelectField size="small" select label="Payment Method" value={filters.method} onChange={event => change({ method: event.target.value })}><MenuItem value="">All methods</MenuItem>{PAYMENT_METHODS.map(method => <MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</FilterSelectField>
       <div className="payment-filter-actions"><DateRangeFilter startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => change({ from: startDate, to: endDate })} />

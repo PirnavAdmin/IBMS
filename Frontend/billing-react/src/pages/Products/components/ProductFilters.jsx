@@ -1,3 +1,4 @@
+import { SearchField } from '../../../components/SearchField';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { useProductSelectProps } from './ProductSelect';
 import { Button, IconButton, InputAdornment, MenuItem, TextField } from '@mui/material';
@@ -38,7 +39,7 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
   };
 
   return <div className="product-filters">
-    <TextField className="product-search" label="Search products" placeholder="Search by product code or product name..." size="small" value={search} onChange={event => onSearch(event.target.value)} InputProps={{
+    <SearchField className="product-search" label="Search products" placeholder="Name or code" searchHint="Search by product code or product name." size="small" value={search} onChange={event => onSearch(event.target.value)} InputProps={{
       startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
       endAdornment: search ? <InputAdornment position="end"><IconButton size="small" aria-label="Clear search" onClick={() => onSearch('')}><Close fontSize="small" /></IconButton></InputAdornment> : null,
     }} />

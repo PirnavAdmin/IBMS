@@ -205,3 +205,6 @@
 .app-layout .app-layout-main { scrollbar-color: #86664F transparent; }
 .app-layout .app-layout-main ::-webkit-scrollbar-track { background: transparent; }
 .app-layout .app-layout-main ::-webkit-scrollbar-thumb { background: #86664F; }
+
+/* Make mandatory fields visible before validation across MUI forms. */
+.app-layout .MuiFormLabel-asterisk { color: #b42318; }

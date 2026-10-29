@@ -332,3 +332,18 @@
     overflow-wrap: anywhere;
   }
 }
+/* Paginated main lists use the page for vertical scrolling. Dense tables keep
+   one horizontal viewport when their columns cannot fit. Dashboard panels stay bounded. */
+@media screen {
+  .app-layout .app-layout-content :is(
+    .invoice-table-scroll:has(> .invoice-list-table),
+    .payments-page .payment-list-table,
+    .product-list-page .product-table,
+    .customers-page .customer-table,
+    .quotation-page .quote-table-wrap:has(> .quote-list-table),
+    .cn-list-page .cn-table-wrap
+  ):has(> table) { max-height: none; height: auto; overflow: auto; }
+}
+
+/* Search feedback must remain visible inside compact filter bars. */
+.app-layout .ibms-search-field .MuiFormHelperText-root { display: block !important; white-space: normal; line-height: 1.45; }
