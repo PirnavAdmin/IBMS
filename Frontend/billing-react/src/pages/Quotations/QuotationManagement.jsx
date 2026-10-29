@@ -179,7 +179,7 @@ export function QuotationManagement() {
     {error&&!listFailed&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
     <fieldset ref={screenRoot} disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
       {screen==='create'||screen==='edit'
-        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')}/>
+        ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')} onNotice={setNotice}/>
         :screen==='details'&&current
           ?<QuotationDetails quotation={enrich(current)} tenantProfile={tenantProfile} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
           :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>run(async()=>{await refreshConfiguredCharges();setCurrent(null);setScreen('create');})} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}

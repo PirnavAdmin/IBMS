@@ -3,11 +3,13 @@ import { getCustomers } from '../../Customers/api/customerApi';
 import { getCustomerDetails } from '../../Customers/api/customerService';
 import { productService } from '../../Products/services/productService';
 import { quotationErrorMessage } from '../utils/quotationErrors';
+import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
 
 export const isSelectableProduct = product => product.status === 'Active' && product.isActive !== false;
 export function QuotationLookup({ kind, value, label = '', onSelect, disabled = false, activeOnly = true }) {
   const [search,setSearch]=useState(''), [page,setPage]=useState(1), [rows,setRows]=useState([]);
   const [total,setTotal]=useState(0), [open,setOpen]=useState(false), [loading,setLoading]=useState(false), [error,setError]=useState('');
+  useExclusiveDropdown(open && !disabled, setOpen);
   useEffect(()=>{
     if(!open)return;
     let active=true;setLoading(true);setError('');

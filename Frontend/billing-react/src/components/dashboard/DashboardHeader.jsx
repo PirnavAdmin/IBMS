@@ -1,6 +1,7 @@
 import { authApi } from 'billing-api-client';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
 import { useState } from 'react';
+import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 import {
   Search,
   KeyboardArrowDown,
@@ -10,6 +11,7 @@ import {
 
 export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  useExclusiveDropdown(menuOpen, setMenuOpen);
   const displayName = getDisplayName(authApi.getCurrentUser());
   const user = authApi.getCurrentUser();
   const role = (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';

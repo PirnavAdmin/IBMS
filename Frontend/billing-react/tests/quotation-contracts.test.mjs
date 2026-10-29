@@ -15,7 +15,7 @@ async function load(relative,imports={}){
  const {code}=await transform(source,{loader:relative.endsWith('jsx')?'jsx':'js',format:'cjs'});
  const module={exports:{}};
  const react={createElement:(type,props,...children)=>({type,props:{...props,children}}),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],useMemo:factory=>factory(),useEffect:()=>{},useRef:initial=>({current:initial})};
- vm.runInNewContext(code,{module,exports:module.exports,React:react,require:id=>imports[id]|| (id.endsWith('/localDate')?{displayDate}:id==='react'?react:new Proxy({},{get:(_,key)=>key}))});
+ vm.runInNewContext(code,{module,exports:module.exports,React:react,require:id=>imports[id]|| (id.endsWith('/localDate')?{displayDate}:id.endsWith('/useExclusiveDropdown')?{useExclusiveDropdown:()=>{}}:id==='react'?react:new Proxy({},{get:(_,key)=>key}))});
  return module.exports;
 }
 function text(node){if(node==null||typeof node==='boolean')return '';if(typeof node!=='object')return String(node);return [node.props?.children].flat(Infinity).map(text).join(' ');}

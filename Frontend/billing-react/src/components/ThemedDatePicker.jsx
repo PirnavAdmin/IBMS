@@ -2,6 +2,7 @@ import { CalendarTodayOutlined, ChevronLeft, ChevronRight } from '@mui/icons-mat
 import './ThemedDatePicker.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 
 const pad = value => String(value).padStart(2, '0');
 const toDateValue = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -22,6 +23,7 @@ function calendarPosition(anchor) {
 
 export function ThemedDatePicker({ label, value, onChange, disabled = false, min, max, required = false, className = "", renderTrigger }) {
   const [open, setOpen] = useState(false);
+  useExclusiveDropdown(open, setOpen);
   const [position, setPosition] = useState(null);
   const [month, setMonth] = useState(() => {
     const date = fromDateValue(value) || new Date();

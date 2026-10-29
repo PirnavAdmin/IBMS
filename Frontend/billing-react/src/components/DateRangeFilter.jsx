@@ -5,6 +5,7 @@ import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
 import { ArrowDropDown, CalendarTodayOutlined } from '@mui/icons-material';
 import { displayDate, localCalendarDate } from '../utils/localDate';
 import { dateRangeError } from '../utils/dateRangeValidation';
+import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
@@ -12,6 +13,7 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
   const id = useId();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
+  useExclusiveDropdown(open, setOpen);
   const [draft, setDraft] = useState({ startDate: '', endDate: '' });
   const today = latestDate || localCalendarDate();
   const error = dateRangeError(draft, today);
