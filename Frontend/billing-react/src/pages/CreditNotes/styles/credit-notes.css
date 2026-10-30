@@ -59,7 +59,10 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-list-heading p { margin-top: 4px; color: #89796c; font-size: .78rem; }
 .cn-result-count { padding: 5px 10px; border-radius: 999px; background: #f4eadf; color: #775536; font-size: .72rem; font-weight: 750; }
 .cn-filter-bar { display: flex; align-items: center; gap: 11px; padding: 15px 20px; background: #fcf8f3; border-bottom: 1px solid #f0e6dc; }
+.cn-filter-bar:has(.date-range-inline-panel) { flex-wrap: wrap; align-items: flex-start; }
+.cn-filter-bar:has(.date-range-inline-panel) > .date-range-control-inline { flex: 1 1 100%; }
 .cn-status-options-menu { max-height: 240px !important; overflow-y: auto !important; }
+.cn-status-menu-space { height: 252px; flex: 0 0 252px; }
 .cn-search { flex: 1 1 420px; max-width: 620px; }
 .cn-search .MuiInputBase-root { min-height: 42px; }
 .cn-search-icon { width: 19px; height: 19px; margin-right: 9px; color: #8b684b; }
@@ -78,6 +81,9 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-table-wrap .MuiTable-root,.cn-detail-table-wrap .MuiTable-root,.cn-lines-table .MuiTable-root { min-width: 850px; }
 .cn-page .MuiTableCell-head { padding: 13px 15px; background: #f4e9dc; color: #644833; font-size: .72rem; font-weight: 800; white-space: nowrap; }
 .cn-page .MuiTableCell-body { padding: 12px 15px; border-color: #f0e6dc; color: #4d4138; font-size: .8rem; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:last-child { position: sticky; right: 0; z-index: 2; min-width: 72px; background: #fffdf9; box-shadow: -5px 0 8px -7px #4a3323; }
+.cn-list-page .cn-table-wrap .MuiTableCell-head:last-child { z-index: 4; background: #f4e9dc; }
+.cn-list-page .cn-table-wrap .MuiTableRow-hover:hover .MuiTableCell-root:last-child { background: #fcf7f0; }
 .cn-sort-button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; }
 .cn-sort-button svg { width: 14px; height: 14px; color: #8b572f; }
 .cn-data-row { cursor: pointer; transition: background-color .12s ease; }
@@ -415,7 +421,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   .cn-document-title { flex-direction: column; }
 }
 /* U02/U03: adapt only the credit-note register, not document/print layouts. */
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 1100px) {
   .cn-list-page .cn-filter-bar { flex-wrap: wrap; align-items: stretch; }
   .cn-list-page .cn-filter-bar .cn-search { flex: 1 1 100%; min-width: 0; max-width: none; }
   .cn-list-page .cn-filter-bar .cn-status-filter { flex: 1 1 180px; min-width: 0; width: auto; }

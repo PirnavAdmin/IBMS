@@ -35,7 +35,7 @@ public class WebhookDispatcher : IWebhookDispatcher
 
     public async Task<WebhookDelivery> DispatchDeliveryAsync(WebhookDelivery delivery, Webhook webhook)
     {
-        var payloadToSend = await NormalizePayloadAsync(delivery.PayloadJson, delivery.EventType, delivery.TenantId);
+        var payloadToSend = await PreparePayloadAsync(delivery.PayloadJson, delivery.EventType, delivery.TenantId, webhook.PayloadFormat, webhook.CustomTemplateJson);
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var signature = _securityService.ComputeHmacSha256(webhook.SecretKey, payloadToSend, timestamp);
 
@@ -57,6 +57,32 @@ public class WebhookDispatcher : IWebhookDispatcher
             ["X-IBMS-Delivery-Id"] = delivery.EventId,
             ["Content-Type"] = "application/json"
         };
+
+        if (!string.IsNullOrWhiteSpace(webhook.CustomHeadersJson))
+        {
+            try
+            {
+                var customHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(webhook.CustomHeadersJson);
+                if (customHeaders != null)
+                {
+                    foreach (var (headerKey, headerVal) in customHeaders)
+                    {
+                        if (!string.IsNullOrWhiteSpace(headerKey) && headerVal != null)
+                        {
+                            var trimmedKey = headerKey.Trim();
+                            var trimmedVal = headerVal.Trim();
+                            request.Headers.TryAddWithoutValidation(trimmedKey, trimmedVal);
+                            headerSnapshot[trimmedKey] = trimmedVal;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse custom headers for Webhook {WebhookId}", webhook.Id);
+            }
+        }
+
         delivery.RequestHeadersJson = JsonSerializer.Serialize(headerSnapshot);
 
         var stopwatch = Stopwatch.StartNew();
@@ -117,8 +143,51 @@ public class WebhookDispatcher : IWebhookDispatcher
         return delivery;
     }
 
-    private async Task<string> NormalizePayloadAsync(string rawPayloadJson, string eventType, int tenantId)
+    private async Task<string> PreparePayloadAsync(string rawPayloadJson, string eventType, int tenantId, string? format, string? customTemplate)
     {
+        var dict = await BuildNormalizedDictionaryAsync(rawPayloadJson, eventType, tenantId);
+        var fmt = (format ?? "Standard").Trim();
+
+        if (fmt.Equals("Slack", StringComparison.OrdinalIgnoreCase))
+        {
+            var num = dict.GetValueOrDefault("number") ?? "-";
+            var cust = dict.GetValueOrDefault("customer") ?? "-";
+            var amt = dict.GetValueOrDefault("amount") ?? "-";
+            var date = dict.GetValueOrDefault("date") ?? "-";
+            var text = $"🔔 *IBMS Notification*\n*Event:* `{eventType}`\n*Reference:* `{num}`\n*Customer:* {cust}\n*Amount:* {amt}\n*Date:* {date}";
+            return JsonSerializer.Serialize(new { text });
+        }
+
+        if (fmt.Equals("Discord", StringComparison.OrdinalIgnoreCase))
+        {
+            var num = dict.GetValueOrDefault("number") ?? "-";
+            var cust = dict.GetValueOrDefault("customer") ?? "-";
+            var amt = dict.GetValueOrDefault("amount") ?? "-";
+            var date = dict.GetValueOrDefault("date") ?? "-";
+            var content = $"🔔 **IBMS Notification**\n**Event:** `{eventType}`\n**Reference:** `{num}`\n**Customer:** {cust}\n**Amount:** {amt}\n**Date:** {date}";
+            return JsonSerializer.Serialize(new { content });
+        }
+
+        if (fmt.Equals("Custom", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(customTemplate))
+        {
+            var templated = customTemplate;
+            foreach (var kvp in dict)
+            {
+                if (kvp.Value != null)
+                {
+                    templated = templated.Replace($"{{{{{kvp.Key}}}}}", kvp.Value.ToString(), StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            templated = templated.Replace("{{rawPayload}}", rawPayloadJson, StringComparison.OrdinalIgnoreCase);
+            return templated;
+        }
+
+        return JsonSerializer.Serialize(dict);
+    }
+
+    private async Task<Dictionary<string, object?>> BuildNormalizedDictionaryAsync(string rawPayloadJson, string eventType, int tenantId)
+    {
+        var dict = new Dictionary<string, object?>(StringComparer.Ordinal);
         try
         {
             using var doc = JsonDocument.Parse(rawPayloadJson);
@@ -137,8 +206,6 @@ public class WebhookDispatcher : IWebhookDispatcher
                 };
             }
 
-            // Target dictionary with Ordinal (case-sensitive) comparer so both lowercase and uppercase keys coexist
-            var dict = new Dictionary<string, object?>(StringComparer.Ordinal);
             foreach (var prop in doc.RootElement.EnumerateObject())
             {
                 dict[prop.Name] = src[prop.Name];
@@ -282,13 +349,13 @@ public class WebhookDispatcher : IWebhookDispatcher
                 dict["date"] = now;
                 dict["Date"] = now;
             }
-
-            return JsonSerializer.Serialize(dict);
         }
         catch
         {
-            return rawPayloadJson;
+            dict["raw"] = rawPayloadJson;
         }
+
+        return dict;
     }
 
     private async Task HandleFailureAsync(WebhookDelivery delivery, Webhook webhook, string failureReason)

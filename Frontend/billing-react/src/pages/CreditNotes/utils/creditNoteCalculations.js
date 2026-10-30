@@ -11,8 +11,17 @@ export const creditLineAmounts = (item, quantity = item.quantity) => {
   const selectedQuantity = Number(quantity || 0);
   const gross = selectedQuantity * Number(item.unitPrice || 0);
   const discount = roundCurrency(Number(item.discountAmount || 0) * selectedQuantity / Math.max(Number(item.originalQuantity || selectedQuantity || 0), 0.000001));
-  const subtotal = roundCurrency(Math.max(0, gross - discount));
-  const tax = roundCurrency(subtotal * Number(item.taxRate || 0) / 100);
+  const net = roundCurrency(Math.max(0, gross - discount));
+  const taxRate = Number(item.taxRate || 0);
+  const isInclusive = String(item?.taxType || '').trim().toLowerCase() === 'inclusive';
+  if (isInclusive && taxRate > 0) {
+    const baseAmount = net / (1 + taxRate / 100);
+    const tax = roundCurrency(net - baseAmount);
+    const subtotal = roundCurrency(Math.max(0, net - tax));
+    return { subtotal, tax, total: net };
+  }
+  const subtotal = net;
+  const tax = roundCurrency(subtotal * taxRate / 100);
   return { subtotal, tax, total: roundCurrency(subtotal + tax) };
 };
 
@@ -40,20 +49,25 @@ export const calculateCredit = (items = []) => {
   return { subtotal, cgst, sgst, igst, taxAmount, rounding: 0, total: roundCurrency(subtotal + taxAmount) };
 };
 
-// Invoice totals are rounded to whole rupees when saved. A full credit must
-// carry that same invoice-level rounding adjustment instead of rebuilding an
-// unrounded line total that can exceed the persisted invoice balance.
+// Invoice totals are rounded to whole rupees when saved. Whenever all remaining
+// lines are credited in full (or when a partial selection exceeds remaining
+// eligibility solely by whole-rupee rounding <= 0.50), carry that rounding
+// adjustment so the credit reconciles cleanly to the persisted invoice balance.
 export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull = false, allInvoiceItems = items) => {
+  if (!items.length) return totals;
   const selectedById = new Map(items.map((item) => [item.id, item]));
   const includesAllRemainingLines = allInvoiceItems.length > 0 && allInvoiceItems.every((invoiceItem) => {
-    const remaining = Number(invoiceItem.remainingQuantity || 0);
+    const remaining = Number(invoiceItem.remainingQuantity ?? invoiceItem.quantity ?? 0);
     return remaining <= 0 || Number(selectedById.get(invoiceItem.id)?.quantity || 0) >= remaining;
   });
-  if (!isFull || !items.length || !includesAllRemainingLines) return totals;
   const total = roundCurrency(eligibleAmount);
+  if (total <= 0) return totals;
   const difference = roundCurrency(total - totals.total);
   if (difference === 0) return totals;
-  return { ...totals, rounding: roundCurrency((totals.rounding || 0) + difference), total };
+  if (includesAllRemainingLines || (isFull && includesAllRemainingLines) || (difference < 0 && Math.abs(difference) <= 0.5)) {
+    return { ...totals, rounding: roundCurrency((totals.rounding || 0) + difference), total };
+  }
+  return totals;
 };
 
 export const refundableBalance = (note) => Math.max(0, Number(note?.remainingRefundable ?? (Number(note?.total || 0) - Number(note?.refunded || 0))));

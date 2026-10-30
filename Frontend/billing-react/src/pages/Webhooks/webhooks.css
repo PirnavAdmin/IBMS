@@ -14,6 +14,7 @@
 .webhook-summary small { display: block; color: #62584f; font-size: 12px; }
 .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex: 0 1 14rem; min-width: 10rem; }
 .webhook-toolbar .integration-result-count { padding: 7px 12px; border: 1px solid #e5d3c0; border-radius: 999px; background: #f5eadf; color: #765538; font-size: 12px; font-weight: 700; }
+.webhook-event-menu-space { height: 272px; flex: 0 0 272px; }
 .webhook-event-options-menu { width: 14rem !important; max-width: calc(100vw - 24px) !important; max-height: 260px !important; overflow-y: auto !important; padding: 4px !important; border: 1px solid var(--border) !important; border-radius: 12px !important; background: var(--surface) !important; box-shadow: 0 10px 26px #38251626 !important; }
 .webhook-event-options-menu .MuiMenuItem-root { min-height: 40px; margin: 1px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; color: var(--text-primary); font-size: .9rem; }
 .webhook-event-options-menu .MuiMenuItem-root:hover,.webhook-event-options-menu .MuiMenuItem-root.Mui-focusVisible { background: #f9f1e6; color: var(--primary); }
@@ -50,3 +51,12 @@
 .webhook-validation { color: var(--danger); font-size: 13px; margin-top: 8px; }
 @container integrations (max-width: 40rem) { .webhook-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @container integrations (max-width: 24rem) { .webhook-summary { grid-template-columns: minmax(0, 1fr); } .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex-basis: 100%; } }
+
+.webhook-section { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.webhook-section legend { padding: 0 6px; color: var(--secondary); font-size: 14px; font-weight: 600; }
+.webhook-header-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.webhook-header-row .MuiTextField-root:first-child { flex: 1; }
+.webhook-header-row .MuiTextField-root:nth-child(2) { flex: 2; }
+.webhook-header-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.webhook-template-hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+.webhook-template-hint code { background: #f0e6da; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 11px; }

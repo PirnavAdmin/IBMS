@@ -1,4 +1,4 @@
-﻿using Billing.Domain.Entities;
+using Billing.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Billing.Application.Interfaces;
 using System.Text.Json;
@@ -979,6 +979,9 @@ public class BillingDbContext : DbContext
             entity.Property(w => w.TargetUrl).HasMaxLength(1000).IsRequired();
             entity.Property(w => w.SecretKey).HasMaxLength(128).IsRequired();
             entity.Property(w => w.SubscribedEventsJson).HasColumnType("longtext");
+            entity.Property(w => w.CustomHeadersJson).HasColumnType("longtext");
+            entity.Property(w => w.PayloadFormat).HasMaxLength(50).HasDefaultValue("Standard").IsRequired();
+            entity.Property(w => w.CustomTemplateJson).HasColumnType("longtext");
             entity.Property(w => w.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
             entity.Property(w => w.ConsecutiveFailureCount).HasDefaultValue(0);
             entity.HasIndex(w => new { w.TenantId, w.Status });

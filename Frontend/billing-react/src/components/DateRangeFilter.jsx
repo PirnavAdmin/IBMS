@@ -2,14 +2,14 @@ import { useEffect, useId, useState } from 'react';
 import { Button, ConfigProvider, Popover } from 'antd';
 import dayjs from 'dayjs';
 import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
-import { ArrowDropDown, CalendarTodayOutlined } from '@mui/icons-material';
+import { ArrowDropDown, CalendarTodayOutlined, Close } from '@mui/icons-material';
 import { displayDate, localCalendarDate } from '../utils/localDate';
 import { dateRangeError, validDate } from '../utils/dateRangeValidation';
 import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
-  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '' }) {
+  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -31,8 +31,8 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
     setOpen(false);
     setNotice({ key: value.startDate + '|' + value.endDate, message: value.startDate ? confirmationMessage || 'Date range applied: ' + displayDate(value.startDate) + ' – ' + displayDate(value.endDate) : 'Date filter cleared.' });
   };
-  const content = <div className="date-range-inline-panel" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}>
-    <div className="date-range-panel-heading"><strong>{title}</strong><Button type="text" htmlType="button" aria-label="Close" onClick={() => setOpen(false)}>&times;</Button></div>
+  const content = <div className="date-range-inline-panel" role="dialog" aria-labelledby={id + '-heading'} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); } }}>
+    <div className="date-range-panel-heading"><strong id={id + '-heading'}>{title}</strong><Button type="text" htmlType="button" aria-label="Close" icon={<Close />} onClick={() => setOpen(false)} /></div>
       <form id={id} aria-label={title} className="date-range-form" onSubmit={event => {
         event.preventDefault(); event.stopPropagation(); setAttempted(true);
         if (!dateRangeError(draft, today)) apply(draft);
@@ -52,17 +52,19 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
           <Button type="primary" htmlType="submit" disabled={Boolean(error)}>Apply</Button></div>
       </form>
   </div>;
+  const changeOpen = next => {
+    if (next) { setDraft({ startDate, endDate }); setAttempted(false); }
+    setOpen(next);
+  };
+  const trigger = <Button htmlType="button" className={"invoice-filter-date-range date-range-filter " + className} icon={<CalendarTodayOutlined />}
+    aria-label={'Date Range: ' + label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
+    onClick={inline ? () => changeOpen(!open) : undefined}>
+    <span className="date-range-label">{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{dropdownIcon}
+  </Button>;
   return <ConfigProvider theme={dateRangeTheme}>
-    <div className="date-range-control">
-      <Popover open={open} trigger="click" placement="bottomLeft" content={content} destroyOnHidden zIndex={2000}
-        classNames={{ root: 'date-range-popover' }} onOpenChange={next => {
-          if (next) { setDraft({ startDate, endDate }); setAttempted(false); }
-          setOpen(next);
-        }}>
-      <Button htmlType="button" className={"invoice-filter-date-range date-range-filter " + className} icon={<CalendarTodayOutlined />}
-        aria-label={'Date Range: ' + label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
-        ><span className="date-range-label">{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{dropdownIcon}</Button>
-      </Popover>
+    <div className={`date-range-control${inline ? ' date-range-control-inline' : ''}`}>
+      {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement="bottomLeft" content={content} destroyOnHidden zIndex={2000}
+        classNames={{ root: 'date-range-popover' }} onOpenChange={changeOpen}>{trigger}</Popover>}
       {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback" role="status">{notice.message}</span>}
     </div>
   </ConfigProvider>;

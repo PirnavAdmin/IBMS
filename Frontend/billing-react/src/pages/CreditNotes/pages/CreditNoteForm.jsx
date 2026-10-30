@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumbs, Button, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { ArrowBack, ArrowForward, Check, DescriptionOutlined, ReceiptLongOutlined, SavingsOutlined } from '@mui/icons-material';
 import { creditNoteService } from '../services/creditNoteService';
-import { calculateCredit, creditLineAmounts, eligibleCredit, money, reconcileFullCredit } from '../utils/creditNoteCalculations';
+import { calculateCredit, creditLineAmounts, eligibleCredit, money, reconcileFullCredit, roundCurrency } from '../utils/creditNoteCalculations';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
@@ -13,10 +13,10 @@ import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 
 const steps = ['Invoice', 'Credit items', 'Reason', 'Review'];
 const reasons = ['Goods returned', 'Service cancellation', 'Incorrect quantity', 'Incorrect price', 'Duplicate billing', 'Excess billing', 'Tax correction', 'Service deficiency', 'Commercial adjustment', 'Other'];
-const displayedLineTotal = (item, selectedItems, totals, isFull) => {
+const displayedLineTotal = (item, selectedItems, totals) => {
   const lineTotal = creditLineAmounts(item).total;
   const lastSelected = selectedItems[selectedItems.length - 1];
-  return isFull && lastSelected?.id === item.id ? lineTotal + Number(totals.rounding || 0) : lineTotal;
+  return Number(totals.rounding || 0) !== 0 && lastSelected?.id === item.id ? roundCurrency(lineTotal + Number(totals.rounding || 0)) : lineTotal;
 };
 
 export function CreditNoteForm() {
@@ -103,7 +103,19 @@ export function CreditNoteForm() {
   const setLineQuantity = (item, value, normalize = false) => {
     const enteredQuantity = Number(value) || 0;
     const parsed = Math.max(0, Math.min(enteredQuantity, Number(item.remainingQuantity) || 0));
-    setQuantities((previous) => ({ ...previous, [item.id]: normalize ? (parsed ? String(parsed) : '') : value }));
+    setQuantities((previous) => {
+      const next = { ...previous, [item.id]: normalize ? (parsed ? String(parsed) : '') : value };
+      if (type === 'Full' && selectedInvoice?.items?.length) {
+        const allFull = selectedInvoice.items.every((invItem) => {
+          const rem = Number(invItem.remainingQuantity) || 0;
+          if (rem <= 0) return true;
+          const q = invItem.id === item.id ? parsed : (Number(next[invItem.id]) || 0);
+          return q >= rem;
+        });
+        if (!allFull) setType('Partial');
+      }
+      return next;
+    });
     setError('');
   };
 
@@ -183,7 +195,7 @@ export function CreditNoteForm() {
 
           {step === 1 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><SavingsOutlined /></span><div><h2>Choose credit scope &amp; items</h2><p>Set credit quantities within the remaining invoice quantities.</p></div></div>
             <div className="cn-credit-type-select"><span>Credit scope</span><div>{['Partial', 'Full'].map((option) => <button key={option} type="button" className={type === option ? 'selected' : ''} onClick={() => chooseCreditType(option)}><strong>{option} credit</strong><small>{option === 'Full' ? 'Credit all remaining eligible invoice quantities' : 'Choose specific items and quantities'}</small></button>)}</div></div>
-            <TableContainer className="ibms-table-frame cn-lines-table"><Table size="small"><TableHead><TableRow><TableCell>Item / service · HSN/SAC</TableCell><TableCell align="right">Original qty</TableCell><TableCell align="right">Previously credited</TableCell><TableCell align="right">Available qty</TableCell><TableCell align="right">Unit price</TableCell><TableCell align="right">Tax</TableCell><TableCell align="right">Credit qty</TableCell><TableCell align="right">Credit total</TableCell></TableRow></TableHead><TableBody>{(selectedInvoice?.items || []).map((item) => { const quantity = Number(quantities[item.id]) || 0; const selectedItem = selectedItems.find((selected) => selected.id === item.id); const lineTotal = selectedItem ? displayedLineTotal(selectedItem, selectedItems, totals, type === 'Full') : creditLineAmounts(item, quantity).total; const previousQty = Math.max(0, item.quantity - item.remainingQuantity); return <TableRow key={item.id} className={!item.remainingQuantity ? 'cn-line-fully-credited' : ''}><TableCell><strong>{item.description}</strong><small className="cn-sub-cell">{item.code}</small></TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{previousQty}</TableCell><TableCell align="right">{item.remainingQuantity > 0 ? item.remainingQuantity : <span className="cn-fully-credited">Fully credited</span>}</TableCell><TableCell align="right">{money(item.unitPrice, selectedInvoice.currency)}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right"><TextField disabled={!item.remainingQuantity} type="number" size="small" placeholder="0" value={quantities[item.id] ?? ''} inputProps={{ min: 0, max: item.remainingQuantity, step: 0.01, 'aria-label': `Quantity to credit for ${item.description}` }} onChange={(event) => setLineQuantity(item, event.target.value)} onBlur={(event) => setLineQuantity(item, event.target.value, true)} /></TableCell><TableCell align="right"><strong>{money(lineTotal, selectedInvoice.currency)}</strong></TableCell></TableRow>; })}</TableBody></Table></TableContainer>
+            <TableContainer className="ibms-table-frame cn-lines-table"><Table size="small"><TableHead><TableRow><TableCell>Item / service · HSN/SAC</TableCell><TableCell align="right">Original qty</TableCell><TableCell align="right">Previously credited</TableCell><TableCell align="right">Available qty</TableCell><TableCell align="right">Unit price</TableCell><TableCell align="right">Tax</TableCell><TableCell align="right">Credit qty</TableCell><TableCell align="right">Credit total</TableCell></TableRow></TableHead><TableBody>{(selectedInvoice?.items || []).map((item) => { const quantity = Number(quantities[item.id]) || 0; const selectedItem = selectedItems.find((selected) => selected.id === item.id); const lineTotal = selectedItem ? displayedLineTotal(selectedItem, selectedItems, totals) : creditLineAmounts(item, quantity).total; const previousQty = Math.max(0, item.quantity - item.remainingQuantity); return <TableRow key={item.id} className={!item.remainingQuantity ? 'cn-line-fully-credited' : ''}><TableCell><strong>{item.description}</strong><small className="cn-sub-cell">{item.code}</small></TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{previousQty}</TableCell><TableCell align="right">{item.remainingQuantity > 0 ? item.remainingQuantity : <span className="cn-fully-credited">Fully credited</span>}</TableCell><TableCell align="right">{money(item.unitPrice, selectedInvoice.currency)}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right"><TextField disabled={!item.remainingQuantity} type="number" size="small" placeholder="0" value={quantities[item.id] ?? ''} inputProps={{ min: 0, max: item.remainingQuantity, step: 0.01, 'aria-label': `Quantity to credit for ${item.description}` }} onChange={(event) => setLineQuantity(item, event.target.value)} onBlur={(event) => setLineQuantity(item, event.target.value, true)} /></TableCell><TableCell align="right"><strong>{money(lineTotal, selectedInvoice.currency)}</strong></TableCell></TableRow>; })}</TableBody></Table></TableContainer>
             <div className={`cn-eligibility-message ${totals.total > eligibleAmount ? 'warning' : ''}`}><span>{totals.total > eligibleAmount ? `Credit exceeds remaining eligibility by ${money(totals.total - eligibleAmount, selectedInvoice?.currency)}` : 'Remaining invoice credit'}</span><strong>{money(eligibleAmount, selectedInvoice?.currency)}</strong></div>
           </div>}
 
@@ -194,7 +206,7 @@ export function CreditNoteForm() {
 
           {step === 3 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><Check /></span><div><h2>Review credit note</h2><p>Confirm source, value, tax and business reason before saving.</p></div></div>
             <div className="cn-review-header"><div><small>Source invoice</small><strong>{selectedInvoice?.number}</strong><span>{selectedInvoice?.customer}</span></div><span className={`cn-type-pill ${type.toLowerCase()}`}>{type} credit</span></div>
-            <TableContainer className="ibms-table-frame cn-lines-table"><Table size="small"><TableHead><TableRow><TableCell>Description</TableCell><TableCell>Code</TableCell><TableCell align="right">Qty</TableCell><TableCell align="right">Tax rate</TableCell><TableCell align="right">Amount</TableCell></TableRow></TableHead><TableBody>{selectedItems.map((item) => <TableRow key={item.id}><TableCell>{item.description}</TableCell><TableCell>{item.code}</TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right">{money(displayedLineTotal(item, selectedItems, totals, type === 'Full'))}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
+            <TableContainer className="ibms-table-frame cn-lines-table"><Table size="small"><TableHead><TableRow><TableCell>Description</TableCell><TableCell>Code</TableCell><TableCell align="right">Qty</TableCell><TableCell align="right">Tax rate</TableCell><TableCell align="right">Amount</TableCell></TableRow></TableHead><TableBody>{selectedItems.map((item) => <TableRow key={item.id}><TableCell>{item.description}</TableCell><TableCell>{item.code}</TableCell><TableCell align="right">{item.quantity}</TableCell><TableCell align="right">{item.taxRate}%</TableCell><TableCell align="right">{money(displayedLineTotal(item, selectedItems, totals))}</TableCell></TableRow>)}</TableBody></Table></TableContainer>
             <div className="cn-review-reason"><small>Reason · {reason}</small><p>{reasonNote}</p></div>
           </div>}
 

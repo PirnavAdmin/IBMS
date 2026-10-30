@@ -420,6 +420,45 @@ test('Shared Invoice Date Range stages local dates, rejects reversed dates, appl
   } finally { await ui.close(); }
 });
 
+test('Inline Date Range preserves incoming credit-note layout and local validation, apply and cancel behavior', async () => {
+  const calls = [];
+  function Range() {
+    const [range, setRange] = useState({ startDate: '', endDate: '' });
+    return <DateRangeFilter inline {...range} latestDate="2026-10-30" onApply={value => { calls.push(value); setRange(value); }} />;
+  }
+  const ui = await mount(<Range />);
+  try {
+    const trigger = ui.host.querySelector('.date-range-filter');
+    await click(trigger);
+    assert.ok(ui.host.querySelector('.date-range-control-inline [role="dialog"]'), 'Inline content stays in the filter layout');
+    assert.equal(document.querySelector('.date-range-popover'), null);
+    assert.equal(ui.host.querySelector('.date-range-error'), null);
+    assert.equal(button(ui.host, 'Apply').disabled, true);
+    const from = ui.host.querySelector('[aria-label="From Date"]');
+    await act(async () => { from.value = '7646436365'; Simulate.input(from); Simulate.change(from, { target: { value: '7646436365' } }); });
+    assert.equal(button(ui.host, 'Apply').disabled, true);
+    await act(async () => Simulate.submit(ui.host.querySelector('.date-range-form')));
+    assert.deepEqual(calls, []);
+    await click(ui.host.querySelector('[aria-label="Close"]'));
+    assert.equal(ui.host.querySelector('[role="dialog"]'), null);
+    await click(trigger);
+    assert.equal(ui.host.querySelector('.date-range-error'), null, 'Opening again resets unsaved invalid dates');
+    await changeInput(ui.host.querySelector('[aria-label="From Date"]'), '2026-10-01');
+    await changeInput(ui.host.querySelector('[aria-label="To Date"]'), '2026-10-20');
+    await act(async () => Simulate.submit(ui.host.querySelector('.date-range-form')));
+    assert.deepEqual(calls, [{ startDate: '2026-10-01', endDate: '2026-10-20' }]);
+    assert.equal(trigger.textContent, '01/10/2026–20/10/2026');
+    await click(trigger);
+    await act(async () => Simulate.keyDown(ui.host.querySelector('[role="dialog"]'), { key: 'Escape' }));
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    assert.equal(calls.length, 1);
+    await click(trigger);
+    await click(button(ui.host, 'Clear'));
+    assert.deepEqual(calls.at(-1), { startDate: '', endDate: '' });
+    assert.equal(trigger.textContent, 'Date Range');
+  } finally { await ui.close(); }
+});
+
 test('Date Range clear confirmation disappears without restoring the cleared filter', async () => {
   const calls = [];
   function Range() { const [range, setRange] = useState({ startDate: '2026-10-01', endDate: '2026-10-20' }); return <DateRangeFilter {...range} onApply={value => { calls.push(value); setRange(value); }} />; }
