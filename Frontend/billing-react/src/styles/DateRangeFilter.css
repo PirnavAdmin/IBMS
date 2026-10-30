@@ -23,6 +23,9 @@
 .date-range-feedback { font-size: 12px; line-height: 1.45; color: #5e6545; overflow-wrap: anywhere; }
 .date-range-modal .date-range-form { width: 100%; box-sizing: border-box; padding: 8px 0 0; }
 .date-range-modal .ant-modal-content { border: 1px solid #d5c6b5; border-radius: 12px; }
+.date-range-inline-panel { box-sizing: border-box; width: min(360px, calc(100vw - 40px)); min-height: 400px; margin-top: 8px; padding: 14px; border: 1px solid #d5c6b5; border-radius: 12px; background: #fffdf9; color: #715238; box-shadow: 0 6px 20px rgba(69, 43, 29, .12); }
+.date-range-inline-panel > strong { display: block; margin-bottom: 10px; }
+.date-range-inline-panel .date-range-form { width: 100%; box-sizing: border-box; padding: 0; }
 .quote-filter-feedback { margin: 12px 0; color: var(--primary); font-size: 13px; }
 
 /* Keep both dates readable, including in narrow filter columns. */

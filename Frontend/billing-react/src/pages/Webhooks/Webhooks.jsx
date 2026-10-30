@@ -47,6 +47,7 @@ function WebhookSecret({ secret, onClose, onCopy }) {
 export function Webhooks() {
   const context = useOutletContext() || {}, navigate = useNavigate(), client = useQueryClient();
   const [search, setSearch] = useState('');
+  const [eventMenuOpen, setEventMenuOpen] = useState(false);
   const [filters, setFilters] = useState({ status: '', eventType: '', searchTerm: '', pageNumber: 1, pageSize: 20 });
   const [menu, setMenu] = useState(null), [dialog, setDialog] = useState(null), [secret, setSecret] = useState(null);
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState(null);
@@ -123,9 +124,10 @@ export function Webhooks() {
         <div className="integrations-toolbar webhook-toolbar">
           <TextField size="small" type="search" label="Search webhooks" placeholder="Search by name or URL" value={search} onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
           <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
-          <TextField select size="small" label="Event Type" InputLabelProps={{ shrink: true }} value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)} SelectProps={{ displayEmpty: true, renderValue: selected => selected || 'All events', MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'webhook-event-options-menu', sx: { maxHeight: 260 } } } }}><MenuItem value="">All events</MenuItem>{(events.data || []).filter(event => event.eventType !== '*').map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Event Type" InputLabelProps={{ shrink: true }} value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)} SelectProps={{ displayEmpty: true, onOpen: () => setEventMenuOpen(true), onClose: () => setEventMenuOpen(false), renderValue: selected => selected || 'All events', MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'webhook-event-options-menu', sx: { maxHeight: 260 } } } }}><MenuItem value="">All events</MenuItem>{(events.data || []).filter(event => event.eventType !== '*').map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
           <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} webhook${page.totalCount === 1 ? '' : 's'}` : ''}</span>
         </div>
+        {eventMenuOpen && <div className="webhook-event-menu-space" aria-hidden="true" />}
         {events.isError && <Alert severity="warning" action={<Button onClick={() => events.refetch()}>Retry Events</Button>}>{webhookError(events.error)}</Alert>}
         {waiting && <div className="integration-progress" role="status" aria-label="Loading webhooks"><LinearProgress /></div>}
         {list.isError ? <DashboardErrorState title="Unable to load webhooks" message={webhookError(list.error)} onRetry={() => list.refetch()} /> : page?.items.length ?

@@ -14,6 +14,7 @@
 .webhook-summary small { display: block; color: #62584f; font-size: 12px; }
 .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex: 0 1 14rem; min-width: 10rem; }
 .webhook-toolbar .integration-result-count { padding: 7px 12px; border: 1px solid #e5d3c0; border-radius: 999px; background: #f5eadf; color: #765538; font-size: 12px; font-weight: 700; }
+.webhook-event-menu-space { height: 272px; flex: 0 0 272px; }
 .webhook-event-options-menu { width: 14rem !important; max-width: calc(100vw - 24px) !important; max-height: 260px !important; overflow-y: auto !important; padding: 4px !important; border: 1px solid var(--border) !important; border-radius: 12px !important; background: var(--surface) !important; box-shadow: 0 10px 26px #38251626 !important; }
 .webhook-event-options-menu .MuiMenuItem-root { min-height: 40px; margin: 1px; padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; color: var(--text-primary); font-size: .9rem; }
 .webhook-event-options-menu .MuiMenuItem-root:hover,.webhook-event-options-menu .MuiMenuItem-root.Mui-focusVisible { background: #f9f1e6; color: var(--primary); }
