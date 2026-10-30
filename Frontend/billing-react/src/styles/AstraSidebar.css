@@ -1,0 +1,84 @@
+/* Full-height navigation with readable labels and one scrollable menu area. */
+.app-layout.astra-layout { --sidebar-width: 248px; }
+.app-layout.astra-layout.sidebar-collapsed { --sidebar-width: 80px; }
+.app-layout.astra-layout > .astra-sidebar {
+  --astra-row-gap: 2px;
+  --astra-row-height: 42px;
+  width: var(--sidebar-width); flex: 0 0 var(--sidebar-width); height: 100%;
+  margin: 0; align-self: flex-start; top: 0; overflow: visible;
+  background: var(--shell-sidebar, #E6D5C0); color: #49362e; border: 0; border-right: 1px solid #cdb89e; border-radius: 0;
+  box-shadow: 2px 0 10px #51382a08; transition: flex-basis 260ms ease, width 260ms ease, transform 260ms ease;
+}
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand { flex: 0 0 64px; min-height: 64px; padding: 12px 20px; gap: 12px; background: transparent; border-bottom: 1px solid #d5bfa7; color: #3e2c24; border-radius: 0; }
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand > span { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 9px; background: #462919; color: #fff; box-shadow: none; }
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand strong { font-size: 15px; letter-spacing: -.035em; }
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand strong span { color: #92634c; }
+.app-layout.astra-layout .astra-collapse { position: absolute; z-index: 135; right: -14px; top: 20px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid #c4aa92; border-radius: 50%; background: #fff8ef; color: #674730; box-shadow: 0 2px 7px #51382a18; cursor: pointer; }
+.astra-collapse svg { font-size: 19px; transition: transform 260ms ease; }
+.sidebar-collapsed .astra-collapse svg { transform: rotate(180deg); }
+.app-layout.astra-layout .astra-menu-content { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; padding: 12px 10px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #98765b #e6d5c0; }
+.app-layout.astra-layout .astra-nav-section { margin: 0; flex: 0 0 auto; }
+.app-layout.astra-layout .astra-config-section { margin-top: 0; }
+.app-layout.astra-layout .astra-menu-content::-webkit-scrollbar { width: 8px; }
+.app-layout.astra-layout .astra-menu-content::-webkit-scrollbar-track { background: #e6d5c0; }
+.app-layout.astra-layout .astra-menu-content::-webkit-scrollbar-thumb { background: #98765b; border: 2px solid #e6d5c0; border-radius: 8px; }
+.app-layout.astra-layout .astra-menu-content::-webkit-scrollbar-thumb:hover { background: #795137; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-section > small { box-sizing: border-box; display: block; height: 26px; padding: 0 8px 8px; color: #795c4f; font-size: 11px; line-height: 18px; letter-spacing: .08em; font-weight: 650; white-space: nowrap; }
+/* Section buttons keep all module links in place and expose their state. */
+.app-layout.astra-layout .astra-section-heading { margin: 0 0 4px; font-size: inherit; }
+.app-layout.astra-layout .astra-group-toggle { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; min-height: 32px; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; color: #795c4f; font: inherit; font-size: 11px; font-weight: 700; line-height: 1.4; letter-spacing: .06em; text-align: left; text-transform: uppercase; cursor: pointer; }
+.app-layout.astra-layout .astra-group-toggle:hover, .app-layout.astra-layout .astra-group-toggle[aria-expanded="true"] { background: #dcc4ab; color: #49362e; }
+.app-layout.astra-layout .astra-group-toggle.is-active { color: #462919; }
+.astra-group-toggle svg { flex: 0 0 18px; font-size: 18px; transition: transform 180ms ease; }
+.astra-group-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.astra-section-list[hidden] { display: none; }
+.astra-section-list { display: grid; gap: var(--astra-row-gap); position: relative; }
+.astra-active-pill { position: absolute; inset: 0 0 auto; height: var(--astra-row-height); border-radius: 8px; background: #6a4838; box-shadow: 0 2px 6px #5b3c2d1a; pointer-events: none; transition: transform 220ms ease, opacity 160ms ease; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item { position: relative; box-sizing: border-box; height: var(--astra-row-height); min-height: 0; padding: 0 8px; gap: 8px; border-radius: 8px; color: #3f2e24; font-size: 14px; line-height: 1.3; font-weight: 600; letter-spacing: 0; box-shadow: none; white-space: normal; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item > span { min-width: 0; white-space: normal; overflow-wrap: normal; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item > svg:not(.bd-nav-arrow) { width: 30px; height: 30px; flex: 0 0 30px; padding: 5px; border-radius: 6px; background: #462919; color: #fff; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item:hover { background: #d7c0a8; color: #35251e; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item.active,
+.app-layout.astra-layout .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; color: #fff; box-shadow: none; font-weight: 650; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #462919; color: #fff; }
+.app-layout.astra-layout .astra-sidebar .bd-nav-item:hover > svg:not(.bd-nav-arrow) { background: #352016; color: #fff; }
+.astra-profile { display: flex; align-items: center; box-sizing: border-box; gap: 10px; flex: 0 0 68px; padding: 12px 16px; border-top: 1px solid #d5bfa7; background: #e2ccb3; }
+.astra-avatar { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border: 1px solid #7d5b43; border-radius: 10px; background: #795137; color: #fff; font-size: 12px; font-weight: 650; }
+.astra-profile-copy { flex: 1; min-width: 0; }
+.astra-profile-copy strong, .astra-profile-copy small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.astra-profile-copy strong { color: #49362e; font-size: 12px; font-weight: 650; }
+.astra-profile-copy small { margin-top: 4px; color: #795c4f; font-size: 10px; }
+.astra-signout { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 32px; padding: 6px; border: 0; border-radius: 8px; background: #efdcd0; color: #8a4333; cursor: pointer; }
+.astra-signout svg { font-size: 18px; }
+.astra-signout:hover { background: #e3c4b3; color: #6d3024; }
+.app-layout.astra-layout .astra-sidebar button:focus-visible { outline: 2px solid #795137; outline-offset: 2px; }
+@media (min-width: 1180px) {
+  .app-layout.astra-layout { --shell-header-height: 72px; }
+  .app-layout.astra-layout > .astra-sidebar { z-index: 115; }
+  .app-layout.astra-layout .astra-sidebar .bd-sidebar-brand { height: var(--shell-header-height); min-height: var(--shell-header-height); flex-basis: var(--shell-header-height); padding-inline: 18px; }
+  .app-layout.astra-layout .app-layout-main .bd-header { height: var(--shell-header-height); min-height: var(--shell-header-height); flex: 0 0 var(--shell-header-height); padding-block: 10px; }
+  .app-layout.astra-layout .astra-collapse { top: calc(var(--shell-header-height) / 2 - 14px); }
+  .app-layout.astra-layout .bd-search { flex: 0 1 460px; width: min(460px, 52%); margin: 0; }
+  .app-layout.astra-layout .bd-search input { font-size: 13px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-menu-content { padding-inline: 8px; }
+  .app-layout.astra-layout > .app-layout-menu { display: none; }
+  .app-layout.astra-layout .app-layout-main .bd-header { padding-left: 24px; }
+  .app-layout.astra-layout.sidebar-collapsed .bd-sidebar-brand { padding-inline: 23px; }
+  .app-layout.astra-layout.sidebar-collapsed .bd-nav-item { padding-inline: 11px; gap: 0; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-section-heading { display: none; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-profile { flex-direction: column; padding: 6px; gap: 4px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-avatar { width: 28px; height: 28px; flex-basis: 28px; font-size: 10px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-signout { width: 24px; height: 24px; flex-basis: 24px; padding: 4px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-profile-copy { display: none; }
+}
+@media (max-width: 1179px) {
+  .app-layout.astra-layout > .astra-sidebar { position: fixed; top: 0; left: 0; height: 100dvh; max-width: calc(100vw - 44px); margin: 0; transform: translateX(calc(-100% - 30px)); }
+  .app-layout.astra-layout > .astra-sidebar.is-open { transform: translateX(0); }
+}
+@media (max-width: 760px) {
+  .app-layout.astra-layout .bd-search { width: 100%; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-layout.astra-layout > .astra-sidebar, .astra-active-pill, .astra-collapse svg, .astra-group-toggle svg { transition: none; }
+}
+@media print { .app-layout.astra-layout > .astra-sidebar { display: none; } }

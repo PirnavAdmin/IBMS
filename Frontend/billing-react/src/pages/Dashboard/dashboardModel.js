@@ -1,3 +1,4 @@
+import { searchInputError } from '../../utils/search.js';
 import { agingLabels, agingDays, agingIndex, roundMoney } from './dashboardAging.js';
 import { isCurrencyEnabled } from '../../utils/currencies.js';
 export const defaultDashboardFilters = () => ({ start: '', end: '' });
@@ -67,4 +68,15 @@ export function validateBillingRecords(rows, source) {
     try { money(0, row.currency); } catch { throw new Error('Invalid currency in billing response.'); }
   }
   return rows;
+}
+
+// Search the complete loaded ledger before applying the recent-record limit.
+export function filterDashboardRecords(rows, query = '') {
+  if (searchInputError(query)) return [];
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return rows;
+  return rows.filter(row => {
+    const text = [row.invoiceNumber, row.paymentNumber, row.customerName, row.customerCode, row.customer?.name, row.customer?.email, row.customer?.phone, row.status, row.currency, row.invoiceDate, row.paymentDate, row.amount, row.totalAmount].filter(value => value != null).join(' ').toLocaleLowerCase();
+    return terms.every(term => text.includes(term));
+  });
 }

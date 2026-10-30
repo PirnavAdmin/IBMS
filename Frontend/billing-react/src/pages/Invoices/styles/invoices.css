@@ -2565,3 +2565,46 @@
 
 /* Keep the full invoice search prompt readable on small filter grids. */
 @media (max-width: 700px) { .invoice-filters > .invoice-filter-search { grid-column: 1 / -1; } }
+
+/* Aligned list filters, with space for complete labels and selected values. */
+@media screen {
+  .invoice-page .invoice-filters {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas: "search search customer customer" "status payment date reset";
+    align-items: start; gap: 14px; padding: 16px; background: #faf7f3;
+  }
+  .invoice-filters > .invoice-filter-search { grid-area: search; }
+  .invoice-filters > .invoice-filter-status { grid-area: status; }
+  .invoice-filters > .invoice-filter-customer { grid-area: customer; }
+  .invoice-filters > .invoice-filter-payment { grid-area: payment; }
+  .invoice-filters > .date-range-control { grid-area: date; width: 100%; }
+  .invoice-filters > .invoice-filter-reset { grid-area: reset; }
+  .invoice-page .invoice-filters .date-range-filter { width: 100%; min-height: 40px; justify-content: flex-start; }
+  .invoice-page .invoice-filters .invoice-filter-reset { min-height: 40px; height: auto; padding-block: 8px; }
+
+  /* One form surface; internal sections are separated by quiet rules. */
+  .invoice-editor-form { padding: 24px; margin-top: 20px; border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: var(--shadow-card); min-width: 0; }
+  .invoice-page .invoice-editor-form .invoice-panel {
+    margin: 0 !important; padding: 0 !important; border: 0 !important;
+    border-radius: 0 !important; box-shadow: none !important; background: transparent !important;
+  }
+  .invoice-editor-form .invoice-customer-panel { padding-bottom: 24px !important; }
+  .invoice-page .invoice-editor-form .invoice-line-items-panel {
+    margin-top: 24px !important; padding-top: 24px !important; border-top: 1px solid var(--border) !important;
+  }
+  .invoice-editor-form .invoice-form-bottom { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 24px; }
+  .invoice-page .invoice-editor-form .invoice-notes-panel { margin-top: 24px !important; padding-top: 24px !important; border-top: 1px solid var(--border) !important; }
+  .invoice-editor-form .invoice-form-bottom > div:last-child { border-left: 1px solid var(--border); padding-left: 24px; }
+  .invoice-editor-form .invoice-total-panel { padding: 0; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+  .invoice-editor-form .invoice-total-header { flex-wrap: wrap; gap: 8px; }
+  .invoice-editor-form .invoice-form-actions { padding: 20px 0 0; border-radius: 0; box-shadow: none; background: transparent; }
+}
+@media screen and (max-width: 1100px) {
+  .invoice-page .invoice-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "search search" "status payment" "customer customer" "date reset"; }
+  .invoice-editor-form .invoice-form-bottom { grid-template-columns: minmax(0, 1fr); }
+  .invoice-editor-form .invoice-form-bottom > div:last-child { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 24px; }
+}
+@media screen and (max-width: 600px) {
+  .invoice-page .invoice-filters { grid-template-columns: minmax(0, 1fr); grid-template-areas: "search" "status" "customer" "payment" "date" "reset"; }
+  .invoice-editor-form { padding: 18px; }
+}

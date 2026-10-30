@@ -30,3 +30,17 @@
 .app-layout button.date-range-filter.ant-btn { max-width: 100%; height: auto; min-height: 40px; padding-block: 8px; white-space: normal; }
 .app-layout button.date-range-filter.ant-btn > .date-range-label { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 2px 0.35em; min-width: 0; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; text-align: left; }
 .date-range-label > span { white-space: nowrap; }
+
+/* Anchored date dropdown, without a modal or dimmed page. */
+.date-range-popover .ant-popover-inner { padding: 0; overflow: hidden; border: 1px solid #dfd5cb; border-radius: 10px; background: #fffdf9; box-shadow: 0 8px 28px #35271f20; }
+.date-range-inline-panel { width: min(360px, calc(100vw - 32px)); }
+.date-range-panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e9e0d7; color: #35271f; }
+.date-range-panel-heading .ant-btn { font-size: 20px; }
+.date-range-inline-panel .date-range-form { width: 100%; box-sizing: border-box; padding: 16px; gap: 14px; }
+.date-range-hint { margin: 0; color: #807164; line-height: 1.5; font-size: 12px; }
+.date-range-fields { display: grid; gap: 14px; }
+.date-range-fields label { min-width: 0; color: #514337; font-size: 12px; font-weight: 600; gap: 7px; }
+.date-range-fields .ant-picker { min-height: 42px; background: #fff; border-radius: 7px; }
+.date-range-inline-panel .date-range-actions { padding-top: 12px; border-top: 1px solid #eee7df; gap: 8px; }
+.date-range-inline-panel .date-range-actions .ant-btn { min-height: 36px; min-width: 76px; border-radius: 7px; font-weight: 600; }
+.date-range-inline-panel .date-range-error { font-size: 12px; line-height: 1.5; }

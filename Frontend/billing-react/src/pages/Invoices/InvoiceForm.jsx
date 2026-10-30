@@ -544,7 +544,7 @@ export function InvoiceForm() {
           You do not have permission to {id ? 'edit' : 'create'} invoices.
         </Alert>
       )}
-      <form onSubmit={(e) => submitForm(e, false)} noValidate>
+      <form className="invoice-editor-form" onSubmit={(e) => submitForm(e, false)} noValidate>
         <fieldset className="invoice-fieldset" disabled={busy || !editable}>
           <section className="invoice-panel invoice-customer-panel">
             <div className="invoice-section-heading">

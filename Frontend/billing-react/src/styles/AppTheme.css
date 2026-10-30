@@ -11,32 +11,36 @@
   --shadow-card: 0 3px 12px #35231C12;
   --primary: #674730;
   --secondary: #8A6548;
-  --shell-espresso: #30241E;
-  --shell-hover: #493A32;
-  --shell-active: #EADBC0;
+  --shell-sidebar: #E6D5C0;
+  --shell-hover: #DCC4B8;
+  --shell-active: #6A4838;
   --action-primary: #633D28;
   --action-hover: #462919;
-  --shell-icon: #403128;
+  --shell-icon: #462919;
   --shell-motion: 480ms cubic-bezier(0.4, 0, 0.2, 1);
-  --shell-taupe: #D4C2B2;
+  --shell-taupe: #F4EBE5;
   --shell-ivory: #FFF8EF;
   background: var(--workspace-surface);
 }
+/* Warm rose-beige navigation, with a high-contrast selected section. */
 .app-layout .bd-sidebar {
-  background: var(--shell-espresso);
-  color: #FFF8EF;
-  border-right-color: #816530;
+  background: var(--shell-sidebar);
+  color: #49362E;
+  border-right: 1px solid #CDB4A7;
+  box-shadow: 3px 0 16px #51382A09;
 }
 .app-layout .bd-sidebar-brand {
-  background: var(--shell-espresso);
-  color: #FFF8EF;
-  border-bottom-color: #816530;
+  background: var(--shell-sidebar);
+  color: #3E2C24;
+  border-bottom-color: #CDB4A7;
 }
-.app-layout .bd-sidebar-brand strong span { color: #E4C18F; }
-.app-layout .bd-sidebar-brand > span { background: #4D3613; color: #FFF8EF; }
-.app-layout .bd-nav-section > small { color: #EDDFC5; }
+.app-layout .bd-sidebar-brand strong { font-weight: 750; letter-spacing: -.025em; }
+.app-layout .bd-sidebar-brand strong span { color: #92634C; }
+.app-layout .bd-sidebar-brand > span { background: var(--shell-icon); color: #FFF8EF; box-shadow: 0 3px 8px #6846341A; }
+.app-layout .bd-nav-section > small { color: #795C4F; letter-spacing: .11em; }
 .app-layout .bd-nav-item {
-  color: #FFF8EF;
+  color: #49362E;
+  font-weight: 600;
   transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 .app-layout .bd-nav-item > svg:not(.bd-nav-arrow),
@@ -48,41 +52,49 @@
   flex-shrink: 0;
   border-radius: 9px;
   background: var(--shell-icon);
-  color: #F2E3C7;
+  color: #FFFFFF;
   transition: background-color 180ms ease, color 180ms ease;
 }
-.app-layout .bd-nav-item:hover { background: var(--shell-hover); color: #FFF8EF; transform: none; }
+.app-layout .bd-nav-item:hover { background: var(--shell-hover); color: #35251E; transform: none; }
 .app-layout .bd-nav-item:hover > svg:not(.bd-nav-arrow),
-.app-layout .bd-sidebar-footer button:hover > svg { background: #59473A; color: #FFF8EF; }
+.app-layout .bd-sidebar-footer button:hover > svg { background: #352016; color: #FFFFFF; }
 .app-layout .bd-nav-item.active,
 .app-layout .bd-nav-item.active:is(:hover, :active) {
   background: var(--shell-active);
-  color: #392A16;
-  box-shadow: inset 3px 0 0 #B99047, 0 2px 6px #170E0926;
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 3px 10px #5B3C2D24, inset 0 1px 0 #FFFFFF14;
 }
-.app-layout .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #795137; color: #FFFFFF; }
-.app-layout .bd-nav-item.active .bd-nav-arrow { color: #4B2E1E; opacity: 1; }
+.app-layout .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: var(--shell-icon); color: #FFFFFF; }
+.app-layout .bd-nav-item.active .bd-nav-arrow { color: #FFFFFF; opacity: .85; }
 .app-layout .bd-nav-item-user-role { min-height: 50px; padding-block: 6px; }
 .app-layout .bd-nav-item-user-role > span { min-width: 0; font-size: .78rem; line-height: 1.2; letter-spacing: -.025em; white-space: normal; overflow-wrap: normal; }
-.app-layout .bd-sidebar-footer { background: #402D24; border-color: #604637; color: #F0E2D4; }
-.app-layout .bd-sidebar-footer button { color: #F0E2D4; }
-.app-layout .bd-sidebar-footer button:hover { color: #F3CCA0; }
-.app-layout .bd-sidebar-footer p { color: #C4AA96; }
-.app-layout .bd-sidebar-scroll { scrollbar-color: #86664F var(--shell-espresso); }
-.app-layout .bd-sidebar-scroll::-webkit-scrollbar-track { background: var(--shell-espresso); }
-.app-layout .bd-sidebar-scroll::-webkit-scrollbar-thumb { background: #86664F; }
+.app-layout .bd-sidebar-footer { background: #EEDFD7; border: 1px solid #D5BEB1; color: #49362E; }
+.app-layout .bd-sidebar-footer button { color: #49362E; }
+.app-layout .bd-sidebar-footer button:hover { color: #6A4838; }
+.app-layout .bd-sidebar-footer p { color: #795C4F; }
+.app-layout .bd-sidebar-scroll { scrollbar-color: #B99A8C var(--shell-sidebar); }
+.app-layout .bd-sidebar-scroll::-webkit-scrollbar-track { background: var(--shell-sidebar); }
+.app-layout .bd-sidebar-scroll::-webkit-scrollbar-thumb { background: #B99A8C; }
 .app-layout .bd-sidebar :is(.bd-nav-item, .bd-sidebar-brand, .bd-sidebar-footer button):focus-visible {
-  outline-color: #F0D49F;
+  outline-color: #6A4838;
 }
 .app-layout .app-layout-main .bd-header {
   background: var(--shell-taupe);
   color: #35271F;
-  border-bottom-color: #BAA28D;
+  border-bottom-color: #DECFC3;
   box-shadow: 0 2px 8px #35231C0D;
 }
-.app-layout .bd-search { background: #F9F5EF; border-color: #BCA48D; color: #35271F; }
+.app-layout .bd-header .bd-search { background: #F9F5EF; border: 0; color: #35271F; box-shadow: none; }
 .app-layout .bd-search input::placeholder { color: #746355; }
-.app-layout .bd-search:focus-within { border-color: #76543D; box-shadow: 0 0 0 3px #76543D24; }
+.app-layout .bd-header .bd-search:focus-within { border: 0; outline: 0; background: #FFFFFF; box-shadow: 0 3px 12px #35231C12; }
+.app-layout .bd-header .bd-search input,
+.app-layout .bd-header .bd-search input:is(:focus, :focus-visible) { border: 0; outline: 0; box-shadow: none; background: transparent; }
+.app-layout .bd-header .bd-search > svg { flex-shrink: 0; }
+.app-layout .bd-search-clear { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 3px; border: 0; border-radius: 50%; background: transparent; color: #746355; cursor: pointer; }
+.app-layout .bd-search-clear:hover { background: #EADAC8; color: #35271F; }
+.app-layout .bd-search-clear svg { font-size: 18px; }
+.app-layout .bd-search-clear:focus-visible { outline: 2px solid #674730; outline-offset: 2px; }
 .app-layout .bd-user-copy span { color: #59483A; }
 .app-layout .bd-avatar { background: #674730; color: #FFF8EF; }
 .app-layout .bd-icon-button { background: #EADAC8; color: #483123; }

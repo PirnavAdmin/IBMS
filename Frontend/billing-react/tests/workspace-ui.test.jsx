@@ -8,13 +8,17 @@ import React, { act, useState } from 'react';
 import { readFileSync } from 'node:fs';
 import { DateRangeFilter } from '../src/components/DateRangeFilter';
 import { InvoiceDateRangeFilter } from '../src/pages/Invoices/components/InvoiceDateRangeFilter';
+import { DashboardHeader } from '../src/components/dashboard/DashboardHeader';
+import { DashboardSidebar } from '../src/components/dashboard/DashboardSidebar';
 import { DashboardFilters } from '../src/components/dashboard/DashboardFilters';
 import { OutstandingAging, RevenueChart } from '../src/components/dashboard/DashboardCharts';
 import { outstandingInvoiceDetails } from '../src/pages/Dashboard/dashboardRadial';
-import { DashboardRecords } from '../src/pages/Dashboard/Dashboard';
+import { Dashboard, DashboardRecords } from '../src/pages/Dashboard/Dashboard';
 import { CustomerFilters } from '../src/pages/Customers/components/CustomerTable';
 import { CustomerForm } from '../src/pages/Customers/components/CustomerForm';
 import { CustomerEmailLink } from '../src/pages/Customers/components/CustomerEmailLink';
+import { invoiceService } from '../src/pages/Invoices/services/invoiceService';
+import { paymentService } from '../src/pages/Payments/paymentService';
 import { defaultDashboardFilters } from '../src/pages/Dashboard/dashboardModel';
 import { historyParams } from '../src/pages/Notifications/notificationService';
 import { auditQuery } from '../src/pages/AuditActivity/auditModel';
@@ -25,6 +29,7 @@ import { Simulate } from 'react-dom/test-utils';
 import { MemoryRouter, Route, Routes, Link, useLocation } from 'react-router-dom';
 import { apiClient, authApi, customerApi } from 'billing-api-client';
 import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration';
+import { SettingsWorkspace } from '../src/pages/Settings/SettingsWorkspace';
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
 import { COUNTRIES_LIST } from '../src/services/regionalSettingsService';
 import { Login } from '../src/pages/Login/Login';
@@ -80,6 +85,178 @@ test('Enhanced user form preserves validation, role defaults, permission toggles
   } finally { await ui.close(); client.clear(); Object.assign(administrationService, originals); localStorage.clear(); }
 });
 
+test('Sidebar keeps permitted navigation and keyboard movement without menu search or support', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ name: 'Sam Patel', permissions: ['invoices.view', 'customers.view'] }));
+  const routes = [];
+  const ui = await mount(<DashboardSidebar activeItem="invoices" onNavigate={route => routes.push(route)} onSelect={() => {}} onClose={() => {}} />);
+  try {
+    assert.equal(ui.host.querySelector('[aria-label="Payments"]'), null);
+    assert.equal(ui.host.querySelector('[aria-current="page"]').getAttribute('aria-label'), 'Invoices');
+    assert.equal(ui.host.querySelector('[aria-label="Search menus"]'), null);
+    assert.equal(ui.host.querySelector('[aria-label="Help & Support"]'), null);
+    await click(ui.host.querySelector('[aria-label="Invoices"]'));
+    assert.deepEqual(routes, ['/invoices']);
+    const rows = ui.host.querySelectorAll('.bd-nav-item');
+    assert.deepEqual([...rows].map(row => row.getAttribute('aria-label')), ['Dashboard', 'Invoices', 'Customers', 'Export Jobs']);
+    rows[0].focus();
+    await act(async () => Simulate.keyDown(rows[0], { key: 'ArrowDown' }));
+    assert.equal(document.activeElement, ui.host.querySelector('[data-section="Billing"]'));
+    await act(async () => Simulate.keyDown(document.activeElement, { key: 'End' }));
+    assert.equal(document.activeElement, ui.host.querySelector('[data-section="Operations"]'));
+  } finally { await ui.close(); localStorage.clear(); }
+});
+
+test('Sidebar collapse and expand preserve every menu and no longer intercept Ctrl+K', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ name: 'Sam Patel', roles: ['TenantAdmin'] }));
+  let signouts = 0;
+  function Sidebar() {
+    const [collapsed, setCollapsed] = useState(false);
+    return <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} onSignOut={() => signouts++} onNavigate={() => {}} onSelect={() => {}} onClose={() => {}} />;
+  }
+  const ui = await mount(<Sidebar />);
+  try {
+    const count = ui.host.querySelectorAll('.bd-nav-item').length;
+    assert.equal(count, 15);
+    await click(ui.host.querySelector('[aria-label="Collapse sidebar"]'));
+    assert.equal(ui.host.querySelector('[aria-label="Expand sidebar"]').getAttribute('aria-expanded'), 'false');
+    const dashboard = ui.host.querySelector('[aria-label="Dashboard"]');
+    dashboard.focus();
+    await act(async () => Simulate.keyDown(dashboard, { key: 'ArrowDown' }));
+    assert.equal(document.activeElement, ui.host.querySelector('[aria-label="Invoices"]'));
+    const shortcut = new window.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true });
+    await act(async () => window.dispatchEvent(shortcut));
+    assert.equal(shortcut.defaultPrevented, false);
+    assert.ok(ui.host.querySelector('[aria-label="Expand sidebar"]'));
+    await click(ui.host.querySelector('[aria-label="Expand sidebar"]'));
+    assert.equal(ui.host.querySelectorAll('.bd-nav-item').length, count);
+    await click(ui.host.querySelector('[aria-label="Sign out"]'));
+    assert.equal(signouts, 1);
+  } finally { await ui.close(); localStorage.clear(); }
+});
+
+test('Sidebar accordion opens one group, skips hidden links and follows the active route', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ roles: ['TenantAdmin'] }));
+  const routes = [];
+  function Navigation() {
+    const [activeItem, setActiveItem] = useState('invoices');
+    return <><DashboardSidebar activeItem={activeItem} onNavigate={route => routes.push(route)} onSelect={() => {}} onClose={() => {}} /><button onClick={() => setActiveItem('settings')}>Change route to settings</button></>;
+  }
+  const ui = await mount(<Navigation />);
+  try {
+    const billing = ui.host.querySelector('[data-section="Billing"]');
+    const operations = ui.host.querySelector('[data-section="Operations"]');
+    const settings = ui.host.querySelector('[data-section="Configuration & Administration"]');
+    const panel = trigger => document.getElementById(trigger.getAttribute('aria-controls'));
+    assert.equal(billing.getAttribute('aria-expanded'), 'true');
+    assert.equal(panel(operations).hidden, true);
+    await click(operations);
+    assert.equal(panel(billing).hidden, true);
+    assert.equal(panel(operations).hidden, false);
+    billing.focus();
+    await act(async () => Simulate.keyDown(billing, { key: 'ArrowDown' }));
+    assert.equal(document.activeElement, operations);
+    await click(ui.host.querySelector('[aria-label="Export Jobs"]'));
+    assert.deepEqual(routes, ['/export-jobs']);
+    await act(async () => Simulate.keyDown(operations, { key: 'ArrowLeft' }));
+    assert.equal(panel(operations).hidden, true);
+    assert.equal(document.activeElement, operations);
+    await act(async () => Simulate.keyDown(operations, { key: 'ArrowRight' }));
+    assert.equal(panel(operations).hidden, false);
+    await click(button(ui.host, 'Change route to settings'));
+    assert.equal(panel(settings).hidden, false);
+    assert.equal(panel(operations).hidden, true);
+    assert.equal(ui.host.querySelector('[aria-current="page"]').getAttribute('aria-label'), 'Settings');
+    await click(settings);
+    assert.equal(panel(settings).hidden, true);
+  } finally { await ui.close(); localStorage.clear(); }
+});
+
+test('Dashboard header search is visible and filters recent records with useful empty feedback', async () => {
+  const rows = [{ id: 1, invoiceNumber: 'INV-100', customerName: 'Asha', invoiceDate: '2026-10-01', currency: 'INR', totalAmount: 120, status: 'Paid' }, { id: 2, invoiceNumber: 'INV-200', customerName: 'Ravi', invoiceDate: '2026-10-02', currency: 'INR', totalAmount: 240, status: 'Issued' }];
+  function SearchableRecords() {
+    const [search, setSearch] = useState('');
+    return <><DashboardHeader searchQuery={search} onSearch={setSearch} searchLabel="Search recent records" searchPlaceholder="Search recent records..." /><DashboardRecords title="Recent Invoices" allowed query={{}} rows={rows} type="invoices" searchQuery={search} /></>;
+  }
+  const ui = await mount(<SearchableRecords />);
+  try {
+    const search = ui.host.querySelector('[aria-label="Search recent records"]');
+    assert.ok(search);
+    assert.equal(ui.host.querySelectorAll('tbody tr').length, 2);
+    await act(async () => Simulate.change(search, { target: { value: 'ASHA' } }));
+    assert.equal(ui.host.querySelectorAll('tbody tr').length, 1);
+    assert.match(ui.host.querySelector('tbody').textContent, /INV-100/);
+    await act(async () => Simulate.change(search, { target: { value: 'missing' } }));
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /No recent invoices match your search/);
+    await act(async () => Simulate.change(search, { target: { value: '!!!' } }));
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /Enter at least one letter or number/);
+    await act(async () => Simulate.change(search, { target: { value: '' } }));
+    assert.equal(ui.host.querySelectorAll('tbody tr').length, 2);
+  } finally { await ui.close(); }
+});
+
+test('Dashboard navbar search finds older records, shows immediate results and clears back to overview', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ roles: ['TenantAdmin'], tenantId: 9876, id: 'navbar-search-test' }));
+  const originalInvoices = invoiceService.list;
+  const originalPayments = paymentService.getPayments;
+  const invoices = Array.from({ length: 8 }, (_, index) => ({ id: index + 1, invoiceNumber: `INV-${index + 1}`, customerName: index === 0 ? 'Harish' : 'Other customer', invoiceDate: `2026-10-0${index + 1}`, dueDate: '2026-11-30', currency: 'INR', totalAmount: 100, balanceAmount: 50, paidAmount: 50, status: 'Issued' }));
+  invoices.push({ ...invoices[0], id: 99, invoiceNumber: 'INV-USD', currency: 'USD' });
+  const payments = [{ id: 1, paymentNumber: 'PAY-1', customerName: 'Harish', paymentDate: '2026-10-01', currency: 'INR', amount: 50, status: 'Completed' }];
+  invoiceService.list = async () => ({ items: invoices, totalCount: invoices.length, pageSize: 100 });
+  paymentService.getPayments = async () => ({ items: payments, totalCount: payments.length, pageSize: 100 });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  let ui;
+  try {
+    ui = await mount(<QueryClientProvider client={client}><Dashboard /></QueryClientProvider>);
+    await settle();
+    assert.ok(ui.host.querySelector('[aria-label="Billing summary"]'));
+    const recentInvoices = [...ui.host.querySelectorAll('.premium-records')].find(node => node.querySelector('h2')?.textContent === 'Recent Invoices');
+    assert.ok(recentInvoices);
+    assert.equal(recentInvoices.querySelector('a[href="/invoices/1"]'), null);
+    const search = ui.host.querySelector('[aria-label="Search invoices, payments or customers"]');
+    await act(async () => Simulate.change(search, { target: { value: '  hARish  ' } }));
+    const results = ui.host.querySelector('#dashboard-search-results');
+    assert.ok(results);
+    assert.equal(search.getAttribute('aria-controls'), results.id);
+    assert.match(results.querySelector('[role="status"]').textContent, /1 invoice.*1 payment/);
+    assert.ok(results.querySelector('a[href="/invoices/1"]'));
+    assert.ok(results.querySelector('a[href="/payments/1"]'));
+    assert.equal(results.querySelector('a[href="/invoices/99"]'), null);
+    assert.equal(ui.host.querySelector('[aria-label="Billing summary"]'), null);
+    await act(async () => Simulate.change(search, { target: { value: 'not-found' } }));
+    assert.match(results.textContent, /No invoices match your search/);
+    await act(async () => Simulate.change(search, { target: { value: '!!!' } }));
+    assert.match(results.textContent, /Enter at least one letter or number/);
+    await click(ui.host.querySelector('.bd-search-clear'));
+    assert.equal(search.value, '');
+    assert.equal(ui.host.querySelector('#dashboard-search-results'), null);
+    assert.ok(ui.host.querySelector('[aria-label="Billing summary"]'));
+    await act(async () => Simulate.change(search, { target: { value: 'INV-1' } }));
+    assert.ok(ui.host.querySelector('#dashboard-search-results a[href="/invoices/1"]'));
+    await act(async () => Simulate.keyDown(search, { key: 'Escape' }));
+    assert.equal(search.value, '');
+    assert.equal(ui.host.querySelector('#dashboard-search-results'), null);
+  } finally {
+    if (ui) await ui.close();
+    client.clear(); invoiceService.list = originalInvoices; paymentService.getPayments = originalPayments; localStorage.clear();
+  }
+});
+
+test('Settings workspace uses route-aware tabs and preserves access to all configuration sections', async () => {
+  const ui = await mount(<SettingsWorkspace><p>Existing settings form</p></SettingsWorkspace>, '/settings/notifications/history');
+  try {
+    const tabs = [...ui.host.querySelectorAll('[role="tab"]')];
+    assert.equal(tabs.length, 6);
+    assert.equal(ui.host.querySelector('[aria-selected="true"]').textContent, 'Notifications');
+    assert.equal(ui.host.querySelector('.settings-nav-card'), null);
+    assert.match(ui.host.querySelector('[role="tabpanel"]').textContent, /Existing settings form/);
+    const country = tabs.find(tab => tab.textContent === 'Country');
+    await click(country);
+    assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
+    assert.equal(country.getAttribute('aria-selected'), 'true');
+    assert.equal(ui.host.querySelector('[role="tabpanel"]').getAttribute('aria-labelledby'), country.id);
+  } finally { await ui.close(); }
+});
+
 test('Country confirmation waits for server success, prevents duplicates and redirects with success feedback', async () => {
   localStorage.clear();
   localStorage.setItem('billing_auth_token', 'country-test-session');
@@ -87,7 +264,8 @@ test('Country confirmation waits for server success, prevents duplicates and red
   const original = apiClient.put; const originalGet = apiClient.get;
   apiClient.get = async () => ({success:true,data:{countries:[]}}); const calls = []; let resolve;
   apiClient.put = (url, payload) => { calls.push({ url, payload }); return new Promise(done => { resolve = done; }); };
-  const ui = await mount(countries, '/settings/countries');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = await mount(<QueryClientProvider client={client}>{countries}</QueryClientProvider>, '/settings/countries');
   try {
     await act(async () => Simulate.change(ui.host.querySelector('[aria-label="Select India"]'), { target: { checked: true } }));
     const save = button(ui.host, 'Save Changes');
@@ -99,7 +277,7 @@ test('Country confirmation waits for server success, prevents duplicates and red
     await act(async () => resolve({ success: true, message: 'Country settings saved.', data:{countries:[{countryCode:'IN',country:'India',phoneCode:'+91',currency:'INR'}]} })); await settle();
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings');
     assert.match(document.body.textContent, /Country settings saved\./);
-  } finally { await ui.close(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
+  } finally { await ui.close(); client.clear(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
 });
 
 test('Country save failure keeps the draft, ignores legacy settings and allows retry', async () => {
@@ -109,7 +287,8 @@ test('Country save failure keeps the draft, ignores legacy settings and allows r
   localStorage.setItem('billing_auth_token', 'country-error-session');
   apiClient.get = async () => ({success:true,data:{countries:[]}});
   apiClient.put = async () => ({ success: false, message: 'Country settings are unavailable.' });
-  const ui = await mount(countries, '/settings/countries');
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = await mount(<QueryClientProvider client={client}>{countries}</QueryClientProvider>, '/settings/countries');
   try {
     await act(async () => Simulate.change(ui.host.querySelector('[aria-label="Select Canada"]'), { target: { checked: true } }));
     await click(button(ui.host, 'Save Changes')); await settle();
@@ -122,7 +301,7 @@ test('Country save failure keeps the draft, ignores legacy settings and allows r
     await click(button(ui.host, 'Save Changes')); await settle();
     assert.match(document.body.textContent, /Connection lost/);
     assert.equal(ui.host.querySelector('[aria-label="Select Canada"]').checked, true);
-  } finally { await ui.close(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
+  } finally { await ui.close(); client.clear(); apiClient.put = original; apiClient.get = originalGet; localStorage.clear(); }
 });
 
 test('Login password visibility has matching icons, accessible actions and an unchanged value', async () => {
@@ -223,18 +402,65 @@ test('Shared Invoice Date Range stages local dates, rejects reversed dates, appl
   try {
     await click(ui.host.querySelector('.date-range-filter')); await settle();
     assert.equal(bodyButton('Apply').disabled, true);
+    assert.equal(document.body.querySelector('.date-range-error'), null, 'Do not show an error before the user starts entering dates');
+    assert.equal(document.body.querySelector('[aria-label="To Date"]').getAttribute('aria-invalid'), 'false');
+    assert.match(document.body.querySelector('.date-range-hint').textContent, /Choose a start and end date/);
     const from = document.body.querySelector('[aria-label="From Date"]');
     const to = document.body.querySelector('[aria-label="To Date"]');
     await changeInput(from, '2026-10-15'); await changeInput(to, '2026-10-01');
     assert.equal(bodyButton('Apply').disabled, true); assert.equal(calls.length, 0);
     assert.notEqual(to.type, 'date', 'Use the themed calendar instead of the browser calendar');
-    await changeInput(to, '2026-10-20'); await act(async () => Simulate.submit(document.body.querySelector('form.date-range-form')));
+    await changeInput(to, '2026-10-20'); await act(async () => Simulate.submit(document.body.querySelector('.date-range-form')));
     assert.deepEqual(calls, [{ startDate: '2026-10-15', endDate: '2026-10-20' }]);
     assert.match(ui.host.textContent, /15\/10\/2026.*20\/10\/2026/);
     await settle(); await click(ui.host.querySelector('.date-range-filter')); await settle();
     await click(bodyButton('Clear'));
     assert.deepEqual(calls.at(-1), { startDate: '', endDate: '' });
     assert.match(ui.host.textContent, /Date Range/);
+  } finally { await ui.close(); }
+});
+
+test('Date Range clear confirmation disappears without restoring the cleared filter', async () => {
+  const calls = [];
+  function Range() { const [range, setRange] = useState({ startDate: '2026-10-01', endDate: '2026-10-20' }); return <DateRangeFilter {...range} onApply={value => { calls.push(value); setRange(value); }} />; }
+  const ui = await mount(<Range />);
+  try {
+    await click(ui.host.querySelector('.date-range-filter')); await settle();
+    await click(bodyButton('Clear'));
+    assert.match(ui.host.querySelector('[role="status"]').textContent, /Date filter cleared/);
+    assert.deepEqual(calls, [{ startDate: '', endDate: '' }]);
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 3150)); });
+    assert.equal(ui.host.querySelector('[role="status"]'), null);
+    assert.equal(ui.host.querySelector('.date-range-filter').textContent, 'Date Range');
+    assert.equal(calls.length, 1, 'Dismissing the notice must not change the filter');
+  } finally { await ui.close(); }
+});
+
+test('Date Range rejects malformed manual text even when a valid range was already selected', async () => {
+  const calls = [];
+  function Range() { const [range, setRange] = useState({ startDate: '2026-10-01', endDate: '2026-10-20' }); return <DateRangeFilter {...range} onApply={value => { calls.push(value); setRange(value); }} />; }
+  const ui = await mount(<Range />);
+  const typeRaw = async (input, value) => {
+    await act(async () => { input.value = value; Simulate.input(input); Simulate.change(input, { target: { value } }); });
+  };
+  try {
+    await click(ui.host.querySelector('.date-range-filter')); await settle();
+    const from = document.body.querySelector('[aria-label="From Date"]');
+    const to = document.body.querySelector('[aria-label="To Date"]');
+    await typeRaw(from, '7646436365');
+    await act(async () => Simulate.blur(from));
+    assert.equal(from.getAttribute('aria-invalid'), 'true');
+    assert.equal(bodyButton('Apply').disabled, true);
+    assert.match(document.body.textContent, /Enter valid dates in YYYY-MM-DD format/);
+    await act(async () => Simulate.submit(document.body.querySelector('.date-range-form')));
+    assert.deepEqual(calls, [], 'Never reapply the previous valid range behind malformed text');
+    await typeRaw(from, '2026-10-15');
+    await typeRaw(to, '2026-02-30');
+    assert.equal(bodyButton('Apply').disabled, true);
+    await typeRaw(to, '2026-10-20');
+    assert.equal(bodyButton('Apply').disabled, false);
+    await act(async () => Simulate.submit(document.body.querySelector('.date-range-form')));
+    assert.deepEqual(calls, [{ startDate: '2026-10-15', endDate: '2026-10-20' }]);
   } finally { await ui.close(); }
 });
 
@@ -248,7 +474,7 @@ test('Dashboard range preserves Period, custom selection, reset, search and refr
     await click(ui.host.querySelector('.date-range-filter')); await settle();
     await changeInput(document.body.querySelector('[aria-label="From Date"]'), '2026-01-03');
     await changeInput(document.body.querySelector('[aria-label="To Date"]'), '2026-01-07');
-    await act(async () => Simulate.submit(document.body.querySelector('form.date-range-form')));
+    await act(async () => Simulate.submit(document.body.querySelector('.date-range-form')));
     assert.equal(changes.at(-1).start, '2026-01-03'); assert.equal(changes.at(-1).end, '2026-01-07');
     assert.match(ui.host.querySelector('.premium-select-trigger').textContent, /Custom dates/);
     await click(button(ui.host, 'Refresh')); assert.equal(refreshed, 1);
@@ -262,7 +488,7 @@ test('Customer statement range retains its existing local start/end filters and 
   try {
     await click(ui.host.querySelector('.date-range-filter')); await settle();
     await changeInput(document.body.querySelector('[aria-label="From Date"]'), '2026-10-02');
-    await act(async () => Simulate.submit(document.body.querySelector('form.date-range-form')));
+    await act(async () => Simulate.submit(document.body.querySelector('.date-range-form')));
     assert.deepEqual(calls.at(-1), { start: '2026-10-02', end: '2026-10-15', search: '' });
     await settle(); await click(ui.host.querySelector('.date-range-filter')); await settle(); await click(bodyButton('Clear'));
     assert.deepEqual(calls.at(-1), { start: '', end: '', search: '' });
@@ -280,7 +506,7 @@ test('Date Range actions do not submit the surrounding filter form and IDs are u
     await click(bodyButton('Clear'));
     await settle(); await click(triggers[1]); await settle();
     assert.notEqual(triggers[1].getAttribute('aria-controls'), id);
-    await click(document.body.querySelector('.date-range-modal button[aria-label="Close"]'));
+    await click(document.body.querySelector('.date-range-popover button[aria-label="Close"]'));
     assert.equal(triggers[1].getAttribute('aria-expanded'), 'false');
   } finally { await ui.close(); }
 });

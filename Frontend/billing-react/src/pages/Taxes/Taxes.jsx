@@ -237,7 +237,7 @@ function LoadError({ query }) {
     />
   );
 }
-function TaxList({ search, setSearch }) {
+export function TaxList({ search, setSearch }) {
   const query = useTaxes();
   const { state } = useLocation();
   const term = useSearchDebounce(search).toLowerCase();
@@ -593,7 +593,7 @@ function EditTax() {
     </div>
   );
 }
-export function Taxes() {
+export function Taxes({ embedded = false }) {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const signOut = () => {
@@ -603,11 +603,11 @@ export function Taxes() {
   };
   return (
     <div className="tax-module">
-      <DashboardHeader
+      {!embedded && <DashboardHeader
         searchQuery={search}
         onSearch={setSearch}
         onSignOut={signOut}
-      />
+      />}
       <main className="tax-settings-page">
         <Routes>
           <Route

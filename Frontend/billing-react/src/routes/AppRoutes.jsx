@@ -15,6 +15,7 @@ import { Dashboard } from '../pages/Dashboard/Dashboard';
 import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
 import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
+import { SettingsWorkspace } from '../pages/Settings/SettingsWorkspace';
 import { SettingsLanding } from '../pages/Settings/SettingsLanding';
 import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';
 import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';
@@ -130,30 +131,29 @@ export const AppRoutes = () => (
       <Route path="/templates-branding/audit" element={<PermissionRoute permission="audit.view"><TemplateAuditHistory /></PermissionRoute>} />
       <Route path="/templates-branding/:templateId/edit" element={<PermissionRoute permission="settings.manage"><EditTemplate /></PermissionRoute>} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
-      <Route path="/settings/numbering" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NumberingSettings /></PermissionRoute>} />
+      <Route path="/settings/numbering" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NumberingSettings /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/integrations" element={<PermissionRoute permission="integrations.manage"><Integrations /></PermissionRoute>} />
       <Route path="/webhooks" element={<PermissionRoute permission="integrations.manage"><Webhooks /></PermissionRoute>} />
       <Route path="/webhooks/deliveries" element={<PermissionRoute permission="integrations.manage"><DeliveryHistory /></PermissionRoute>} />
       <Route path="/background-jobs" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />
       <Route path="/export-jobs" element={<PermissionRoute permission={['billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
-      <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsLanding /></PermissionRoute>} />
+      <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><SettingsLanding /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/user-role-administration/*" element={<PermissionRoute permission={['users.view', 'roles.view', 'users.assign']}><UserRoleAdministration /></PermissionRoute>} />
-      <Route path="/settings/notifications" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationTemplates /></PermissionRoute>} />
-      <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
-      <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
-      <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationHistory /></PermissionRoute>} />
-      <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><CountryConfiguration /></PermissionRoute>} />
+      <Route path="/settings/notifications" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationTemplates /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationHistory /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><CountryConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
-      <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><Taxes /></PermissionRoute>} />
+      <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><Taxes embedded /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
-      <Route path="/settings/discounts" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><DiscountConfiguration /></PermissionRoute>} />
+      <Route path="/settings/discounts" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><DiscountConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/settings/discount" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discounts" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
-      <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><ChargesConfiguration /></PermissionRoute>} />
-      <Route path="/support" element={<ModulePlaceholder />} />
+      <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ChargesConfiguration /></SettingsWorkspace></PermissionRoute>} />
     </Route>
 
     {/* Unknown Route */}
