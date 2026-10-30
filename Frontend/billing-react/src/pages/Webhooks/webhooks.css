@@ -51,3 +51,12 @@
 .webhook-validation { color: var(--danger); font-size: 13px; margin-top: 8px; }
 @container integrations (max-width: 40rem) { .webhook-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @container integrations (max-width: 24rem) { .webhook-summary { grid-template-columns: minmax(0, 1fr); } .webhook-toolbar > .MuiTextField-root:nth-child(3) { flex-basis: 100%; } }
+
+.webhook-section { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.webhook-section legend { padding: 0 6px; color: var(--secondary); font-size: 14px; font-weight: 600; }
+.webhook-header-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.webhook-header-row .MuiTextField-root:first-child { flex: 1; }
+.webhook-header-row .MuiTextField-root:nth-child(2) { flex: 2; }
+.webhook-header-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.webhook-template-hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+.webhook-template-hint code { background: #f0e6da; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 11px; }

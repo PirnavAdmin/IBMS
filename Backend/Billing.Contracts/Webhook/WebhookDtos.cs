@@ -10,6 +10,9 @@ public class WebhookDto
     public string TargetUrl { get; set; } = string.Empty;
     public string SecretKeyPreview { get; set; } = string.Empty;
     public List<string> SubscribedEvents { get; set; } = new();
+    public Dictionary<string, string> CustomHeaders { get; set; } = new();
+    public string PayloadFormat { get; set; } = "Standard";
+    public string? CustomTemplate { get; set; }
     public string Status { get; set; } = "Active";
     public int ConsecutiveFailureCount { get; set; }
     public DateTime? LastTriggeredAtUtc { get; set; }
@@ -23,6 +26,9 @@ public class CreateWebhookRequest
     public string Name { get; set; } = string.Empty;
     public string TargetUrl { get; set; } = string.Empty;
     public List<string> SubscribedEvents { get; set; } = new();
+    public Dictionary<string, string>? CustomHeaders { get; set; }
+    public string PayloadFormat { get; set; } = "Standard";
+    public string? CustomTemplate { get; set; }
     public string Status { get; set; } = "Active";
 }
 
@@ -32,6 +38,9 @@ public class UpdateWebhookRequest
     public string Name { get; set; } = string.Empty;
     public string TargetUrl { get; set; } = string.Empty;
     public List<string> SubscribedEvents { get; set; } = new();
+    public Dictionary<string, string>? CustomHeaders { get; set; }
+    public string PayloadFormat { get; set; } = "Standard";
+    public string? CustomTemplate { get; set; }
     public string Status { get; set; } = "Active";
 }
 
@@ -60,6 +69,8 @@ public class WebhookPingResponse
     public string Message { get; set; } = string.Empty;
     public long LatencyMs { get; set; }
     public string? ResponseBody { get; set; }
+    public string? RequestHeaders { get; set; }
+    public string? RequestPayload { get; set; }
 }
 
 public class WebhookEventDefinitionDto
