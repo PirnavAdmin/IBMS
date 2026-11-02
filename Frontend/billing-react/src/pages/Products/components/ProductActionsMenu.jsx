@@ -1,8 +1,13 @@
 import { hasPermission } from "../../../utils/permissionUtils";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IconButton, ListItemIcon, Menu, MenuItem} from '@mui/material';
-import { EditOutlined, MoreVert, VisibilityOutlined } from '@mui/icons-material';
+import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import MoreVert from '@mui/icons-material/MoreVert';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 
 export function ProductActionItems({ product, onSelect }) {
   return [

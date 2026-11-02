@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TextField } from '@mui/material';
+import TextField from '@mui/material/TextField';
 import { searchInputError, EMPTY_SEARCH_GUIDANCE } from '../utils/search';
 
 // Blank input clears a live filter; pressing Enter on it explains that behavior.

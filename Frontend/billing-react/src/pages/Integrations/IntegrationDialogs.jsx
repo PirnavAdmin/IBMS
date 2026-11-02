@@ -1,8 +1,14 @@
 import { useRef, useState } from 'react';
-import {
-  Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  FormControlLabel, Switch, TextField,
-} from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
+import TextField from '@mui/material/TextField';
 
 const APP_PRESETS = [
   { name: 'Slack Notifications', desc: 'Direct webhook integration to Slack workspace channel' },
@@ -12,7 +18,7 @@ const APP_PRESETS = [
   { name: 'Custom CRM / ERP Connector', desc: 'Custom webhook endpoint with Bearer auth for external ERP' },
   { name: 'Zapier / Make / n8n', desc: 'Automation middleware bridge for custom integrations' },
 ];
-import { ContentCopyOutlined } from '@mui/icons-material';
+import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
 import { REGISTRATION_FLAGS } from './integrationService';
 
 export function FlagSwitches({ flags, onChange, disabled = false }) {

@@ -5,17 +5,13 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SettingsPageHeader } from '../../Settings/SettingsPageHeader';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import {
-  Alert,
-  Button,
-  CircularProgress,
-  } from '@mui/material';
-import {
-  RestartAlt,
-  SaveOutlined,
-  DeleteOutline,
-  HelpOutline,
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import RestartAlt from '@mui/icons-material/RestartAlt';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import HelpOutline from '@mui/icons-material/HelpOutline';
 import {
   RESET_POLICIES,
   DEFAULT_NUMBERING_CONFIG,

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDraftState, useFormDraft } from '../../../context/FormDraftContext';
 import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
-import { Add, ArrowBack, DeleteOutline, MoreVert } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import MoreVert from '@mui/icons-material/MoreVert';
 import { applyAdditionalDiscounts, applyAdditionalTaxes, currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { validateQuotation } from '../utils/quotationValidation';
 import { SearchablePicker } from './SearchablePicker';

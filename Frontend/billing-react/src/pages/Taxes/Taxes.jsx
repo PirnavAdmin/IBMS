@@ -15,13 +15,15 @@ import {
   useParams,
 } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, CircularProgress, MenuItem, Select, Skeleton } from "@mui/material";
-import {
-  AccountTreeOutlined,
-  CheckCircleOutline,
-  ReceiptLongOutlined,
-  RemoveCircleOutline,
-} from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Skeleton from '@mui/material/Skeleton';
+import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
 import { taxService, taxError } from "../../services/taxService";
 import { TAX_TYPES, emptyTax, validateTax, calculatePreview } from "./taxModel";

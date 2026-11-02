@@ -1,63 +1,79 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 
-import { Landing } from '../pages/Landing/Landing';
-import { Login } from '../pages/Login/Login';
-import { Register } from '../pages/Register/Register';
-import { TermsAndConditions, PrivacyPolicy } from '../pages/Legal/LegalPages';
-import { ForgotPassword } from '../pages/ForgotPassword/ForgotPassword';
-import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';
-import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
+// Keep the shell mounted while the selected page loads; unrelated modules stay unloaded.
+const lazyPage = (load, exportName) => {
+  const Page = lazy(() => load().then(module => ({ default: module[exportName] })));
+  const LazyPage = (props) => (
+    <Suspense fallback={<div role="status" aria-live="polite" style={{ padding: 24, color: 'inherit' }}>Loading page…</div>}>
+      <Page {...props} />
+    </Suspense>
+  );
+  LazyPage.displayName = exportName;
+  return LazyPage;
+};
 
-import { Dashboard } from '../pages/Dashboard/Dashboard';
-import { AppLayout } from '../layouts/AppLayout';
-import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
-import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
-import { SettingsWorkspace } from '../pages/Settings/SettingsWorkspace';
-import { SettingsLanding } from '../pages/Settings/SettingsLanding';
-import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';
-import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';
-import { NotificationHistory } from '../pages/Notifications/NotificationHistory';
-import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
-import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
-import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
-
-import { Payments } from '../pages/Payments/Payments';
-import { RecordPayment } from '../pages/Payments/RecordPayment';
-import { PaymentDetails } from '../pages/Payments/PaymentDetails';
-import { InvoiceList } from '../pages/Invoices/InvoiceList';
-import { InvoiceForm } from '../pages/Invoices/InvoiceForm';
-import { InvoiceDetails } from '../pages/Invoices/InvoiceDetails';
-import { InvoicePreview } from '../pages/Invoices/InvoicePreview';
-import { Taxes } from '../pages/Taxes/Taxes';
-import { CategoryList } from '../pages/Products/pages/CategoryList';
-import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
-import { ProductList } from '../pages/Products/ProductList';
-import { ProductDetails } from '../pages/Products/pages/ProductDetails';
-import { CreateProduct } from '../pages/Products/pages/CreateProduct';
-import { EditProduct } from '../pages/Products/pages/EditProduct';
-import { NumberingSettings } from '../pages/NumberingSettings';
-import { QuotationManagement } from '../pages/Quotations';
-import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory } from '../pages/InvoiceTemplates/InvoiceTemplates';
-import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
-import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
-import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
-import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
-import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';
-import { Integrations } from '../pages/Integrations/Integrations';
-import { Webhooks } from '../pages/Webhooks/Webhooks';
-import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
-import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';
-import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';
-
-// Customers
-import { CustomerListPage } from '../pages/Customers/pages/CustomerListPage';
-import { CreateCustomer } from '../pages/Customers/pages/CreateCustomer';
-import { EditCustomer } from '../pages/Customers/pages/EditCustomer';
-import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';
-import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';
+const Landing = lazyPage(() => import('../pages/Landing/Landing'), 'Landing');
+const Login = lazyPage(() => import('../pages/Login/Login'), 'Login');
+const Register = lazyPage(() => import('../pages/Register/Register'), 'Register');
+const TermsAndConditions = lazyPage(() => import('../pages/Legal/LegalPages'), 'TermsAndConditions');
+const PrivacyPolicy = lazyPage(() => import('../pages/Legal/LegalPages'), 'PrivacyPolicy');
+const ForgotPassword = lazyPage(() => import('../pages/ForgotPassword/ForgotPassword'), 'ForgotPassword');
+const VerifyOtp = lazyPage(() => import('../pages/VerifyOtp/VerifyOtp'), 'VerifyOtp');
+const ResetPassword = lazyPage(() => import('../pages/ResetPassword/ResetPassword'), 'ResetPassword');
+const Dashboard = lazyPage(() => import('../pages/Dashboard/Dashboard'), 'Dashboard');
+const AppLayout = lazyPage(() => import('../layouts/AppLayout'), 'AppLayout');
+const ModulePlaceholder = lazyPage(() => import('../pages/ModulePlaceholder/ModulePlaceholder'), 'ModulePlaceholder');
+const AuditActivity = lazyPage(() => import('../pages/AuditActivity/AuditActivity'), 'AuditActivity');
+const SettingsWorkspace = lazyPage(() => import('../pages/Settings/SettingsWorkspace'), 'SettingsWorkspace');
+const SettingsLanding = lazyPage(() => import('../pages/Settings/SettingsLanding'), 'SettingsLanding');
+const NotificationTemplates = lazyPage(() => import('../pages/Notifications/NotificationTemplates'), 'NotificationTemplates');
+const NotificationTemplateForm = lazyPage(() => import('../pages/Notifications/NotificationTemplateForm'), 'NotificationTemplateForm');
+const NotificationHistory = lazyPage(() => import('../pages/Notifications/NotificationHistory'), 'NotificationHistory');
+const DiscountConfiguration = lazyPage(() => import('../pages/Settings/DiscountConfiguration'), 'DiscountConfiguration');
+const ChargesConfiguration = lazyPage(() => import('../pages/Settings/ChargesConfiguration'), 'ChargesConfiguration');
+const CountryConfiguration = lazyPage(() => import('../pages/Settings/CountryConfiguration'), 'CountryConfiguration');
+const Payments = lazyPage(() => import('../pages/Payments/Payments'), 'Payments');
+const RecordPayment = lazyPage(() => import('../pages/Payments/RecordPayment'), 'RecordPayment');
+const PaymentDetails = lazyPage(() => import('../pages/Payments/PaymentDetails'), 'PaymentDetails');
+const InvoiceList = lazyPage(() => import('../pages/Invoices/InvoiceList'), 'InvoiceList');
+const InvoiceForm = lazyPage(() => import('../pages/Invoices/InvoiceForm'), 'InvoiceForm');
+const InvoiceDetails = lazyPage(() => import('../pages/Invoices/InvoiceDetails'), 'InvoiceDetails');
+const InvoicePreview = lazyPage(() => import('../pages/Invoices/InvoicePreview'), 'InvoicePreview');
+const Taxes = lazyPage(() => import('../pages/Taxes/Taxes'), 'Taxes');
+const CategoryList = lazyPage(() => import('../pages/Products/pages/CategoryList'), 'CategoryList');
+const CategoryFormPage = lazyPage(() => import('../pages/Products/pages/CategoryFormPage'), 'CategoryFormPage');
+const ProductList = lazyPage(() => import('../pages/Products/ProductList'), 'ProductList');
+const ProductDetails = lazyPage(() => import('../pages/Products/pages/ProductDetails'), 'ProductDetails');
+const CreateProduct = lazyPage(() => import('../pages/Products/pages/CreateProduct'), 'CreateProduct');
+const EditProduct = lazyPage(() => import('../pages/Products/pages/EditProduct'), 'EditProduct');
+const NumberingSettings = lazyPage(() => import('../pages/NumberingSettings'), 'NumberingSettings');
+const QuotationManagement = lazyPage(() => import('../pages/Quotations'), 'QuotationManagement');
+const InvoiceTemplates = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'InvoiceTemplates');
+const CreateTemplate = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'CreateTemplate');
+const EditTemplate = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'EditTemplate');
+const BrandingSettings = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'BrandingSettings');
+const TemplatePreview = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplatePreview');
+const TemplateVersionHistory = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplateVersionHistory');
+const TemplateAuditHistory = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplateAuditHistory');
+const CreditNoteList = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteList'), 'CreditNoteList');
+const CreditNoteForm = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteForm'), 'CreditNoteForm');
+const CreditNoteDetails = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteDetails'), 'CreditNoteDetails');
+const CreditNoteExportPage = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteExportPage'), 'CreditNoteExportPage');
+const UserRoleAdministration = lazyPage(() => import('../pages/UserRoleAdministration/UserRoleAdministration'), 'UserRoleAdministration');
+const Integrations = lazyPage(() => import('../pages/Integrations/Integrations'), 'Integrations');
+const Webhooks = lazyPage(() => import('../pages/Webhooks/Webhooks'), 'Webhooks');
+const DeliveryHistory = lazyPage(() => import('../pages/Webhooks/DeliveryHistory'), 'DeliveryHistory');
+const BackgroundJobStatus = lazyPage(() => import('../pages/BackgroundJobs/BackgroundJobStatus'), 'BackgroundJobStatus');
+const ExportJobStatus = lazyPage(() => import('../pages/BackgroundJobs/ExportJobStatus'), 'ExportJobStatus');
+const CustomerListPage = lazyPage(() => import('../pages/Customers/pages/CustomerListPage'), 'CustomerListPage');
+const CreateCustomer = lazyPage(() => import('../pages/Customers/pages/CreateCustomer'), 'CreateCustomer');
+const EditCustomer = lazyPage(() => import('../pages/Customers/pages/EditCustomer'), 'EditCustomer');
+const CustomerDetailsPage = lazyPage(() => import('../pages/Customers/pages/CustomerDetailsPage'), 'CustomerDetailsPage');
+const CustomerPrintPage = lazyPage(() => import('../pages/Customers/pages/CustomerPrintPage'), 'CustomerPrintPage');
 
 export const AppRoutes = () => (
   <Routes>

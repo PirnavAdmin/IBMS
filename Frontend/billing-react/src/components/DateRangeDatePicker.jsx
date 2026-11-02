@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { validDate } from '../utils/dateRangeValidation';
-import { ConfigProvider, DatePicker } from 'antd';
+import ConfigProvider from 'antd/es/config-provider';
+import DatePicker from 'antd/es/date-picker';
 import '../styles/DateRangeFilter.css';
 
 // Explicit tokens also theme calendars rendered in a portal outside the app shell.

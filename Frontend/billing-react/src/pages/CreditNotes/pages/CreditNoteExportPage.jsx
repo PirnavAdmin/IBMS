@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowBack, DownloadOutlined, PictureAsPdfOutlined } from '@mui/icons-material';
-import { Breadcrumbs, Button, MenuItem, TextField } from '@mui/material';
-import html2pdf from 'html2pdf.js';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
+import PictureAsPdfOutlined from '@mui/icons-material/PictureAsPdfOutlined';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
@@ -34,6 +38,7 @@ export function CreditNoteExportPage() {
     if (!element) return setError('PDF preview is not ready.');
     setBusy(true); setError('');
     try {
+      const { default: html2pdf } = await import('html2pdf.js');
       await html2pdf().set({
         margin: 10,
         filename: outputName,

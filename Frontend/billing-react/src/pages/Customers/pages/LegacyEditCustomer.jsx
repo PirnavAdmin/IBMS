@@ -1,12 +1,10 @@
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-﻿import {
-  Alert,
-  Breadcrumbs,
-  Button,
-  Card,
-  Link,
-  TextField,
-} from "@mui/material";
+﻿import Alert from '@mui/material/Alert';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import Link from '@mui/material/Link';
+import TextField from '@mui/material/TextField';
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { useRef, useState } from "react";
 import { useCustomerProfile, useCustomerMutation } from "../hooks/useCustomer";

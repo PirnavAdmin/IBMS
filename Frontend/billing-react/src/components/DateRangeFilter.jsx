@@ -1,8 +1,12 @@
 import { useEffect, useId, useState } from 'react';
-import { Button, ConfigProvider, Popover } from 'antd';
+import Button from 'antd/es/button';
+import ConfigProvider from 'antd/es/config-provider';
+import Popover from 'antd/es/popover';
 import dayjs from 'dayjs';
 import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
-import { ArrowDropDown, CalendarTodayOutlined, Close } from '@mui/icons-material';
+import ArrowDropDown from '@mui/icons-material/ArrowDropDown';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
+import Close from '@mui/icons-material/Close';
 import { displayDate, localCalendarDate } from '../utils/localDate';
 import { dateRangeError, validDate } from '../utils/dateRangeValidation';
 import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';

@@ -10,32 +10,28 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
-import {
-  MailOutline,
-  LockOutlined,
-  Visibility,
-  VisibilityOff,
-  VpnKeyOutlined,
-  LockResetOutlined,
-  ErrorOutline,
-  SendOutlined,
-  EditOutlined,
-  VerifiedUserOutlined,
-} from '@mui/icons-material';
+import MailOutline from '@mui/icons-material/MailOutline';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import VpnKeyOutlined from '@mui/icons-material/VpnKeyOutlined';
+import LockResetOutlined from '@mui/icons-material/LockResetOutlined';
+import ErrorOutline from '@mui/icons-material/ErrorOutline';
+import SendOutlined from '@mui/icons-material/SendOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import VerifiedUserOutlined from '@mui/icons-material/VerifiedUserOutlined';
 
 import { authApi } from 'billing-api-client';
 import { errorPresentation } from '../../utils/errorPresentation';

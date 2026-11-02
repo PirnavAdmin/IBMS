@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
-import { LockOutlined, VpnKeyOutlined, RefreshOutlined, EditOutlined, VerifiedUserOutlined } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Link from '@mui/material/Link';
+import Typography from '@mui/material/Typography';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import VpnKeyOutlined from '@mui/icons-material/VpnKeyOutlined';
+import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import VerifiedUserOutlined from '@mui/icons-material/VerifiedUserOutlined';
 import { authApi } from 'billing-api-client';
 import { AuthCardLayout } from '../../components/AuthCardLayout';
 import { useAuthNav } from '../../hooks/useAuthNav';

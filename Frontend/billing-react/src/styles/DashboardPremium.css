@@ -304,9 +304,24 @@
 @media (max-width: 440px) { .premium-filters { grid-template-columns: minmax(0, 1fr); }.premium-filters .premium-filter-actions { grid-column: auto; } }
 
 .premium-currency-control { position: relative; min-width: 0; }
-.premium-filters .premium-currency-control select { appearance: none; padding-right: 34px; font-size: 13px; font-weight: 500; }
-.premium-currency-control > svg { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
-.premium-currency-control select:disabled { cursor: not-allowed; opacity: .65; }
+.premium-filters .premium-currency-select.MuiOutlinedInput-root {
+  height: 36px; min-height: 36px; border-radius: 8px;
+  background: #fffcf8; color: #594330; font: inherit; font-size: 13px; font-weight: 500;
+}
+.premium-filters .premium-currency-select .MuiSelect-select {
+  box-sizing: border-box; min-height: 0; padding: 8px 34px 8px 10px; line-height: 18px;
+}
+.premium-filters .premium-currency-select .MuiOutlinedInput-notchedOutline { border-color: #decfbb; }
+.premium-filters .premium-currency-select:hover .MuiOutlinedInput-notchedOutline { border-color: #ba9774; }
+.premium-filters .premium-currency-select.Mui-focused .MuiOutlinedInput-notchedOutline { border-width: 1px; border-color: #795137; }
+.premium-filters .premium-currency-select .MuiSelect-icon { color: #7b6756; font-size: 18px; right: 10px; }
+.premium-filters .premium-currency-select.Mui-disabled { opacity: .65; }
+.premium-currency-menu.MuiPaper-root {
+  max-height: min(280px, calc(100dvh - 16px)); border: 1px solid var(--dropdown-border, #dcc6af);
+  border-radius: 10px; background: var(--dropdown-surface, #fffdf9); box-shadow: 0 8px 24px #4e331f26;
+}
+.premium-currency-menu .MuiMenuItem-root { min-height: 36px; font-size: 13px; }
+
 
 /* Keep the graph cards and their disclosure footers aligned as content varies. */
 .premium-analytics > .premium-panel > :is(.premium-chart-data, .premium-outstanding-details) { margin-top: auto; }

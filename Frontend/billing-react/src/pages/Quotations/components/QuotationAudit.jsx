@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { History, Search, PersonOutline } from '@mui/icons-material';
+import History from '@mui/icons-material/History';
+import Search from '@mui/icons-material/Search';
+import PersonOutline from '@mui/icons-material/PersonOutline';
 import { ThemedSelect } from './ThemedSelect';
 
 const events = ['Created', 'Edited', 'Sent', 'Approved', 'Cancelled', 'Converted', 'Discount Override', 'Status Changes'];

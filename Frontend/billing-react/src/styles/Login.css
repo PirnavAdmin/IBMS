@@ -749,3 +749,10 @@
 .billing-otp-card > .billing-auth-form-title, .billing-otp-card > .billing-auth-form-subtitle, .billing-otp-page .card-mode-desc { text-align: center; }
 .billing-auth-recovery-nav .MuiButton-root { padding: 4px 0; color: #795137; font: inherit; font-size: 13px; font-weight: 600; text-transform: none; }
 .billing-auth-recovery-nav .MuiButton-root:hover { background: #f6eee4; }
+
+@media (max-width: 960px) {
+  .billing-auth-login-page { width: 100%; }
+  .billing-auth-hero-top { flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
+  .billing-auth-secure-tag { flex-basis: 100%; font-size: 10px; }
+  .billing-auth-hero-content { margin-top: 20px; }
+}

@@ -1,6 +1,7 @@
 import { printCustomerDetails } from '../utils/customerReports';
 import { CustomerPrintSheet } from '../components/CustomerPrintSheet';
-import { Button, Skeleton } from "@mui/material";
+import Button from '@mui/material/Button';
+import Skeleton from '@mui/material/Skeleton';
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { useCustomer } from "../hooks/useCustomer";
 import { CustomerState } from "../components/CustomerShared";

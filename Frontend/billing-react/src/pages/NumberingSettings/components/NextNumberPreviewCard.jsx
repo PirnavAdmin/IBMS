@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import {
-  VisibilityOutlined,
-  FormatListNumberedOutlined,
-  CheckCircle,
-  LightbulbOutlined,
-} from '@mui/icons-material';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import FormatListNumberedOutlined from '@mui/icons-material/FormatListNumberedOutlined';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import LightbulbOutlined from '@mui/icons-material/LightbulbOutlined';
 import { numberingValidationSchema } from '../validation/numberingValidation';
 import { numberingService } from '../services/numberingService';
 

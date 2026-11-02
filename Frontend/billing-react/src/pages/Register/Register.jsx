@@ -4,26 +4,22 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { registrationSchema } from '../../utils/authValidation';
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  InputAdornment,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
-import {
-  PersonOutline,
-  MailOutline,
-  LockOutlined,
-  CheckCircleOutline,
-  CheckOutlined,
-  RadioButtonUncheckedOutlined,
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputAdornment from '@mui/material/InputAdornment';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import MailOutline from '@mui/icons-material/MailOutline';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import CheckOutlined from '@mui/icons-material/CheckOutlined';
+import RadioButtonUncheckedOutlined from '@mui/icons-material/RadioButtonUncheckedOutlined';
 import { authApi } from 'billing-api-client';
 import '../../styles/Login.css';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';

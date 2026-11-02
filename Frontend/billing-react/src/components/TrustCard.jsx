@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle } from '@mui/icons-material';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 
 const LIVE_FLASHCARDS = [
   { brand: 'Asian Paints', event: 'Invoice #8942 Settled', amount: '₹1,24,500', icon: '🎨' },

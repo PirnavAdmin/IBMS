@@ -1,4 +1,13 @@
-import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import UndoOutlined from '@mui/icons-material/UndoOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { displayDate } from '../../../utils/localDate';
 import { formatQuotationTimestamp } from '../utils/quotationDates';

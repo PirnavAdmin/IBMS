@@ -1,3 +1,4 @@
+import { uiModuleAliases } from './ui-build-config.mjs';
 import { build } from "esbuild";
 import { spawnSync } from "node:child_process";
 import { unlinkSync } from "node:fs";
@@ -5,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = new URL("../", import.meta.url);
 const output = new URL("tests/.invoice-tests.cjs", root);
 try {
-  await build({
+  await build({ mainFields: ['module', 'main'],
     entryPoints: [
       fileURLToPath(new URL("tests/invoice-interactions.test.jsx", root)),
     ],
@@ -15,13 +16,13 @@ try {
     format: "cjs",
     jsx: "automatic",
     loader: { ".css": "empty" },
-    external: ["jsdom", "react", "react/*", "react-dom", "react-dom/*", "antd", "@mui/*", "@emotion/*", "@tanstack/*", "axios", "dayjs"],
-    alias: Object.fromEntries(
+    external: ["jsdom","react","react/*","react-dom","react-dom/*","@emotion/*","@tanstack/*","axios","dayjs"],
+    alias: { ...uiModuleAliases, ...(Object.fromEntries(
       ["billing-contracts", "billing-api-client"].map((name) => [
         name,
         fileURLToPath(new URL(`../${name}/index.js`, root)),
       ]),
-    ),
+    )) },
     define: {
       "import.meta": '{"env":{}}',
       "process.env.NODE_ENV": '"development"',

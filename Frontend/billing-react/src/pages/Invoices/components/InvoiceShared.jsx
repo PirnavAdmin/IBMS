@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Breadcrumbs,
-  Button,
-  LinearProgress,
-  TextField,
-} from "@mui/material";
+import Alert from '@mui/material/Alert';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import LinearProgress from '@mui/material/LinearProgress';
+import TextField from '@mui/material/TextField';
 import { DashboardErrorState } from "../../../components/dashboard/DashboardStates";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";

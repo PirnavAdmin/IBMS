@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Input, Select, Table, Tooltip } from 'antd';
+import Button from 'antd/es/button';
+import Input from 'antd/es/input';
+import Select from 'antd/es/select';
+import Table from 'antd/es/table';
+import Tooltip from 'antd/es/tooltip';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateRangeFilter } from '../../components/DateRangeFilter';

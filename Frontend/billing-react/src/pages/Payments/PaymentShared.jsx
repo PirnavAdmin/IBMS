@@ -1,4 +1,5 @@
-import { Breadcrumbs, LinearProgress } from '@mui/material';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import LinearProgress from '@mui/material/LinearProgress';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';

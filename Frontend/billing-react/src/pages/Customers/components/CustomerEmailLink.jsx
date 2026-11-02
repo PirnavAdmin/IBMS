@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tooltip } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
 
 export function CustomerEmailLink({ email }) {
   const value = email.trim();

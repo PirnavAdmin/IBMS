@@ -1,6 +1,7 @@
 ﻿import React from 'react';
-import { Typography } from '@mui/material';
-import { WhatsApp, Check } from '@mui/icons-material';
+import Typography from '@mui/material/Typography';
+import WhatsApp from '@mui/icons-material/WhatsApp';
+import Check from '@mui/icons-material/Check';
 
 export const HeroMockup = () => (
   <div className="hero-mockup-wrapper">

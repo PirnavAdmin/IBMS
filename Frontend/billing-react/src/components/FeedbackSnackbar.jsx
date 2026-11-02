@@ -1,4 +1,6 @@
-import { Alert, Portal, Snackbar } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Portal from '@mui/material/Portal';
+import Snackbar from '@mui/material/Snackbar';
 
 // One presentation for completed actions across every module, including dialogs.
 export function FeedbackSnackbar({ message, onClose, severity = 'success' }) {

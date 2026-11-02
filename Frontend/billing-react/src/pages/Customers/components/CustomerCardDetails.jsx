@@ -1,5 +1,8 @@
-import { Alert, Button, CircularProgress, Skeleton } from '@mui/material';
-import { PersonOffOutlined } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Skeleton from '@mui/material/Skeleton';
+import PersonOffOutlined from '@mui/icons-material/PersonOffOutlined';
 import { useCustomer, useCustomerAudit } from '../hooks/useCustomer';
 import { displayDate, formatCurrency } from './CustomerShared';
 

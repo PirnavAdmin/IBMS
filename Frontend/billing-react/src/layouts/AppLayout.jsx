@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Menu } from '@mui/icons-material';
-import { useMediaQuery } from '@mui/material';
+import Menu from '@mui/icons-material/Menu';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
