@@ -111,9 +111,9 @@ export function CreditNoteList() {
       </section>
 
       <section className="cn-list-panel" id="credit-note-register" tabIndex={-1}>
-        <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div><span className="cn-result-count">{query.isPending ? 'Loading…' : `${totalCount} ${totalCount === 1 ? 'record' : 'records'}`}</span></div>
+        <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div></div>
         <div className="cn-filter-bar">
-          <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
+          <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason' }} />
           <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
           <FilterSelectField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
           <DateRangeFilter inline startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
@@ -142,7 +142,7 @@ export function CreditNoteList() {
               {query.isError && <TableRow><TableCell colSpan={9}><DashboardErrorState title="Unable to load credit notes" message={query.error?.message} onRetry={() => query.refetch()} /></TableCell></TableRow>}
               {!query.isPending && !query.isError && items.map((note) => <TableRow hover key={note.id} className="cn-data-row" onClick={() => navigate(`/credit-notes/${note.id}`)}>
                 <TableCell><span className="cn-number-cell" title={note.number}>{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
-                <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell">{note.invoiceNumber}</span></TableCell>
+                <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell cn-customer-invoice-cell" title={note.invoiceNumber}>{note.invoiceNumber}</span></TableCell>
                 <TableCell><span className={`cn-type-pill ${String(note.type).toLowerCase()}`}>{note.type}</span></TableCell>
                 <TableCell><strong className="cn-money-cell">{money(note.total, note.currency)}</strong></TableCell>
                 <TableCell><span className="cn-refunded-cell">{money(note.refunded, note.currency)}</span></TableCell>
@@ -154,7 +154,7 @@ export function CreditNoteList() {
             </TableBody>
           </Table>
         </TableContainer>}
-        {totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={totalCount} itemLabel="credit notes" onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setPageSize(value); setPage(0); }} />}
+        {totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={totalCount} itemLabel="credit notes" disabledPageHint={totalCount <= pageSize ? 'All credit notes fit on this page.' : undefined} className="cn-pagination" onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setPageSize(value); setPage(0); }} />}
       </section>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

@@ -54,10 +54,10 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-summary-value strong { font-size: 1.35rem; }
 .cn-list-panel,.cn-form-card,.cn-calculation-card,.cn-detail-card { min-width: 0; border: 1px solid #e7d9ca; border-radius: 14px; background: #fffdf9; box-shadow: 0 6px 20px #5937170a; }
 .cn-list-panel { overflow: hidden; scroll-margin-top: 96px; }
+.cn-list-panel:focus { outline: 2px solid #b98354; outline-offset: 2px; }
 .cn-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 22px 16px; border-bottom: 1px solid #efe5db; }
 .cn-list-heading h2 { color: #51331f; font-size: 1.05rem; }
 .cn-list-heading p { margin-top: 4px; color: #89796c; font-size: .78rem; }
-.cn-result-count { padding: 5px 10px; border-radius: 999px; background: #f4eadf; color: #775536; font-size: .72rem; font-weight: 750; }
 .cn-filter-bar { display: flex; align-items: center; gap: 11px; padding: 15px 20px; background: #fcf8f3; border-bottom: 1px solid #f0e6dc; }
 .cn-filter-bar:has(.date-range-inline-panel) { flex-wrap: wrap; align-items: flex-start; }
 .cn-filter-bar:has(.date-range-inline-panel) > .date-range-control-inline { flex: 1 1 100%; }
@@ -65,6 +65,8 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-status-menu-space { height: 252px; flex: 0 0 252px; }
 .cn-search { flex: 1 1 420px; max-width: 620px; }
 .cn-search .MuiInputBase-root { min-height: 42px; }
+.cn-search .MuiInputBase-input { min-width: 0; }
+.cn-search .MuiInputBase-input::placeholder { font-size: .82rem; opacity: 1; }
 .cn-search-icon { width: 19px; height: 19px; margin-right: 9px; color: #8b684b; }
 .cn-status-filter { width: 205px; }
 .cn-status-filter .MuiSelect-select { display: flex; align-items: center; gap: 7px; }
@@ -80,21 +82,21 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-table-wrap { width: 100%; }
 .cn-table-wrap .MuiTable-root,.cn-detail-table-wrap .MuiTable-root,.cn-lines-table .MuiTable-root { min-width: 850px; }
 .cn-list-page .cn-table-wrap .MuiTable-root { width: 100%; min-width: 0; table-layout: fixed; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root { box-sizing: border-box; padding: 9px 8px; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(1) { width: 14%; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(2) { width: 16%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root { box-sizing: border-box; padding: 7px 8px; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(1) { width: 16%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(2) { width: 15%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(3) { width: 8%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(4) { width: 11%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(5) { width: 10%; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(6) { width: 14%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(6) { width: 13%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(7) { width: 11%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(8) { width: 9%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(9) { width: 7%; max-width: 72px; }
 .cn-list-page .cn-table-wrap .cn-type-pill,.cn-list-page .cn-table-wrap .cn-status { max-width: 100%; white-space: normal; }
 .cn-page .MuiTableCell-head { padding: 13px 15px; background: #f4e9dc; color: #644833; font-size: .72rem; font-weight: 800; white-space: nowrap; }
 .cn-list-page .cn-table-wrap .MuiTableCell-head { white-space: normal; line-height: 1.3; overflow-wrap: anywhere; }
-.cn-list-page .cn-table-wrap .cn-sort-button { flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; text-align: left; }
-.cn-page .MuiTableCell-body { padding: 12px 15px; border-color: #f0e6dc; color: #4d4138; font-size: .8rem; }
+.cn-list-page .cn-table-wrap .cn-sort-button { width: 100%; min-width: 0; max-width: 100%; flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.cn-page .MuiTableCell-body { padding: 10px 15px; border-color: #f0e6dc; color: #4d4138; font-size: .8rem; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:last-child { position: sticky; right: 0; z-index: 2; min-width: 0; padding: 8px 4px; background: #fffdf9; box-shadow: -5px 0 8px -7px #4a3323; }
 .cn-list-page .cn-table-wrap .MuiTableCell-head:last-child { z-index: 4; background: #f4e9dc; }
 .cn-list-page .cn-table-wrap .MuiTableRow-hover:hover .MuiTableCell-root:last-child { background: #fcf7f0; }
@@ -103,10 +105,13 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-data-row { cursor: pointer; transition: background-color .12s ease; }
 .cn-page .cn-data-row:hover { background: #fcf7f0; }
 .cn-number-cell,.cn-customer-cell,.cn-money-cell { display: block; color: #4f321f; font-weight: 750; }
+.cn-money-cell { color: #542b16; font-size: .84rem; font-variant-numeric: tabular-nums; }
 .cn-number-cell { max-width: 100%; overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.cn-list-page .cn-table-wrap .cn-number-cell { overflow-wrap: normal; word-break: normal; white-space: nowrap; }
 .cn-customer-cell { max-width: 235px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cn-sub-cell { display: block; margin-top: 4px; color: #958579; font-size: .68rem; }
-.cn-refunded-cell { color: #6d7860; font-variant-numeric: tabular-nums; }
+.cn-customer-invoice-cell { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cn-refunded-cell { color: #7a806d; font-size: .74rem; font-variant-numeric: tabular-nums; }
 .cn-type-pill { display: inline-flex; align-items: center; padding: 4px 9px; border: 1px solid #e7d8c6; border-radius: 999px; background: #f7efe5; color: #74543b; font-size: .68rem; font-weight: 750; white-space: nowrap; }
 .cn-type-pill.full { border-color: #d9c09d; background: #f6ecda; color: #795629; }
 .cn-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid transparent; border-radius: 999px; font-size: .68rem; font-weight: 750; white-space: nowrap; }
@@ -120,6 +125,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-status-refunded { border-color: #c8dfd0; background: #edf7f0; color: #3d7550; }
 .cn-status-rejected,.cn-status-cancelled { border-color: #e6cbc4; background: #fbefec; color: #8a5143; }
 .cn-pagination { border-top: 1px solid #efe5db; }
+.cn-pagination .workspace-pagination-hint { color: #8c7763; font-size: 12px; }
 .cn-pagination .MuiTablePagination-toolbar { min-height: 50px; }
 .cn-pagination .MuiTablePagination-select { min-width: 42px; padding: 5px 22px 5px 9px; border-radius: 8px; background: #f4eadf; }
 /* Guided create/edit flow */
@@ -443,6 +449,19 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 }
 @media screen and (max-width: 850px) {
   .cn-list-page .cn-table-wrap .MuiTable-root { min-width: 850px; }
+}
+@media screen and (min-width: 851px) and (max-width: 1500px) {
+  .cn-list-page .cn-filter-bar { gap: 9px; padding: 12px 16px; }
+  .cn-list-page .cn-filter-bar .cn-search { flex: 1 1 300px; max-width: 500px; }
+  .cn-list-page .cn-filter-bar .cn-status-filter { flex: 0 1 170px; width: 170px; }
+  .cn-list-page .cn-filter-bar > .date-range-control { flex: 0 0 160px; width: 160px; }
+  .cn-list-page .cn-filter-bar .date-range-filter.ant-btn { box-sizing: border-box; width: 100%; min-width: 0; height: 40px; min-height: 40px; padding: 0 8px; white-space: nowrap; }
+  .cn-list-page .cn-filter-bar .date-range-filter.ant-btn > .date-range-label { flex-wrap: nowrap; white-space: nowrap; }
+  .cn-list-page .cn-table-wrap .MuiTableCell-root { padding: 5px 5px; }
+  .cn-list-page .cn-table-wrap .MuiTableCell-head { font-size: .68rem; }
+  .cn-list-page .cn-table-wrap .MuiTableCell-body { font-size: .74rem; }
+  .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(8) { width: 10%; }
+  .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(9) { width: 6%; }
 }
 @media screen and (max-width: 760px) {
   .cn-list-page .cn-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
