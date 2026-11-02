@@ -2,13 +2,11 @@ import { authApi } from 'billing-api-client';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
 import { useRef, useState } from 'react';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
-import {
-  Search,
-  Close,
-  KeyboardArrowDown,
-  Logout,
-  Menu,
-} from '@mui/icons-material';
+import Search from '@mui/icons-material/Search';
+import Close from '@mui/icons-material/Close';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import Logout from '@mui/icons-material/Logout';
+import Menu from '@mui/icons-material/Menu';
 
 export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, searchPlaceholder = 'Search displayed records...', searchLabel = 'Search dashboard', searchResultsId }) => {
   const [menuOpen, setMenuOpen] = useState(false);

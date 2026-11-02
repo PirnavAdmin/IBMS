@@ -1,11 +1,16 @@
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { DateRangeFilter } from '../DateRangeFilter';
-import { useState, useRef, useEffect } from 'react';
-import { Refresh, RestartAlt, KeyboardArrowDown } from '@mui/icons-material';
+import { useState, useRef, useEffect, useId } from 'react';
+import Refresh from '@mui/icons-material/Refresh';
+import RestartAlt from '@mui/icons-material/RestartAlt';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 
 export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, currencies = [], currency = '' }) => {
+  const currencyLabelId = useId();
   const [isOpen, setIsOpen] = useState(false);
   useExclusiveDropdown(isOpen, setIsOpen);
   const dropdownRef = useRef(null);
@@ -81,16 +86,31 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, cu
       </div>
     </div>
 
-    <label className="premium-filter-field premium-currency-field">
-      <span>Billing Currency</span>
+    <div className="premium-filter-field premium-currency-field">
+      <span id={currencyLabelId}>Billing Currency</span>
       <div className="premium-currency-control">
-        <select aria-label="Billing Currency" value={currency || ''} disabled={!currencies.length} onChange={event => onChange({ ...values, currency: event.target.value })}>
-          {!currencies.length && <option value="">{isRefreshing ? 'Loading currencies...' : 'No currencies available'}</option>}
-          {currencies.map(code => <option key={code} value={code}>{code}</option>)}
-        </select>
-        <KeyboardArrowDown className="premium-select-arrow" fontSize="small" aria-hidden="true" />
+        <Select
+          className="premium-currency-select"
+          labelId={currencyLabelId}
+          inputProps={{ 'aria-label': 'Billing Currency' }}
+          value={currency || ''}
+          disabled={!currencies.length}
+          displayEmpty
+          fullWidth
+          size="small"
+          IconComponent={KeyboardArrowDown}
+          onChange={event => onChange({ ...values, currency: event.target.value })}
+          MenuProps={{
+            PaperProps: { className: 'premium-currency-menu' },
+            MenuListProps: { 'aria-label': 'Billing Currency options' },
+            marginThreshold: 8,
+          }}
+        >
+          {!currencies.length && <MenuItem value="" disabled>{isRefreshing ? 'Loading currencies...' : 'No currencies available'}</MenuItem>}
+          {currencies.map(code => <MenuItem key={code} value={code}>{code}</MenuItem>)}
+        </Select>
       </div>
-    </label>
+    </div>
 
     <div className="premium-filter-actions">
     <button type="button" onClick={reset}><RestartAlt fontSize="small" />Reset</button>

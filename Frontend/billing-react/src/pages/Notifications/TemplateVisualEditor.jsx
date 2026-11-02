@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Button, Input } from 'antd';
+import Button from 'antd/es/button';
+import Input from 'antd/es/input';
 import { createFieldChip, fieldLabel, loadVisualEditor, parseTemplateToVisualModel, serializeVisualEditor } from './templateVisualModel';
 
 export const TemplateVisualEditor = forwardRef(function TemplateVisualEditor({ value = '', onChange, variables = [], rich = false, disabled, id, onActivate, ...accessibility }, ref) {

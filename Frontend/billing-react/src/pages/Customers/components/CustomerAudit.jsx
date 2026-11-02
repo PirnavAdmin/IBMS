@@ -3,7 +3,7 @@ import { CustomerTable } from './CustomerTable';
 import { useCustomerAudit } from '../hooks/useCustomer';
 import { CustomerState } from './CustomerShared';
 import { displayDate } from './CustomerShared';
-import { Chip } from '@mui/material';
+import Chip from '@mui/material/Chip';
 
 export function CustomerAudit({ customerId }) {
   const query = useCustomerAudit(customerId);

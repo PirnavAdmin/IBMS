@@ -1,7 +1,16 @@
-import { Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, Tooltip } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Tooltip from '@mui/material/Tooltip';
 import { ProductActionsMenu } from './ProductActionsMenu';
 import { ProductEmptyState, ProductErrorState } from './ProductStates';
-import { Inventory2Outlined, DesignServicesOutlined } from '@mui/icons-material';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import DesignServicesOutlined from '@mui/icons-material/DesignServicesOutlined';
 import { Link } from 'react-router-dom';
 import { formatProductPrice } from '../utils/formatProductPrice';
 

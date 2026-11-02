@@ -1,5 +1,8 @@
 import { useId } from 'react';
-import { MenuItem, Pagination, PaginationItem, TextField } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import Pagination from '@mui/material/Pagination';
+import PaginationItem from '@mui/material/PaginationItem';
+import TextField from '@mui/material/TextField';
 import './WorkspacePagination.css';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowBack } from '@mui/icons-material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from 'billing-api-client';
 import { CustomerForm } from '../components/CustomerForm';

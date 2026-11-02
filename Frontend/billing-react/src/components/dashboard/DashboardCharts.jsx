@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowForward } from '@mui/icons-material';
-import { Tooltip } from '@mui/material';
+import ArrowForward from '@mui/icons-material/ArrowForward';
+import Tooltip from '@mui/material/Tooltip';
 import { money } from '../../pages/Dashboard/dashboardModel';
 import { agingArc, agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
 import { displayDate } from '../../utils/localDate';

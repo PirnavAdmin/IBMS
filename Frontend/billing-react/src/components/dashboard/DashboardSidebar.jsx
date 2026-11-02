@@ -1,28 +1,26 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Tooltip } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
 import { authApi } from 'billing-api-client';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
-import {
-  BrandingWatermarkOutlined,
-  FormatListNumberedOutlined,
-  FileDownloadOutlined,
-  IntegrationInstructionsOutlined,
-  ChevronLeft,
-  ExpandMore,
-  Logout,
-  DashboardOutlined,
-  HistoryOutlined,
-  Inventory2Outlined,
-  PaymentsOutlined,
-  ManageAccountsOutlined,
-  PeopleOutline,
-  ReceiptLongOutlined,
-  ReceiptOutlined,
-  RequestQuoteOutlined,
-  SettingsOutlined,
-  ScheduleOutlined,
-  NotificationsOutlined,
-} from '@mui/icons-material';
+import BrandingWatermarkOutlined from '@mui/icons-material/BrandingWatermarkOutlined';
+import FormatListNumberedOutlined from '@mui/icons-material/FormatListNumberedOutlined';
+import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
+import IntegrationInstructionsOutlined from '@mui/icons-material/IntegrationInstructionsOutlined';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import Logout from '@mui/icons-material/Logout';
+import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import ManageAccountsOutlined from '@mui/icons-material/ManageAccountsOutlined';
+import PeopleOutline from '@mui/icons-material/PeopleOutline';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import ReceiptOutlined from '@mui/icons-material/ReceiptOutlined';
+import RequestQuoteOutlined from '@mui/icons-material/RequestQuoteOutlined';
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
+import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
+import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import { InvoiceBillingLogo } from '../InvoiceBillingLogo';
 import { dashboardNavigation } from '../../data/dashboardNavigation';
 import { hasPermission } from '../../utils/permissionUtils';
@@ -108,7 +106,7 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
     <aside ref={asideRef} id="app-primary-navigation" className={`bd-sidebar astra-sidebar ${open ? 'is-open' : ''}`} style={{ '--astra-menu-count': count || 1 }} aria-label="Primary navigation" aria-hidden={mobile && !open ? true : undefined} inert={mobile && !open ? '' : undefined} onKeyDown={keyboard}>
       <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
       <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')} aria-label="Go to dashboard">
-        <InvoiceBillingLogo size={22} /><strong>INVOICE<span>.</span>BILLING</strong>
+        <InvoiceBillingLogo size={36} /><strong>INVOICE<span>.</span>BILLING</strong>
       </button>
       <nav id="astra-menu-content" className="astra-menu-content" aria-label="Module navigation">
         {sections.map(renderSection)}

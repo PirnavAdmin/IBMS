@@ -1,11 +1,9 @@
 import React from 'react';
-import {
-  ReceiptLongOutlined,
-  RequestQuoteOutlined,
-  PaymentsOutlined,
-  DescriptionOutlined,
-  CheckCircle,
-} from '@mui/icons-material';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import RequestQuoteOutlined from '@mui/icons-material/RequestQuoteOutlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 import { DOCUMENT_TYPE_CARDS } from '../validation/numberingValidation';
 
 const getDocTypeIcon = (id) => {

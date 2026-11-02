@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Chip, LinearProgress } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+import Refresh from '@mui/icons-material/Refresh';
 import { apiClient } from 'billing-api-client';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { backgroundJobError, backgroundJobService } from './backgroundJobService';

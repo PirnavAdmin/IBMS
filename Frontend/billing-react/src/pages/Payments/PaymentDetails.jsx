@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { Link, useParams, useLocation } from 'react-router-dom';
-import {
-  LocalPrintshopOutlined,
-  AccessTimeOutlined,
-  PersonOutline,
-  AddCircleOutline,
-  UndoOutlined,
-  HistoryOutlined,
-  SwapHorizOutlined,
-} from '@mui/icons-material';
+import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
+import AccessTimeOutlined from '@mui/icons-material/AccessTimeOutlined';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline';
+import UndoOutlined from '@mui/icons-material/UndoOutlined';
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
+import SwapHorizOutlined from '@mui/icons-material/SwapHorizOutlined';
 import { useQuery } from '@tanstack/react-query';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { PaymentShell, PaymentState, PaymentValues, PaymentStatus, usePaymentUser } from './PaymentShared';

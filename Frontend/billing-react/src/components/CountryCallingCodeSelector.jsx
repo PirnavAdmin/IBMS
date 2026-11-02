@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search } from '@mui/icons-material';
+import Search from '@mui/icons-material/Search';
 import {
   useRegionalSettings,
   COUNTRIES_LIST,

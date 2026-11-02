@@ -564,16 +564,29 @@ test('Aging keeps complete real currency values, zero buckets, and a separate No
   } finally { await ui.close(); }
 });
 
-test('Dashboard currency replaces recent search and drilldowns retain range and currency', async () => {
+test('Dashboard currency preserves date filters and drilldowns retain range and currency', async () => {
   const chosen = [];
-  const ui = await mount(<DashboardFilters values={{ start: '2026-10-01', end: '2026-10-23' }} onChange={() => {}} onRefresh={() => {}} currencies={['INR', 'USD']} currency="INR" onCurrencyChange={value => chosen.push(value)} />);
+  const ui = await mount(<DashboardFilters values={{ start: '2026-10-01', end: '2026-10-23' }} onChange={value => chosen.push(value)} onRefresh={() => {}} currencies={['INR', 'USD']} currency="INR" />);
   try {
     assert.equal(ui.host.querySelector('input[type="search"]'), null);
-    await act(async () => Simulate.change(ui.host.querySelector('select'), { target: { value: 'USD' } }));
-    assert.deepEqual(chosen, ['USD']);
+    await act(async () => Simulate.mouseDown(ui.host.querySelector('[role="combobox"][aria-label="Billing Currency"]'), { button: 0 }));
+    const option = [...document.querySelectorAll('[role="option"]')].find(node => node.getAttribute('data-value') === 'USD');
+    await click(option);
+    assert.deepEqual(chosen, [{ start: '2026-10-01', end: '2026-10-23', currency: 'USD' }]);
     const destination = new URL(summaryDestination('outstanding', { start: '2026-10-01', end: '2026-10-23' }, 'USD'), 'http://localhost');
     assert.equal(destination.pathname, '/invoices');
     assert.deepEqual(Object.fromEntries(destination.searchParams), { paymentState: 'Outstanding', startDate: '2026-10-01', endDate: '2026-10-23', currency: 'USD' });
+  } finally { await ui.close(); }
+});
+
+for (const loading of [false, true]) test(`Dashboard currency is disabled when ${loading ? 'loading' : 'no billing currencies exist'}`, async () => {
+  const chosen = [];
+  const ui = await mount(<DashboardFilters values={{ start: '', end: '' }} onChange={value => chosen.push(value)} onRefresh={() => {}} isRefreshing={loading} currencies={[]} currency="" />);
+  try {
+    const selector = ui.host.querySelector('[role="combobox"][aria-label="Billing Currency"]');
+    assert.equal(selector.getAttribute('aria-disabled'), 'true');
+    assert.match(selector.textContent, loading ? /Loading currencies/ : /No currencies available/);
+    assert.deepEqual(chosen, []);
   } finally { await ui.close(); }
 });
 

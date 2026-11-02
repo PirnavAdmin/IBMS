@@ -1,18 +1,16 @@
 import { displayDateTime } from '../../../utils/localDate';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowBack,
-  EditOutlined,
-  DeleteOutline,
-  Business,
-  EmailOutlined,
-  PhoneOutlined,
-  ReceiptOutlined,
-  LocationOnOutlined,
-  LocalShippingOutlined,
-  NotesOutlined,
-} from '@mui/icons-material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import Business from '@mui/icons-material/Business';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
+import ReceiptOutlined from '@mui/icons-material/ReceiptOutlined';
+import LocationOnOutlined from '@mui/icons-material/LocationOnOutlined';
+import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
+import NotesOutlined from '@mui/icons-material/NotesOutlined';
 import { customerApi } from 'billing-api-client';
 import { CustomerStatusBadge } from '../components/CustomerStatusBadge';
 import '../styles/customer-form.css';

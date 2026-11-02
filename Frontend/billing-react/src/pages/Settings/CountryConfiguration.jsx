@@ -1,25 +1,21 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
-import {
-  PublicOutlined,
-  SaveOutlined,
-  SearchOutlined,
-  Close,
-  DoneAllOutlined,
-  RemoveDoneOutlined,
-  ArrowBackOutlined,
-  CheckCircle,
-  FlagOutlined,
-  PhoneOutlined,
-  MonetizationOnOutlined,
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import PublicOutlined from '@mui/icons-material/PublicOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import Close from '@mui/icons-material/Close';
+import DoneAllOutlined from '@mui/icons-material/DoneAllOutlined';
+import RemoveDoneOutlined from '@mui/icons-material/RemoveDoneOutlined';
+import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import FlagOutlined from '@mui/icons-material/FlagOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
+import MonetizationOnOutlined from '@mui/icons-material/MonetizationOnOutlined';
 import { SettingsPageHeader } from './SettingsPageHeader';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';

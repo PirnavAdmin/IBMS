@@ -1,3 +1,4 @@
+import { uiModuleAliases } from './ui-build-config.mjs';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { unlink } from 'node:fs/promises';
@@ -5,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 const outfile = new URL('./.phase2-presentation.cjs', import.meta.url);
 try {
-  await build({
+  await build({ mainFields: ['module', 'main'],
     entryPoints: [fileURLToPath(new URL('./phase2-presentation.test.jsx', import.meta.url))],
     outfile: fileURLToPath(outfile), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
-    loader: { '.css': 'empty' }, external: ['react', 'react/*', 'react-dom', 'react-dom/*', 'antd', '@mui/*', '@emotion/*', '@tanstack/*', 'axios', 'dayjs', 'jsdom'],
-    alias: Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
+    loader: { '.css': 'empty' }, external: ["react","react/*","react-dom","react-dom/*","@emotion/*","@tanstack/*","axios","dayjs","jsdom"],
+    alias: { ...uiModuleAliases, ...(Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))]))) },
     define: { 'import.meta': '{"env":{}}' },
     banner: { js: `const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:3000', pretendToBeVisual: true });

@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Container,
-  Grid,
-  Box,
-  Chip,
-} from '@mui/material';
-import {
-  ArrowForward,
-  CheckCircle,
-  CreditCard,
-  AccountBalance,
-  QrCode2,
-  Payments,
-  WhatsApp,
-  Email,
-  Smartphone,
-  Check,
-  AccountBalanceWallet,
-} from '@mui/icons-material';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import ArrowForward from '@mui/icons-material/ArrowForward';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import CreditCard from '@mui/icons-material/CreditCard';
+import AccountBalance from '@mui/icons-material/AccountBalance';
+import QrCode2 from '@mui/icons-material/QrCode2';
+import Payments from '@mui/icons-material/Payments';
+import WhatsApp from '@mui/icons-material/WhatsApp';
+import Email from '@mui/icons-material/Email';
+import Smartphone from '@mui/icons-material/Smartphone';
+import Check from '@mui/icons-material/Check';
+import AccountBalanceWallet from '@mui/icons-material/AccountBalanceWallet';
 import { useAuthNav } from 'billing-react';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 import { HeroMockup } from './HeroMockup';

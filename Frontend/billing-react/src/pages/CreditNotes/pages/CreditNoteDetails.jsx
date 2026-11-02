@@ -1,17 +1,33 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowBack, CheckCircleOutline, Close, ContentCopy, EditOutlined, LocalPrintshopOutlined, PictureAsPdfOutlined,
-  PaymentsOutlined, ReceiptLongOutlined, SendOutlined, TaskAltOutlined,
-} from '@mui/icons-material';
-import {
-  Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Table,
-  TableBody, TableCell, TableHead, TableRow, TextField,
-} from '@mui/material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import Close from '@mui/icons-material/Close';
+import ContentCopy from '@mui/icons-material/ContentCopy';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
+import PictureAsPdfOutlined from '@mui/icons-material/PictureAsPdfOutlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import SendOutlined from '@mui/icons-material/SendOutlined';
+import TaskAltOutlined from '@mui/icons-material/TaskAltOutlined';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import MenuItem from '@mui/material/MenuItem';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import { InvoiceBillingLogo } from '../../../components/InvoiceBillingLogo';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { formatDate, formatDateTime, money, refundableBalance, roundCurrency, splitTaxAmount } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
@@ -106,7 +122,7 @@ export function CreditNoteDetails() {
       {isPreview && <div className="cn-preview-toolbar"><Button onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
       <header className="cn-document-header">
-        <div className="cn-document-brand"><span className="cn-brand-mark"><ReceiptLongOutlined /></span><div><small>INVOICE.BILLING</small><strong>Credit note</strong></div></div>
+        <div className="cn-document-brand"><InvoiceBillingLogo size={28} /><div><small>INVOICE.BILLING</small><strong>Credit note</strong></div></div>
         <div className="cn-document-title"><div><span className="cn-eyebrow">CUSTOMER CREDIT</span><h1>{note.number}</h1><p>Credit note for invoice <span>{note.invoiceNumber}</span></p></div><CreditNoteStatusBadge status={note.status} /></div>
         <div className="cn-document-meta"><div><small>Credit note date</small><strong>{formatDate(note.date)}</strong></div><div><small>Created by</small><strong>{note.createdBy || '—'}</strong></div><div><small>Credit type</small><strong>{note.type}</strong></div><button type="button" className="cn-copy-link" onClick={() => { navigator.clipboard?.writeText(note.number || ''); setNotice('Reference copied.'); }}><ContentCopy fontSize="small" /> Copy reference</button></div>
       </header>

@@ -85,12 +85,12 @@
   border-bottom-color: #DECFC3;
   box-shadow: 0 2px 8px #35231C0D;
 }
-.app-layout .bd-header .bd-search { background: #F9F5EF; border: 0; color: #35271F; box-shadow: none; }
-.app-layout .bd-search input::placeholder { color: #746355; }
-.app-layout .bd-header .bd-search:focus-within { border: 0; outline: 0; background: #FFFFFF; box-shadow: 0 3px 12px #35231C12; }
+.app-layout .bd-header .bd-search { background: #FFFFFF; border: 0; color: #3E2C24; box-shadow: 0 2px 8px #35231C14; }
+.app-layout .bd-search input::placeholder { color: #6B5A4D; opacity: 1; }
+.app-layout .bd-header .bd-search:focus-within { border: 0; outline: 0; background: #FFFFFF; box-shadow: 0 3px 12px #35231C24; }
 .app-layout .bd-header .bd-search input,
 .app-layout .bd-header .bd-search input:is(:focus, :focus-visible) { border: 0; outline: 0; box-shadow: none; background: transparent; }
-.app-layout .bd-header .bd-search > svg { flex-shrink: 0; }
+.app-layout .bd-header .bd-search > svg { flex-shrink: 0; color: #674730; }
 .app-layout .bd-search-clear { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 3px; border: 0; border-radius: 50%; background: transparent; color: #746355; cursor: pointer; }
 .app-layout .bd-search-clear:hover { background: #EADAC8; color: #35271F; }
 .app-layout .bd-search-clear svg { font-size: 18px; }

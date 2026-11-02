@@ -1,0 +1,9 @@
+# Query: Rings compare paid balances on the same invoices. Monthly bars show completed payments by payment date
+# ContextLines: 1
+
+1 result - 1 file
+
+Frontend\billing-react\src\components\dashboard\DashboardCharts.jsx:
+  52        </div>
+  53:       
+  54        <div className="premium-monthly-trend" aria-label="Recent monthly revenue">

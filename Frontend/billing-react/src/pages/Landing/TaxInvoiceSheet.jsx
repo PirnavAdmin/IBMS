@@ -1,6 +1,8 @@
 import React from 'react';
-import { Typography } from '@mui/material';
-import { QrCode2, Verified, CheckCircleOutline } from '@mui/icons-material';
+import Typography from '@mui/material/Typography';
+import QrCode2 from '@mui/icons-material/QrCode2';
+import Verified from '@mui/icons-material/Verified';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 
 export const TaxInvoiceSheet = ({ inv, isSelected, onSelect }) => (
   <div

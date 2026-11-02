@@ -1,32 +1,28 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { hasPermission } from "../../utils/permissionUtils";
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Tab,
-  Tabs,
-} from "@mui/material";
-import {
-  CheckCircleOutline,
-  ContentCopyOutlined,
-  DescriptionOutlined,
-  EditOutlined,
-  EmailOutlined,
-  HistoryOutlined,
-  PaymentOutlined,
-  PersonOutline,
-  PictureAsPdfOutlined,
-  ReceiptLongOutlined,
-  ReceiptOutlined,
-  Refresh,
-  SendOutlined,
-} from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
+import PaymentOutlined from '@mui/icons-material/PaymentOutlined';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import PictureAsPdfOutlined from '@mui/icons-material/PictureAsPdfOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import ReceiptOutlined from '@mui/icons-material/ReceiptOutlined';
+import Refresh from '@mui/icons-material/Refresh';
+import SendOutlined from '@mui/icons-material/SendOutlined';
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {

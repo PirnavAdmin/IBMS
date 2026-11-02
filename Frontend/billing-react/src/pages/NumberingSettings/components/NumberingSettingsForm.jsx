@@ -4,15 +4,13 @@ import {
   RESET_POLICIES,
   SUPPORTED_TOKENS,
 } from '../validation/numberingValidation';
-import {
-  DescriptionOutlined,
-  PinOutlined,
-  SaveOutlined,
-  RestartAltOutlined,
-  InfoOutlined,
-  BoltOutlined,
-} from '@mui/icons-material';
-import { CircularProgress } from '@mui/material';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import PinOutlined from '@mui/icons-material/PinOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import RestartAltOutlined from '@mui/icons-material/RestartAltOutlined';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import BoltOutlined from '@mui/icons-material/BoltOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
 
 export const NumberingSettingsForm = ({
   register,

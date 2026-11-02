@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { InvoiceBillingLogo } from './InvoiceBillingLogo';
 
 export const BrandHeader = ({ title = 'INVOICE.BILLING', subtitle = 'PORTAL ACCESS' }) => (

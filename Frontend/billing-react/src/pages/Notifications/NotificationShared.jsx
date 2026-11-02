@@ -1,5 +1,10 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty, Modal, Spin, Tag } from 'antd';
+import ArrowLeftOutlined from '@ant-design/icons/es/icons/ArrowLeftOutlined';
+import Button from 'antd/es/button';
+import ConfigProvider from 'antd/es/config-provider';
+import Empty from 'antd/es/empty';
+import Modal from 'antd/es/modal';
+import Spin from 'antd/es/spin';
+import Tag from 'antd/es/tag';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';

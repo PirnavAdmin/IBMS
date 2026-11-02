@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { MenuItem, Select } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import '../styles/products.css';
 
 // Open toward available viewport space; short menus keep their content height.

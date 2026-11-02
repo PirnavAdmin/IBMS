@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { Spin } from 'antd';
+import Spin from 'antd/es/spin';
 import { apiClient } from 'billing-api-client';
 import { queryClient } from '../queryClient';
 import { errorPresentation } from '../utils/errorPresentation';

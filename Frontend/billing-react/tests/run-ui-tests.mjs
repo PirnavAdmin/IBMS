@@ -1,3 +1,4 @@
+import { uiModuleAliases } from './ui-build-config.mjs';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, unlinkSync } from 'node:fs';
@@ -12,8 +13,8 @@ try {
       resolveDir: fileURLToPath(root), loader: 'jsx',
     },
     outfile: fileURLToPath(output), bundle: true, platform: 'node', format: 'cjs',
-    jsx: 'automatic', loader: { '.css': 'empty' }, external: ['jsdom', 'react', 'react/*', 'react-dom', 'react-dom/*', 'antd', '@mui/*', '@emotion/*', '@tanstack/*', 'axios', 'dayjs'], mainFields: ['module', 'main'],
-    alias: Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../${name}/index.js`, root))])),
+    jsx: 'automatic', loader: { '.css': 'empty' }, external: ["jsdom","react","react/*","react-dom","react-dom/*","@emotion/*","@tanstack/*","axios","dayjs"], mainFields: ['module', 'main'],
+    alias: { ...uiModuleAliases, ...(Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../${name}/index.js`, root))]))) },
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:3000', pretendToBeVisual: true });
