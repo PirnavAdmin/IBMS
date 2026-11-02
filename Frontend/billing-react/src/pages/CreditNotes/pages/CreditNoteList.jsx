@@ -158,7 +158,7 @@ export function CreditNoteList() {
               {query.isPending && <TableRow><TableCell colSpan={9}><div className="cn-table-state"><span className="cn-spinner" />Loading credit notes…</div></TableCell></TableRow>}
               {query.isError && <TableRow><TableCell colSpan={9}><DashboardErrorState title="Unable to load credit notes" message={query.error?.message} onRetry={() => query.refetch()} /></TableCell></TableRow>}
               {!query.isPending && !query.isError && items.map((note) => <TableRow hover key={note.id} className="cn-data-row" onClick={() => navigate(`/credit-notes/${note.id}`)}>
-                <TableCell><span className="cn-number-cell">{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
+                <TableCell><span className="cn-number-cell" title={note.number}>{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
                 <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell">{note.invoiceNumber}</span></TableCell>
                 <TableCell><span className={`cn-type-pill ${String(note.type).toLowerCase()}`}>{note.type}</span></TableCell>
                 <TableCell><strong className="cn-money-cell">{money(note.total, note.currency)}</strong></TableCell>
