@@ -79,9 +79,23 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-clear-filter { color: #805332 !important; }
 .cn-table-wrap { width: 100%; }
 .cn-table-wrap .MuiTable-root,.cn-detail-table-wrap .MuiTable-root,.cn-lines-table .MuiTable-root { min-width: 850px; }
+.cn-list-page .cn-table-wrap .MuiTable-root { width: 100%; min-width: 0; table-layout: fixed; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root { box-sizing: border-box; padding: 9px 8px; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(1) { width: 14%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(2) { width: 16%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(3) { width: 8%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(4) { width: 11%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(5) { width: 10%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(6) { width: 14%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(7) { width: 11%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(8) { width: 9%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(9) { width: 7%; max-width: 72px; }
+.cn-list-page .cn-table-wrap .cn-type-pill,.cn-list-page .cn-table-wrap .cn-status { max-width: 100%; white-space: normal; }
 .cn-page .MuiTableCell-head { padding: 13px 15px; background: #f4e9dc; color: #644833; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.cn-list-page .cn-table-wrap .MuiTableCell-head { white-space: normal; line-height: 1.3; overflow-wrap: anywhere; }
+.cn-list-page .cn-table-wrap .cn-sort-button { flex-wrap: wrap; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 .cn-page .MuiTableCell-body { padding: 12px 15px; border-color: #f0e6dc; color: #4d4138; font-size: .8rem; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:last-child { position: sticky; right: 0; z-index: 2; min-width: 72px; background: #fffdf9; box-shadow: -5px 0 8px -7px #4a3323; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:last-child { position: sticky; right: 0; z-index: 2; min-width: 0; padding: 8px 4px; background: #fffdf9; box-shadow: -5px 0 8px -7px #4a3323; }
 .cn-list-page .cn-table-wrap .MuiTableCell-head:last-child { z-index: 4; background: #f4e9dc; }
 .cn-list-page .cn-table-wrap .MuiTableRow-hover:hover .MuiTableCell-root:last-child { background: #fcf7f0; }
 .cn-sort-button { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: inherit; cursor: pointer; }
@@ -89,7 +103,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-data-row { cursor: pointer; transition: background-color .12s ease; }
 .cn-page .cn-data-row:hover { background: #fcf7f0; }
 .cn-number-cell,.cn-customer-cell,.cn-money-cell { display: block; color: #4f321f; font-weight: 750; }
-.cn-number-cell { font-size: .78rem; }
+.cn-number-cell { max-width: 100%; overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
 .cn-customer-cell { max-width: 235px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cn-sub-cell { display: block; margin-top: 4px; color: #958579; font-size: .68rem; }
 .cn-refunded-cell { color: #6d7860; font-variant-numeric: tabular-nums; }
@@ -426,6 +440,9 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
   .cn-list-page .cn-filter-bar .cn-search { flex: 1 1 100%; min-width: 0; max-width: none; }
   .cn-list-page .cn-filter-bar .cn-status-filter { flex: 1 1 180px; min-width: 0; width: auto; }
   .cn-list-page .cn-filter-bar > .date-range-filter { flex: 1 1 180px; min-width: 0; max-width: none; }
+}
+@media screen and (max-width: 850px) {
+  .cn-list-page .cn-table-wrap .MuiTable-root { min-width: 850px; }
 }
 @media screen and (max-width: 760px) {
   .cn-list-page .cn-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
