@@ -1,4 +1,5 @@
 using Billing.Contracts;
+using Billing.Contracts.Quotation;
 
 namespace Billing.Application.Interfaces;
 
@@ -10,4 +11,5 @@ public interface IQuotationActionService
     Task<ApiResponse<bool>> ApproveQuotationAsync(int quotationId, int tenantId, string approverId, string? approverRole = null);
     Task<ApiResponse<bool>> CancelQuotationAsync(int quotationId, int tenantId, string reason, string userId);
     Task<ApiResponse<int>> ConvertToInvoiceAsync(int quotationId, int tenantId, string userId);
+    Task<ApiResponse<QuotationPublicDecisionResult>> ProcessCustomerDecisionAsync(string token, string action, int tenantId);
 }

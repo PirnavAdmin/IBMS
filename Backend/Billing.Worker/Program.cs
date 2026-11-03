@@ -95,6 +95,8 @@ builder.Services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentReposi
 builder.Services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
 builder.Services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
 builder.Services.AddScoped<INotificationLogRepository, NotificationLogRepository>();
+builder.Services.AddScoped<IInAppNotificationRepository, InAppNotificationRepository>();
+builder.Services.AddScoped<IInAppNotificationService, InAppNotificationService>();
 builder.Services.AddScoped<IWebhookRepository, WebhookRepository>();
 builder.Services.AddScoped<IWebhookDeliveryRepository, WebhookDeliveryRepository>();
 builder.Services.AddScoped<IIntegrationApplicationRepository, IntegrationApplicationRepository>();
