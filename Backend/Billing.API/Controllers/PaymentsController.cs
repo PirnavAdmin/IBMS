@@ -360,4 +360,31 @@ public class PaymentsController : ControllerBase
         var qrBytes = await _gatewayService.GenerateInvoiceQrCodeAsync(targetTenant, invoiceId);
         return File(qrBytes, "image/png");
     }
+
+    [HttpGet("gateway/invoice-status/{invoiceId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetInvoiceStatus(int invoiceId, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? GetTenantId() ?? 2;
+        var balanceResult = await _paymentService.GetInvoiceBalanceAsync(targetTenant, invoiceId, null);
+        if (!balanceResult.IsSuccess || balanceResult.Data == null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Invoice not found."));
+        }
+
+        var data = balanceResult.Data;
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            invoiceId = data.InvoiceId,
+            invoiceNumber = data.InvoiceNumber,
+            totalAmount = data.TotalAmount,
+            paidAmount = data.PaidAmount,
+            balanceAmount = data.BalanceAmount,
+            status = data.Status,
+            currency = data.Currency,
+            isPaid = string.Equals(data.Status, "Paid", StringComparison.OrdinalIgnoreCase) || data.BalanceAmount <= 0,
+            isPartiallyPaid = string.Equals(data.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase)
+        }));
+    }
+
 }

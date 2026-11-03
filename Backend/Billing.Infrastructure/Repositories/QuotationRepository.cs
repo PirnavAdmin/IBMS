@@ -47,6 +47,18 @@ public class QuotationRepository : IQuotationRepository
             .FirstOrDefaultAsync(q => q.TenantId == tenantId && q.QuoteNumber.ToUpper() == normalized);
     }
 
+    public async Task<Quotation?> GetByPublicActionTokenAsync(string token, int tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        var normalized = token.Trim();
+        return await _context.Quotations
+            .Include(q => q.Customer)
+            .Include(q => q.Items)
+            .Include(q => q.Communications)
+            .Include(q => q.Tenant)
+            .FirstOrDefaultAsync(q => q.TenantId == tenantId && q.PublicActionToken == normalized);
+    }
+
     public async Task<bool> ExistsQuoteNumberAsync(string quoteNumber, int tenantId, int? excludeId = null)
     {
         var normalized = quoteNumber.Trim().ToUpperInvariant();

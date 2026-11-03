@@ -30,7 +30,7 @@ import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { InvoiceBillingLogo } from '../../../components/InvoiceBillingLogo';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-import { formatDate, formatDateTime, money, refundableBalance, roundCurrency, splitTaxAmount } from '../utils/creditNoteCalculations';
+import { formatDate, formatDateTime, money, refundableBalance, roundCurrency, splitTaxAmount, validateRefundAmount } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
 const actionLabels = { submit: 'Submit for approval', approve: 'Approve credit', reject: 'Reject credit', issue: 'Issue credit note', cancel: 'Cancel credit note', refund: 'Record refund' };
@@ -52,6 +52,7 @@ export function CreditNoteDetails() {
   const note = query.data;
   const isPreview = location.pathname.endsWith('/preview');
   const balance = refundableBalance(note);
+  const refundAmountValidation = validateRefundAmount(amount, balance);
   const taxBreakdown = (note?.items || []).reduce((sum, item) => {
     const taxable = roundCurrency(Math.max(0, Number(item.quantity || 0) * Number(item.unitPrice || 0) - Number(item.discountAmount || 0)));
     const tax = item.taxAmount != null ? Number(item.taxAmount) : roundCurrency(taxable * Number(item.taxRate || 0) / 100);
@@ -101,9 +102,10 @@ export function CreditNoteDetails() {
   });
 
   const confirmAction = () => {
+    if (mutation.isPending) return;
     setError('');
     if (['reject', 'cancel'].includes(action) && reason.trim().length < 5) return setError('Add a reason with at least 5 characters.');
-    if (action === 'refund' && (!(Number(amount) > 0) || Number(amount) > balance)) return setError(`Enter a refund greater than zero and no more than ${money(balance)}.`);
+    if (action === 'refund' && !refundAmountValidation.valid) return setError(refundAmountValidation.error);
     if (action === 'refund' && refundReason.trim().length < 5) return setError('Add a refund reason with at least 5 characters.');
     mutation.mutate();
   };
@@ -167,10 +169,10 @@ export function CreditNoteDetails() {
       <Dialog open={Boolean(action)} onClose={() => !mutation.isPending && setAction('')} fullWidth maxWidth={action === 'refund' ? 'sm' : 'xs'}>
         <DialogTitle>{actionLabels[action] || 'Confirm action'}</DialogTitle>
         <DialogContent className="cn-dialog-content">
-          {action === 'refund' ? <><Alert severity="info">Issued credit: {money(note.total, note.currency)} · Already refunded: {money(note.refunded, note.currency)} · Remaining refundable: <strong>{money(balance, note.currency)}</strong>. A credit note changes the invoice ledger; a refund returns money separately.</Alert><TextField required type="number" label="Refund amount" value={amount} onChange={(event) => setAmount(event.target.value)} inputProps={{ min: 0.01, max: balance, step: 0.01 }} /><TextField select label="Refund method" value={method} onChange={(event) => setMethod(event.target.value)}>{['Original payment method', 'Bank transfer', 'UPI', 'Cheque', 'Other'].map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Refund reference" placeholder="Bank / gateway reference" value={reference} onChange={(event) => setReference(event.target.value)} /><TextField required multiline minRows={2} label="Refund notes" value={refundReason} onChange={(event) => setRefundReason(event.target.value)} helperText="At least 5 characters required." /></> : ['reject', 'cancel'].includes(action) ? <TextField required multiline minRows={3} label={action === 'reject' ? 'Rejection reason' : 'Cancellation reason'} value={reason} onChange={(event) => setReason(event.target.value)} helperText="At least 5 characters required." /> : <p className="cn-dialog-copy">{action === 'issue' ? 'Issuing this credit recognizes the adjustment against the invoice.' : action === 'approve' ? 'Approval records the review decision. Invoice totals change when the credit note is issued.' : action === 'submit' ? 'Submit this draft to the approval queue?' : `Confirm ${actionLabels[action]?.toLowerCase()}?`}</p>}
+          {action === 'refund' ? <><Alert severity="info">Issued credit: {money(note.total, note.currency)} · Already refunded: {money(note.refunded, note.currency)} · Remaining refundable: <strong>{money(balance, note.currency)}</strong>. A credit note changes the invoice ledger; a refund returns money separately.</Alert><TextField required type="number" label="Refund amount" value={amount} error={Boolean(amount) && !refundAmountValidation.valid} helperText={amount && !refundAmountValidation.valid ? refundAmountValidation.error : 'Enter an amount up to the remaining refundable balance.'} onChange={(event) => setAmount(event.target.value)} inputProps={{ min: 0.01, max: balance, step: 0.01 }} /><TextField select label="Refund method" value={method} onChange={(event) => setMethod(event.target.value)}>{['Original payment method', 'Bank transfer', 'UPI', 'Cheque', 'Other'].map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Refund reference" placeholder="Bank / gateway reference" value={reference} onChange={(event) => setReference(event.target.value)} /><TextField required multiline minRows={2} label="Refund notes" value={refundReason} onChange={(event) => setRefundReason(event.target.value)} helperText="At least 5 characters required." /></> : ['reject', 'cancel'].includes(action) ? <TextField required multiline minRows={3} label={action === 'reject' ? 'Rejection reason' : 'Cancellation reason'} value={reason} onChange={(event) => setReason(event.target.value)} helperText="At least 5 characters required." /> : <p className="cn-dialog-copy">{action === 'issue' ? 'Issuing this credit recognizes the adjustment against the invoice.' : action === 'approve' ? 'Approval records the review decision. Invoice totals change when the credit note is issued.' : action === 'submit' ? 'Submit this draft to the approval queue?' : `Confirm ${actionLabels[action]?.toLowerCase()}?`}</p>}
           {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
-        <DialogActions><Button onClick={() => setAction('')} disabled={mutation.isPending}>Keep as is</Button><Button variant="contained" onClick={confirmAction} disabled={mutation.isPending}>{mutation.isPending ? 'Processing…' : action === 'refund' ? 'Record refund' : 'Confirm'}</Button></DialogActions>
+        <DialogActions><Button onClick={() => setAction('')} disabled={mutation.isPending}>Keep as is</Button><Button variant="contained" onClick={confirmAction} disabled={mutation.isPending || (action === 'refund' && !refundAmountValidation.valid)}>{mutation.isPending ? 'Processing…' : action === 'refund' ? 'Record refund' : 'Confirm'}</Button></DialogActions>
       </Dialog>
       {!isPreview && <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />}
     </main>

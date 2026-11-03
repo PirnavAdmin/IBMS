@@ -138,3 +138,32 @@ test('manually typed date range applies only complete, ordered dates within the 
     assert.equal(view.host.querySelector('form'), null);
   } finally { await view.close(); }
 });
+test('range date formats continuous digit entry and compact paste without losing the controlled draft', async () => {
+  const view = await mount(<RangePickerHarness />);
+  try {
+    const input = view.host.querySelector('input');
+    await act(async () => input.focus());
+    for (const digit of '20261023') await typeRangeValue(input, input.value + digit);
+    assert.equal(input.value, '2026-10-23');
+    assert.equal(input.selectionStart, 10);
+    assert.equal(view.host.querySelector('output').textContent, '2026-10-23');
+    await typeRangeValue(input, '20240229');
+    assert.equal(input.value, '2024-02-29');
+    assert.equal(view.host.querySelector('output').textContent, '2024-02-29');
+    await typeRangeValue(input, '');
+    assert.equal(view.host.querySelector('output').textContent, '');
+  } finally { await view.close(); }
+});
+
+test('range date normalization does not silently accept malformed or overlong manual text', async () => {
+  const view = await mount(<RangePickerHarness initial="2026-10-23" />);
+  try {
+    const input = view.host.querySelector('input');
+    for (const value of ['2026-10-', '2026-1-03', '2026--10-03', '202610230', '7646436365', 'not-a-date']) {
+      await typeRangeValue(input, value);
+      await act(async () => Simulate.blur(input));
+      assert.equal(input.value, value);
+      assert.equal(view.host.querySelector('output').textContent, value);
+    }
+  } finally { await view.close(); }
+});

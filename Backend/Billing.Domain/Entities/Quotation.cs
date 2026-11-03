@@ -38,6 +38,12 @@ public class Quotation
 
     public int? ConvertedInvoiceId { get; set; }
 
+    public string? PublicActionToken { get; set; }
+
+    public DateTime? CustomerRespondedAtUtc { get; set; }
+
+    public string? CustomerDecision { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAtUtc { get; set; }
