@@ -3,6 +3,7 @@ using Billing.Contracts.InvoiceTemplate;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using QRCoder;
 
 namespace Billing.Infrastructure.Services;
 
@@ -370,15 +371,40 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     if (template.Layout.ShowPaymentInstructions && (!string.IsNullOrWhiteSpace(pay.BankName) || !string.IsNullOrWhiteSpace(pay.AccountNumber) || !string.IsNullOrWhiteSpace(pay.UpiId) || !string.IsNullOrWhiteSpace(pay.BankDetails) || !string.IsNullOrWhiteSpace(pay.PaymentNotes)))
                     {
                         c.Item().PaddingBottom(4).Text("PAYMENT INSTRUCTIONS").FontSize(8.5f).Bold().FontColor(secondaryColor);
-                        c.Item().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten5).Padding(6).Column(b =>
+                        c.Item().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten5).Padding(6).Row(payRow =>
                         {
-                            if (!string.IsNullOrWhiteSpace(pay.BankName)) b.Item().Text($"Bank: {pay.BankName}").FontSize(8f);
-                            if (!string.IsNullOrWhiteSpace(pay.AccountHolderName)) b.Item().Text($"Account Name: {pay.AccountHolderName}").FontSize(8f);
-                            if (!string.IsNullOrWhiteSpace(pay.AccountNumber)) b.Item().Text($"Account #: {pay.AccountNumber}").FontSize(8f).Bold();
-                            if (!string.IsNullOrWhiteSpace(pay.IfscCode)) b.Item().Text($"IFSC Code: {pay.IfscCode}").FontSize(8f);
-                            if (!string.IsNullOrWhiteSpace(pay.UpiId)) b.Item().Text($"UPI ID: {pay.UpiId}").FontSize(8f);
-                            if (!string.IsNullOrWhiteSpace(pay.BankDetails)) b.Item().PaddingTop(2).Text(pay.BankDetails).FontSize(7.5f);
-                            if (!string.IsNullOrWhiteSpace(pay.PaymentNotes)) b.Item().PaddingTop(2).Text(pay.PaymentNotes).FontSize(7.5f).Italic();
+                            payRow.RelativeItem().Column(b =>
+                            {
+                                if (!string.IsNullOrWhiteSpace(pay.BankName)) b.Item().Text($"Bank: {pay.BankName}").FontSize(8f);
+                                if (!string.IsNullOrWhiteSpace(pay.AccountHolderName)) b.Item().Text($"Account Name: {pay.AccountHolderName}").FontSize(8f);
+                                if (!string.IsNullOrWhiteSpace(pay.AccountNumber)) b.Item().Text($"Account #: {pay.AccountNumber}").FontSize(8f).Bold();
+                                if (!string.IsNullOrWhiteSpace(pay.IfscCode)) b.Item().Text($"IFSC Code: {pay.IfscCode}").FontSize(8f);
+                                if (!string.IsNullOrWhiteSpace(pay.UpiId)) b.Item().Text($"UPI ID: {pay.UpiId}").FontSize(8f);
+                                if (!string.IsNullOrWhiteSpace(pay.BankDetails)) b.Item().PaddingTop(2).Text(pay.BankDetails).FontSize(7.5f);
+                                if (!string.IsNullOrWhiteSpace(pay.PaymentNotes)) b.Item().PaddingTop(2).Text(pay.PaymentNotes).FontSize(7.5f).Italic();
+                                b.Item().PaddingTop(3).Hyperlink($"https://checkout.ibms.local/pay/inv-{snapshot.InvoiceId}").Text("💳 Click Here to Pay Online").FontSize(7.5f).Bold().FontColor(Colors.Blue.Darken2).Underline();
+                            });
+
+                            try
+                            {
+                                var upiId = !string.IsNullOrWhiteSpace(pay.UpiId) ? pay.UpiId : "ibms-billing@upi";
+                                var amount = snapshot.BalanceDue > 0 ? snapshot.BalanceDue : snapshot.GrandTotal;
+                                var upiPayload = $"upi://pay?pa={upiId}&pn=IBMS&am={amount:F2}&cu=INR&tn=Invoice_{snapshot.InvoiceNumber}";
+                                using var qrGenerator = new QRCodeGenerator();
+                                using var qrCodeData = qrGenerator.CreateQrCode(upiPayload, QRCodeGenerator.ECCLevel.Q);
+                                using var qrCode = new PngByteQRCode(qrCodeData);
+                                byte[] qrBytes = qrCode.GetGraphic(2);
+
+                                payRow.ConstantItem(60).AlignRight().Column(q =>
+                                {
+                                    q.Item().Width(55).Height(55).Image(qrBytes);
+                                    q.Item().PaddingTop(1).AlignCenter().Text("Scan to Pay").FontSize(6.5f).FontColor(Colors.Grey.Darken2);
+                                });
+                            }
+                            catch
+                            {
+                                // Fail-safe fallback if QR rendering fails
+                            }
                         });
                     }
 

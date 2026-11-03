@@ -3,6 +3,7 @@ using Billing.API.Controllers;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Quotation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -13,6 +14,28 @@ namespace Billing.Tests.Unit;
 
 public class QuotationAuditActorTests
 {
+    [Fact]
+    public void ApproveQuotation_RequiresAnAuthorizedApprovalRole()
+    {
+        var authorize = typeof(QuotationsController)
+            .GetMethod(nameof(QuotationsController.ApproveQuotation))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Single();
+
+        var roles = authorize.Roles!.Split(',');
+
+        Assert.Contains("TenantAdmin", roles);
+        Assert.Contains("SuperAdmin", roles);
+        Assert.Contains("Admin", roles);
+        Assert.Contains("BillingManager", roles);
+        Assert.Contains("Manager", roles);
+        Assert.DoesNotContain("User", roles);
+        Assert.DoesNotContain("Viewer", roles);
+        Assert.DoesNotContain("Customer", roles);
+        Assert.DoesNotContain("Accountant", roles);
+    }
+
     [Theory]
     [InlineData("Acme Admin", "admin@example.com", "Acme Admin")]
     [InlineData(null, "admin@example.com", "admin@example.com")]

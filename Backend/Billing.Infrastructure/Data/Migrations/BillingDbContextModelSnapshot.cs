@@ -989,6 +989,79 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("GeneratedDocuments");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.InAppNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActionEntityId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("ActionModule")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("EventDeduplicationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("RecipientUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("TenantId", "RecipientUserId", "EventDeduplicationId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_Dedup");
+
+                    b.HasIndex("TenantId", "RecipientUserId", "IsRead")
+                        .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_IsRead");
+
+                    b.HasIndex("TenantId", "RecipientUserId", "CreatedAtUtc", "Id")
+                        .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_Created_Id");
+
+                    b.ToTable("InAppNotifications");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.IntegrationApplication", b =>
                 {
                     b.Property<int>("Id")
@@ -3082,6 +3155,25 @@ namespace Billing.Infrastructure.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.InAppNotification", b =>
+                {
+                    b.HasOne("Billing.Domain.Entities.User", "RecipientUser")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Billing.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecipientUser");
 
                     b.Navigation("Tenant");
                 });
