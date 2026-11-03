@@ -1,26 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
-import {
-  Alert,
-  Autocomplete,
-  Button,
-  IconButton,
-  InputAdornment,
-  Menu,
-  MenuItem,
-  TextField,
-} from "@mui/material";
-import {
-  Add,
-  ArrowBack,
-  MoreVert,
-  DeleteOutline,
-  PersonOutline,
-  ReceiptLongOutlined,
-  SaveOutlined,
-  Tag,
-  LocalOfferOutlined,
-} from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Add from '@mui/icons-material/Add';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import MoreVert from '@mui/icons-material/MoreVert';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import Tag from '@mui/icons-material/Tag';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -544,7 +540,7 @@ export function InvoiceForm() {
           You do not have permission to {id ? 'edit' : 'create'} invoices.
         </Alert>
       )}
-      <form onSubmit={(e) => submitForm(e, false)} noValidate>
+      <form className="invoice-editor-form" onSubmit={(e) => submitForm(e, false)} noValidate>
         <fieldset className="invoice-fieldset" disabled={busy || !editable}>
           <section className="invoice-panel invoice-customer-panel">
             <div className="invoice-section-heading">

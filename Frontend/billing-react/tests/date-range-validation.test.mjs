@@ -16,3 +16,11 @@ test('same-day and historical ranges can apply',()=>{
  assert.equal(dateRangeError({startDate:today,endDate:today},today),'');
  assert.equal(dateRangeError({startDate:'2024-01-01',endDate:today},today),'');
 });
+
+test('random numbers and impossible manual dates are rejected before missing endpoints',()=>{
+ for(const value of ['7646436365','20261001','2026-2-1','2026-02-29','2026-13-01','2026-00-15','2026-10-32']) {
+  assert.match(dateRangeError({startDate:value,endDate:''},today),/YYYY-MM-DD/);
+  assert.match(dateRangeError({startDate:'2026-10-01',endDate:value},today),/YYYY-MM-DD/);
+ }
+ assert.equal(dateRangeError({startDate:'2024-02-29',endDate:today},today),'');
+});

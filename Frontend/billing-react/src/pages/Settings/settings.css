@@ -762,3 +762,32 @@
   .country-config-page .country-list-actions { flex-wrap: wrap; }
   .country-config-page .quick-card-actions .MuiButton-root { min-width: 0; max-width: 100%; white-space: normal; }
 }
+
+/* Settings sections share one tabbed workspace instead of navigation cards. */
+.settings-workspace { padding: 28px; min-width: 0; color: var(--text-primary, #35271f); }
+.settings-workspace-header { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+.settings-workspace-icon { display: grid; place-items: center; flex: 0 0 52px; height: 52px; border-radius: 14px; background: #f5ece0; border: 1px solid #d7c4af; color: #795137; }
+.settings-workspace-icon svg { font-size: 29px; }
+.settings-workspace-header h1 { margin: 0; color: #35271f; font-size: clamp(23px, 2.2vw, 30px); font-weight: 750; letter-spacing: -.035em; line-height: 1.3; }
+.settings-workspace-header p { margin: 6px 0 0; color: #7c6c5d; font-size: 13px; line-height: 1.6; }
+.settings-workspace .settings-workspace-tabs { min-height: 62px; margin-bottom: 24px; padding: 5px; border: 1px solid #cbb7a3; border-radius: 16px; background: #fffdf9; box-shadow: 0 2px 6px #35271f05; }
+.settings-workspace-tabs .MuiTabs-indicator { display: none; }
+.settings-workspace-tabs .MuiTabs-list, .settings-workspace-tabs .MuiTabs-flexContainer { gap: 4px; }
+.settings-workspace-tabs .MuiTab-root { min-height: 50px; padding: 12px 22px; border-radius: 11px; font-size: 13px; font-weight: 600; color: #736252; text-transform: none; white-space: nowrap; }
+.settings-workspace-tabs .MuiTab-root.Mui-selected { background: #795137; color: #fff; }
+.settings-workspace-tabs .MuiTab-root:focus-visible { outline: 2px solid #795137; outline-offset: -3px; }
+.settings-workspace-content { min-width: 0; }
+.settings-workspace-content :is(.settings-page, .tax-settings-page, .notification-page, .notifications-page) { padding: 0; min-height: 0; background: transparent; }
+.settings-workspace-content .tax-module { min-height: 0; height: auto; display: block; }
+.settings-workspace-content .settings-module-header { padding: 0 0 20px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.settings-workspace-content .settings-module-header .settings-eyebrow,
+.settings-workspace-content .settings-back-button { display: none; }
+.settings-workspace-content .settings-page h1,
+.settings-workspace-content .tax-settings-page h1 { font-size: 22px; }
+@media (max-width: 700px) {
+  .settings-workspace { padding: 20px 14px; }
+  .settings-workspace-header { gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+  .settings-workspace-icon { flex-basis: 44px; height: 44px; }
+  .settings-workspace .settings-workspace-tabs { margin-bottom: 20px; }
+  .settings-workspace-tabs .MuiTab-root { padding-inline: 16px; }
+}

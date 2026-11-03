@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import { CustomerTable } from './CustomerTable';
 import { FinancialSummary, displayDate, formatCurrency } from './CustomerShared';
 import { emptyFilters } from './customerTableUtils';

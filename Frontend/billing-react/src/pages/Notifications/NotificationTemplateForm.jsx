@@ -1,6 +1,13 @@
-import { ArrowBack } from '@mui/icons-material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Form, Input, Select, Spin, Switch, Tooltip } from 'antd';
+import Alert from 'antd/es/alert';
+import Button from 'antd/es/button';
+import Form from 'antd/es/form';
+import Input from 'antd/es/input';
+import Select from 'antd/es/select';
+import Spin from 'antd/es/spin';
+import Switch from 'antd/es/switch';
+import Tooltip from 'antd/es/tooltip';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';

@@ -1,5 +1,8 @@
-import { Skeleton } from '@mui/material';
-import { Inventory2Outlined, CheckCircleOutline, PauseCircleOutline, DesignServicesOutlined } from '@mui/icons-material';
+import Skeleton from '@mui/material/Skeleton';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import PauseCircleOutline from '@mui/icons-material/PauseCircleOutline';
+import DesignServicesOutlined from '@mui/icons-material/DesignServicesOutlined';
 
 const cards = [['total', 'Total Products', Inventory2Outlined], ['active', 'Active Products', CheckCircleOutline], ['inactive', 'Inactive Products', PauseCircleOutline], ['services', 'Services', DesignServicesOutlined]];
 

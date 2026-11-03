@@ -1,6 +1,7 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Alert, LinearProgress } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import LinearProgress from '@mui/material/LinearProgress';
 import { useLocation } from 'react-router-dom';
 import { apiClient } from 'billing-api-client/apiClient.js';
 import { authApi } from 'billing-api-client/authApi.js';

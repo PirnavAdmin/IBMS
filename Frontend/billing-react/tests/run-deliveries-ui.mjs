@@ -1,3 +1,4 @@
+import { uiModuleAliases } from './ui-build-config.mjs';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { unlink } from 'node:fs/promises';
@@ -8,11 +9,11 @@ try {
   await build({
     entryPoints: [fileURLToPath(new URL('./deliveries.test.jsx', import.meta.url))],
     outfile: fileURLToPath(outfile), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
-    loader: { '.css': 'empty' }, external: ['jsdom'], mainFields: ['module', 'main'],
-    alias: {
+    loader: { '.css': 'empty' }, external: ["jsdom"], mainFields: ['module', 'main'],
+    alias: { ...uiModuleAliases, ...({
       axios: fileURLToPath(new URL('../node_modules/axios/index.js', import.meta.url)),
       ...Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
-    },
+    }) },
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const {JSDOM}=require('jsdom');
       const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'http://localhost:3000/integrations',pretendToBeVisual:true});

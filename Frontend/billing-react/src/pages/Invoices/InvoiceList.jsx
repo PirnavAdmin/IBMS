@@ -2,25 +2,21 @@ import { searchInputError } from '../../utils/search';
 import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Autocomplete,
-  Button,
-  InputAdornment,
-  MenuItem,
-  TextField,
-} from "@mui/material";
-import {
-  Add,
-  CheckCircleOutline,
-  DescriptionOutlined,
-  HourglassEmptyOutlined,
-  ReceiptLongOutlined,
-  Refresh,
-  RestartAlt,
-  Search,
-  WarningAmberOutlined,
-} from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Add from '@mui/icons-material/Add';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import Refresh from '@mui/icons-material/Refresh';
+import RestartAlt from '@mui/icons-material/RestartAlt';
+import Search from '@mui/icons-material/Search';
+import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
 import { Link, useLocation, useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./services/invoiceService";

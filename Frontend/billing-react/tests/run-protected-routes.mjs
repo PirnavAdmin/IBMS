@@ -1,14 +1,15 @@
+import { uiModuleAliases } from './ui-build-config.mjs';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const outfile = new URL('./.protected-routes.cjs', import.meta.url);
 try {
-  await build({
+  await build({ mainFields: ['module', 'main'],
     entryPoints: [fileURLToPath(new URL('./protected-routes.test.jsx', import.meta.url))],
     outfile: fileURLToPath(outfile), bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
-    loader: { '.css': 'empty' }, external: ['jsdom'],
-    alias: Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))])),
+    loader: { '.css': 'empty' }, external: ["jsdom"],
+    alias: { ...uiModuleAliases, ...(Object.fromEntries(['billing-contracts', 'billing-api-client'].map(name => [name, fileURLToPath(new URL(`../../${name}/index.js`, import.meta.url))]))) },
     define: { 'import.meta': '{"env":{}}', 'process.env.NODE_ENV': '"development"' },
     banner: { js: `const { JSDOM } = require('jsdom');
       const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost:3000', pretendToBeVisual: true });

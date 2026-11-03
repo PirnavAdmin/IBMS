@@ -1,4 +1,6 @@
-import { AutoComplete, ConfigProvider, Select } from 'antd';
+import AutoComplete from 'antd/es/auto-complete';
+import ConfigProvider from 'antd/es/config-provider';
+import Select from 'antd/es/select';
 import { Controller } from 'react-hook-form';
 import { normalizeProductTax } from '../validation/productValidation';
 

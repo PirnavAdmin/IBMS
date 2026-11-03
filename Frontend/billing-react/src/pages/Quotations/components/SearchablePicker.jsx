@@ -2,7 +2,7 @@ import { dropdownPosition } from '../../../utils/dropdownPosition';
 import { useExclusiveDropdown } from '../../../hooks/useExclusiveDropdown';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search } from '@mui/icons-material';
+import Search from '@mui/icons-material/Search';
 
 function menuPosition(anchor) {
   return dropdownPosition(anchor.getBoundingClientRect(), {

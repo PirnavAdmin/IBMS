@@ -2,11 +2,26 @@ import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOutletContext } from 'react-router-dom';
-import {
-  Alert, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
-  IconButton, InputAdornment, LinearProgress, Menu, MenuItem, TextField, Tooltip,
-} from '@mui/material';
-import { Add, ContentCopyOutlined, IntegrationInstructionsOutlined, MoreVert, Refresh, Search } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import LinearProgress from '@mui/material/LinearProgress';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Add from '@mui/icons-material/Add';
+import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
+import IntegrationInstructionsOutlined from '@mui/icons-material/IntegrationInstructionsOutlined';
+import MoreVert from '@mui/icons-material/MoreVert';
+import Refresh from '@mui/icons-material/Refresh';
+import Search from '@mui/icons-material/Search';
 import { apiClient } from 'billing-api-client';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { WorkspacePagination } from '../../components/WorkspacePagination';

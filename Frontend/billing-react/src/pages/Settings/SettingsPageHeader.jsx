@@ -1,5 +1,5 @@
-import { ArrowBackOutlined } from '@mui/icons-material';
-import { Button } from '@mui/material';
+import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import Button from '@mui/material/Button';
 import { Link } from 'react-router-dom';
 import './settings.css';
 

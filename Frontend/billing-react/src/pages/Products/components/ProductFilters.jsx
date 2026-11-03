@@ -1,8 +1,13 @@
 import { SearchField } from '../../../components/SearchField';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { useProductSelectProps } from './ProductSelect';
-import { Button, IconButton, InputAdornment, MenuItem, TextField } from '@mui/material';
-import { Close, Search } from '@mui/icons-material';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Close from '@mui/icons-material/Close';
+import Search from '@mui/icons-material/Search';
 
 const ALL_CATEGORIES = '';
 const ALL_STATUSES = '';

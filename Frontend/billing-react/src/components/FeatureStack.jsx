@@ -1,6 +1,9 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
-import { SyncAlt, SecurityOutlined, TrendingUp } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import SyncAlt from '@mui/icons-material/SyncAlt';
+import SecurityOutlined from '@mui/icons-material/SecurityOutlined';
+import TrendingUp from '@mui/icons-material/TrendingUp';
 
 export const DEFAULT_FEATURES = [
   { icon: <SyncAlt sx={{ fontSize: 20 }} />, title: 'Automatic Payment Tracking', desc: 'Match bank payments to your invoices automatically without any manual work.' },

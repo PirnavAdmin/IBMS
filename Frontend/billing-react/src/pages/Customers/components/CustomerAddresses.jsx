@@ -1,4 +1,4 @@
-import { Card } from '@mui/material';
+import Card from '@mui/material/Card';
 import { InformationCard } from './CustomerShared';
 
 export function CustomerAddresses({ customer }) {

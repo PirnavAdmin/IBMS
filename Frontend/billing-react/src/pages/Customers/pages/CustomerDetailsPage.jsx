@@ -1,18 +1,20 @@
 import { printCustomerDetails } from '../utils/customerReports';
 import { useEffect, useRef } from "react";
 import { InactivityReason } from "../components/CustomerCardDetails";
-import { Breadcrumbs, Button, Link, Tab, Tabs } from "@mui/material";
-import {
-  ArrowBack,
-  PrintOutlined,
-  EditOutlined,
-  DashboardOutlined,
-  LocationOnOutlined,
-  ReceiptLongOutlined,
-  PaymentsOutlined,
-  AccountBalanceWalletOutlined,
-  HistoryOutlined,
-} from "@mui/icons-material";
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
+import LocationOnOutlined from '@mui/icons-material/LocationOnOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
 import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
 import { useCustomer } from "../hooks/useCustomer";
 import { CustomerState, StatusBadge } from "../components/CustomerShared";

@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Breadcrumbs, Button } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { productService } from '../services/productService';
 import { ProductForm } from '../components/ProductForm';
 import '../styles/product-form.css';

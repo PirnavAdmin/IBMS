@@ -1,63 +1,80 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 
-import { Landing } from '../pages/Landing/Landing';
-import { Login } from '../pages/Login/Login';
-import { Register } from '../pages/Register/Register';
-import { TermsAndConditions, PrivacyPolicy } from '../pages/Legal/LegalPages';
-import { ForgotPassword } from '../pages/ForgotPassword/ForgotPassword';
-import { VerifyOtp } from '../pages/VerifyOtp/VerifyOtp';
-import { ResetPassword } from '../pages/ResetPassword/ResetPassword';
+// Keep the shell mounted while the selected page loads; unrelated modules stay unloaded.
+const lazyPage = (load, exportName) => {
+  const Page = lazy(() => load().then(module => ({ default: module[exportName] })));
+  const LazyPage = (props) => (
+    <Suspense fallback={<div role="status" aria-live="polite" style={{ padding: 24, color: 'inherit' }}>Loading page…</div>}>
+      <Page {...props} />
+    </Suspense>
+  );
+  LazyPage.displayName = exportName;
+  return LazyPage;
+};
 
-import { Dashboard } from '../pages/Dashboard/Dashboard';
-import { AppLayout } from '../layouts/AppLayout';
-import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
-import { AuditActivity } from '../pages/AuditActivity/AuditActivity';
-import { SettingsLanding } from '../pages/Settings/SettingsLanding';
-import { NotificationTemplates } from '../pages/Notifications/NotificationTemplates';
-import { NotificationTemplateForm } from '../pages/Notifications/NotificationTemplateForm';
-import { NotificationHistory } from '../pages/Notifications/NotificationHistory';
-import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
-import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
-import { CountryConfiguration } from '../pages/Settings/CountryConfiguration';
-
-import { Payments } from '../pages/Payments/Payments';
-import { RecordPayment } from '../pages/Payments/RecordPayment';
-import { PaymentDetails } from '../pages/Payments/PaymentDetails';
-import { InvoiceList } from '../pages/Invoices/InvoiceList';
-import { InvoiceForm } from '../pages/Invoices/InvoiceForm';
-import { InvoiceDetails } from '../pages/Invoices/InvoiceDetails';
-import { InvoicePreview } from '../pages/Invoices/InvoicePreview';
-import { PublicInvoicePayment } from '../pages/Invoices/pages/PublicInvoicePayment';
-import { Taxes } from '../pages/Taxes/Taxes';
-import { CategoryList } from '../pages/Products/pages/CategoryList';
-import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
-import { ProductList } from '../pages/Products/ProductList';
-import { ProductDetails } from '../pages/Products/pages/ProductDetails';
-import { CreateProduct } from '../pages/Products/pages/CreateProduct';
-import { EditProduct } from '../pages/Products/pages/EditProduct';
-import { NumberingSettings } from '../pages/NumberingSettings';
-import { QuotationManagement } from '../pages/Quotations';
-import { InvoiceTemplates, CreateTemplate, EditTemplate, BrandingSettings, TemplatePreview, TemplateVersionHistory, TemplateAuditHistory } from '../pages/InvoiceTemplates/InvoiceTemplates';
-import { CreditNoteList } from '../pages/CreditNotes/pages/CreditNoteList';
-import { CreditNoteForm } from '../pages/CreditNotes/pages/CreditNoteForm';
-import { CreditNoteDetails } from '../pages/CreditNotes/pages/CreditNoteDetails';
-import { CreditNoteExportPage } from '../pages/CreditNotes/pages/CreditNoteExportPage';
-import { UserRoleAdministration } from '../pages/UserRoleAdministration/UserRoleAdministration';
-import { Integrations } from '../pages/Integrations/Integrations';
-import { Webhooks } from '../pages/Webhooks/Webhooks';
-import { DeliveryHistory } from '../pages/Webhooks/DeliveryHistory';
-import { BackgroundJobStatus } from '../pages/BackgroundJobs/BackgroundJobStatus';
-import { ExportJobStatus } from '../pages/BackgroundJobs/ExportJobStatus';
-
-// Customers
-import { CustomerListPage } from '../pages/Customers/pages/CustomerListPage';
-import { CreateCustomer } from '../pages/Customers/pages/CreateCustomer';
-import { EditCustomer } from '../pages/Customers/pages/EditCustomer';
-import { CustomerDetailsPage } from '../pages/Customers/pages/CustomerDetailsPage';
-import { CustomerPrintPage } from '../pages/Customers/pages/CustomerPrintPage';
+const Landing = lazyPage(() => import('../pages/Landing/Landing'), 'Landing');
+const Login = lazyPage(() => import('../pages/Login/Login'), 'Login');
+const Register = lazyPage(() => import('../pages/Register/Register'), 'Register');
+const TermsAndConditions = lazyPage(() => import('../pages/Legal/LegalPages'), 'TermsAndConditions');
+const PrivacyPolicy = lazyPage(() => import('../pages/Legal/LegalPages'), 'PrivacyPolicy');
+const ForgotPassword = lazyPage(() => import('../pages/ForgotPassword/ForgotPassword'), 'ForgotPassword');
+const VerifyOtp = lazyPage(() => import('../pages/VerifyOtp/VerifyOtp'), 'VerifyOtp');
+const ResetPassword = lazyPage(() => import('../pages/ResetPassword/ResetPassword'), 'ResetPassword');
+const Dashboard = lazyPage(() => import('../pages/Dashboard/Dashboard'), 'Dashboard');
+const AppLayout = lazyPage(() => import('../layouts/AppLayout'), 'AppLayout');
+const ModulePlaceholder = lazyPage(() => import('../pages/ModulePlaceholder/ModulePlaceholder'), 'ModulePlaceholder');
+const AuditActivity = lazyPage(() => import('../pages/AuditActivity/AuditActivity'), 'AuditActivity');
+const SettingsWorkspace = lazyPage(() => import('../pages/Settings/SettingsWorkspace'), 'SettingsWorkspace');
+const SettingsLanding = lazyPage(() => import('../pages/Settings/SettingsLanding'), 'SettingsLanding');
+const NotificationTemplates = lazyPage(() => import('../pages/Notifications/NotificationTemplates'), 'NotificationTemplates');
+const NotificationTemplateForm = lazyPage(() => import('../pages/Notifications/NotificationTemplateForm'), 'NotificationTemplateForm');
+const NotificationHistory = lazyPage(() => import('../pages/Notifications/NotificationHistory'), 'NotificationHistory');
+const DiscountConfiguration = lazyPage(() => import('../pages/Settings/DiscountConfiguration'), 'DiscountConfiguration');
+const ChargesConfiguration = lazyPage(() => import('../pages/Settings/ChargesConfiguration'), 'ChargesConfiguration');
+const CountryConfiguration = lazyPage(() => import('../pages/Settings/CountryConfiguration'), 'CountryConfiguration');
+const Payments = lazyPage(() => import('../pages/Payments/Payments'), 'Payments');
+const RecordPayment = lazyPage(() => import('../pages/Payments/RecordPayment'), 'RecordPayment');
+const PaymentDetails = lazyPage(() => import('../pages/Payments/PaymentDetails'), 'PaymentDetails');
+const InvoiceList = lazyPage(() => import('../pages/Invoices/InvoiceList'), 'InvoiceList');
+const InvoiceForm = lazyPage(() => import('../pages/Invoices/InvoiceForm'), 'InvoiceForm');
+const InvoiceDetails = lazyPage(() => import('../pages/Invoices/InvoiceDetails'), 'InvoiceDetails');
+const InvoicePreview = lazyPage(() => import('../pages/Invoices/InvoicePreview'), 'InvoicePreview');
+const PublicInvoicePayment = lazyPage(() => import('../pages/Invoices/pages/PublicInvoicePayment'), 'PublicInvoicePayment');
+const Taxes = lazyPage(() => import('../pages/Taxes/Taxes'), 'Taxes');
+const CategoryList = lazyPage(() => import('../pages/Products/pages/CategoryList'), 'CategoryList');
+const CategoryFormPage = lazyPage(() => import('../pages/Products/pages/CategoryFormPage'), 'CategoryFormPage');
+const ProductList = lazyPage(() => import('../pages/Products/ProductList'), 'ProductList');
+const ProductDetails = lazyPage(() => import('../pages/Products/pages/ProductDetails'), 'ProductDetails');
+const CreateProduct = lazyPage(() => import('../pages/Products/pages/CreateProduct'), 'CreateProduct');
+const EditProduct = lazyPage(() => import('../pages/Products/pages/EditProduct'), 'EditProduct');
+const NumberingSettings = lazyPage(() => import('../pages/NumberingSettings'), 'NumberingSettings');
+const QuotationManagement = lazyPage(() => import('../pages/Quotations'), 'QuotationManagement');
+const InvoiceTemplates = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'InvoiceTemplates');
+const CreateTemplate = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'CreateTemplate');
+const EditTemplate = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'EditTemplate');
+const BrandingSettings = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'BrandingSettings');
+const TemplatePreview = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplatePreview');
+const TemplateVersionHistory = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplateVersionHistory');
+const TemplateAuditHistory = lazyPage(() => import('../pages/InvoiceTemplates/InvoiceTemplates'), 'TemplateAuditHistory');
+const CreditNoteList = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteList'), 'CreditNoteList');
+const CreditNoteForm = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteForm'), 'CreditNoteForm');
+const CreditNoteDetails = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteDetails'), 'CreditNoteDetails');
+const CreditNoteExportPage = lazyPage(() => import('../pages/CreditNotes/pages/CreditNoteExportPage'), 'CreditNoteExportPage');
+const UserRoleAdministration = lazyPage(() => import('../pages/UserRoleAdministration/UserRoleAdministration'), 'UserRoleAdministration');
+const Integrations = lazyPage(() => import('../pages/Integrations/Integrations'), 'Integrations');
+const Webhooks = lazyPage(() => import('../pages/Webhooks/Webhooks'), 'Webhooks');
+const DeliveryHistory = lazyPage(() => import('../pages/Webhooks/DeliveryHistory'), 'DeliveryHistory');
+const BackgroundJobStatus = lazyPage(() => import('../pages/BackgroundJobs/BackgroundJobStatus'), 'BackgroundJobStatus');
+const ExportJobStatus = lazyPage(() => import('../pages/BackgroundJobs/ExportJobStatus'), 'ExportJobStatus');
+const CustomerListPage = lazyPage(() => import('../pages/Customers/pages/CustomerListPage'), 'CustomerListPage');
+const CreateCustomer = lazyPage(() => import('../pages/Customers/pages/CreateCustomer'), 'CreateCustomer');
+const EditCustomer = lazyPage(() => import('../pages/Customers/pages/EditCustomer'), 'EditCustomer');
+const CustomerDetailsPage = lazyPage(() => import('../pages/Customers/pages/CustomerDetailsPage'), 'CustomerDetailsPage');
+const CustomerPrintPage = lazyPage(() => import('../pages/Customers/pages/CustomerPrintPage'), 'CustomerPrintPage');
 
 export const AppRoutes = () => (
   <Routes>
@@ -132,30 +149,29 @@ export const AppRoutes = () => (
       <Route path="/templates-branding/audit" element={<PermissionRoute permission="audit.view"><TemplateAuditHistory /></PermissionRoute>} />
       <Route path="/templates-branding/:templateId/edit" element={<PermissionRoute permission="settings.manage"><EditTemplate /></PermissionRoute>} />
       <Route path="/invoice-numbering" element={<Navigate to="/settings/numbering" replace />} />
-      <Route path="/settings/numbering" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NumberingSettings /></PermissionRoute>} />
+      <Route path="/settings/numbering" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NumberingSettings /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/integrations" element={<PermissionRoute permission="integrations.manage"><Integrations /></PermissionRoute>} />
       <Route path="/webhooks" element={<PermissionRoute permission="integrations.manage"><Webhooks /></PermissionRoute>} />
       <Route path="/webhooks/deliveries" element={<PermissionRoute permission="integrations.manage"><DeliveryHistory /></PermissionRoute>} />
       <Route path="/background-jobs" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />
       <Route path="/export-jobs" element={<PermissionRoute permission={['billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
-      <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsLanding /></PermissionRoute>} />
+      <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><SettingsLanding /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/user-role-administration/*" element={<PermissionRoute permission={['users.view', 'roles.view', 'users.assign']}><UserRoleAdministration /></PermissionRoute>} />
-      <Route path="/settings/notifications" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationTemplates /></PermissionRoute>} />
-      <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
-      <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><NotificationTemplateForm /></PermissionRoute>} />
-      <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><NotificationHistory /></PermissionRoute>} />
-      <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><CountryConfiguration /></PermissionRoute>} />
+      <Route path="/settings/notifications" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationTemplates /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationHistory /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><CountryConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
-      <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><Taxes /></PermissionRoute>} />
+      <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><Taxes embedded /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/taxes/*" element={<Navigate to="/settings/taxes" replace />} />
-      <Route path="/settings/discounts" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><DiscountConfiguration /></PermissionRoute>} />
+      <Route path="/settings/discounts" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><DiscountConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/settings/discount" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discounts" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
-      <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><ChargesConfiguration /></PermissionRoute>} />
-      <Route path="/support" element={<ModulePlaceholder />} />
+      <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ChargesConfiguration /></SettingsWorkspace></PermissionRoute>} />
     </Route>
 
     {/* Unknown Route */}

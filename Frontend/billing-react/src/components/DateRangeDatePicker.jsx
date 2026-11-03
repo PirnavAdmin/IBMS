@@ -1,5 +1,7 @@
 import dayjs from 'dayjs';
-import { ConfigProvider, DatePicker } from 'antd';
+import { validDate } from '../utils/dateRangeValidation';
+import ConfigProvider from 'antd/es/config-provider';
+import DatePicker from 'antd/es/date-picker';
 import '../styles/DateRangeFilter.css';
 
 // Explicit tokens also theme calendars rendered in a portal outside the app shell.
@@ -21,11 +23,11 @@ export const dateRangeTheme = {
 
 export function DateRangeDatePicker({ value, onChange, ...props }) {
   return <ConfigProvider theme={dateRangeTheme}>
-    <span className="date-range-date-field" onInputCapture={event => { if (event.target.value === '') onChange(''); }}>
-      <DatePicker {...props} className="date-range-date-picker" format="YYYY-MM-DD"
+    <span className="date-range-date-field" onInputCapture={event => { if (event.target instanceof HTMLInputElement) onChange(event.target.value); }}>
+      <DatePicker {...props} className="date-range-date-picker" format="YYYY-MM-DD" preserveInvalidOnBlur placeholder="YYYY-MM-DD"
         classNames={{ popup: { root: 'date-range-calendar' } }}
         onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); } }}
-        value={value ? dayjs(value) : null}
+        value={validDate(value) ? dayjs(value) : null}
         onChange={date => onChange(date ? date.format('YYYY-MM-DD') : '')} />
     </span>
   </ConfigProvider>;

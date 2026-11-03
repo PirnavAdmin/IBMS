@@ -5,7 +5,18 @@ import { useSearchDebounce } from '../../../hooks/useSearchDebounce';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import { prioritizePrefix } from '../../../utils/search';
 import { useOutletContext } from 'react-router-dom';
-import { Button, Card, LinearProgress, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TextField from '@mui/material/TextField';
 import { emptyFilters, filterCustomerRows, sortCustomerRows, rankCustomerNameMatches } from './customerTableUtils';
 
 export function CustomerFilters({ title, filters, onChange, selects = [], dates = true, extra }) {

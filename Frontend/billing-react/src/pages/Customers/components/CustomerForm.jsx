@@ -16,25 +16,23 @@ import {
 } from '../validation/customerValidation';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
 import { isCurrencyEnabled } from '../../../utils/currencies';
-import {
-  PersonOutline,
-  LocalOfferOutlined,
-  BusinessOutlined,
-  EmailOutlined,
-  PhoneOutlined,
-  LanguageOutlined,
-  ReceiptLongOutlined,
-  HomeOutlined,
-  CheckCircleOutlined,
-  LightbulbOutlined,
-  ArrowForward,
-  ArrowBack,
-  InfoOutlined,
-  Check,
-  EditOutlined,
-  DescriptionOutlined,
-  CategoryOutlined,
-} from '@mui/icons-material';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
+import LanguageOutlined from '@mui/icons-material/LanguageOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import HomeOutlined from '@mui/icons-material/HomeOutlined';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import LightbulbOutlined from '@mui/icons-material/LightbulbOutlined';
+import ArrowForward from '@mui/icons-material/ArrowForward';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import Check from '@mui/icons-material/Check';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import '../styles/customer-form.css';
 
 const basicInfoValidationSchema = customerValidationSchema.pick(STEP_FIELDS[0]);

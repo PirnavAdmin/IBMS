@@ -1,4 +1,4 @@
-import { TextField } from '@mui/material';
+import TextField from '@mui/material/TextField';
 
 // An empty filter value means "All" and must remain visible after selection.
 export function FilterSelectField({ InputLabelProps, SelectProps, className = '', ...props }) {

@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider as MuiThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { queryClient } from './queryClient';
 import { AppRoutes } from './routes/AppRoutes';
 import { ThemeProvider, useThemeMode } from './context/ThemeContext';
