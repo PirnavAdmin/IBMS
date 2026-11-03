@@ -4,10 +4,6 @@ import { useOutletContext } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
@@ -25,7 +21,8 @@ import { DashboardErrorState } from '../../components/dashboard/DashboardStates'
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { getAuditActivity, getAuditFilterOptions } from './auditApi.js';
-import { auditEventLabel, auditDate, auditQuery, auditSnapshot, emptyAuditFilters, formatAuditChanges, searchAuditPage } from './auditModel.js';
+import { AuditEventDetailsDialog } from './AuditEventDetailsDialog.jsx';
+import { auditEventLabel, auditDate, auditQuery, emptyAuditFilters, formatAuditChanges, searchAuditPage } from './auditModel.js';
 import './audit-activity.css';
 
 export function AuditActivity() {
@@ -43,6 +40,7 @@ export function AuditActivity() {
   const [options, setOptions] = useState({ entityNames: [], actions: [], userNames: [] });
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [optionsError, setOptionsError] = useState(null);
+  const [auditMenuPosition, setAuditMenuPosition] = useState({ openAbove: false, maxHeight: 320 });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,13 +98,34 @@ export function AuditActivity() {
             ['action', 'Event name', 'actions', 'All events'],
             ['userName', 'Performed by', 'userNames', 'All actors'],
           ].map(([key, label, optionKey, allLabel]) => <TextField key={key} select size="small" label={label}
-           disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true }}
+           disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true,
+            onOpen: event => {
+              const bounds = event.currentTarget.getBoundingClientRect();
+              const viewport = window.visualViewport;
+              const viewportTop = viewport?.offsetTop || 0;
+              const viewportHeight = viewport?.height || window.innerHeight;
+              const viewportBottom = viewportTop + viewportHeight;
+              const margin = 8;
+              const availableBelow = Math.max(0, viewportBottom - bounds.bottom - margin);
+              const availableAbove = Math.max(0, bounds.top - viewportTop - margin);
+              const extraValue = draft[key] && !options[optionKey].includes(draft[key]) ? 1 : 0;
+              const desiredHeight = Math.min((options[optionKey].length + extraValue + 1) * 48 + 16, viewportHeight - margin * 2);
+              const openAbove = availableBelow < desiredHeight && availableAbove > availableBelow && availableAbove >= 96;
+              const available = openAbove ? availableAbove : availableBelow;
+              setAuditMenuPosition({ openAbove, maxHeight: Math.max(48, Math.min(available, viewportHeight - margin * 2)) });
+            },
+            MenuProps: {
+             anchorOrigin: { vertical: auditMenuPosition.openAbove ? 'top' : 'bottom', horizontal: 'left' },
+             transformOrigin: { vertical: auditMenuPosition.openAbove ? 'bottom' : 'top', horizontal: 'left' },
+             marginThreshold: 8,
+             PaperProps: { sx: { maxHeight: `${auditMenuPosition.maxHeight}px`, overflowY: 'auto', overscrollBehavior: 'contain' } },
+           } }}
             helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : undefined} {...field(key)}>
             <MenuItem value="">{allLabel}</MenuItem>
             {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{key === 'action' ? auditEventLabel(draft[key]) : draft[key]}</MenuItem>}
             {options[optionKey].map(value => <MenuItem key={value} value={value}>{key === 'action' ? auditEventLabel(value) : value}</MenuItem>)}
           </TextField>)}
-          <DateRangeFilter startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
+          <DateRangeFilter popoverClassName="audit-activity-date-range-popover" startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
         </div>
         {validation && <Alert severity="error">{validation}</Alert>}
         <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
@@ -133,14 +152,6 @@ export function AuditActivity() {
       </>}
       </div>
     </section>
-    <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} maxWidth="md" fullWidth PaperProps={{ className: 'audit-detail-dialog' }}>
-      <DialogTitle>Audit event details{selected && <span className="audit-detail-number">#{selected.id}</span>}</DialogTitle>
-      <DialogContent dividers>{selected && <><dl className="audit-detail-fields">{[
-        ['Event', auditEventLabel(selected.action)], ['Date and time (IST)', auditDate(selected.timestamp)], ['Performed by', selected.userName],
-        ['Module / entity', selected.entityName], ['Record ID', selected.entityId], ['Changes / result', formatAuditChanges(selected.changes)],
-      ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
-        <div className="audit-snapshots"><section><h3>Previous values</h3><pre>{auditSnapshot(selected.oldValues)}</pre></section><section><h3>New values</h3><pre>{auditSnapshot(selected.newValues)}</pre></section></div>
-      </>}</DialogContent><DialogActions><Button onClick={() => setSelected(null)}>Close</Button></DialogActions>
-    </Dialog>
+    <AuditEventDetailsDialog selected={selected} onClose={() => setSelected(null)} />
   </main>;
 }
