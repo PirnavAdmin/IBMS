@@ -161,6 +161,20 @@ public class QuotationsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpGet("public/{id:int}/approve")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PublicApproveQuotation([FromRoute] int id, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? GetTenantId() ?? 2;
+        var result = await _actionService.ApproveQuotationAsync(id, targetTenant, "Customer (via Email)");
+
+        var html = result.Success
+            ? @"<!DOCTYPE html><html><head><title>Quotation Approved</title><meta name='viewport' content='width=device-width, initial-scale=1.0'></head><body style='font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;background:#f8fafc;margin:0;padding:40px 16px;display:flex;justify-content:center;'><div style='background:#fff;max-width:520px;width:100%;padding:40px 32px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.05);text-align:center;border:1px solid #e2e8f0;'><div style='width:64px;height:64px;background:#dcfce7;color:#16a34a;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px;'>&#10003;</div><h2 style='color:#0f172a;margin:0 0 12px;font-size:24px;'>Quotation Approved!</h2><p style='color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;'>Thank you! Your quotation has been successfully approved. Our billing team has received your confirmation and will finalize and dispatch your official tax invoice shortly.</p><div style='background:#f1f5f9;padding:16px;border-radius:8px;font-size:14px;color:#334155;'>Status: <strong style='color:#16a34a;'>Approved</strong></div></div></body></html>"
+            : $@"<!DOCTYPE html><html><head><title>Quotation Approval</title></head><body style='font-family:sans-serif;text-align:center;padding:50px;background:#f8fafc;'><div style='background:#fff;max-width:500px;margin:auto;padding:30px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.06);'><h2>Notice</h2><p>{result.Message}</p></div></body></html>";
+
+        return Content(html, "text/html");
+    }
+
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]

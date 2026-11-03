@@ -43,6 +43,7 @@ const InvoiceList = lazyPage(() => import('../pages/Invoices/InvoiceList'), 'Inv
 const InvoiceForm = lazyPage(() => import('../pages/Invoices/InvoiceForm'), 'InvoiceForm');
 const InvoiceDetails = lazyPage(() => import('../pages/Invoices/InvoiceDetails'), 'InvoiceDetails');
 const InvoicePreview = lazyPage(() => import('../pages/Invoices/InvoicePreview'), 'InvoicePreview');
+const PublicInvoicePayment = lazyPage(() => import('../pages/Invoices/pages/PublicInvoicePayment'), 'PublicInvoicePayment');
 const Taxes = lazyPage(() => import('../pages/Taxes/Taxes'), 'Taxes');
 const CategoryList = lazyPage(() => import('../pages/Products/pages/CategoryList'), 'CategoryList');
 const CategoryFormPage = lazyPage(() => import('../pages/Products/pages/CategoryFormPage'), 'CategoryFormPage');
@@ -86,6 +87,7 @@ export const AppRoutes = () => (
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/verify-otp" element={<VerifyOtp />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/pay/:id" element={<PublicInvoicePayment />} />
 
     {/* Application Routes */}
     <Route element={<ProtectedRoute><FormDraftProvider><AppLayout /></FormDraftProvider></ProtectedRoute>}>

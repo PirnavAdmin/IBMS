@@ -82,12 +82,14 @@ public class NotificationService : INotificationService
             ["DueDate"] = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt",
             ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
             ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
-            ["PaymentLink"] = $"/portal/invoices/{invoice.InvoiceNumber}/pay"
+            ["PaymentLink"] = $"http://localhost:3000/pay/{invoice.Id}?tenantId={tenantId}"
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
         string subject;
         string body;
+
+        var payLink = $"http://localhost:3000/pay/{invoice.Id}?tenantId={tenantId}";
 
         if (template != null)
         {
@@ -97,7 +99,18 @@ public class NotificationService : INotificationService
         else
         {
             subject = $"Invoice {invoice.InvoiceNumber} from {companyName}";
-            body = $"<p>Dear {invoice.Customer.Name},</p><p>Please find attached invoice <strong>{invoice.InvoiceNumber}</strong> for {currency} {invoice.TotalAmount:N2}.</p><p>Regards,<br>{companyName}</p>";
+            body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+                <h2 style='color:#0f172a;margin-top:0;'>Tax Invoice {invoice.InvoiceNumber}</h2>
+                <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
+                <p style='color:#475569;'>Please find attached tax invoice <strong>{invoice.InvoiceNumber}</strong> for <strong>{currency} {invoice.TotalAmount:N2}</strong>.</p>
+                <p style='color:#64748b;font-size:14px;'>Due Date: <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> &bull; Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>
+                <div style='margin:30px 0;'>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
+                </div>
+                <p style='color:#64748b;font-size:13px;'>You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or NetBanking.</p>
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
         }
 
         var log = new NotificationLog
@@ -294,13 +307,29 @@ public class NotificationService : INotificationService
             ["TotalAmount"] = quotation.TotalAmount.ToString("N2")
         };
 
+        var approveLink = $"http://localhost:5271/api/v1/quotations/public/{quotation.Id}/approve?tenantId={tenantId}";
+        var replyLink = $"mailto:{supportEmail}?subject=Feedback on Quotation {quotation.QuoteNumber}";
+        variables["ApproveLink"] = approveLink;
+        variables["ReplyLink"] = replyLink;
+
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, "QuotationSent", "Email");
         string subject = template != null
             ? _templateEngine.Render(template.SubjectTemplate, variables)
             : $"Quotation {quotation.QuoteNumber} from {companyName}";
         string body = template != null
             ? _templateEngine.Render(template.BodyTemplate, variables)
-            : $"<p>Dear {quotation.Customer.Name},</p><p>Please find attached quotation {quotation.QuoteNumber} for {currency} {quotation.TotalAmount:N2}.</p><p>Regards,<br>{companyName}</p>";
+            : $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+                <h2 style='color:#0f172a;margin-top:0;'>Quotation {quotation.QuoteNumber}</h2>
+                <p style='color:#475569;'>Dear {quotation.Customer.Name},</p>
+                <p style='color:#475569;'>Please find attached our official quotation <strong>{quotation.QuoteNumber}</strong> for the amount of <strong>{currency} {quotation.TotalAmount:N2}</strong>.</p>
+                <p style='color:#64748b;font-size:14px;'>Valid until: <strong>{quotation.ValidUntil:dd MMM yyyy}</strong></p>
+                <div style='margin:30px 0;'>
+                    <a href='{approveLink}' style='background-color:#16a34a;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;display:inline-block;margin-right:12px;'>&#10003; Approve Quotation</a>
+                    <a href='{replyLink}' style='background-color:#f1f5f9;color:#334155;padding:12px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;display:inline-block;border:1px solid #cbd5e1;'>&#9993; Request Changes</a>
+                </div>
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
 
         var log = new NotificationLog
         {
