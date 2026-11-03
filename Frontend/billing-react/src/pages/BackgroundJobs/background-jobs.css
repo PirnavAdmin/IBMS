@@ -1,5 +1,6 @@
 .background-jobs-page { box-sizing: border-box; min-width: 0; min-height: 100%; padding: var(--module-page-block-padding, 32px) var(--module-page-gutter, 16px); color: var(--text-primary, #35231c); background: var(--workspace-surface, var(--bg-main, #f9f5ef)); }
-.background-jobs-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.background-jobs-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.background-jobs-heading > .MuiButton-root { transform: translateY(8px); }
 .background-jobs-heading h1 { margin: 7px 0 8px; font-size: clamp(25px, 2.4vw, 32px); font-weight: 650; letter-spacing: -.025em; }
 .background-jobs-heading p { max-width: 680px; margin: 0; color: var(--text-secondary, #806b5b); font-size: 14px; line-height: 1.6; }
 .background-jobs-eyebrow { color: var(--secondary, #987455); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }

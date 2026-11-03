@@ -29,6 +29,7 @@ function backgroundJobAccess(response) {
     .some(role => ['tenantadmin', 'superadmin'].includes(role.trim().toLowerCase()));
 }
 const statusColor = status => ({ Running: 'info', Succeeded: 'success', Failed: 'error', Idle: 'default' }[status] || 'default');
+const formatJobName = name => name.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 
 export function BackgroundJobStatus() {
   const [now, setNow] = useState(Date.now());
@@ -66,7 +67,7 @@ export function BackgroundJobStatus() {
               <section className="background-jobs-grid" aria-label="Background job status list">
                 {(query.data || []).map(job => <article className="background-job-card" key={`${job.jobName}-${query.dataUpdatedAt}`}>
                   <span className="background-job-refresh-flash" key={query.dataUpdatedAt} aria-hidden="true" />
-                  <div className="background-job-card-heading"><div><h2>{job.jobName}</h2><p>{job.description}</p></div><Chip size="small" label={job.status} color={statusColor(job.status)} /></div>
+                  <div className="background-job-card-heading"><div><h2>{formatJobName(job.jobName)}</h2><p>{job.description}</p></div><Chip size="small" label={job.status} color={statusColor(job.status)} /></div>
                   <dl className="background-job-facts">
                     <div><dt>Last run</dt><dd>{dateTime(job.lastRunAtUtc, 'Never run')}</dd></div>
                     <div><dt>Next scheduled run</dt><dd>{dateTime(job.nextScheduledRunUtc, 'Not provided')}<small className="background-job-countdown">{countdown(job.nextScheduledRunUtc, now)}</small></dd></div>

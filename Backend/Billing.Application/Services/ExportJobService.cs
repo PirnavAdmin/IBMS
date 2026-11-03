@@ -5,8 +5,10 @@ using System.Text.Json;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.BackgroundJobs;
+using Billing.Contracts.CreditNote;
 using Billing.Contracts.Export;
 using Billing.Contracts.Payment;
+using Billing.Contracts.Quotation;
 using Billing.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
@@ -19,6 +21,9 @@ public class ExportJobService : IExportJobService
     private readonly IPaymentRepository _paymentRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IAuditLogRepository _auditLogRepository;
+    private readonly ICreditNoteRepository? _creditNoteRepository;
+    private readonly IQuotationRepository? _quotationRepository;
+    private readonly IProductRepository? _productRepository;
     private readonly IDocumentStorageService _storageService;
     private readonly ILogger<ExportJobService> _logger;
 
@@ -29,7 +34,10 @@ public class ExportJobService : IExportJobService
         ICustomerRepository customerRepository,
         IAuditLogRepository auditLogRepository,
         IDocumentStorageService storageService,
-        ILogger<ExportJobService> logger)
+        ILogger<ExportJobService> logger,
+        ICreditNoteRepository? creditNoteRepository = null,
+        IQuotationRepository? quotationRepository = null,
+        IProductRepository? productRepository = null)
     {
         _exportJobRepository = exportJobRepository;
         _invoiceRepository = invoiceRepository;
@@ -38,6 +46,9 @@ public class ExportJobService : IExportJobService
         _auditLogRepository = auditLogRepository;
         _storageService = storageService;
         _logger = logger;
+        _creditNoteRepository = creditNoteRepository;
+        _quotationRepository = quotationRepository;
+        _productRepository = productRepository;
     }
 
     public async Task<ApiResponse<ExportJobDto>> QueueExportJobAsync(CreateExportJobRequest request, int tenantId, string requestedBy, CancellationToken cancellationToken = default)
@@ -50,10 +61,10 @@ public class ExportJobService : IExportJobService
             return ApiResponse<ExportJobDto>.Fail("Supported export formats are 'CSV' and 'JSON'.");
         }
 
-        var validTypes = new[] { "Invoice", "Payment", "Customer", "AuditLog" };
+        var validTypes = new[] { "Invoice", "Payment", "Customer", "AuditLog", "CreditNote", "Quotation", "Product" };
         if (!validTypes.Contains(jobType, StringComparer.OrdinalIgnoreCase))
         {
-            return ApiResponse<ExportJobDto>.Fail($"Invalid jobType '{jobType}'. Supported: Invoice, Payment, Customer, AuditLog.");
+            return ApiResponse<ExportJobDto>.Fail($"Invalid jobType '{jobType}'. Supported: Invoice, Payment, Customer, AuditLog, CreditNote, Quotation, Product.");
         }
 
         var job = new ExportJob
@@ -195,6 +206,128 @@ public class ExportJobService : IExportJobService
                         }
                         recordCount = allAuditLogs.Count;
                         fileBytes = GenerateAuditLogExport(allAuditLogs, job.ExportFormat);
+                    }
+                    else if (string.Equals(job.JobType, "CreditNote", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_creditNoteRepository == null)
+                            throw new InvalidOperationException("Credit note export is not configured.");
+
+                        var allCreditNotes = new List<CreditNoteListItemDto>();
+                        var pageNumber = 1;
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            var page = await _creditNoteRepository.GetPagedAsync(
+                                job.TenantId,
+                                new CreditNoteFilterRequest { Page = pageNumber, PageSize = 100 },
+                                cancellationToken: cancellationToken);
+                            if (page.Items.Count == 0) break;
+                            allCreditNotes.AddRange(page.Items);
+                            if (allCreditNotes.Count >= page.TotalCount || page.Items.Count < 100) break;
+                            pageNumber++;
+                        }
+
+                        var rows = allCreditNotes.Select(note => new
+                        {
+                            note.Id,
+                            note.CreditNoteNumber,
+                            note.InvoiceId,
+                            note.InvoiceNumber,
+                            note.CustomerId,
+                            note.CustomerName,
+                            CreditDate = note.CreditDate.ToString("yyyy-MM-dd"),
+                            note.Type,
+                            note.Subtotal,
+                            note.TaxAmount,
+                            note.TotalAmount,
+                            note.RefundedAmount,
+                            note.RemainingRefundableAmount,
+                            note.Status,
+                            note.Reason,
+                            note.Currency,
+                            CreatedAtUtc = note.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                        });
+                        recordCount = allCreditNotes.Count;
+                        fileBytes = GenerateRecordExport(rows, job.ExportFormat);
+                    }
+                    else if (string.Equals(job.JobType, "Quotation", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_quotationRepository == null)
+                            throw new InvalidOperationException("Quotation export is not configured.");
+
+                        var allQuotations = new List<Quotation>();
+                        var pageNumber = 1;
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            var page = await _quotationRepository.GetPagedListAsync(
+                                job.TenantId,
+                                new QuotationListFilterRequest { PageNumber = pageNumber, PageSize = 100 });
+                            if (page.Items.Count == 0) break;
+                            allQuotations.AddRange(page.Items);
+                            if (allQuotations.Count >= page.TotalCount || page.Items.Count < 100) break;
+                            pageNumber++;
+                        }
+
+                        var rows = allQuotations.Select(quotation => new
+                        {
+                            quotation.Id,
+                            quotation.QuoteNumber,
+                            quotation.CustomerId,
+                            CustomerName = quotation.Customer?.Name,
+                            CustomerEmail = quotation.Customer?.Email,
+                            QuotationDate = quotation.QuotationDate.ToString("yyyy-MM-dd"),
+                            ValidUntil = quotation.ValidUntil.ToString("yyyy-MM-dd"),
+                            quotation.Reference,
+                            Status = quotation.Status.ToString(),
+                            quotation.Subtotal,
+                            quotation.DiscountAmount,
+                            quotation.TaxAmount,
+                            quotation.ChargesAmount,
+                            quotation.TotalAmount,
+                            ItemCount = quotation.Items.Count,
+                            quotation.ConvertedInvoiceId,
+                            CreatedAtUtc = quotation.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                        });
+                        recordCount = allQuotations.Count;
+                        fileBytes = GenerateRecordExport(rows, job.ExportFormat);
+                    }
+                    else if (string.Equals(job.JobType, "Product", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_productRepository == null)
+                            throw new InvalidOperationException("Product export is not configured.");
+
+                        var allProducts = new List<Product>();
+                        var pageNumber = 1;
+                        while (!cancellationToken.IsCancellationRequested)
+                        {
+                            var page = await _productRepository.GetPagedListAsync(
+                                job.TenantId,
+                                new ProductQueryParameters { PageNumber = pageNumber, PageSize = 100 });
+                            if (page.Items.Count == 0) break;
+                            allProducts.AddRange(page.Items);
+                            if (allProducts.Count >= page.TotalCount || page.Items.Count < 100) break;
+                            pageNumber++;
+                        }
+
+                        var rows = allProducts.Select(product => new
+                        {
+                            product.Id,
+                            product.ProductCode,
+                            product.Name,
+                            product.Description,
+                            product.Type,
+                            Category = product.ProductCategory?.Name ?? product.Category,
+                            product.Unit,
+                            product.Price,
+                            product.Currency,
+                            product.TaxCategory,
+                            product.HsnSacCode,
+                            product.DiscountAllowed,
+                            product.DiscountPercent,
+                            product.Status,
+                            CreatedAtUtc = product.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                        });
+                        recordCount = allProducts.Count;
+                        fileBytes = GenerateRecordExport(rows, job.ExportFormat);
                     }
                     else
                     {
@@ -412,6 +545,37 @@ public class ExportJobService : IExportJobService
                 EscapeCsv(a.UserName),
                 EscapeCsv(a.Changes ?? "")
             ));
+        }
+
+        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+    }
+
+    private static byte[] GenerateRecordExport<T>(IEnumerable<T> records, string format)
+    {
+        var json = JsonSerializer.SerializeToElement(records);
+        if (string.Equals(format, "JSON", StringComparison.OrdinalIgnoreCase))
+        {
+            return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(json, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        var rows = json.EnumerateArray().ToList();
+        var sb = new StringBuilder();
+        var headers = rows.Count > 0
+            ? rows[0].EnumerateObject().Select(property => property.Name).ToArray()
+            : typeof(T).GetProperties().Select(property => property.Name).ToArray();
+        if (headers.Length > 0)
+        {
+            sb.AppendLine(string.Join(",", headers.Select(EscapeCsv)));
+            foreach (var row in rows)
+            {
+                sb.AppendLine(string.Join(",", headers.Select(header =>
+                {
+                    if (!row.TryGetProperty(header, out var value) || value.ValueKind == JsonValueKind.Null)
+                        return string.Empty;
+                    var text = value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
+                    return EscapeCsv(text);
+                })));
+            }
         }
 
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
