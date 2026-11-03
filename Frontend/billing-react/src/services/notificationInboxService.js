@@ -1,7 +1,8 @@
-import { apiClient } from 'billing-api-client';
+import { apiClient, API_ENDPOINTS } from 'billing-api-client';
 import { hasPermission } from '../utils/permissionUtils';
 
-const base = '/api/v1/notifications/inbox';
+// Shared apiClient supplies VITE_API_BASE_URL, bearer auth and tenant headers.
+const endpoints = API_ENDPOINTS.NOTIFICATION_INBOX;
 const invalid = () => new Error('Notifications are unavailable right now. Please try again.');
 function unwrap(response) {
   if (response?.success === false) throw invalid();
@@ -33,15 +34,15 @@ export function notificationDestination(action, user) {
 
 export const notificationInboxService = {
   async unreadCount(signal) {
-    const data = unwrap(await apiClient.get(`${base}/unread-count`, { signal }));
+    const data = unwrap(await apiClient.get(endpoints.UNREAD_COUNT, { signal }));
     if (!count(data?.unreadCount)) throw invalid();
     return data.unreadCount;
   },
   async list({ unreadOnly, pageNumber }, signal) {
-    const page = parseInboxPage(await apiClient.get(base, { signal, params: { unreadOnly, pageNumber, pageSize: 20 } }));
+    const page = parseInboxPage(await apiClient.get(endpoints.BASE, { signal, params: { unreadOnly, pageNumber, pageSize: 20 } }));
     if (page.pageNumber !== pageNumber) throw invalid();
     return page;
   },
-  async markRead(id) { unwrap(await apiClient.patch(`${base}/${encodeURIComponent(id)}/read`, {})); },
-  async markAllRead(throughCreatedAtUtc) { unwrap(await apiClient.patch(`${base}/read-all`, { throughCreatedAtUtc })); },
+  async markRead(id) { unwrap(await apiClient.patch(endpoints.MARK_READ(id), {})); },
+  async markAllRead(throughCreatedAtUtc) { unwrap(await apiClient.patch(endpoints.MARK_ALL_READ, { throughCreatedAtUtc })); },
 };

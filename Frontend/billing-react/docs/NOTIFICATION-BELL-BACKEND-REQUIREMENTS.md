@@ -1,6 +1,6 @@
 # Navbar notification bell: backend handoff
 
-Status: frontend implemented against the contract below. Backend implementation remains required. No backend files were edited for this task.
+Status: frontend integrated with the implemented backend inbox APIs through the shared API client and VITE_API_BASE_URL. Public Swagger confirms all four endpoints at https://pediatric-astrology-outrank.ngrok-free.dev. Signed-in navbar verification returned an unread count of 0 and a successful empty inbox. Existing requirements below remain the contract reference; no backend files were edited during integration.
 
 ## Existing system and scope
 
@@ -85,4 +85,4 @@ Add an inbox controller (or isolated inbox routes), application service/interfac
 4. Empty inbox, invalid pages, expired auth, revoked permissions, deleted target records, cancellation and service failures have predictable responses.
 5. Verify actual bell layout and keyboard/focus behavior on mobile/desktop, 0/1/99/100+ counts, long text, All/Unread, paging, read writes, errors and record navigation against the implemented service.
 
-Frontend tests use isolated service stubs; passing them does not mean these missing backend APIs have been deployed or tested end to end.
+Frontend tests include isolated service/UI cases plus requests through the actual shared Axios interceptors using a test adapter. Live signed-in GET/count and empty-inbox rendering were verified. Real read/mark-all writes were not exercised because the current inbox is empty.

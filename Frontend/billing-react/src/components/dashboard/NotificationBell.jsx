@@ -58,7 +58,7 @@ export function NotificationBell({ user }) {
   return <>
     <button type="button" ref={trigger} className="notification-bell" aria-label={`Notifications${unread == null ? '' : `, ${unread} unread`}`}
       title="Notifications" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
-      onClick={() => { setOpen(value => !value); setPageNumber(1); setError(''); setNotice(''); }}>
+      onClick={() => { if (!open && enabled) void count.refetch(); setOpen(value => !value); setPageNumber(1); setError(''); setNotice(''); }}>
       <NotificationsOutlined aria-hidden="true" />
       {unread > 0 && <span className="notification-badge" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
     </button>

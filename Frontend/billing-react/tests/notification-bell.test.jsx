@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { apiClient } from 'billing-api-client';
+import { apiClient, API_BASE_URL, API_ENDPOINTS } from 'billing-api-client';
 import { NotificationBell } from '../src/components/dashboard/NotificationBell';
 import { DashboardHeader } from '../src/components/dashboard/DashboardHeader';
 import { notificationInboxService as inbox, notificationDestination, parseInboxPage } from '../src/services/notificationInboxService';
@@ -169,4 +169,51 @@ test('navbar logout requires confirmation; cancel, Escape and backdrop preserve 
     await act(async () => { Simulate.click(confirm); Simulate.click(confirm); });
     assert.equal(calls, 1);
   } finally { await view.close(); localStorage.removeItem('billing_auth_token'); }
+});
+test('inbox API uses the configured backend base URL and existing bearer/tenant interceptors for all four endpoints', async () => {
+  const originalAdapter = apiClient.defaults.adapter;
+  const originalToken = localStorage.getItem('billing_auth_token');
+  const originalUser = localStorage.getItem('billing_auth_user');
+  const calls = [];
+  localStorage.setItem('billing_auth_token', 'Bearer inbox-adapter-test-token');
+  localStorage.setItem('billing_auth_user', JSON.stringify({ userId: 7, tenantId: 3 }));
+  apiClient.defaults.adapter = async config => {
+    calls.push(config);
+    assert.equal(config.baseURL, API_BASE_URL);
+    assert.ok(apiClient.getUri(config).startsWith(API_BASE_URL + '/api/v1/notifications/inbox'));
+    assert.equal(config.headers.get('Authorization'), 'Bearer inbox-adapter-test-token');
+    assert.equal(config.headers.get('X-Tenant-Id'), '3');
+    const data = config.url === API_ENDPOINTS.NOTIFICATION_INBOX.UNREAD_COUNT ? { unreadCount: 2 }
+      : config.method === 'get' ? page([{ ...item, id: '27', createdAtUtc: '2026-11-03T09:00:00.1234567Z' }]) : true;
+    return { data: { success: true, message: 'Success', data, errorCode: null }, status: 200, statusText: 'OK', headers: {}, config };
+  };
+  try {
+    assert.equal(await inbox.unreadCount(), 2);
+    const result = await inbox.list({ unreadOnly: true, pageNumber: 1 });
+    assert.equal(result.items[0].id, '27');
+    await inbox.markRead('27');
+    await inbox.markAllRead(result.snapshotAtUtc);
+    assert.deepEqual(calls.map(call => [call.method, call.url]), [
+      ['get', '/api/v1/notifications/inbox/unread-count'],
+      ['get', '/api/v1/notifications/inbox'],
+      ['patch', '/api/v1/notifications/inbox/27/read'],
+      ['patch', '/api/v1/notifications/inbox/read-all'],
+    ]);
+    assert.deepEqual(JSON.parse(calls[3].data), { throughCreatedAtUtc: result.snapshotAtUtc });
+  } finally {
+    apiClient.defaults.adapter = originalAdapter;
+    if (originalToken === null) localStorage.removeItem('billing_auth_token'); else localStorage.setItem('billing_auth_token', originalToken);
+    if (originalUser === null) localStorage.removeItem('billing_auth_user'); else localStorage.setItem('billing_auth_user', originalUser);
+  }
+});
+
+test('opening the bell refreshes an unread badge after a previously unavailable backend recovers', async () => {
+  let available = false;
+  const view = await mount(undefined, { unreadCount: async () => { if (!available) throw new Error('offline'); return 3; } });
+  try {
+    assert.equal(view.host.querySelector('.notification-badge'), null);
+    available = true;
+    await open();
+    assert.equal(view.host.querySelector('.notification-badge').textContent, '3');
+  } finally { await view.close(); }
 });
