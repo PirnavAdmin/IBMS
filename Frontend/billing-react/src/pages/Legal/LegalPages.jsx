@@ -1,3 +1,4 @@
+import { BrandName } from '../../components/BrandName';
 import { Link } from 'react-router-dom';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 import './legal-pages.css';
@@ -5,9 +6,9 @@ import './legal-pages.css';
 const documents = {
   terms: {
     title: 'Terms & Conditions',
-    intro: 'Project terms for using INVOICE.BILLING / IBMS billing workspaces.',
+    intro: 'Project terms for using INVOICE BILLING MANAGEMENT SYSTEM / IBMS billing workspaces.',
     sections: [
-      ['About the service', 'INVOICE.BILLING provides tools for customer records, products and services, quotations, invoices, payments, credit notes and configured communications. The software supports business administration; it does not replace professional accounting, tax or legal advice.'],
+      ['About the service', 'INVOICE BILLING MANAGEMENT SYSTEM provides tools for customer records, products and services, quotations, invoices, payments, credit notes and configured communications. The software supports business administration; it does not replace professional accounting, tax or legal advice.'],
       ['Your account and workspace', 'Provide accurate account information, keep sign-in credentials private and use only workspaces you are authorized to access. Workspace administrators are responsible for assigning appropriate access to their users.'],
       ['Your billing records', 'Review customer details, prices, taxes, dates and totals before issuing documents or recording payments. You are responsible for the information you enter, the documents you send and the records your business needs to retain.'],
       ['Acceptable use', 'Use the service for lawful, authorized business activity. Do not attempt to access another organization\'s data, bypass authentication, disrupt the service or upload harmful content. Only enter customer information that you are authorized to use.'],
@@ -33,7 +34,7 @@ function LegalPage({ kind }) {
   const doc = documents[kind];
   return <main className="ibms-legal-page">
     <article className="ibms-legal-document">
-      <header><div className="ibms-legal-brand"><InvoiceBillingLogo tone="auth" size={28} /><span>INVOICE.BILLING</span></div><p className="ibms-legal-eyebrow">Project draft for review</p><h1>{doc.title}</h1><p>{doc.intro}</p></header>
+      <header><div className="ibms-legal-brand"><InvoiceBillingLogo tone="auth" size={28} /><BrandName /></div><p className="ibms-legal-eyebrow">Project draft for review</p><h1>{doc.title}</h1><p>{doc.intro}</p></header>
       <aside className="ibms-legal-review" aria-label="Document review status">Draft for project review. Business details and actual data practices must be confirmed before production use. These pages do not establish legal compliance.</aside>
       {doc.sections.map(([title, text]) => <section key={title}><h2>{title}</h2><p>{text}</p></section>)}
       <footer><Link to="/register">Back to Create Account</Link><Link to={kind === 'terms' ? '/privacy' : '/terms'}>{kind === 'terms' ? 'Privacy Policy' : 'Terms & Conditions'}</Link></footer>

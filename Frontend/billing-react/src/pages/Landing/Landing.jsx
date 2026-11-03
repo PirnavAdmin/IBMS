@@ -1,3 +1,4 @@
+import { BrandName } from '../../components/BrandName';
 import React, { useState, useEffect } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -103,10 +104,10 @@ export const Landing = () => {
               <InvoiceBillingLogo />
               <Box>
                 <Typography variant="h6" className="swipe-brand-title">
-                  INVOICE<span className="brand-dot">.</span>BILLING
+                  IBMS
                 </Typography>
-                <Typography variant="caption" className="swipe-brand-caption">
-                  GST INVOICING &amp; PAYMENTS
+                <Typography variant="caption" className="swipe-brand-caption" title="INVOICE BILLING MANAGEMENT SYSTEM">
+                  INVOICE BILLING MANAGEMENT SYSTEM
                 </Typography>
               </Box>
             </Box>
@@ -497,7 +498,7 @@ export const Landing = () => {
           <div className="footer-top-row">
             <Box className="footer-brand">
               <InvoiceBillingLogo size={18} />
-              <span className="footer-brand-name">INVOICE.BILLING</span>
+              <BrandName />
             </Box>
             <div className="footer-nav-links">
               <span>Privacy Policy</span>
@@ -510,7 +511,7 @@ export const Landing = () => {
           <div className="footer-divider" />
           <div className="footer-bottom-row">
             <Typography variant="body2" className="footer-copyright">
-              &copy; 2026 INVOICE.BILLING Platform. Protected by TLS 1.3 &amp; ISO 27001 Security.
+              &copy; 2026 IBMS Platform. Protected by TLS 1.3 &amp; ISO 27001 Security.
             </Typography>
             <span className="footer-badge">Made for Fast-Growing Indian Businesses 🇮🇳</span>
           </div>

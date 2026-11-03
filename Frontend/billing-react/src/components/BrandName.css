@@ -1,0 +1,59 @@
+.ibms-brand-name {
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 1 230px;
+  width: 230px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+  line-height: 1.25;
+  text-align: left;
+}
+.ibms-brand-name > strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+.ibms-brand-name > .ibms-brand-full-name {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: .025em;
+  opacity: .85;
+}
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand > .ibms-brand-name {
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  flex: 1 1 0%;
+  width: 0;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+.app-layout.astra-layout .astra-sidebar .bd-sidebar-brand > .ibms-brand-name > strong {
+  font-size: 15px;
+}
+.app-layout.astra-layout.sidebar-collapsed .bd-sidebar-brand > .ibms-brand-name { display: none; }
+.billing-auth-brand-wrap > .ibms-brand-name,
+.billing-auth-card-brand > .ibms-brand-name,
+.login-brand-header > .ibms-brand-name,
+.ibms-legal-brand > .ibms-brand-name { flex: 0 1 230px; }
+.billing-auth-hero-side .ibms-brand-name,
+.footer-brand .ibms-brand-name { color: #fff; }
+.billing-auth-card-brand > .ibms-brand-name > strong { font-size: 12px; }
+.billing-auth-card-brand > .ibms-brand-name > .ibms-brand-full-name { font-size: 8px; }
+.mockup-card-header > .ibms-brand-name { flex: 1 1 0%; }
+.payment-print-brand .ibms-brand-name > strong { font-size: 16px; }
+@media print {
+  .ibms-brand-name > .ibms-brand-full-name { overflow: visible; white-space: normal; text-overflow: clip; }
+}

@@ -1,3 +1,4 @@
+import { BrandName } from '../../components/BrandName';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useState, useEffect } from 'react';
 import {
@@ -43,7 +44,7 @@ import '../../styles/Login.css';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
 
 // ============================================================
-// INVOICE.BILLING LOGO
+// INVOICE BILLING MANAGEMENT SYSTEM LOGO
 // ============================================================
 
 
@@ -677,9 +678,7 @@ export const Login = () => {
 
             <InvoiceBillingLogo tone="auth" size={28} />
 
-            <span className="billing-auth-brand-text">
-              INVOICE.BILLING
-            </span>
+            <BrandName />
 
           </div>
 
@@ -722,9 +721,7 @@ export const Login = () => {
 
                 <InvoiceBillingLogo tone="auth" size={20} />
 
-                <span>
-                  INVOICE.BILLING
-                </span>
+                <BrandName />
 
               </div>
 
@@ -1111,7 +1108,7 @@ export const Login = () => {
 
             {/* Kept outside the login form so this link can never submit it. */}
             <div className="billing-auth-footer-text">
-              New to INVOICE.BILLING?{' '}
+              New to IBMS?{' '}
               <button
                 type="button"
                 className="billing-auth-create-link billing-auth-route-button"

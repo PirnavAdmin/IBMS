@@ -2,6 +2,11 @@
    Keep document/print styles and the existing sidebar drawer behavior intact. */
 @media screen {
   .app-layout, .app-layout *, .app-layout *::before, .app-layout *::after { box-sizing: border-box; }
+  /* MUI single-line inputs size their text as content-box and add vertical
+     padding. The shell reset otherwise subtracts that padding from the text
+     height, collapsing search fields in Integrations and other modules.
+     Keep selects, multiline fields and explicitly sized controls unchanged. */
+  .app-layout input.MuiInputBase-input { box-sizing: content-box; }
   .app-layout .app-layout-main { flex: 1 1 0%; min-width: 0; max-width: 100%; }
   .app-layout .app-layout-content { width: 100%; min-width: 0; max-width: 100%; container: workspace / inline-size; }
   .app-layout-content > *, .app-layout-content > fieldset { min-width: 0; max-width: 100%; }

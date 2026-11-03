@@ -15,7 +15,16 @@ import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { backgroundJobError, backgroundJobService } from './backgroundJobService';
 import './background-jobs.css';
 
-const jobTypes = ['Invoice', 'Payment', 'Customer', 'AuditLog'];
+const jobTypes = [
+  { value: 'Invoice', label: 'Invoice' },
+  { value: 'Payment', label: 'Payment' },
+  { value: 'Customer', label: 'Customer' },
+  { value: 'AuditLog', label: 'Audit Log' },
+  { value: 'CreditNote', label: 'Credit Notes' },
+  { value: 'Quotation', label: 'Quotation' },
+  { value: 'Product', label: 'Products' },
+];
+const jobTypeLabel = value => jobTypes.find(option => option.value === value)?.label ?? value;
 const formats = ['CSV', 'JSON'];
 const statusOptions = ['Pending', 'Processing', 'Completed', 'Failed'];
 const dateTime = value => value
@@ -101,7 +110,7 @@ export function ExportJobStatus() {
             <section className="export-job-create">
               <h2>Create an export</h2>
               <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small">
-                {jobTypes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                {jobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
               </TextField>
               <TextField select label="Format" value={exportFormat} onChange={event => setExportFormat(event.target.value)} size="small">
                 {formats.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
@@ -120,7 +129,7 @@ export function ExportJobStatus() {
                   </FilterSelectField>
                   <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
-                    {jobTypes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                    {jobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
                   </FilterSelectField>
                 </div>
               </div>
@@ -131,7 +140,7 @@ export function ExportJobStatus() {
                       <thead><tr><th>Export</th><th>Status</th><th>Progress</th><th>Requested</th><th>Started</th><th>Completed</th><th>File size</th><th>Actions</th></tr></thead>
                       <tbody>
                         {(result?.items || []).map(job => <tr key={job.id}>
-                          <td><strong>#{job.id} · {job.jobType}</strong><span>{job.exportFormat} · {job.requestedBy || 'User'}</span>{job.errorMessage && <span className="export-job-error">{job.errorMessage}</span>}</td>
+                          <td><strong>#{job.id} · {jobTypeLabel(job.jobType)}</strong><span>{job.exportFormat} · {job.requestedBy || 'User'}</span>{job.errorMessage && <span className="export-job-error">{job.errorMessage}</span>}</td>
                           <td><span className={`export-job-status status-${job.status.toLowerCase()}`}>{job.status}</span></td>
                           <td>{job.processedRecords}{job.totalRecords ? ` / ${job.totalRecords}` : ''}</td>
                           <td>{dateTime(job.createdAtUtc)}</td><td>{dateTime(job.startedAtUtc)}</td><td>{dateTime(job.completedAtUtc)}</td>

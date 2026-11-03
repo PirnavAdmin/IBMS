@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { SearchField } from '../../components/SearchField';
 import { displayDate } from '../../utils/localDate';
 import { FeedbackSnackbar } from "../../components/FeedbackSnackbar";
@@ -240,6 +241,7 @@ function LoadError({ query }) {
   );
 }
 export function TaxList({ search, setSearch }) {
+  useNavbarSearch(search, setSearch, 'Search taxes');
   const query = useTaxes();
   const { state } = useLocation();
   const term = useSearchDebounce(search).toLowerCase();
@@ -334,14 +336,20 @@ export function TaxList({ search, setSearch }) {
           </section>
           <section className="tax-card" id="tax-register" tabIndex={-1}>
             <div className="tax-toolbar">
-              <SearchField
-                name="search"
-                label="Search Tax"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Name or code"
-                type="search"
-              />
+              <div className="tax-form-group">
+                <label htmlFor="tax-search">Search Tax</label>
+                <SearchField
+                  id="tax-search"
+                  className="tax-search-field"
+                  name="search"
+                  size="small"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Name or code"
+                  type="search"
+                  fullWidth
+                />
+              </div>
               <Field
                 name="filter-type"
                 label="Tax Type"

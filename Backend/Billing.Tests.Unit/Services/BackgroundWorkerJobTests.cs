@@ -3,10 +3,12 @@ using System.Text.Json;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
 using Billing.Contracts;
+using Billing.Contracts.CreditNote;
 using Billing.Contracts.Export;
 using Billing.Contracts.InvoiceTemplate;
 using Billing.Contracts.Notification;
 using Billing.Contracts.Payment;
+using Billing.Contracts.Quotation;
 using Billing.Domain.Entities;
 using Billing.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -438,6 +440,100 @@ public class BackgroundWorkerJobTests
         Assert.Equal("application/json", downloadResult.Data.ContentType);
         Assert.EndsWith(".json", downloadResult.Data.FileName);
         Assert.Equal(generatedBytes, downloadResult.Data.Content);
+    }
+
+    [Theory]
+    [InlineData("CreditNote", "CN-EXPORT-001", "CSV")]
+    [InlineData("Quotation", "QT-EXPORT-001", "CSV")]
+    [InlineData("Product", "PRD-EXPORT-001", "CSV")]
+    [InlineData("CreditNote", "CN-EXPORT-001", "JSON")]
+    [InlineData("Quotation", "QT-EXPORT-001", "JSON")]
+    [InlineData("Product", "PRD-EXPORT-001", "JSON")]
+    public async Task ExportJobService_QueuesAndProcessesAdditionalDataTypes(string jobType, string marker, string format)
+    {
+        var exportRepo = new Mock<IExportJobRepository>();
+        var creditNoteRepo = new Mock<ICreditNoteRepository>();
+        var quotationRepo = new Mock<IQuotationRepository>();
+        var productRepo = new Mock<IProductRepository>();
+        var storage = new Mock<IDocumentStorageService>();
+        var logger = new Mock<ILogger<ExportJobService>>();
+        var job = new ExportJob { Id = 52, TenantId = TenantId, Status = "Pending" };
+        byte[]? generatedBytes = null;
+
+        exportRepo.Setup(r => r.AddAsync(It.IsAny<ExportJob>(), It.IsAny<CancellationToken>()))
+            .Callback<ExportJob, CancellationToken>((created, _) =>
+            {
+                job.JobType = created.JobType;
+                job.ExportFormat = created.ExportFormat;
+                job.Status = created.Status;
+            })
+            .ReturnsAsync(job);
+        exportRepo.Setup(r => r.GetPendingJobsAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExportJob> { job });
+        storage.Setup(s => s.SaveDocumentAsync(
+                It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), TenantId, It.IsAny<CancellationToken>()))
+            .Callback<byte[], string, string, int, CancellationToken>((content, _, _, _, _) => generatedBytes = content)
+            .ReturnsAsync("tenant_1/exports/data.csv");
+
+        if (jobType == "CreditNote")
+        {
+            creditNoteRepo.Setup(r => r.GetPagedAsync(
+                    TenantId, It.IsAny<CreditNoteFilterRequest>(), null, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PagedResult<CreditNoteListItemDto>
+                {
+                    TotalCount = 1,
+                    Items = new List<CreditNoteListItemDto>
+                    {
+                        new() { Id = 1, CreditNoteNumber = marker, CustomerName = "Export customer" }
+                    }
+                });
+        }
+        else if (jobType == "Quotation")
+        {
+            quotationRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<QuotationListFilterRequest>()))
+                .ReturnsAsync((new List<Quotation>
+                {
+                    new() { Id = 1, QuoteNumber = marker, Customer = new Customer { Name = "Export customer" } }
+                }, 1));
+        }
+        else
+        {
+            productRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<ProductQueryParameters>()))
+                .ReturnsAsync((new List<Product>
+                {
+                    new() { Id = 1, ProductCode = marker, Name = "Export product" }
+                }, 1));
+        }
+
+        var service = new ExportJobService(
+            exportRepo.Object,
+            Mock.Of<IInvoiceRepository>(),
+            Mock.Of<IPaymentRepository>(),
+            Mock.Of<ICustomerRepository>(),
+            Mock.Of<IAuditLogRepository>(),
+            storage.Object,
+            logger.Object,
+            creditNoteRepo.Object,
+            quotationRepo.Object,
+            productRepo.Object);
+
+        var queueResult = await service.QueueExportJobAsync(
+            new CreateExportJobRequest { JobType = jobType, ExportFormat = format }, TenantId, "Admin");
+        Assert.True(queueResult.Success);
+
+        var processResult = await service.ProcessPendingExportJobsAsync();
+
+        Assert.True(processResult.Success);
+        Assert.Equal(1, processResult.ProcessedCount);
+        Assert.Equal("Completed", job.Status);
+        Assert.Equal(1, job.TotalRecords);
+        var exportContent = Encoding.UTF8.GetString(generatedBytes!);
+        Assert.Contains(marker, exportContent);
+        if (format == "JSON")
+        {
+            using var json = JsonDocument.Parse(generatedBytes!);
+            Assert.Equal(JsonValueKind.Array, json.RootElement.ValueKind);
+        }
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { printCatalogReport } from '../utils/printCatalogReport';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
@@ -39,6 +40,7 @@ export function CategoryList() {
   const statusRank = { Active: 0, Unknown: 1, Inactive: 2 };
   const allCategories = [...(query.data || [])].sort((a, b) => (statusRank[a.status] ?? 1) - (statusRank[b.status] ?? 1));
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, value => { setSearch(value); setPage(0); }, 'Search categories');
   const searchTerm = search.trim().toLocaleLowerCase();
   const categories = searchTerm
     ? allCategories.filter(category => [category.name, category.description, category.status].some(value => String(value || '').toLocaleLowerCase().includes(searchTerm)))

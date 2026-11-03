@@ -225,7 +225,7 @@
     .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
     .ant-table-content, .ant-table-body
   ):has(> table):not(.invoice-document *)::-webkit-scrollbar-thumb:hover {
-    background: #795334;
+    background-color: #795334;
   }
 }
 
@@ -252,11 +252,19 @@
     .app-layout .app-layout-content [data-table-scroll-header]:has(> table) {
       scrollbar-width: auto;
       scrollbar-color: auto;
+      /* Paint the header under the scrollbar lane on the rounded frame itself.
+         Native scrollbar backgrounds do not follow the frame's corner radius. */
+      background-image: linear-gradient(to bottom,
+        var(--ui-table-header-bg, #f5eee6) 0 var(--table-scroll-header-height, 0px),
+        var(--surface, #fffdf9) var(--table-scroll-header-height, 0px) 100%);
+      background-clip: padding-box;
     }
+    /* Leave the rounded border visible above and beside the row-only track. */
     .app-layout [data-table-scroll-header]::-webkit-scrollbar:vertical {
-      background: linear-gradient(to bottom,
-        var(--ui-table-header-bg, #f5eee6) 0 var(--table-scroll-header-height),
-        #f1e7dc var(--table-scroll-header-height) 100%);
+      background: transparent;
+    }
+    .app-layout [data-table-scroll-header]::-webkit-scrollbar-corner {
+      background: transparent;
     }
     .app-layout [data-table-scroll-header]::-webkit-scrollbar-track:vertical {
       margin-top: var(--table-scroll-header-height, 0px);

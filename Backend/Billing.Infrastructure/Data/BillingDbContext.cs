@@ -79,6 +79,7 @@ public class BillingDbContext : DbContext
 
     public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
+    public DbSet<InAppNotification> InAppNotifications { get; set; }
 
     public DbSet<IntegrationApplication> IntegrationApplications { get; set; }
     public DbSet<Webhook> Webhooks { get; set; }
@@ -602,6 +603,9 @@ public class BillingDbContext : DbContext
             entity.Property(q => q.TaxAmount).HasPrecision(18, 2);
             entity.Property(q => q.ChargesAmount).HasPrecision(18, 2);
             entity.Property(q => q.TotalAmount).HasPrecision(18, 2);
+            entity.Property(q => q.PublicActionToken).HasMaxLength(64);
+            entity.Property(q => q.CustomerDecision).HasMaxLength(32);
+            entity.HasIndex(q => new { q.TenantId, q.PublicActionToken });
             entity.Property(q => q.RowVersion).IsRowVersion();
 
             entity.HasOne(q => q.Tenant)
@@ -955,6 +959,39 @@ public class BillingDbContext : DbContext
             entity.HasIndex(l => new { l.TenantId, l.EntityType, l.EntityId });
             entity.HasIndex(l => new { l.TenantId, l.Status });
             entity.HasIndex(l => new { l.TenantId, l.SentAtUtc });
+        });
+
+        modelBuilder.Entity<InAppNotification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.EventType).HasMaxLength(64).IsRequired();
+            entity.Property(n => n.EventDeduplicationId).HasMaxLength(128).IsRequired();
+            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+            entity.Property(n => n.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(n => n.ActionModule).HasMaxLength(32);
+            entity.Property(n => n.ActionEntityId).HasMaxLength(64);
+            entity.Property(n => n.IsRead).HasDefaultValue(false);
+            entity.Property(n => n.CreatedAtUtc).IsRequired();
+
+            entity.HasOne(n => n.Tenant)
+                  .WithMany()
+                  .HasForeignKey(n => n.TenantId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(n => n.RecipientUser)
+                  .WithMany()
+                  .HasForeignKey(n => n.RecipientUserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(n => new { n.TenantId, n.RecipientUserId, n.CreatedAtUtc, n.Id })
+                  .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_Created_Id");
+
+            entity.HasIndex(n => new { n.TenantId, n.RecipientUserId, n.IsRead })
+                  .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_IsRead");
+
+            entity.HasIndex(n => new { n.TenantId, n.RecipientUserId, n.EventDeduplicationId })
+                  .IsUnique()
+                  .HasDatabaseName("IX_InAppNotifications_Tenant_Recipient_Dedup");
         });
 
         modelBuilder.Entity<IntegrationApplication>(entity =>

@@ -46,9 +46,14 @@ public class PaymentGatewayService : IPaymentGatewayService
             : invoice.BalanceAmount;
 
         var orderId = $"order_{Guid.NewGuid():N}"[..20];
-        var upiId = "billing@ibms";
+        var upiId = "9014177402@ybl";
+        string? bankName = null;
+        string? accountNumber = null;
+        string? ifscCode = null;
+        string? accountHolderName = null;
+        string? branch = null;
 
-        // Try getting tenant's template UPI ID if available
+        // Try getting tenant's template UPI & Bank details if available
         try
         {
             var defaultTemplate = await _templateRepository.GetDefaultTemplateAsync(tenantId);
@@ -56,7 +61,8 @@ public class PaymentGatewayService : IPaymentGatewayService
             if (version != null && !string.IsNullOrWhiteSpace(version.PaymentInstructionsJson))
             {
                 using var doc = JsonDocument.Parse(version.PaymentInstructionsJson);
-                if (doc.RootElement.TryGetProperty("UpiId", out var upiProp) || doc.RootElement.TryGetProperty("upiId", out upiProp))
+                var root = doc.RootElement;
+                if (root.TryGetProperty("UpiId", out var upiProp) || root.TryGetProperty("upiId", out upiProp))
                 {
                     var val = upiProp.GetString();
                     if (!string.IsNullOrWhiteSpace(val))
@@ -64,15 +70,25 @@ public class PaymentGatewayService : IPaymentGatewayService
                         upiId = val.Trim();
                     }
                 }
+                if (root.TryGetProperty("BankName", out var bnProp) || root.TryGetProperty("bankName", out bnProp))
+                    bankName = bnProp.GetString();
+                if (root.TryGetProperty("AccountNumber", out var anProp) || root.TryGetProperty("accountNumber", out anProp))
+                    accountNumber = anProp.GetString();
+                if (root.TryGetProperty("IfscCode", out var ifscProp) || root.TryGetProperty("ifscCode", out ifscProp))
+                    ifscCode = ifscProp.GetString();
+                if (root.TryGetProperty("AccountHolderName", out var ahProp) || root.TryGetProperty("accountHolderName", out ahProp))
+                    accountHolderName = ahProp.GetString();
+                if (root.TryGetProperty("Branch", out var brProp) || root.TryGetProperty("branch", out brProp))
+                    branch = brProp.GetString();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Could not load template UPI settings for Tenant {TenantId}", tenantId);
+            _logger.LogWarning(ex, "Could not load template UPI/Bank settings for Tenant {TenantId}", tenantId);
         }
 
         // Standard UPI Payment URI specification: upi://pay?pa=...&pn=...&am=...&cu=INR&tn=...
-        var payeeName = Uri.EscapeDataString(invoice.Customer?.Name ?? "IBMS Invoice");
+        var payeeName = Uri.EscapeDataString(accountHolderName ?? invoice.Customer?.Name ?? "IBMS Invoice");
         var note = Uri.EscapeDataString($"Payment for {invoice.InvoiceNumber}");
         var upiUri = $"upi://pay?pa={upiId}&pn={payeeName}&am={amountToPay:F2}&cu=INR&tn={note}&tr={invoice.InvoiceNumber}";
 
@@ -105,6 +121,12 @@ public class PaymentGatewayService : IPaymentGatewayService
             Status = invoice.Status,
             Currency = invoice.Currency ?? "INR",
             KeyId = "rzp_test_ibms_sandbox",
+            UpiId = upiId,
+            BankName = bankName,
+            AccountNumber = accountNumber,
+            IfscCode = ifscCode,
+            AccountHolderName = accountHolderName,
+            Branch = branch,
             CustomerName = invoice.Customer?.Name,
             CustomerEmail = invoice.Customer?.Email,
             CustomerPhone = invoice.Customer?.Phone,

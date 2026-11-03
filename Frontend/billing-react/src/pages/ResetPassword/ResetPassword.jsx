@@ -61,7 +61,7 @@ export const ResetPassword = () => {
       onBack={() => handleNav('/login')}
       backLabel="Back to Sign In"
       tagLabel="CREDENTIALS"
-      brandTitle="INVOICE.BILLING"
+      brandTitle="IBMS"
       brandSubtitle="UPDATE PASSWORD"
       brandIcon={LockOutlined}
       cardDescription={email ? <>Set a new secure password for <strong>{email}</strong>.</> : 'Choose a new secure password for your account.'}

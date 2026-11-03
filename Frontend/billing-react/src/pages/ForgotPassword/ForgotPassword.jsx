@@ -63,7 +63,7 @@ export const ForgotPassword = () => {
       className="billing-forgot-page"
       header={<div className="billing-recovery-heading"><div className="billing-auth-card-badge"><VpnKeyOutlined aria-hidden="true" /></div><h1 className="billing-auth-form-title">Reset password</h1></div>}
       tagLabel="RECOVERY"
-      brandTitle="INVOICE.BILLING"
+      brandTitle="IBMS"
       brandSubtitle="PASSWORD RECOVERY"
       cardDescription="Enter your work email to receive a recovery code."
       alerts={

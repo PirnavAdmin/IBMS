@@ -31,9 +31,9 @@
 .swipe-brand { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
 .swipe-brand-icon { width: 40px; height: 40px; background: #9A4F2F; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(154, 79, 47, 0.35); }
 .swipe-brand-icon.small { width: 32px; height: 32px; border-radius: 8px; }
-.swipe-brand-title { font-weight: 900 !important; font-size: 1.35rem !important; color: #2D211C !important; letter-spacing: -0.02em !important; line-height: 1.1 !important; }
+.swipe-brand-title { max-width: 270px; white-space: normal; font-weight: 900 !important; font-size: 1.35rem !important; color: #2D211C !important; letter-spacing: -0.02em !important; line-height: 1.25 !important; }
 .brand-dot { color: #9A4F2F; }
-.swipe-brand-caption { font-size: 0.62rem !important; font-weight: 800 !important; letter-spacing: 0.12em !important; color: #7D6E66 !important; display: block; }
+.swipe-brand-caption { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .58rem !important; font-weight: 700 !important; letter-spacing: .04em !important; line-height: 1.4 !important; color: #7D6E66 !important; display: block; }
 .navbar-center-links { display: none; align-items: center; gap: 28px; }
 @media (min-width: 960px) {
   .navbar-center-links { display: flex; }
@@ -253,7 +253,7 @@
 @media (max-width: 600px) {
   .swipe-brand { gap: 8px; }
   .swipe-brand-icon { width: 32px; height: 32px; flex-shrink: 0; }
-  .swipe-brand-title { font-size: 1rem !important; }
+  .swipe-brand-title { max-width: 190px; font-size: 1rem !important; }
   .swipe-brand-caption { font-size: 0.5rem !important; }
   .nav-signup-btn { padding: 8px 12px !important; white-space: nowrap; }
   .hero-card-invoice { padding: 20px; }
@@ -274,3 +274,10 @@
   .landing-root .capabilities-marquee-track { animation: none; }
   .landing-root .capabilities-marquee-wrapper { overflow-x: auto; mask-image: none; -webkit-mask-image: none; }
 }
+
+.swipe-brand { min-width: 0; }
+.swipe-brand > div { min-width: 0; }
+.footer-brand-name { max-width: 270px; font-size: .95rem; line-height: 1.35; }
+.mockup-brand-tag { font-size: .78rem; line-height: 1.3; }
+
+@media (max-width: 600px) { .swipe-brand-caption { max-width: min(190px, calc(100vw - 170px)); } }

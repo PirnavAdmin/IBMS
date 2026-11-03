@@ -1,5 +1,5 @@
 import { printCustomerDetails } from '../utils/customerReports';
-import { useEffect, useRef } from "react";
+
 import { InactivityReason } from "../components/CustomerCardDetails";
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
@@ -42,60 +42,11 @@ export function CustomerDetailsPage() {
   const { customerId } = useParams();
   const query = useCustomer(customerId);
   const [params, setParams] = useSearchParams();
-  const panelRef = useRef(null);
-  const wheelTimeoutRef = useRef(null);
-  const previousScrollTopRef = useRef({ window: 0, panel: 0 });
   const tab = tabs.find((item) => item.name.toLowerCase() === params.get("tab"))?.name || "Overview";
-  const activeTabIndex = tabs.findIndex((item) => item.name === tab);
   const c = query.data?.customer;
 
-  useEffect(() => {
-    const nextTab = tabs[activeTabIndex + 1]?.name;
-    if (!query.isSuccess || !nextTab) return undefined;
-
-    const panel = panelRef.current;
-    previousScrollTopRef.current = {
-      window: window.scrollY,
-      panel: panel?.scrollTop || 0,
-    };
-
-    const scheduleNextTabSwitch = (source, currentPosition) => {
-      const scrollingDown = currentPosition > previousScrollTopRef.current[source];
-      previousScrollTopRef.current[source] = currentPosition;
-      if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
-      wheelTimeoutRef.current = null;
-      if (!scrollingDown) return;
-
-      wheelTimeoutRef.current = setTimeout(() => {
-        wheelTimeoutRef.current = null;
-        setParams((previous) => {
-          const currentTab = previous.get("tab") || "overview";
-          if (currentTab !== tab.toLowerCase()) return previous;
-          const next = new URLSearchParams(previous);
-          next.set("tab", nextTab.toLowerCase());
-          return next;
-        }, { replace: true });
-      }, 1000);
-    };
-
-    const handleWindowScroll = () => scheduleNextTabSwitch("window", window.scrollY);
-    const handlePanelScroll = () => scheduleNextTabSwitch("panel", panel?.scrollTop || 0);
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
-    panel?.addEventListener("scroll", handlePanelScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleWindowScroll);
-      panel?.removeEventListener("scroll", handlePanelScroll);
-      if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
-      wheelTimeoutRef.current = null;
-    };
-  }, [tab, activeTabIndex, query.isSuccess, setParams]);
-
+  // Only explicit tab selection changes the route; scrolling stays in this panel.
   const changeTab = (nextTab) => {
-    if (wheelTimeoutRef.current) {
-      clearTimeout(wheelTimeoutRef.current);
-      wheelTimeoutRef.current = null;
-    }
     setParams((previous) => {
       const next = new URLSearchParams(previous);
       next.set("tab", nextTab.toLowerCase());
@@ -163,7 +114,6 @@ export function CustomerDetailsPage() {
           </Tabs>
           <div
             className="customer-tab-panel"
-            ref={panelRef}
             role="tabpanel"
             id={`customer-panel-${tab}`}
             aria-labelledby={`customer-tab-${tab}`}

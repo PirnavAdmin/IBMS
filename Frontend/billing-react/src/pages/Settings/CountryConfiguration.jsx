@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
@@ -45,6 +46,7 @@ export function CountryConfiguration() {
   const ready = loaded && draft.scope === sessionScope;
   const validationError = countrySelectionError(selectedCountries);
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search countries');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const saveLock = useRef(false);
