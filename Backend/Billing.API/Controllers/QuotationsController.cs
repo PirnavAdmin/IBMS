@@ -151,6 +151,7 @@ public class QuotationsController : ControllerBase
 
     [HttpPost("{id:int}/approve")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Manager")]
     public async Task<IActionResult> ApproveQuotation([FromRoute] int id)
     {
         var tenantId = GetTenantId();
@@ -246,5 +247,4 @@ public class CancelQuotationRequest
 {
     public string? Reason { get; set; }
 }
-
 
