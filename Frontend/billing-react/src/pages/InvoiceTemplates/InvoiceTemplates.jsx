@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { displayDateTime as formatDateTime } from '../../utils/localDate';
@@ -139,6 +140,7 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
 
 export function InvoiceTemplates() {
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, value => { setSearch(value); setPage(1); }, 'Search templates');
   const [status, setStatus] = useState('');
   const [style, setStyle] = useState('');
   const navigate = useNavigate();

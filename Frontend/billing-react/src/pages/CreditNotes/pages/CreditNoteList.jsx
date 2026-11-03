@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { DateRangeFilter } from '../../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
@@ -42,6 +43,7 @@ const sortable = { number: 'CreditNoteNumber', total: 'TotalAmount', status: 'St
 export function CreditNoteList() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
+  useNavbarSearch(searchInput, setSearchInput, 'Search credit notes');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);

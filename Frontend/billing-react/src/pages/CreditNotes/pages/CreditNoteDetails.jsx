@@ -1,3 +1,4 @@
+import { BrandName } from '../../../components/BrandName';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -122,7 +123,7 @@ export function CreditNoteDetails() {
       {isPreview && <div className="cn-preview-toolbar"><Button onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
       <header className="cn-document-header">
-        <div className="cn-document-brand"><InvoiceBillingLogo size={28} /><div><small>INVOICE.BILLING</small><strong>Credit note</strong></div></div>
+        <div className="cn-document-brand"><InvoiceBillingLogo size={28} /><div><BrandName /><strong>Credit note</strong></div></div>
         <div className="cn-document-title"><div><span className="cn-eyebrow">CUSTOMER CREDIT</span><h1>{note.number}</h1><p>Credit note for invoice <span>{note.invoiceNumber}</span></p></div><CreditNoteStatusBadge status={note.status} /></div>
         <div className="cn-document-meta"><div><small>Credit note date</small><strong>{formatDate(note.date)}</strong></div><div><small>Created by</small><strong>{note.createdBy || '—'}</strong></div><div><small>Credit type</small><strong>{note.type}</strong></div><button type="button" className="cn-copy-link" onClick={() => { navigator.clipboard?.writeText(note.number || ''); setNotice('Reference copied.'); }}><ContentCopy fontSize="small" /> Copy reference</button></div>
       </header>

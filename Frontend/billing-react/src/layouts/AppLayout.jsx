@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Menu from '@mui/icons-material/Menu';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -43,7 +43,13 @@ export const AppLayout = () => {
   const navigate = useNavigate();
   const menuRef = useRef(null);
   const { pathname, search: locationSearch, state: locationState } = useLocation();
-  const searchScope = pathname + locationSearch;
+  const searchScope = pathname;
+  const [moduleSearch, setModuleSearch] = useState(null);
+  const registerModuleSearch = useCallback((id, registration) => {
+    setModuleSearch(current => registration ? { ...registration, id } : current?.id === id ? null : current);
+  }, []);
+  const activeSearch = moduleSearch?.scope === pathname ? moduleSearch : null;
+  const auditSearch = pathname === '/audit-activity';
   const [headerSearch, setHeaderSearch] = useState({ scope: '', value: '' });
   const searchQuery = headerSearch.scope === searchScope ? headerSearch.value : '';
   const onSearch = (value) => setHeaderSearch({ scope: searchScope, value });
@@ -73,7 +79,7 @@ export const AppLayout = () => {
 
   return <div ref={tableScrollRoot} className={`app-layout astra-layout${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
     <button ref={menuRef} type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'}  aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
-    <DashboardSidebar activeItem={activeItem} open={sidebarOpen} mobile={mobileNavigation} collapsed={!mobileNavigation && sidebarCollapsed} onToggle={toggleNavigation} onSignOut={signOut} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => { setSidebarOpen(false); menuRef.current?.focus(); }} />
-    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={searchQuery} onSearch={onSearch} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery, onSearch }} /></div></div>
+    <DashboardSidebar activeItem={activeItem} open={sidebarOpen} mobile={mobileNavigation} collapsed={!mobileNavigation && sidebarCollapsed} onToggle={toggleNavigation} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => { setSidebarOpen(false); menuRef.current?.focus(); }} />
+    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={activeSearch?.value ?? searchQuery} onSearch={activeSearch?.onChange || (auditSearch ? onSearch : undefined)} searchLabel={activeSearch?.label || 'Search current activity page'} searchPlaceholder={activeSearch ? activeSearch.label + '...' : 'Search current activity page...'} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery: activeSearch?.value ?? searchQuery, onSearch: activeSearch?.onChange || (auditSearch ? onSearch : undefined), registerModuleSearch }} /></div></div>
   </div>;
 };

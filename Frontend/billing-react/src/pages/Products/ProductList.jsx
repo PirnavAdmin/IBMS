@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { hasPermission } from "../../utils/permissionUtils";
 import { printDocument } from '../../utils/printDocument';
 import { buildProductListReport } from './utils/productListReport';
@@ -40,6 +41,7 @@ export function ProductList() {
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search products and services');
   const [params, setParams] = useState(() => ({ ...initialParams, pageSize: getProductPageSize() }));
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');

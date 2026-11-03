@@ -1,3 +1,4 @@
+import { BrandName } from '../../components/BrandName';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import LinearProgress from '@mui/material/LinearProgress';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
@@ -11,7 +12,7 @@ export function PaymentShell({ title, children, actions, subtitle }) {
   return <main className="payments-page">
     <div className="payment-print-banner" aria-hidden="true">
       <div className="payment-print-brand">
-        <strong>INVOICE.BILLING</strong>
+        <BrandName />
         <span>Payment Management Module</span>
       </div>
       <div className="payment-print-meta">

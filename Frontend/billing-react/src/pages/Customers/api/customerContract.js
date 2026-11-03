@@ -59,8 +59,8 @@ export function customerQuery(params) {
   )
     throw new Error("Invalid outstanding filter.");
   let sortBy = params.sortBy === "customerCode" ? "code" : params.sortBy;
-  if (sortBy === "id" || sortBy === "price") {
-    sortBy = sortBy === "price" ? "code" : "createdAt";
+  if (sortBy === "id") {
+    sortBy = "createdAt";
   }
   if (
     sortBy &&

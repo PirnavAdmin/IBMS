@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
@@ -98,6 +99,7 @@ export const Payments = () => {
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState('');
   const [search, setSearch] = useState(''); const [reverse, setReverse] = useState(null);
+  useNavbarSearch(search, setSearch, 'Search payments');
   const user = usePaymentUser();
   useSearchCommit(search, value => setFilters(previous => ({ ...previous, search: value, pageNumber: 1 })));
   const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));

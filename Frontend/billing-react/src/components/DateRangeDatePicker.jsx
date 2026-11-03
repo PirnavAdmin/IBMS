@@ -1,3 +1,4 @@
+import { createContext, forwardRef, useContext, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { validDate } from '../utils/dateRangeValidation';
 import ConfigProvider from 'antd/es/config-provider';
@@ -21,14 +22,31 @@ export const dateRangeTheme = {
   },
 };
 
-export function DateRangeDatePicker({ value, onChange, ...props }) {
+// Keep the editable draft separate from the calendar's parsed date. Otherwise,
+// editing a selected date passes null to the picker and erases partial typing.
+const DateRangeInputContext = createContext(null);
+const DateRangeTextInput = forwardRef(function DateRangeTextInput({ onChange, ...props }, ref) {
+  const draft = useContext(DateRangeInputContext);
+  return <input {...props} ref={ref} value={draft.value}
+    onChange={event => {
+      const text = event.target.value;
+      onChange?.(event);
+      draft.onChange(text);
+    }} />;
+});
+
+export function DateRangeDatePicker({ value = '', onChange, ...props }) {
+  const calendarValue = useMemo(() => validDate(value) ? dayjs(value) : null, [value]);
   return <ConfigProvider theme={dateRangeTheme}>
-    <span className="date-range-date-field" onInputCapture={event => { if (event.target instanceof HTMLInputElement) onChange(event.target.value); }}>
-      <DatePicker {...props} className="date-range-date-picker" format="YYYY-MM-DD" preserveInvalidOnBlur placeholder="YYYY-MM-DD"
-        classNames={{ popup: { root: 'date-range-calendar' } }}
-        onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); } }}
-        value={validDate(value) ? dayjs(value) : null}
-        onChange={date => onChange(date ? date.format('YYYY-MM-DD') : '')} />
-    </span>
+    <DateRangeInputContext.Provider value={{ value, onChange }}>
+      <span className="date-range-date-field">
+        <DatePicker {...props} className="date-range-date-picker" format="YYYY-MM-DD" preserveInvalidOnBlur placeholder="YYYY-MM-DD"
+          components={{ input: DateRangeTextInput }} inputReadOnly={false}
+          classNames={{ popup: { root: 'date-range-calendar' } }}
+          onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); } }}
+          value={calendarValue}
+          onChange={date => onChange(date ? date.format('YYYY-MM-DD') : '')} />
+      </span>
+    </DateRangeInputContext.Provider>
   </ConfigProvider>;
 }

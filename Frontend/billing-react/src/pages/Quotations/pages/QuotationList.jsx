@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { searchInputError, EMPTY_SEARCH_GUIDANCE } from '../../../utils/search';
 import { hasPermission } from "../../../utils/permissionUtils";
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -68,6 +69,7 @@ const matchesAuditCategory = (quote, category) => {
 export function QuotationList({ quotations, customers, onCreate, onView, onEdit, onAction, loading = false, loadFailed = false, error = '', onRetry }) {
  const [filterNotice,setFilterNotice]=useState('');
  const [search,setSearch]=useState(''); const [emptySearchSubmitted,setEmptySearchSubmitted]=useState(false); const searchError=searchInputError(search); const [filters,setFilters]=useState({status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'}); const [applied,setApplied]=useState(filters); const [filtersOpen,setFiltersOpen]=useState(false); const [auditOpen,setAuditOpen]=useState(false); const [auditCategory,setAuditCategory]=useState(auditCategories[0]); const [quotationsOpen,setQuotationsOpen]=useState(false); const [sort,setSort]=useState({key:'quoteNumber',direction:'asc'}); const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(5); const [actionAnchor,setActionAnchor]=useState(null); const [actionQuote,setActionQuote]=useState(null);
+ useNavbarSearch(search, setSearch, 'Search quotations');
  const auditMenuRef=useRef(null);
  useExclusiveDropdown(auditOpen, setAuditOpen);
  useEffect(()=>{

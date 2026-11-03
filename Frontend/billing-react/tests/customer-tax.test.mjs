@@ -1,3 +1,4 @@
+import { customerTaxRegistrationType, customerTaxRegistrationLabel } from '../src/pages/Customers/utils/customerTaxRegistration.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCustomerResponse, createCustomerRequest, createUpdateCustomerRequest } from '../../billing-contracts/customer.contracts.js';
@@ -25,4 +26,34 @@ test('explicit unregistered payload never falls back to a stale GSTIN', () => {
 test('backend registration status and blank tax fields survive parsing', () => {
   const loaded = parseCustomerResponse({Id:44,TaxId:null,TaxRegistration:'Unregistered'});
   assert.equal(loaded.gstin,'');assert.equal(loaded.pan,'');assert.equal(loaded.taxRegistrationType,'Unregistered');
+});
+
+test('overview and editor resolve PAN-only and GSTIN customers to the same registration status', () => {
+  for (const values of [{ id: 8, taxId: 'MOCOS6899N' }, { id: 8, pan: 'MOCOS6899N' }, parseCustomerResponse({ id: 8, taxId: 'MOCOS6899N' })]) {
+    assert.equal(customerTaxRegistrationType(values), 'non-gst');
+    assert.equal(customerTaxRegistrationLabel(values), 'Non-GST / Unregistered');
+  }
+  assert.equal(customerTaxRegistrationType({ taxId: gstin }), 'gst');
+  assert.equal(customerTaxRegistrationLabel({ taxId: gstin }), 'GST Registered');
+  assert.equal(customerTaxRegistrationLabel({ taxId: ` ${gstin.toLowerCase()} ` }), 'GST Registered');
+});
+
+test('explicit registration takes precedence over conflicting legacy tax identifiers', () => {
+  for (const values of [{ taxRegistrationType: 'non-gst', taxId: gstin }, { taxRegistration: 'Unregistered', gstin }, { TaxRegistration: 'Unregistered' }]) {
+    assert.equal(customerTaxRegistrationLabel(values), 'Non-GST / Unregistered');
+  }
+  for (const values of [{ taxRegistrationType: 'gst' }, { taxRegistration: ' Registered ', taxId: pan }, { TaxRegistrationType: 'Registered' }]) {
+    assert.equal(customerTaxRegistrationLabel(values), 'GST Registered');
+  }
+});
+
+test('blank and unknown registration follow existing editor defaults without modifying source data', () => {
+  assert.equal(customerTaxRegistrationLabel({ id: 8, taxId: null }), 'Non-GST / Unregistered');
+  assert.equal(customerTaxRegistrationType({}), '');
+  assert.equal(customerTaxRegistrationLabel({}), '—');
+  assert.equal(customerTaxRegistrationLabel({ taxId: 'unknown' }), '—');
+  assert.equal(customerTaxRegistrationType({ taxRegistrationType: 'Other', taxId: gstin }), 'other');
+  const values = Object.freeze({ id: 8, taxId: pan, paymentTerms: '40' });
+  customerTaxRegistrationLabel(values);
+  assert.deepEqual(values, { id: 8, taxId: pan, paymentTerms: '40' });
 });

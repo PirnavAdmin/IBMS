@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -222,6 +223,7 @@ function RowActionsMenu({ actions }) {
 
 function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUser, assignmentMode = false }) {
   const [searchInput, setSearchInput] = useState('');
+  useNavbarSearch(searchInput, value => { setSearchInput(value); setPage(0); }, 'Search users');
   const [status, setStatus] = useState('all');
   const [role, setRole] = useState('all');
   const [identityType, setIdentityType] = useState('all');
@@ -504,6 +506,7 @@ function UserDetails({ userId, onEdit, onBack, notice }) {
 
 function RoleList({ onCreate, onView, onEdit, onDelete }) {
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search roles');
   const tenantId = currentTenantId();
   const rolesQuery = useQuery({ queryKey: ['ura', 'roles', tenantId], queryFn: ({ signal }) => service.listRoles({ tenantId, signal }), retry: false });
   const roles = useMemo(() => (rolesQuery.data ?? []).filter((role) => {

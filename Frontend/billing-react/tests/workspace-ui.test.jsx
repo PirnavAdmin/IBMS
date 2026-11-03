@@ -1,3 +1,4 @@
+import { notificationInboxService } from '../src/services/notificationInboxService';
 import { Register } from '../src/pages/Register/Register';
 import { ForgotPassword } from '../src/pages/ForgotPassword/ForgotPassword';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -129,8 +130,8 @@ test('Sidebar collapse and expand preserve every menu and no longer intercept Ct
     assert.ok(ui.host.querySelector('[aria-label="Expand sidebar"]'));
     await click(ui.host.querySelector('[aria-label="Expand sidebar"]'));
     assert.equal(ui.host.querySelectorAll('.bd-nav-item').length, count);
-    await click(ui.host.querySelector('[aria-label="Sign out"]'));
-    assert.equal(signouts, 1);
+    assert.equal(ui.host.querySelector('[aria-label="Sign out"]'), null);
+    assert.equal(signouts, 0);
   } finally { await ui.close(); localStorage.clear(); }
 });
 
@@ -177,7 +178,8 @@ test('Dashboard header search is visible and filters recent records with useful 
     const [search, setSearch] = useState('');
     return <><DashboardHeader searchQuery={search} onSearch={setSearch} searchLabel="Search recent records" searchPlaceholder="Search recent records..." /><DashboardRecords title="Recent Invoices" allowed query={{}} rows={rows} type="invoices" searchQuery={search} /></>;
   }
-  const ui = await mount(<SearchableRecords />);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = await mount(<QueryClientProvider client={client}><SearchableRecords /></QueryClientProvider>);
   try {
     const search = ui.host.querySelector('[aria-label="Search recent records"]');
     assert.ok(search);
@@ -191,11 +193,13 @@ test('Dashboard header search is visible and filters recent records with useful 
     assert.match(ui.host.querySelector('[role="status"]').textContent, /Enter at least one letter or number/);
     await act(async () => Simulate.change(search, { target: { value: '' } }));
     assert.equal(ui.host.querySelectorAll('tbody tr').length, 2);
-  } finally { await ui.close(); }
+  } finally { await ui.close(); client.clear(); }
 });
 
 test('Dashboard navbar search finds older records, shows immediate results and clears back to overview', async () => {
   localStorage.setItem('billing_auth_user', JSON.stringify({ roles: ['TenantAdmin'], tenantId: 9876, id: 'navbar-search-test' }));
+  const originalCount = notificationInboxService.unreadCount;
+  notificationInboxService.unreadCount = async () => 0;
   const originalInvoices = invoiceService.list;
   const originalPayments = paymentService.getPayments;
   const invoices = Array.from({ length: 8 }, (_, index) => ({ id: index + 1, invoiceNumber: `INV-${index + 1}`, customerName: index === 0 ? 'Harish' : 'Other customer', invoiceDate: `2026-10-0${index + 1}`, dueDate: '2026-11-30', currency: 'INR', totalAmount: 100, balanceAmount: 50, paidAmount: 50, status: 'Issued' }));
@@ -237,7 +241,7 @@ test('Dashboard navbar search finds older records, shows immediate results and c
     assert.equal(ui.host.querySelector('#dashboard-search-results'), null);
   } finally {
     if (ui) await ui.close();
-    client.clear(); invoiceService.list = originalInvoices; paymentService.getPayments = originalPayments; localStorage.clear();
+    notificationInboxService.unreadCount = originalCount; client.clear(); invoiceService.list = originalInvoices; paymentService.getPayments = originalPayments; localStorage.clear();
   }
 });
 

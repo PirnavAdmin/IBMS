@@ -1,3 +1,6 @@
+import dayjs from 'dayjs';
+import { DateRangeFilter } from '../src/components/DateRangeFilter';
+import { DateRangeDatePicker } from '../src/components/DateRangeDatePicker';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Simulate } from 'react-dom/test-utils';
@@ -56,4 +59,82 @@ test('required invoice dates cannot clear; disabled fields cannot open', async (
   } finally { await view.close(); }
   const disabled = await mount(<ThemedDatePicker label="Locked date" disabled value="2026-10-13" onChange={() => {}} />);
   try { assert.equal(disabled.host.querySelector('button').disabled, true); } finally { await disabled.close(); }
+});
+
+// Real input events exercise the picker and the controlled range draft together.
+async function typeRangeValue(input, value) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value);
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  });
+}
+function RangePickerHarness({ initial = '' }) {
+  const [value, setValue] = React.useState(initial);
+  return <><DateRangeDatePicker aria-label="Range date" value={value} onChange={setValue} /><output>{value}</output></>;
+}
+
+test('range date retains each typed year, month and day through parent rerenders and blur', async () => {
+  const view = await mount(<RangePickerHarness />);
+  try {
+    const input = view.host.querySelector('input');
+    await act(async () => Simulate.focus(input));
+    for (const value of ['2', '20', '202', '2026', '2026-', '2026-1', '2026-10', '2026-10-', '2026-10-2', '2026-10-23']) {
+      await typeRangeValue(input, value);
+      assert.equal(input.value, value);
+      assert.equal(view.host.querySelector('output').textContent, value);
+    }
+    await typeRangeValue(input, '2026-10-');
+    await act(async () => Simulate.blur(input));
+    assert.equal(input.value, '2026-10-');
+    assert.equal(view.host.querySelector('output').textContent, '2026-10-');
+  } finally { await view.close(); }
+});
+
+test('range date can replace a selected date, retain invalid text, and clear it', async () => {
+  const view = await mount(<RangePickerHarness initial="2026-10-23" />);
+  try {
+    const input = view.host.querySelector('input');
+    for (const value of ['2026-10-2', '2024-02-29', '2026-02-30', '']) {
+      await typeRangeValue(input, value);
+      assert.equal(input.value, value);
+      assert.equal(view.host.querySelector('output').textContent, value);
+    }
+  } finally { await view.close(); }
+});
+test('range picker calendar selection still replaces the editable text and respects the latest date', async () => {
+  const changes = [];
+  function CalendarHarness() {
+    const [value, setValue] = React.useState('2026-10-13');
+    return <DateRangeDatePicker value={value} maxDate={dayjs('2026-10-20')} onChange={next => { changes.push(next); setValue(next); }} />;
+  }
+  const view = await mount(<CalendarHarness />);
+  try {
+    await click(view.host.querySelector('input'));
+    assert.ok(document.querySelector('[title="2026-10-21"]').classList.contains('ant-picker-cell-disabled'));
+    await click(document.querySelector('[title="2026-10-14"] .ant-picker-cell-inner'));
+    assert.equal(view.host.querySelector('input').value, '2026-10-14');
+    assert.equal(changes.at(-1), '2026-10-14');
+  } finally { await view.close(); }
+});
+
+test('manually typed date range applies only complete, ordered dates within the latest date', async () => {
+  const changes = [];
+  const view = await mount(<DateRangeFilter inline latestDate="2026-10-28" onApply={range => changes.push(range)} />);
+  try {
+    await click(view.host.querySelector('button'));
+    const from = view.host.querySelector('input[aria-label="From Date"]');
+    const to = view.host.querySelector('input[aria-label="To Date"]');
+    const apply = () => view.host.querySelector('button[type="submit"]');
+    await typeRangeValue(from, '2024-02-29');
+    for (const value of ['2026-10-', '2026-02-30', '2023-01-01', '2026-10-29']) {
+      await typeRangeValue(to, value);
+      assert.equal(to.value, value);
+      assert.equal(apply().disabled, true);
+    }
+    await typeRangeValue(to, '2026-10-28');
+    assert.equal(apply().disabled, false);
+    await act(async () => Simulate.submit(view.host.querySelector('form')));
+    assert.deepEqual(changes, [{ startDate: '2024-02-29', endDate: '2026-10-28' }]);
+    assert.equal(view.host.querySelector('form'), null);
+  } finally { await view.close(); }
 });

@@ -18,7 +18,7 @@ export const AuthCardLayout = ({
   backLabel = 'Back to Sign In',
   tagLabel = 'AUTH',
   version = 'v2.6',
-  brandTitle = 'INVOICE.BILLING',
+  brandTitle = 'IBMS',
   brandSubtitle = 'PORTAL ACCESS',
   brandIcon,
   cardDescription = null,
