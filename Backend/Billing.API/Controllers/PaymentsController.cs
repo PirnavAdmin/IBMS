@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Payment;
@@ -13,10 +13,12 @@ namespace Billing.API.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly IPaymentGatewayService? _gatewayService;
 
-    public PaymentsController(IPaymentService paymentService)
+    public PaymentsController(IPaymentService paymentService, IPaymentGatewayService? gatewayService = null)
     {
         _paymentService = paymentService;
+        _gatewayService = gatewayService;
     }
 
     private int? GetTenantId()
@@ -324,5 +326,38 @@ public class PaymentsController : ControllerBase
             409 => Conflict(response),
             _ => BadRequest(response)
         };
+    }
+
+    [HttpPost("gateway/create-order")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreateGatewayOrder([FromBody] CreatePaymentOrderRequest request, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? request.TenantId ?? GetTenantId() ?? 2;
+
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentOrderDto>.Fail("Payment gateway service not configured."));
+        var result = await _gatewayService.CreateOrderAsync(targetTenant, request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("gateway/verify")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyGatewayPayment([FromBody] VerifyGatewayPaymentRequest request, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? request.TenantId ?? GetTenantId() ?? 2;
+
+        var performedBy = GetUserDisplayName() ?? "Customer (Online)";
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment gateway service not configured."));
+        var result = await _gatewayService.VerifyAndProcessPaymentAsync(targetTenant, request, performedBy);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("gateway/qr/{invoiceId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetInvoiceQrCode(int invoiceId, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? GetTenantId() ?? 1;
+        if (_gatewayService == null) return NotFound();
+        var qrBytes = await _gatewayService.GenerateInvoiceQrCodeAsync(targetTenant, invoiceId);
+        return File(qrBytes, "image/png");
     }
 }

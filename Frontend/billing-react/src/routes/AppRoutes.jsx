@@ -30,6 +30,7 @@ import { InvoiceList } from '../pages/Invoices/InvoiceList';
 import { InvoiceForm } from '../pages/Invoices/InvoiceForm';
 import { InvoiceDetails } from '../pages/Invoices/InvoiceDetails';
 import { InvoicePreview } from '../pages/Invoices/InvoicePreview';
+import { PublicInvoicePayment } from '../pages/Invoices/pages/PublicInvoicePayment';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { CategoryList } from '../pages/Products/pages/CategoryList';
 import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
@@ -69,6 +70,7 @@ export const AppRoutes = () => (
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/verify-otp" element={<VerifyOtp />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/pay/:id" element={<PublicInvoicePayment />} />
 
     {/* Application Routes */}
     <Route element={<ProtectedRoute><FormDraftProvider><AppLayout /></FormDraftProvider></ProtectedRoute>}>
