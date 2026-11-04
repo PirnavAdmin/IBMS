@@ -1,0 +1,902 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Billing.Application.Interfaces;
+using Billing.Contracts;
+using Billing.Contracts.Platform;
+using Billing.Domain.Entities;
+using Billing.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace Billing.Infrastructure.Services;
+
+public class PlatformAdministrationService : IPlatformAdministrationService
+{
+    private readonly BillingDbContext _context;
+    private readonly ITenantRepository _tenantRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IUserSessionRepository _userSessionRepository;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly ITenantProvisioningService _tenantProvisioningService;
+    private readonly ILogger<PlatformAdministrationService>? _logger;
+
+    public PlatformAdministrationService(
+        BillingDbContext context,
+        ITenantRepository tenantRepository,
+        IUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IUserSessionRepository userSessionRepository,
+        IAuditLogRepository auditLogRepository,
+        ITenantProvisioningService tenantProvisioningService,
+        ILogger<PlatformAdministrationService>? logger = null)
+    {
+        _context = context;
+        _tenantRepository = tenantRepository;
+        _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _userSessionRepository = userSessionRepository;
+        _auditLogRepository = auditLogRepository;
+        _tenantProvisioningService = tenantProvisioningService;
+        _logger = logger;
+    }
+
+    #region Dashboard (BR-02)
+
+    public async Task<PlatformDashboardDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default)
+    {
+        var totalTenants = await _context.Tenants.CountAsync(cancellationToken);
+        var activeTenants = await _context.Tenants.CountAsync(t => t.Status == "Active", cancellationToken);
+        var suspendedTenants = await _context.Tenants.CountAsync(t => t.Status == "Suspended", cancellationToken);
+        var inactiveTenants = await _context.Tenants.CountAsync(t => t.Status == "Inactive", cancellationToken);
+
+        var totalPlatformUsers = await _context.Users.CountAsync(cancellationToken);
+        var activePlatformUsers = await _context.Users.CountAsync(u => u.Status == "Active", cancellationToken);
+
+        var recentTenantsRaw = await _context.Tenants
+            .AsNoTracking()
+            .Include(t => t.Users)
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var recentTenants = recentTenantsRaw.Select(t => new PlatformTenantSummaryDto
+        {
+            Id = t.Id,
+            Name = t.Name,
+            TenantCode = t.TenantCode,
+            CompanyEmail = t.CompanyEmail,
+            Status = t.Status,
+            CreatedAtUtc = t.CreatedAtUtc,
+            UserCount = t.Users.Count,
+            AdminEmail = t.Users.FirstOrDefault(u => u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin"))?.Email
+        }).ToList();
+
+        var recentEventsRaw = await _context.AuditLogs
+            .AsNoTracking()
+            .Include(a => a.Tenant)
+            .Where(a => a.EntityName == "Tenant" ||
+                        a.EntityName == "User" ||
+                        a.EntityName == "Role" ||
+                        a.EntityName == "PlatformSettings")
+            .OrderByDescending(a => a.Timestamp)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        var recentAdminEvents = recentEventsRaw.Select(a => new PlatformAuditEventSummaryDto
+        {
+            Id = a.Id,
+            Timestamp = a.Timestamp,
+            Actor = a.UserName,
+            Action = a.Action,
+            EntityName = a.EntityName,
+            EntityId = a.EntityId,
+            TenantId = a.TenantId,
+            TenantCode = a.Tenant?.TenantCode,
+            Status = "Success",
+            Changes = a.Changes
+        }).ToList();
+
+        var definitions = new Dictionary<string, string>
+        {
+            { "Active", "Tenant workspace is fully operational; users can authenticate and execute permitted billing operations." },
+            { "Suspended", "Tenant workspace is administratively suspended; users cannot authenticate, active sessions are revoked, and background dispatches are skipped." },
+            { "Inactive", "Tenant workspace is deactivated; operational access is disabled." }
+        };
+
+        return new PlatformDashboardDto
+        {
+            TotalTenants = totalTenants,
+            ActiveTenants = activeTenants,
+            SuspendedTenants = suspendedTenants,
+            InactiveTenants = inactiveTenants,
+            TotalPlatformUsers = totalPlatformUsers,
+            ActivePlatformUsers = activePlatformUsers,
+            RecentTenants = recentTenants,
+            RecentAdminEvents = recentAdminEvents,
+            TenantStatusDefinitions = definitions
+        };
+    }
+
+    #endregion
+
+    #region Tenant Management (BR-03)
+
+    public async Task<PagedResult<PlatformTenantDto>> GetTenantsAsync(string? search, string? status, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var page = pageNumber > 0 ? pageNumber : 1;
+        var size = pageSize > 0 && pageSize <= 100 ? pageSize : 10;
+
+        var (items, totalCount) = await _tenantRepository.GetPagedAsync(search, status, page, size);
+
+        var tenantIds = items.Select(t => t.Id).ToList();
+
+        var invoiceCounts = await _context.Invoices
+            .AsNoTracking()
+            .Where(i => tenantIds.Contains(i.TenantId))
+            .GroupBy(i => i.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.TenantId, g => g.Count, cancellationToken);
+
+        var dtos = items.Select(t => new PlatformTenantDto
+        {
+            Id = t.Id,
+            Name = t.Name,
+            TenantCode = t.TenantCode,
+            CompanyEmail = t.CompanyEmail,
+            Phone = t.Phone,
+            TaxId = t.TaxId,
+            Address = t.Address,
+            Status = t.Status,
+            IsActive = t.IsActive,
+            CreatedAtUtc = t.CreatedAtUtc,
+            UpdatedAtUtc = t.UpdatedAtUtc,
+            UserCount = t.Users.Count,
+            InvoiceCount = invoiceCounts.TryGetValue(t.Id, out var invCount) ? invCount : 0
+        }).ToList();
+
+        return new PagedResult<PlatformTenantDto>(dtos, totalCount, page, size);
+    }
+
+    public async Task<PlatformTenantDetailDto?> GetTenantByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetByIdAsync(id);
+        if (tenant == null) return null;
+
+        var invoiceCount = await _context.Invoices.CountAsync(i => i.TenantId == id, cancellationToken);
+        var customerCount = await _context.Customers.CountAsync(c => c.TenantId == id, cancellationToken);
+        var admins = await _tenantRepository.GetTenantAdminsAsync(id);
+
+        return new PlatformTenantDetailDto
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            TenantCode = tenant.TenantCode,
+            CompanyEmail = tenant.CompanyEmail,
+            Phone = tenant.Phone,
+            TaxId = tenant.TaxId,
+            Address = tenant.Address,
+            Status = tenant.Status,
+            IsActive = tenant.IsActive,
+            CreatedAtUtc = tenant.CreatedAtUtc,
+            UpdatedAtUtc = tenant.UpdatedAtUtc,
+            UserCount = tenant.Users.Count,
+            InvoiceCount = invoiceCount,
+            CustomerCount = customerCount,
+            AssignedAdmins = admins.Select(u => new TenantAdminUserDto
+            {
+                Id = u.Id,
+                Name = u.Name,
+                Email = u.Email,
+                Username = u.Username,
+                Status = u.Status,
+                IsActive = u.IsActive,
+                CreatedAtUtc = u.CreatedAtUtc,
+                Roles = u.Roles
+            }).ToList()
+        };
+    }
+
+    public async Task<(bool Success, string Message, PlatformTenantDetailDto? Tenant, string? ErrorCode)> CreateTenantAsync(CreateTenantRequest request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+        {
+            return (false, "Tenant name is required (minimum 2 characters).", null, "VALIDATION_ERROR");
+        }
+
+        var normalizedCode = request.TenantCode.Trim().ToLowerInvariant();
+        if (!Regex.IsMatch(normalizedCode, @"^[a-z0-9_-]{2,64}$"))
+        {
+            return (false, "Tenant code must be 2-64 characters and contain only letters, numbers, hyphens, or underscores.", null, "VALIDATION_ERROR");
+        }
+
+        if (await _tenantRepository.ExistsByCodeAsync(normalizedCode))
+        {
+            return (false, $"A tenant with code '{normalizedCode}' already exists.", null, "CONFLICT_DUPLICATE_CODE");
+        }
+
+        // Validate admin email if provided
+        string? normalizedAdminEmail = null;
+        if (!string.IsNullOrWhiteSpace(request.AdminEmail))
+        {
+            normalizedAdminEmail = request.AdminEmail.Trim().ToLowerInvariant();
+            if (!Regex.IsMatch(normalizedAdminEmail, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                return (false, "Invalid administrator email address format.", null, "VALIDATION_ERROR");
+            }
+
+            var existingUser = await _userRepository.GetByEmailAsync(normalizedAdminEmail);
+            if (existingUser != null)
+            {
+                return (false, $"A user with email '{normalizedAdminEmail}' is already registered.", null, "CONFLICT_DUPLICATE_EMAIL");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.AdminPassword) || request.AdminPassword.Length < 8)
+            {
+                return (false, "Administrator password must be at least 8 characters long.", null, "VALIDATION_ERROR");
+            }
+        }
+
+        var tenant = new Tenant
+        {
+            Name = request.Name.Trim(),
+            TenantCode = normalizedCode,
+            CompanyEmail = string.IsNullOrWhiteSpace(request.CompanyEmail) ? null : request.CompanyEmail.Trim(),
+            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+            TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim(),
+            Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
+            Status = "Active",
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+
+        await _tenantRepository.CreateAsync(tenant);
+
+        // Auto-provision master data blueprints transactionally
+        await _tenantProvisioningService.ProvisionTenantDefaultsAsync(tenant.Id, request.State, cancellationToken);
+
+        // Provision initial TenantAdmin if requested
+        User? adminUser = null;
+        if (!string.IsNullOrWhiteSpace(normalizedAdminEmail) && !string.IsNullOrWhiteSpace(request.AdminPassword))
+        {
+            var adminName = !string.IsNullOrWhiteSpace(request.AdminName) ? request.AdminName.Trim() : "Tenant Administrator";
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword);
+
+            // Get permissions for TenantAdmin
+            var allPerms = await _roleRepository.GetAllPermissionsAsync();
+            var allPermCodes = allPerms.Select(p => p.Code).ToList();
+
+            adminUser = new User
+            {
+                Name = adminName,
+                Username = normalizedAdminEmail,
+                Email = normalizedAdminEmail,
+                PasswordHash = passwordHash,
+                TenantId = tenant.Id,
+                ApplicationId = "IBMS",
+                IdentityType = "Platform",
+                Status = "Active",
+                Roles = new List<string> { "TenantAdmin", "Admin" },
+                Permissions = allPermCodes,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            await _context.Users.AddAsync(adminUser, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Record Audit event
+        var audit = new AuditLog
+        {
+            TenantId = tenant.Id,
+            EntityName = "Tenant",
+            EntityId = tenant.Id.ToString(),
+            Action = "TenantCreated",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Tenant '{tenant.Name}' ({tenant.TenantCode}) created and master blueprint auto-provisioned." +
+                      (adminUser != null ? $" Initial admin '{adminUser.Email}' created." : "")
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var detail = await GetTenantByIdAsync(tenant.Id, cancellationToken);
+        return (true, "Tenant created and master blueprint provisioned successfully.", detail, null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformTenantDetailDto? Tenant, string? ErrorCode)> UpdateTenantAsync(int id, UpdateTenantRequest request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetByIdAsync(id);
+        if (tenant == null)
+        {
+            return (false, "Tenant not found.", null, "NOT_FOUND");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+        {
+            return (false, "Tenant name is required (minimum 2 characters).", null, "VALIDATION_ERROR");
+        }
+
+        // Concurrency Check
+        if (request.ExpectedUpdatedAtUtc.HasValue && tenant.UpdatedAtUtc.HasValue)
+        {
+            var diff = Math.Abs((tenant.UpdatedAtUtc.Value - request.ExpectedUpdatedAtUtc.Value).TotalSeconds);
+            if (diff > 1.0)
+            {
+                return (false, "A concurrency conflict occurred. The tenant was modified by another administrator. Please reload.", null, "CONCURRENCY_CONFLICT");
+            }
+        }
+
+        var oldSnapshot = JsonSerializer.Serialize(new
+        {
+            tenant.Name,
+            tenant.CompanyEmail,
+            tenant.Phone,
+            tenant.TaxId,
+            tenant.Address
+        });
+
+        tenant.Name = request.Name.Trim();
+        tenant.CompanyEmail = string.IsNullOrWhiteSpace(request.CompanyEmail) ? null : request.CompanyEmail.Trim();
+        tenant.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        tenant.TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim();
+        tenant.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        tenant.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _tenantRepository.UpdateAsync(tenant);
+
+        var newSnapshot = JsonSerializer.Serialize(new
+        {
+            tenant.Name,
+            tenant.CompanyEmail,
+            tenant.Phone,
+            tenant.TaxId,
+            tenant.Address
+        });
+
+        var audit = new AuditLog
+        {
+            TenantId = tenant.Id,
+            EntityName = "Tenant",
+            EntityId = tenant.Id.ToString(),
+            Action = "TenantUpdated",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Tenant details updated for '{tenant.Name}'.",
+            OldValues = oldSnapshot,
+            NewValues = newSnapshot
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var detail = await GetTenantByIdAsync(tenant.Id, cancellationToken);
+        return (true, "Tenant updated successfully.", detail, null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformTenantDto? Tenant, string? ErrorCode)> UpdateTenantStatusAsync(int id, UpdateTenantStatusRequest request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetByIdAsync(id);
+        if (tenant == null)
+        {
+            return (false, "Tenant not found.", null, "NOT_FOUND");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 5)
+        {
+            return (false, "A valid reason (minimum 5 characters) is required for status transition.", null, "VALIDATION_ERROR");
+        }
+
+        if (!TenantStatusValidator.IsValidStatus(request.Status))
+        {
+            return (false, $"Invalid status: '{request.Status}'. Valid statuses are: Active, Suspended, Inactive.", null, "VALIDATION_ERROR");
+        }
+
+        var targetStatus = TenantStatusValidator.Normalize(request.Status);
+        if (!TenantStatusValidator.CanTransition(tenant.Status, targetStatus, out var transitionError))
+        {
+            return (false, transitionError!, null, "INVALID_STATUS_TRANSITION");
+        }
+
+        var oldStatus = tenant.Status;
+        tenant.Status = targetStatus;
+        tenant.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _tenantRepository.UpdateAsync(tenant);
+
+        // Immediate cascade: If Suspended or Inactive, terminate all active sessions for all users of this tenant
+        if (targetStatus is "Suspended" or "Inactive")
+        {
+            await _userSessionRepository.RevokeAllSessionsForTenantAsync(tenant.Id, $"Tenant status transitioned to {targetStatus}. Reason: {request.Reason}");
+            _logger?.LogInformation("Revoked all active sessions for tenant {TenantId} due to status transition to {Status}", tenant.Id, targetStatus);
+        }
+
+        var audit = new AuditLog
+        {
+            TenantId = tenant.Id,
+            EntityName = "Tenant",
+            EntityId = tenant.Id.ToString(),
+            Action = $"TenantStatusChanged_{targetStatus}",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Tenant status changed from '{oldStatus}' to '{targetStatus}'. Reason: {request.Reason.Trim()}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var dto = new PlatformTenantDto
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            TenantCode = tenant.TenantCode,
+            CompanyEmail = tenant.CompanyEmail,
+            Phone = tenant.Phone,
+            TaxId = tenant.TaxId,
+            Address = tenant.Address,
+            Status = tenant.Status,
+            IsActive = tenant.IsActive,
+            CreatedAtUtc = tenant.CreatedAtUtc,
+            UpdatedAtUtc = tenant.UpdatedAtUtc,
+            UserCount = tenant.Users.Count
+        };
+
+        return (true, $"Tenant status successfully changed to '{targetStatus}'.", dto, null);
+    }
+
+    public async Task<List<TenantAdminUserDto>> GetTenantAdminsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var admins = await _tenantRepository.GetTenantAdminsAsync(id);
+        return admins.Select(u => new TenantAdminUserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Email = u.Email,
+            Username = u.Username,
+            Status = u.Status,
+            IsActive = u.IsActive,
+            CreatedAtUtc = u.CreatedAtUtc,
+            Roles = u.Roles
+        }).ToList();
+    }
+
+    #endregion
+
+    #region Platform User Management (BR-04)
+
+    public async Task<PagedResult<PlatformUserDto>> GetPlatformUsersAsync(string? search, string? status, string? role, int? tenantId, string? identityType, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var page = pageNumber > 0 ? pageNumber : 1;
+        var size = pageSize > 0 && pageSize <= 100 ? pageSize : 20;
+
+        var (users, totalCount) = await _userRepository.GetPagedUsersAsync(
+            search,
+            status,
+            role,
+            tenantId,
+            identityType,
+            page,
+            size
+        );
+
+        var dtos = users.Select(u => new PlatformUserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Username = u.Username,
+            Email = u.Email,
+            TenantId = u.TenantId,
+            TenantCode = u.Tenant?.TenantCode,
+            TenantName = u.Tenant?.Name,
+            ApplicationId = u.ApplicationId,
+            Status = u.Status,
+            IsActive = u.IsActive,
+            IdentityType = u.IdentityType,
+            Roles = u.Roles,
+            Permissions = u.Permissions,
+            CreatedAtUtc = u.CreatedAtUtc,
+            UpdatedAtUtc = u.UpdatedAtUtc
+        }).ToList();
+
+        return new PagedResult<PlatformUserDto>(dtos, totalCount, page, size);
+    }
+
+    public async Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> CreatePlatformUserAsync(CreatePlatformUserRequest request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+        {
+            return (false, "A valid name (at least 2 characters) is required.", null, "VALIDATION_ERROR");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || !Regex.IsMatch(request.Email.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            return (false, "A valid email address is required.", null, "VALIDATION_ERROR");
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var existing = await _userRepository.GetByEmailAsync(normalizedEmail);
+        if (existing != null)
+        {
+            return (false, "A user with this email address is already registered.", null, "CONFLICT_DUPLICATE_EMAIL");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        {
+            return (false, "Password must be at least 8 characters long.", null, "VALIDATION_ERROR");
+        }
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+        var roles = request.Roles != null && request.Roles.Any()
+            ? request.Roles.Select(r => r.Trim()).Distinct().ToList()
+            : new List<string> { "SuperAdmin" };
+
+        var allPerms = await _roleRepository.GetAllPermissionsAsync();
+        var permissions = allPerms.Select(p => p.Code).Distinct().ToList();
+
+        var user = new User
+        {
+            Name = request.Name.Trim(),
+            Username = normalizedEmail,
+            Email = normalizedEmail,
+            PasswordHash = passwordHash,
+            TenantId = request.TenantId,
+            ApplicationId = string.IsNullOrWhiteSpace(request.ApplicationId) ? "IBMS" : request.ApplicationId.Trim(),
+            IdentityType = string.IsNullOrWhiteSpace(request.IdentityType) ? "Platform" : request.IdentityType.Trim(),
+            Status = "Active",
+            Roles = roles,
+            Permissions = permissions,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(user);
+
+        var audit = new AuditLog
+        {
+            TenantId = user.TenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserCreated",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Platform user '{user.Email}' created with roles: {string.Join(", ", roles)}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var dto = new PlatformUserDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Username = user.Username,
+            Email = user.Email,
+            TenantId = user.TenantId,
+            ApplicationId = user.ApplicationId,
+            Status = user.Status,
+            IsActive = user.IsActive,
+            IdentityType = user.IdentityType,
+            Roles = user.Roles,
+            Permissions = user.Permissions,
+            CreatedAtUtc = user.CreatedAtUtc
+        };
+
+        return (true, "Platform user created successfully.", dto, null);
+    }
+
+    public async Task<(bool Success, string Message, string? ErrorCode)> UpdateUserStatusAsync(int id, string status, string? reason, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+        {
+            return (false, "User not found.", "NOT_FOUND");
+        }
+
+        var normalizedStatus = string.Equals(status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
+
+        // Last SuperAdmin lockout protection
+        if (normalizedStatus == "Inactive" && user.Roles.Contains("SuperAdmin"))
+        {
+            var otherActiveSuperAdmins = await _context.Users
+                .CountAsync(u => u.Id != id && u.Status == "Active" && u.RolesString.Contains("SuperAdmin"), cancellationToken);
+
+            if (otherActiveSuperAdmins == 0)
+            {
+                return (false, "Cannot deactivate or disable the last active Super Admin account.", "LAST_SUPERADMIN_LOCKOUT_PROTECTION");
+            }
+        }
+
+        user.Status = normalizedStatus;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        if (normalizedStatus == "Inactive")
+        {
+            await _userSessionRepository.RevokeAllUserSessionsAsync(id, $"User status set to Inactive. {reason}".Trim());
+        }
+
+        var audit = new AuditLog
+        {
+            TenantId = user.TenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserStatusChanged",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"User '{user.Email}' status changed to '{normalizedStatus}'. Reason: {reason}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        return (true, $"User status changed to '{normalizedStatus}' successfully.", null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> AssignUserRolesAsync(int id, List<string> roles, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+        {
+            return (false, "User not found.", null, "NOT_FOUND");
+        }
+
+        var cleanRoles = roles != null && roles.Any()
+            ? roles.Select(r => r.Trim()).Distinct().ToList()
+            : new List<string> { "User" };
+
+        // Last SuperAdmin lockout protection: If user was SuperAdmin and new roles strip it
+        if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin"))
+        {
+            var otherActiveSuperAdmins = await _context.Users
+                .CountAsync(u => u.Id != id && u.Status == "Active" && u.RolesString.Contains("SuperAdmin"), cancellationToken);
+
+            if (otherActiveSuperAdmins == 0)
+            {
+                return (false, "Cannot remove the SuperAdmin role from the last active Super Admin account.", null, "LAST_SUPERADMIN_LOCKOUT_PROTECTION");
+            }
+        }
+
+        var oldRoles = string.Join(", ", user.Roles);
+        user.Roles = cleanRoles;
+
+        // Sync permissions
+        var allPerms = await _roleRepository.GetAllPermissionsAsync();
+        if (cleanRoles.Any(r => r is "SuperAdmin" or "TenantAdmin" or "Admin"))
+        {
+            user.Permissions = allPerms.Select(p => p.Code).Distinct().ToList();
+        }
+        else
+        {
+            user.Permissions = new List<string> { "billing.view", "invoices.view" };
+        }
+
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        await _userRepository.UpdateAsync(user);
+
+        // Revoke active sessions to promptly enforce role changes on next request
+        await _userSessionRepository.RevokeAllUserSessionsAsync(id, "Roles updated by administrator; re-authentication required.");
+
+        var audit = new AuditLog
+        {
+            TenantId = user.TenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserRolesAssigned",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"User '{user.Email}' roles updated from [{oldRoles}] to [{string.Join(", ", cleanRoles)}]."
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var updated = await _userRepository.GetByIdAsync(id);
+        var dto = new PlatformUserDto
+        {
+            Id = updated!.Id,
+            Name = updated.Name,
+            Username = updated.Username,
+            Email = updated.Email,
+            TenantId = updated.TenantId,
+            TenantCode = updated.Tenant?.TenantCode,
+            TenantName = updated.Tenant?.Name,
+            ApplicationId = updated.ApplicationId,
+            Status = updated.Status,
+            IsActive = updated.IsActive,
+            IdentityType = updated.IdentityType,
+            Roles = updated.Roles,
+            Permissions = updated.Permissions,
+            CreatedAtUtc = updated.CreatedAtUtc,
+            UpdatedAtUtc = updated.UpdatedAtUtc
+        };
+
+        return (true, "Roles assigned and permissions synchronized successfully.", dto, null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> AssignTenantAndAppAsync(int id, int? tenantId, string applicationId, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+        {
+            return (false, "User not found.", null, "NOT_FOUND");
+        }
+
+        if (tenantId.HasValue && tenantId.Value > 0)
+        {
+            var tenant = await _tenantRepository.GetByIdAsync(tenantId.Value);
+            if (tenant == null)
+            {
+                return (false, "Target tenant not found.", null, "NOT_FOUND");
+            }
+        }
+
+        var oldTenantId = user.TenantId;
+        user.TenantId = tenantId;
+        user.ApplicationId = string.IsNullOrWhiteSpace(applicationId) ? "IBMS" : applicationId.Trim();
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        // Revoke active sessions to apply new tenant context
+        await _userSessionRepository.RevokeAllUserSessionsAsync(id, "Tenant assignment updated by platform administrator.");
+
+        var audit = new AuditLog
+        {
+            TenantId = tenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserTenantReassigned",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"User '{user.Email}' reassigned from Tenant {oldTenantId} to Tenant {tenantId} (App: {user.ApplicationId})."
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var updated = await _userRepository.GetByIdAsync(id);
+        var dto = new PlatformUserDto
+        {
+            Id = updated!.Id,
+            Name = updated.Name,
+            Username = updated.Username,
+            Email = updated.Email,
+            TenantId = updated.TenantId,
+            TenantCode = updated.Tenant?.TenantCode,
+            TenantName = updated.Tenant?.Name,
+            ApplicationId = updated.ApplicationId,
+            Status = updated.Status,
+            IsActive = updated.IsActive,
+            IdentityType = updated.IdentityType,
+            Roles = updated.Roles,
+            Permissions = updated.Permissions,
+            CreatedAtUtc = updated.CreatedAtUtc,
+            UpdatedAtUtc = updated.UpdatedAtUtc
+        };
+
+        return (true, "User tenant and application assignment updated successfully.", dto, null);
+    }
+
+    #endregion
+
+    #region Platform Audit (BR-05)
+
+    public async Task<PagedResult<PlatformAuditLogDto>> GetPlatformAuditLogsAsync(PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        var (logs, totalCount) = await _auditLogRepository.GetPlatformAuditLogsPagedAsync(filter, cancellationToken);
+
+        var dtos = logs.Select(a => new PlatformAuditLogDto
+        {
+            Id = a.Id,
+            Timestamp = a.Timestamp,
+            ActorUserName = a.UserName,
+            Action = a.Action,
+            EntityType = a.EntityName,
+            EntityId = a.EntityId,
+            TenantId = a.TenantId,
+            TenantCode = a.Tenant?.TenantCode,
+            TenantName = a.Tenant?.Name,
+            ResultStatus = "Success",
+            Changes = a.Changes,
+            OldValues = SanitizeSecretPayloads(a.OldValues),
+            NewValues = SanitizeSecretPayloads(a.NewValues)
+        }).ToList();
+
+        var page = filter.PageNumber > 0 ? filter.PageNumber : 1;
+        var size = filter.PageSize > 0 ? filter.PageSize : 20;
+
+        return new PagedResult<PlatformAuditLogDto>(dtos, totalCount, page, size);
+    }
+
+    private static string? SanitizeSecretPayloads(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return json;
+
+        // Redact any occurrences of Password, PasswordHash, SecretKey, Token, RefreshToken
+        var sanitized = Regex.Replace(json, @"(""(?:password|passwordHash|secret|token|refreshToken)""\s*:\s*"")[^""]*("")", "$1[REDACTED]$2", RegexOptions.IgnoreCase);
+        return sanitized;
+    }
+
+    #endregion
+
+    #region Platform Settings (BR-06)
+
+    private static readonly object _settingsLock = new();
+    private static PlatformSettingsDto _cachedSettings = new()
+    {
+        PlatformName = "IBMS Platform",
+        MaintenanceMode = false,
+        AllowSelfRegistration = true,
+        SessionTimeoutMinutes = 1440,
+        InactivityTimeoutMinutes = 1440,
+        PasswordMinLength = 8,
+        RequireDigit = true,
+        RequireSpecialChar = true,
+        SupportedCurrencies = new List<string> { "INR", "USD", "EUR", "GBP" },
+        AccountRecoveryContact = "support@ibms.com",
+        UpdatedAtUtc = DateTime.UtcNow,
+        UpdatedBy = "System"
+    };
+
+    public Task<PlatformSettingsDto> GetPlatformSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_settingsLock)
+        {
+            return Task.FromResult(new PlatformSettingsDto
+            {
+                PlatformName = _cachedSettings.PlatformName,
+                MaintenanceMode = _cachedSettings.MaintenanceMode,
+                AllowSelfRegistration = _cachedSettings.AllowSelfRegistration,
+                SessionTimeoutMinutes = _cachedSettings.SessionTimeoutMinutes,
+                InactivityTimeoutMinutes = _cachedSettings.InactivityTimeoutMinutes,
+                PasswordMinLength = _cachedSettings.PasswordMinLength,
+                RequireDigit = _cachedSettings.RequireDigit,
+                RequireSpecialChar = _cachedSettings.RequireSpecialChar,
+                SupportedCurrencies = new List<string>(_cachedSettings.SupportedCurrencies),
+                AccountRecoveryContact = _cachedSettings.AccountRecoveryContact,
+                UpdatedAtUtc = _cachedSettings.UpdatedAtUtc,
+                UpdatedBy = _cachedSettings.UpdatedBy
+            });
+        }
+    }
+
+    public async Task<(bool Success, string Message, PlatformSettingsDto? Settings, string? ErrorCode)> UpdatePlatformSettingsAsync(UpdatePlatformSettingsRequest request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.PlatformName) || request.PlatformName.Trim().Length < 2)
+        {
+            return (false, "Platform name is required (minimum 2 characters).", null, "VALIDATION_ERROR");
+        }
+
+        if (request.PasswordMinLength < 8)
+        {
+            return (false, "Minimum password length must be at least 8.", null, "VALIDATION_ERROR");
+        }
+
+        lock (_settingsLock)
+        {
+            _cachedSettings = new PlatformSettingsDto
+            {
+                PlatformName = request.PlatformName.Trim(),
+                MaintenanceMode = request.MaintenanceMode,
+                AllowSelfRegistration = request.AllowSelfRegistration,
+                SessionTimeoutMinutes = request.SessionTimeoutMinutes,
+                InactivityTimeoutMinutes = request.InactivityTimeoutMinutes,
+                PasswordMinLength = request.PasswordMinLength,
+                RequireDigit = request.RequireDigit,
+                RequireSpecialChar = request.RequireSpecialChar,
+                SupportedCurrencies = request.SupportedCurrencies != null && request.SupportedCurrencies.Any()
+                    ? request.SupportedCurrencies.Select(c => c.Trim().ToUpperInvariant()).Distinct().ToList()
+                    : new List<string> { "INR", "USD", "EUR", "GBP" },
+                AccountRecoveryContact = request.AccountRecoveryContact.Trim(),
+                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedBy = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName
+            };
+        }
+
+        var audit = new AuditLog
+        {
+            TenantId = 1,
+            EntityName = "PlatformSettings",
+            EntityId = "Global",
+            Action = "PlatformSettingsUpdated",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Platform global settings updated: PlatformName='{_cachedSettings.PlatformName}', MaintenanceMode={_cachedSettings.MaintenanceMode}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var copy = await GetPlatformSettingsAsync(cancellationToken);
+        return (true, "Platform settings updated successfully.", copy, null);
+    }
+
+    #endregion
+}

@@ -24,6 +24,7 @@ public class UserSessionRepository : IUserSessionRepository
     {
         return await _context.UserSessions
             .Include(s => s.User)
+            .ThenInclude(u => u!.Tenant)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
@@ -31,6 +32,7 @@ public class UserSessionRepository : IUserSessionRepository
     {
         return await _context.UserSessions
             .Include(s => s.User)
+            .ThenInclude(u => u!.Tenant)
             .FirstOrDefaultAsync(s => s.RefreshTokenHash == tokenHash);
     }
 
@@ -76,6 +78,28 @@ public class UserSessionRepository : IUserSessionRepository
     {
         var activeSessions = await _context.UserSessions
             .Where(s => s.UserId == userId && !s.IsRevoked)
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        foreach (var session in activeSessions)
+        {
+            session.IsRevoked = true;
+            session.RevokedAtUtc = now;
+            session.LogoutAtUtc ??= now;
+            session.RevocationReason = reason;
+        }
+
+        if (activeSessions.Any())
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task RevokeAllSessionsForTenantAsync(int tenantId, string reason)
+    {
+        var activeSessions = await _context.UserSessions
+            .Include(s => s.User)
+            .Where(s => s.User != null && s.User.TenantId == tenantId && !s.IsRevoked)
             .ToListAsync();
 
         var now = DateTime.UtcNow;
