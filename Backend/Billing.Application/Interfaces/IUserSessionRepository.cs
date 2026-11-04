@@ -18,7 +18,7 @@ public interface IUserSessionRepository
 
     Task RevokeAllUserSessionsAsync(int userId, string reason);
 
-    Task RevokeAllSessionsForTenantAsync(int tenantId, string reason);
+    Task RevokeAllSessionsForTenantAsync(int tenantId, string reason) => Task.CompletedTask;
 
     Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null);
 

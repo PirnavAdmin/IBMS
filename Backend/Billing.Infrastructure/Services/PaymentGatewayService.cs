@@ -118,6 +118,7 @@ public class PaymentGatewayService : IPaymentGatewayService
             TotalAmount = invoice.TotalAmount,
             PaidAmount = invoice.PaidAmount,
             BalanceAmount = invoice.BalanceAmount,
+            AllowPartialPayments = invoice.AllowPartialPayments,
             Status = invoice.Status,
             Currency = invoice.Currency ?? "INR",
             KeyId = "rzp_test_ibms_sandbox",
