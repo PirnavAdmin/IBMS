@@ -67,6 +67,12 @@ export const API_ENDPOINTS = {
     BASE: '/api/v1/credit-notes',
     BY_ID: (id) => `/api/v1/credit-notes/${encodeURIComponent(id)}`,
   },
+  NOTIFICATION_INBOX: {
+    BASE: '/api/v1/notifications/inbox',
+    UNREAD_COUNT: '/api/v1/notifications/inbox/unread-count',
+    MARK_READ: (id) => `/api/v1/notifications/inbox/${encodeURIComponent(id)}/read`,
+    MARK_ALL_READ: '/api/v1/notifications/inbox/read-all',
+  },
   AUDIT: {
     BASE: '/api/Audit',
   },
