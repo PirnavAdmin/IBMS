@@ -1,0 +1,19 @@
+.ibms-logo {
+  --ibms-artwork-filter: none;
+}
+
+/* Lift the brown artwork to a warm gold on dark surfaces, retaining its
+   shading and transparency. Light surfaces use the original supplied art. */
+.ibms-logo[data-contrast='light'],
+:is([data-theme='dark'], .dark-mode, .swipe-footer, .billing-auth-hero-side) .ibms-logo {
+  --ibms-artwork-filter: brightness(1.15) contrast(.5) brightness(1.65);
+}
+
+.ibms-logo > :is(svg, img) {
+  filter: var(--ibms-artwork-filter);
+}
+
+/* Documents keep their original artwork when printed. */
+@media print {
+  .ibms-logo > :is(svg, img) { filter: none; }
+}

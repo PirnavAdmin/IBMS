@@ -1,7 +1,8 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOutletContext } from 'react-router-dom';
+
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -63,9 +64,10 @@ function Flags({ flags, compact = false }) {
 }
 
 export function Integrations() {
-  const context = useOutletContext() || {};
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search applications');
   const [filters, setFilters] = useState({ status: '', searchTerm: '', pageNumber: 1, pageSize: 20 });
   const [menu, setMenu] = useState(null);
   const [dialog, setDialog] = useState(null);
@@ -80,7 +82,7 @@ export function Integrations() {
   const allowed = integrationAccess(user.data);
   const profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
-  const effectiveSearch = context.searchQuery || search;
+  const effectiveSearch = search;
   useEffect(() => {
     const timer = setTimeout(() => setFilters(previous => previous.searchTerm === effectiveSearch.trim()
       ? previous : { ...previous, searchTerm: effectiveSearch.trim(), pageNumber: 1 }), 300);
@@ -156,10 +158,10 @@ export function Integrations() {
           : <section className="integrations-panel" aria-label="Integration applications">
             <div className="integrations-toolbar">
               <TextField size="small" type="search" label="Search applications" placeholder="Search by application name" value={search}
-                onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }}
+                onChange={event => { setSearch(event.target.value);  }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
               <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => setFilters(previous => ({ ...previous, status: event.target.value, pageNumber: 1 }))}>
-                <MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
               </FilterSelectField>
               <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} application${page.totalCount === 1 ? '' : 's'}` : ''}</span>
               <div className="integrations-heading-actions">

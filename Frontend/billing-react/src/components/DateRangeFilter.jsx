@@ -13,7 +13,7 @@ import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
-  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false }) {
+  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false, placement = 'bottomLeft' }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -67,7 +67,7 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
   </Button>;
   return <ConfigProvider theme={dateRangeTheme}>
     <div className={`date-range-control${inline ? ' date-range-control-inline' : ''}`}>
-      {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement="bottomLeft" content={content} destroyOnHidden zIndex={2000}
+      {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement={placement} content={content} destroyOnHidden zIndex={2000}
         classNames={{ root: 'date-range-popover' }} onOpenChange={changeOpen}>{trigger}</Popover>}
       {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback" role="status">{notice.message}</span>}
     </div>

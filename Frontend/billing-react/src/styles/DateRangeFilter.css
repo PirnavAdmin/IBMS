@@ -5,13 +5,17 @@
 .date-range-filter .ant-btn-icon, .delivery-date-range .MuiButton-startIcon { color: #b65a20; }
 .date-range-form { display: grid; gap: 16px; width: min(20rem, calc(100vw - 64px)); padding: 8px 4px 4px; color: #715238; font: 13px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .date-range-form label { display: grid; gap: 6px; }
-.date-range-date-field { display: block; min-width: 0; }
-.date-range-date-picker.ant-picker { width: 100%; min-height: 40px; font-family: inherit; }
+.date-range-date-field { display: block; width: 100%; max-width: 100%; min-width: 0; }
+.date-range-date-picker.ant-picker { box-sizing: border-box; width: 100% !important; max-width: 100%; min-width: 0; min-height: 40px; font-family: inherit; }
 .date-range-date-picker.ant-picker .ant-picker-suffix { color: #b65a20; font-size: 18px; }
 .date-range-date-picker.ant-picker .ant-picker-input > input { color: #452b1d; font-weight: 650; }
 .date-range-date-picker.ant-picker .ant-picker-input > input::placeholder { color: #8b7764; font-weight: 400; }
 .date-range-calendar .ant-picker-cell-in-view.ant-picker-cell-selected:not(.ant-picker-cell-disabled) .ant-picker-cell-inner { background: #795137; color: #fff; font-weight: 750; }
 .date-range-calendar .ant-picker-cell-in-view.ant-picker-cell-today:not(.ant-picker-cell-selected) .ant-picker-cell-inner { color: #8b3f12; font-weight: 700; }
+.date-range-calendar { box-sizing: border-box; width: min(300px, calc(100vw - 24px)) !important; max-width: calc(100vw - 24px) !important; overflow: hidden; }
+.date-range-calendar .ant-picker-panel-container { width: 100%; max-width: 100%; }
+.date-range-calendar .ant-picker-panel { width: 100%; min-width: 0; }
+.date-range-calendar .ant-picker-body { padding: 8px; }
 .date-range-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .date-range-error { color: #b44336; }
 .notification-range { display: grid; gap: 6px; }
@@ -36,14 +40,22 @@
 
 /* Anchored date dropdown, without a modal or dimmed page. */
 .date-range-popover .ant-popover-inner { padding: 0; overflow: hidden; border: 1px solid #dfd5cb; border-radius: 10px; background: #fffdf9; box-shadow: 0 8px 28px #35271f20; }
+.date-range-popover .ant-popover-inner-content { padding: 0; }
+.date-range-popover .date-range-inline-panel { box-sizing: border-box; width: min(280px, calc(100vw - 24px)) !important; max-width: calc(100vw - 24px) !important; min-width: 0; min-height: 0; overflow: hidden; }
+.date-range-popover .date-range-panel-heading { padding: 9px 12px; }
+.date-range-popover .date-range-inline-panel .date-range-form { gap: 10px; padding: 12px; }
+.date-range-popover .date-range-fields { gap: 8px; }
+.date-range-popover .date-range-fields label { gap: 5px; }
+.date-range-popover .date-range-fields .ant-picker { min-height: 38px; }
+.date-range-popover .date-range-inline-panel .date-range-actions { padding-top: 8px; }
 .date-range-inline-panel { width: min(360px, calc(100vw - 32px)); }
 .date-range-panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e9e0d7; color: #35271f; }
 .date-range-panel-heading .ant-btn { font-size: 20px; }
-.date-range-inline-panel .date-range-form { width: 100%; box-sizing: border-box; padding: 16px; gap: 14px; }
+.date-range-inline-panel .date-range-form { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 16px; gap: 14px; }
 .date-range-hint { margin: 0; color: #807164; line-height: 1.5; font-size: 12px; }
-.date-range-fields { display: grid; gap: 14px; }
-.date-range-fields label { min-width: 0; color: #514337; font-size: 12px; font-weight: 600; gap: 7px; }
-.date-range-fields .ant-picker { min-height: 42px; background: #fff; border-radius: 7px; }
+.date-range-fields { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; gap: 14px; min-width: 0; }
+.date-range-fields label { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 100%; min-width: 0; color: #514337; font-size: 12px; font-weight: 600; gap: 7px; }
+.date-range-fields .ant-picker { box-sizing: border-box; width: 100% !important; max-width: 100%; min-width: 0; min-height: 42px; background: #fff; border-radius: 7px; }
 .date-range-inline-panel .date-range-actions { padding-top: 12px; border-top: 1px solid #eee7df; gap: 8px; }
 .date-range-inline-panel .date-range-actions .ant-btn { min-height: 36px; min-width: 76px; border-radius: 7px; font-weight: 600; }
 .date-range-inline-panel .date-range-error { font-size: 12px; line-height: 1.5; }

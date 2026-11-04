@@ -205,12 +205,22 @@ public class UserAdministrationService : IUserAdministrationService
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var newStatus = string.Equals(request.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
+            if (newStatus == "Inactive" && user.Roles.Contains("SuperAdmin") && !await IsAnotherActiveSuperAdminAvailableAsync(id))
+            {
+                return (false, "Cannot deactivate or remove the last active Super Admin account.", null);
+            }
             user.Status = newStatus;
         }
 
         if (request.Roles != null && request.Roles.Any())
         {
-            user.Roles = request.Roles.Select(r => r.Trim()).Distinct().ToList();
+            var cleanRoles = request.Roles.Select(r => r.Trim()).Distinct().ToList();
+            if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin") && !await IsAnotherActiveSuperAdminAvailableAsync(id))
+            {
+                return (false, "Cannot remove the SuperAdmin role from the last active Super Admin account.", null);
+            }
+
+            user.Roles = cleanRoles;
             if (request.Permissions == null)
             {
                 user.Permissions = await ResolvePermissionsForRolesAsync(user.Roles);
@@ -238,6 +248,15 @@ public class UserAdministrationService : IUserAdministrationService
         }
 
         var normalizedStatus = string.Equals(status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
+
+        if (normalizedStatus == "Inactive" && user.Roles.Contains("SuperAdmin"))
+        {
+            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
+            {
+                return (false, "Cannot deactivate or remove the last active Super Admin account.");
+            }
+        }
+
         user.Status = normalizedStatus;
         user.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -262,6 +281,14 @@ public class UserAdministrationService : IUserAdministrationService
         var cleanRoles = roles != null && roles.Any()
             ? roles.Select(r => r.Trim()).Distinct().ToList()
             : new List<string> { "User" };
+
+        if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin"))
+        {
+            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
+            {
+                return (false, "Cannot remove the SuperAdmin role from the last active Super Admin account.", null);
+            }
+        }
 
         user.Roles = cleanRoles;
         user.Permissions = await ResolvePermissionsForRolesAsync(cleanRoles);
@@ -318,35 +345,31 @@ public class UserAdministrationService : IUserAdministrationService
 
         if (user != null)
         {
-            // Link existing user to host-owned identity
             user.IdentityType = "Host";
-            user.ExternalProvider = string.IsNullOrWhiteSpace(provider) ? null : provider;
-            user.ExternalSubjectId = string.IsNullOrWhiteSpace(subjectId) ? null : subjectId;
+            user.ExternalProvider = provider;
+            user.ExternalSubjectId = subjectId;
             user.ExternalScopes = request.ExternalScopes?.Trim();
             if (request.TenantId.HasValue) user.TenantId = request.TenantId.Value;
             if (!string.IsNullOrWhiteSpace(request.ApplicationId)) user.ApplicationId = request.ApplicationId.Trim();
-            if (roles.Any())
-            {
-                user.Roles = roles;
-                user.Permissions = permissions;
-            }
+            user.Roles = roles;
+            user.Permissions = permissions;
             user.UpdatedAtUtc = DateTime.UtcNow;
 
             await _userRepository.UpdateAsync(user);
             var updated = await _userRepository.GetByIdAsync(user.Id);
-            return (true, "Existing user mapped to host identity successfully.", updated != null ? MapToUserDto(updated) : MapToUserDto(user));
+            return (true, "Host identity mapped and user permissions updated successfully.", updated != null ? MapToUserDto(updated) : MapToUserDto(user));
         }
 
-        // Create new host-mapped user
+        // Provision new Host Identity User
         var newUser = new User
         {
-            Name = string.IsNullOrWhiteSpace(request.Name) ? normalizedEmail : request.Name.Trim(),
+            Name = string.IsNullOrWhiteSpace(request.Name) ? normalizedEmail.Split('@')[0] : request.Name.Trim(),
             Username = normalizedEmail,
             Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
             IdentityType = "Host",
-            ExternalProvider = string.IsNullOrWhiteSpace(provider) ? null : provider,
-            ExternalSubjectId = string.IsNullOrWhiteSpace(subjectId) ? null : subjectId,
+            ExternalProvider = provider,
+            ExternalSubjectId = subjectId,
             ExternalScopes = request.ExternalScopes?.Trim(),
             TenantId = request.TenantId ?? 1,
             ApplicationId = string.IsNullOrWhiteSpace(request.ApplicationId) ? "IBMS" : request.ApplicationId.Trim(),
@@ -369,8 +392,22 @@ public class UserAdministrationService : IUserAdministrationService
             return (false, "User not found.");
         }
 
+        if (user.Roles.Contains("SuperAdmin"))
+        {
+            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
+            {
+                return (false, "Cannot delete the last active Super Admin account.");
+            }
+        }
+
         await _userRepository.DeleteAsync(user);
         return (true, "User deleted successfully.");
+    }
+
+    private async Task<bool> IsAnotherActiveSuperAdminAvailableAsync(int currentUserId)
+    {
+        var (superAdmins, _) = await _userRepository.GetPagedUsersAsync(null, "Active", "SuperAdmin", null, null, 1, 10);
+        return superAdmins.Any(u => u.Id != currentUserId);
     }
 
     private async Task<List<string>> ResolvePermissionsForRolesAsync(List<string> roleNames)
@@ -412,6 +449,7 @@ public class UserAdministrationService : IUserAdministrationService
 
         return resolvedPermissions.ToList();
     }
+
     private static UserDto MapToUserDto(User user)
     {
         return new UserDto

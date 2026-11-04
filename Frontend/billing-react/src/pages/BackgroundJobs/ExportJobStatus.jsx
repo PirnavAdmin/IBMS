@@ -16,12 +16,12 @@ import { backgroundJobError, backgroundJobService } from './backgroundJobService
 import './background-jobs.css';
 
 const jobTypes = [
-  { value: 'Invoice', label: 'Invoice' },
-  { value: 'Payment', label: 'Payment' },
-  { value: 'Customer', label: 'Customer' },
-  { value: 'AuditLog', label: 'Audit Log' },
+  { value: 'Invoice', label: 'Invoices' },
+  { value: 'Payment', label: 'Payments' },
+  { value: 'Customer', label: 'Customers' },
+  { value: 'AuditLog', label: 'Audit Logs' },
   { value: 'CreditNote', label: 'Credit Notes' },
-  { value: 'Quotation', label: 'Quotation' },
+  { value: 'Quotation', label: 'Quotations' },
   { value: 'Product', label: 'Products' },
 ];
 const jobTypeLabel = value => jobTypes.find(option => option.value === value)?.label ?? value;
@@ -124,7 +124,7 @@ export function ExportJobStatus() {
                 <h2>Export history</h2>
                 <div>
                   <FilterSelectField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
-                    <MenuItem value="">All statuses</MenuItem>
+                    <MenuItem value="">All Statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                   </FilterSelectField>
                   <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>

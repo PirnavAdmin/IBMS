@@ -1,7 +1,8 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -74,8 +75,9 @@ function WebhookSecret({ secret, onClose, onCopy }) {
   </Dialog>;
 }
 export function Webhooks() {
-  const context = useOutletContext() || {}, navigate = useNavigate(), client = useQueryClient();
+  const navigate = useNavigate(), client = useQueryClient();
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search webhooks');
   const [eventMenuOpen, setEventMenuOpen] = useState(false);
   const [filters, setFilters] = useState({ status: '', eventType: '', searchTerm: '', pageNumber: 1, pageSize: 20 });
   const [menu, setMenu] = useState(null), [dialog, setDialog] = useState(null), [secret, setSecret] = useState(null);
@@ -85,7 +87,7 @@ export function Webhooks() {
   const user = useQuery({ queryKey: ['auth-user'], queryFn: ({ signal }) => apiClient.get('/api/Auth/me', { signal }), retry: false, staleTime: 60000 });
   const allowed = integrationAccess(user.data), profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
-  const effectiveSearch = context.searchQuery || search;
+  const effectiveSearch = search;
   useEffect(() => { const timer = setTimeout(() => setFilters(previous => previous.searchTerm === effectiveSearch.trim() ? previous : { ...previous, searchTerm: effectiveSearch.trim(), pageNumber: 1 }), 300); return () => clearTimeout(timer); }, [effectiveSearch]);
   const list = useQuery({ queryKey: ['webhooks', tenantKey, 'list', filters], queryFn: ({ signal }) => webhookService.list(filters, signal), enabled: allowed, retry: false });
   const summary = useQuery({ queryKey: ['webhooks', tenantKey, 'summary'], queryFn: ({ signal }) => webhookService.summary(signal), enabled: allowed, retry: false, staleTime: 60000 });
@@ -131,7 +133,7 @@ export function Webhooks() {
   const selectSummaryCard = status => {
     const selectedStatus = status && filters.status !== status ? status : '';
     setSearch('');
-    context.onSearch?.('');
+    
     setFilters(previous => ({ ...previous, status: selectedStatus, eventType: '', searchTerm: '', pageNumber: 1 }));
     window.requestAnimationFrame(() => document.querySelector('.integrations-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
@@ -151,8 +153,8 @@ export function Webhooks() {
       {summary.isError && <Alert severity="warning" action={<Button onClick={() => summary.refetch()}>Retry Summary</Button>}>Summary counts are unavailable. {webhookError(summary.error)}</Alert>}
       <section className="integrations-panel" aria-label="Configured webhooks">
         <div className="integrations-toolbar webhook-toolbar">
-          <TextField size="small" type="search" label="Search webhooks" placeholder="Search by name or URL" value={search} onChange={event => { setSearch(event.target.value); context.onSearch?.(''); }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
-          <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
+          <TextField size="small" type="search" label="Search webhooks" placeholder="Search by name or URL" value={search} onChange={event => { setSearch(event.target.value);  }} InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
+          <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => changeFilter('status', event.target.value)}><MenuItem value="">All Statuses</MenuItem>{WEBHOOK_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
           <TextField select size="small" label="Event Type" InputLabelProps={{ shrink: true }} value={filters.eventType} disabled={events.isPending || events.isError} onChange={event => changeFilter('eventType', event.target.value)} SelectProps={{ displayEmpty: true, onOpen: () => setEventMenuOpen(true), onClose: () => setEventMenuOpen(false), renderValue: selected => selected || 'All events', MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'webhook-event-options-menu', sx: { maxHeight: 260 } } } }}><MenuItem value="">All events</MenuItem>{(events.data || []).filter(event => event.eventType !== '*').map(event => <MenuItem key={event.eventType} value={event.eventType}>{event.eventType}</MenuItem>)}</TextField>
           <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} webhook${page.totalCount === 1 ? '' : 's'}` : ''}</span>
         </div>

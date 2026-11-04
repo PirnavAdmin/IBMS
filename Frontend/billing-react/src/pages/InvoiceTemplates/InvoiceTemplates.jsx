@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { displayDateTime as formatDateTime } from '../../utils/localDate';
@@ -151,6 +152,7 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
 
 export function InvoiceTemplates() {
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, value => { setSearch(value); setPage(1); }, 'Search templates');
   const [status, setStatus] = useState('');
   const [style, setStyle] = useState('');
   const navigate = useNavigate();
@@ -239,7 +241,7 @@ export function InvoiceTemplates() {
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
       <div className="template-list-filters">
         <TextField label="Search templates" value={search} onChange={(event) => setSearch(event.target.value)} size="small" />
-        <FilterSelectField label="Status" select value={status} onChange={(event) => setStatus(event.target.value)} size="small"><MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></FilterSelectField>
+        <FilterSelectField label="Status" select value={status} onChange={(event) => setStatus(event.target.value)} size="small"><MenuItem value="">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></FilterSelectField>
         <FilterSelectField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</FilterSelectField>
       </div>
 

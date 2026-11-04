@@ -62,7 +62,9 @@ public class PdfGenerationJobService : IPdfGenerationJobService
                 var nonDraftInvoices = invoices.Where(i =>
                     !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase)
+                    !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Voided", StringComparison.OrdinalIgnoreCase)
                 ).ToList();
 
                 foreach (var invoice in nonDraftInvoices)

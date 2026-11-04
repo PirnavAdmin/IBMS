@@ -324,6 +324,17 @@ public class AuthService
             };
         }
 
+        if (user.Tenant != null && !user.Tenant.IsActive)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Company account is suspended or inactive");
+
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
+            };
+        }
+
         // Token Rotation: Generate new Refresh Token and revoke old one
         var newRawRefreshToken = _jwtTokenService.GenerateRefreshToken();
         var newRefreshTokenHash = _jwtTokenService.HashRefreshToken(newRawRefreshToken);

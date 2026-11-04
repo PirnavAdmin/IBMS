@@ -314,7 +314,7 @@ export function InvoiceDetails() {
 
               <div className="invoice-summary-card invoice-tone-sand">
                 <span>Payment Terms</span>
-                <strong style={{ fontSize: "19px" }}>
+                <strong>
                   {customerData?.paymentTerms || "Standard Terms"}
                 </strong>
                 <small>Due Date: {date(row.dueDate)}</small>

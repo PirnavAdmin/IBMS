@@ -1,10 +1,7 @@
-# IBMS brand assets
+# IBMS brand asset
 
-- `ibms-logo-full.png`: original logo supplied by the project owner, retained without alterations, including wordmark and tagline.
-- `ibms-crest.png`: transparent crest variant produced with the built-in image_gen tool for compact app branding and the browser icon. Keep image proportions; do not recolor, stretch, or place it inside the old receipt-icon tile.
+`ibms-brand.png` is the original transparent logo supplied by the owner on 3 November 2026, copied without pixel alterations. It contains the brown/gold IBMS monogram, wordmark and “Invoice & Business Management” tagline.
 
-## Generation prompt
+The shared `InvoiceBillingLogo` component uses this asset everywhere. Full mode preserves the complete image and its 1448 × 1086 aspect ratio. Compact sidebar/auth/document placements use an SVG viewport around the monogram so the supplied artwork remains legible at icon sizes. The browser and Apple touch icons also reference the new asset.
 
-Edit target: the attached IBMS accounting logo. Create a production-ready transparent square crest asset for this exact brand. Preserve the ornate navy-black and bronze-gold engraved shield, laurel branches, stacked ledgers, white invoice papers, calculator, balance scales and the small IBMS plaque exactly in composition and styling. Remove ONLY the external white background and the wordmark/tagline beneath the crest ('INVOICE BILLING MANAGEMENT SYSTEM' and 'SECURE • ACCURATE • RELIABLE' and decorative rule). Keep the paper faces ivory-white and all interior shading opaque. Keep the complete crest including top scales and all lower flourishes, centered and tightly framed with a small consistent transparent margin. No new lettering, no white tile or background, no redesign, no extra badge or shadow.
-
-Generated with a transparent background using the supplied logo as the edit target.
+The old `ibms-crest.png` and `ibms-logo-full.png` files are no longer referenced by the application logo component or browser icon links.

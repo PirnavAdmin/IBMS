@@ -67,6 +67,7 @@ public class ReminderJobService : IReminderJobService
                     !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Voided", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase)
                 ).ToList();
 

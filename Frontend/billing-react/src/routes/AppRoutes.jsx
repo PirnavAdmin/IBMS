@@ -1,3 +1,4 @@
+import { PageLoading } from '../components/PageLoading';
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
@@ -8,7 +9,7 @@ import { PermissionRoute } from './PermissionRoute';
 const lazyPage = (load, exportName) => {
   const Page = lazy(() => load().then(module => ({ default: module[exportName] })));
   const LazyPage = (props) => (
-    <Suspense fallback={<div role="status" aria-live="polite" style={{ padding: 24, color: 'inherit' }}>Loading page…</div>}>
+    <Suspense fallback={<PageLoading />}>
       <Page {...props} />
     </Suspense>
   );

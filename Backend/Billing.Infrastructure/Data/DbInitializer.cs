@@ -449,7 +449,7 @@ public static class DbInitializer
                     VersionDescription = "Default corporate layout version 1",
                     BrandingJson = "{\"PrimaryColor\":\"#0f2942\",\"SecondaryColor\":\"#0284c7\",\"AccentColor\":\"#f1f5f9\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":40,\"LogoHeightMm\":20}",
                     CompanyDetailsJson = "{\"CompanyName\":\"IBMS Billing Enterprise\",\"Email\":\"billing@ibms.com\",\"Phone\":\"+91 98765 43210\",\"Website\":\"https://ibms.example.com\",\"AddressLine1\":\"Plot 42, Hitech City Main Road\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500081\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
-                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"â‚¹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
                     PaymentInstructionsJson = "{\"BankName\":\"State Bank of India\",\"AccountHolderName\":\"IBMS Tech Private Limited\",\"AccountNumber\":\"38192837461\",\"IfscCode\":\"SBIN0004123\",\"UpiId\":\"ibmsbilling@sbi\",\"PaymentNotes\":\"Please quote invoice number on payment transfer.\"} ",
                     TermsJson = "{\"TermsAndConditions\":\"1. Payment is due within 30 days of issue.\\n2. Late payments incur a 1.5% monthly charge.\\n3. Goods once sold will not be accepted back without prior written authorization.\",\"FooterNote\":\"Thank you for partnering with IBMS Technologies!\"}",
                     CreatedAtUtc = DateTime.UtcNow,
@@ -479,7 +479,7 @@ public static class DbInitializer
                     VersionDescription = "Initial executive styling",
                     BrandingJson = "{\"PrimaryColor\":\"#1e1b4b\",\"SecondaryColor\":\"#4338ca\",\"AccentColor\":\"#e0e7ff\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":45,\"LogoHeightMm\":22}",
                     CompanyDetailsJson = "{\"CompanyName\":\"IBMS Global Services\",\"Email\":\"invoicing@ibms.com\",\"Phone\":\"+91 98765 43210\",\"Website\":\"https://ibms.example.com\",\"AddressLine1\":\"Tower 3, Financial District\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500032\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
-                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":10,\"MarginBottomMm\":10,\"MarginLeftMm\":12,\"MarginRightMm\":12}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"â‚¹\",\"MarginTopMm\":10,\"MarginBottomMm\":10,\"MarginLeftMm\":12,\"MarginRightMm\":12}",
                     PaymentInstructionsJson = "{\"BankName\":\"HDFC Bank\",\"AccountHolderName\":\"IBMS Global Services Ltd\",\"AccountNumber\":\"50200012345678\",\"IfscCode\":\"HDFC0001234\",\"UpiId\":\"ibmsglobal@hdfcbank\",\"PaymentNotes\":\"Remit via RTGS / NEFT quoting invoice ID.\"} ",
                     TermsJson = "{\"TermsAndConditions\":\"Payment strictly net 15 calendar days from billing date. Subject to Hyderabad jurisdiction.\",\"FooterNote\":\"We appreciate your business!\"}",
                     CreatedAtUtc = DateTime.UtcNow,
@@ -509,7 +509,7 @@ public static class DbInitializer
                     VersionDescription = "Compact density version 1",
                     BrandingJson = "{\"PrimaryColor\":\"#047857\",\"SecondaryColor\":\"#059669\",\"AccentColor\":\"#ecfdf5\",\"FontFamily\":\"Segoe UI\",\"LogoWidthMm\":35,\"LogoHeightMm\":18}",
                     CompanyDetailsJson = "{\"CompanyName\":\"IBMS Distribution Hub\",\"Email\":\"hub@ibms.com\",\"Phone\":\"+91 98765 43210\",\"AddressLine1\":\"Warehouse 12, Industrial Area\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500077\",\"Country\":\"India\",\"TaxId\":\"36AAAAA0000A1Z5\"}",
-                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":false,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":8,\"MarginBottomMm\":8,\"MarginLeftMm\":10,\"MarginRightMm\":10}",
+                    LayoutJson = "{\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":false,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"â‚¹\",\"MarginTopMm\":8,\"MarginBottomMm\":8,\"MarginLeftMm\":10,\"MarginRightMm\":10}",
                     PaymentInstructionsJson = "{\"BankName\":\"ICICI Bank\",\"AccountHolderName\":\"IBMS Distribution\",\"AccountNumber\":\"000405001234\",\"IfscCode\":\"ICIC0000004\",\"UpiId\":\"ibmsdist@icici\"}",
                     TermsJson = "{\"TermsAndConditions\":\"Immediate payment upon receipt.\",\"FooterNote\":\"Computer generated invoice. Signature not required.\"} ",
                     CreatedAtUtc = DateTime.UtcNow,
@@ -560,6 +560,8 @@ public static class DbInitializer
                         CreatedBy = "SystemSeed"
                     };
 
+
+
                     var pirnavVersion = new TemplateVersion
                     {
                         TenantId = pirnavTenantId,
@@ -582,6 +584,48 @@ public static class DbInitializer
                     await context.SaveChangesAsync();
                     logger?.LogInformation("Seeded reusable {TemplateName} for tenant {TenantId}", tmpl.Name, pirnavTenantId);
                 }
+            }
+
+            // Seed the Gemini AI created modern sidebar layout independently so existing templates are untouched.
+            foreach (var geminiTenantId in new[] { 1, 2 })
+            {
+                var geminiTemplate = await context.InvoiceTemplates
+                    .FirstOrDefaultAsync(t => t.TenantId == geminiTenantId && t.Name == "Pirnav Gemini Modern");
+                if (geminiTemplate != null) continue;
+
+                geminiTemplate = new InvoiceTemplate
+                {
+                    TenantId = geminiTenantId,
+                    Name = "Pirnav Gemini Modern",
+                    Description = "Modern two-column sidebar layout created with Gemini AI featuring branded company credentials, recipient billing, itemized billing with duration, and executive balance summary.",
+                    Style = Domain.Enums.TemplateStyle.Professional,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var geminiVersion = new TemplateVersion
+                {
+                    TenantId = geminiTenantId,
+                    VersionNumber = 1,
+                    Status = Domain.Enums.TemplateStatus.Active,
+                    VersionDescription = "Initial Gemini AI modern sidebar invoice layout",
+                    BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"left\",\"LogoWidth\":140,\"PrimaryColor\":\"#5A2D16\",\"SecondaryColor\":\"#C98A5E\",\"AccentColor\":\"#F6EFEA\",\"FontFamily\":\"Segoe UI\"}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"pradeep@pirnav.com\",\"Phone\":\"+91 8121076485\",\"Website\":\"https://www.pirnav.com/\",\"AddressLine1\":\"Capital Park Road, Cyber Hills Colony, VIP Hills\",\"City\":\"Madhapur, Hitech City, Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500081\",\"Country\":\"India\"}",
+                    LayoutJson = "{\"UsePirnavSidebarLayout\":true,\"UsePirnavStandardLayout\":false,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"â‚¹\",\"MarginTopMm\":0,\"MarginBottomMm\":8,\"MarginLeftMm\":0,\"MarginRightMm\":10}",
+                    PaymentInstructionsJson = "{}",
+                    TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us!\\nThis is a system-generated invoice and does not require a physical signature.\"}",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                geminiTemplate.Versions.Add(geminiVersion);
+                await context.InvoiceTemplates.AddAsync(geminiTemplate);
+                await context.SaveChangesAsync();
+                geminiTemplate.ActiveVersionId = geminiVersion.Id;
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded Pirnav Gemini Modern template for tenant {TenantId}", geminiTenantId);
             }
         }
         catch (Exception ex)

@@ -5,5 +5,8 @@ public enum ExportJobType
     Invoice,
     Payment,
     Customer,
-    AuditLog
+    AuditLog,
+    CreditNote,
+    Quotation,
+    Product
 }

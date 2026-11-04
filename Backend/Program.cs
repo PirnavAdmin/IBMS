@@ -173,6 +173,8 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IInAppNotificationService, InAppNotificationService>();
 builder.Services.AddScoped<IUserAdministrationService, UserAdministrationService>();
 builder.Services.AddScoped<IRoleAdministrationService, RoleAdministrationService>();
+builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+builder.Services.AddScoped<IPlatformAdministrationService, PlatformAdministrationService>();
 
 // ============================================================
 // Webhook & Integration Services (Module 15)
@@ -375,7 +377,19 @@ builder.Services.AddAuthentication(options =>
 // ============================================================
 // Authorization
 // ============================================================
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdminPolicy", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("SuperAdmin");
+    });
+    options.AddPolicy("SuperAdminOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("SuperAdmin");
+    });
+});
 
 // ============================================================
 // Swagger / OpenAPI
@@ -538,3 +552,4 @@ app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 // ============================================================
 app.Run();
 
+public partial class Program { }

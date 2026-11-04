@@ -10,7 +10,7 @@ const sections = [
   ['/settings/charges', 'Charges'],
   ['/settings/numbering', 'Invoice Numbering'],
   ['/settings/notifications', 'Notifications'],
-  ['/settings/countries', 'Country'],
+  ['/settings/countries', 'Countries'],
 ];
 
 export function SettingsWorkspace({ children }) {

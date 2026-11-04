@@ -65,6 +65,7 @@ public class LayoutConfigDto
     /// </summary>
     public bool UsePirnavStandardLayout { get; set; }
     public string? TemplateDesign { get; set; }
+    public bool UsePirnavSidebarLayout { get; set; }
     public bool ShowLogo { get; set; } = true;
     public bool ShowHeader { get; set; } = true;
     public bool ShowFooter { get; set; } = true;

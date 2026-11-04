@@ -52,8 +52,8 @@ export function NotificationHistory() {
   </>}>
     {toastHolder}{query.error ? <NotificationError error={query.error} onRetry={() => query.refetch()} /> : <section className="notification-card">
       <form className="notification-filters notification-history-filters" aria-label="Communication history filters" onSubmit={event => { event.preventDefault(); setFilters(previous => ({ ...previous, ...draft, pageNumber: 1 })); }}>
-        <label>Event Type<Select aria-label="History event filter" placeholder="All events" allowClear options={eventOptions} value={draft.eventType} onChange={eventType => changeDraft({ eventType })} /></label>
-        <label>Status<Select aria-label="History status filter" placeholder="All statuses" allowClear options={HISTORY_STATUSES.map(value => ({ value, label: value }))} value={draft.status} onChange={status => changeDraft({ status })} /></label>
+        <label>Event Type<Select classNames={{ popup: { root: 'notification-filter-dropdown' } }} aria-label="History event filter" placeholder="All events" allowClear options={eventOptions} value={draft.eventType} onChange={eventType => changeDraft({ eventType })} /></label>
+        <label>Status<Select classNames={{ popup: { root: 'notification-filter-dropdown' } }} aria-label="History status filter" placeholder="All Statuses" allowClear options={HISTORY_STATUSES.map(value => ({ value, label: value }))} value={draft.status} onChange={status => changeDraft({ status })} /></label>
         <label className="notification-search">Search<Input aria-label="Search history" placeholder="Recipient, subject or failure reason" value={draft.searchTerm} onChange={event => changeDraft({ searchTerm: event.target.value })} allowClear /></label>
         <div className="notification-range">Date Range (IST)<DateRangeFilter startDate={draft.startDate} endDate={draft.endDate} onApply={changeDraft} /></div>
         <div className="notification-actions"><Button onClick={() => { setDraft(emptyFilters); setFilters(previous => ({ ...previous, ...emptyFilters, pageNumber: 1 })); }}>Clear</Button><Button type="primary" htmlType="submit">Apply Filters</Button></div>

@@ -18,6 +18,8 @@ public interface IUserSessionRepository
 
     Task RevokeAllUserSessionsAsync(int userId, string reason);
 
+    Task RevokeAllSessionsForTenantAsync(int tenantId, string reason);
+
     Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null);
 
     Task UpdateSessionAsync(UserSession session);

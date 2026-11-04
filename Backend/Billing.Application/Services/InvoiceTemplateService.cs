@@ -53,6 +53,11 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             await EnsurePirnavTemplatesAsync(tenantId, ct);
         }
 
+        if (tenantId > 0 && !await _templateRepository.ExistsByNameAsync("Pirnav Gemini Modern", tenantId))
+        {
+            await EnsurePirnavGeminiModernTemplateAsync(tenantId, ct);
+        }
+
         DomainStyle? domainStyle = null;
         if (!string.IsNullOrWhiteSpace(filter.Style) && !filter.Style.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
@@ -130,6 +135,48 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             {
                 // Ignore concurrent creation
             }
+        }
+    }
+
+    private async Task EnsurePirnavGeminiModernTemplateAsync(int tenantId, CancellationToken ct)
+    {
+        try
+        {
+            var geminiTemplate = new InvoiceTemplate
+            {
+                TenantId = tenantId,
+                Name = "Pirnav Gemini Modern",
+                Description = "Modern two-column sidebar layout created with Gemini AI featuring branded company credentials, recipient billing, itemized billing with duration, and executive balance summary.",
+                Style = DomainStyle.Professional,
+                Status = DomainStatus.Active,
+                CurrentVersionNumber = 1,
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            var geminiVersion = new TemplateVersion
+            {
+                TenantId = tenantId,
+                VersionNumber = 1,
+                Status = DomainStatus.Active,
+                VersionDescription = "Initial Gemini AI modern sidebar invoice layout",
+                BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"left\",\"LogoWidth\":140,\"PrimaryColor\":\"#5A2D16\",\"SecondaryColor\":\"#C98A5E\",\"AccentColor\":\"#F6EFEA\",\"FontFamily\":\"Segoe UI\"}",
+                CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"pradeep@pirnav.com\",\"Phone\":\"+91 8121076485\",\"Website\":\"https://www.pirnav.com/\",\"AddressLine1\":\"Capital Park Road, Cyber Hills Colony, VIP Hills\",\"City\":\"Madhapur, Hitech City, Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500081\",\"Country\":\"India\"}",
+                LayoutJson = "{\"UsePirnavSidebarLayout\":true,\"UsePirnavStandardLayout\":false,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":0,\"MarginBottomMm\":8,\"MarginLeftMm\":0,\"MarginRightMm\":10}",
+                PaymentInstructionsJson = "{}",
+                TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us!\\nThis is a system-generated invoice and does not require a physical signature.\"}",
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedBy = "SystemSeed"
+            };
+
+            geminiTemplate.Versions.Add(geminiVersion);
+            await _templateRepository.AddAsync(geminiTemplate);
+            geminiTemplate.ActiveVersionId = geminiVersion.Id;
+            await _templateRepository.UpdateAsync(geminiTemplate);
+        }
+        catch
+        {
+            // Ignore concurrent creation
         }
     }
 
