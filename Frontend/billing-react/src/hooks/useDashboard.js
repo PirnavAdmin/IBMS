@@ -9,8 +9,9 @@ export const useDashboard = filters => {
   const invoicesAllowed = invoicePermissions(user).view;
   const paymentsAllowed = paymentPermissions(user).view;
   // Currency filters the complete loaded ledger locally; only dates change requests.
+  const isDateRangeInverted = Boolean(filters?.start && filters?.end && filters.start > filters.end);
   const range = { start: filters.start, end: filters.end };
-  const invoices = useQuery({ queryKey: ['dashboard', ...scope, 'invoices', range], queryFn: ({ signal }) => getDashboardInvoices(range, signal), enabled: invoicesAllowed, retry: false, staleTime: 60000 });
-  const payments = useQuery({ queryKey: ['dashboard', ...scope, 'payments', range], queryFn: ({ signal }) => getDashboardPayments(range, signal), enabled: paymentsAllowed, retry: false, staleTime: 60000 });
-  return { invoices, payments, invoicesAllowed, paymentsAllowed, refresh: () => Promise.all([invoicesAllowed && invoices.refetch(), paymentsAllowed && payments.refetch()]) };
+  const invoices = useQuery({ queryKey: ['dashboard', ...scope, 'invoices', range], queryFn: ({ signal }) => getDashboardInvoices(range, signal), enabled: invoicesAllowed && !isDateRangeInverted, retry: false, staleTime: 60000 });
+  const payments = useQuery({ queryKey: ['dashboard', ...scope, 'payments', range], queryFn: ({ signal }) => getDashboardPayments(range, signal), enabled: paymentsAllowed && !isDateRangeInverted, retry: false, staleTime: 60000 });
+  return { invoices, payments, invoicesAllowed, paymentsAllowed, isDateRangeInverted, refresh: () => Promise.all([invoicesAllowed && !isDateRangeInverted && invoices.refetch(), paymentsAllowed && !isDateRangeInverted && payments.refetch()]) };
 };
