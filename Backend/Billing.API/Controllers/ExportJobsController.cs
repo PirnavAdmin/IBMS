@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
+[Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,User")]
 [ApiController]
 [Route("api/v1/export-jobs")]
 [Route("api/export-jobs")]
@@ -22,12 +22,17 @@ public class ExportJobsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ExportJobDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ApiResponse<ExportJobDto>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> QueueExportJob([FromBody] CreateExportJobRequest request)
+    public async Task<IActionResult> QueueExportJob([FromBody] CreateExportJobRequest? request = null)
     {
         var tenantId = GetTenantId();
-        var userName = User.Identity?.Name ?? "User";
+        var userName = User.Identity?.Name
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+            ?? User.FindFirst("name")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+            ?? User.FindFirst("email")?.Value
+            ?? "User";
 
-        var result = await _exportJobService.QueueExportJobAsync(request, tenantId, userName);
+        var result = await _exportJobService.QueueExportJobAsync(request ?? new CreateExportJobRequest(), tenantId, userName);
         if (!result.Success)
         {
             return BadRequest(result);

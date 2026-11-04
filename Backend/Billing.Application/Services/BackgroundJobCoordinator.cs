@@ -17,6 +17,7 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
     private readonly ILogger<BackgroundJobCoordinator> _logger;
 
     private static readonly ConcurrentDictionary<string, BackgroundJobStatusDto> _jobStatuses = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _jobLocks = new(StringComparer.OrdinalIgnoreCase);
 
     public BackgroundJobCoordinator(
         IOverdueInvoiceJobService overdueInvoiceJobService,
@@ -85,7 +86,7 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
 
     public async Task<JobExecutionResultDto> RunJobByNameAsync(string jobName, int? tenantId = null, CancellationToken cancellationToken = default)
     {
-        var normalizedName = (jobName ?? "").Trim();
+        var normalizedName = ResolveCanonicalJobName(jobName);
         if (!_jobStatuses.TryGetValue(normalizedName, out var statusDto))
         {
             return new JobExecutionResultDto
@@ -93,6 +94,18 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                 JobName = jobName ?? "Unknown",
                 Success = false,
                 Message = $"Unknown background job '{jobName}'."
+            };
+        }
+
+        var jobLock = _jobLocks.GetOrAdd(statusDto.JobName, _ => new SemaphoreSlim(1, 1));
+        if (!await jobLock.WaitAsync(0, cancellationToken))
+        {
+            return new JobExecutionResultDto
+            {
+                JobName = statusDto.JobName,
+                Success = true,
+                ProcessedCount = 0,
+                Message = $"Job '{statusDto.JobName}' is already running."
             };
         }
 
@@ -191,5 +204,21 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                 ExecutedAtUtc = completedAt
             };
         }
+        finally
+        {
+            jobLock.Release();
+        }
     }
+
+    private static string ResolveCanonicalJobName(string? jobName) => (jobName ?? "").Trim().Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant() switch
+    {
+        "overdueinvoicejob" or "overdue" or "overdueinvoices" => "OverdueInvoiceJob",
+        "reminderjob" or "reminder" or "reminders" => "ReminderJob",
+        "pdfgenerationjob" or "pdf" or "pdfgeneration" => "PdfGenerationJob",
+        "emailnotificationjob" or "email" or "notifications" or "emailnotifications" => "EmailNotificationJob",
+        "webhookdeliveryjob" or "webhook" or "webhooks" or "webhookdelivery" => "WebhookDeliveryJob",
+        "exportjob" or "export" or "exports" => "ExportJob",
+        "operationalcleanupjob" or "cleanup" or "operationalcleanup" => "OperationalCleanupJob",
+        _ => (jobName ?? "").Trim()
+    };
 }

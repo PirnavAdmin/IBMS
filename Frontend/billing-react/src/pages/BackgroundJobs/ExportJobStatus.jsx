@@ -16,12 +16,12 @@ import { backgroundJobError, backgroundJobService } from './backgroundJobService
 import './background-jobs.css';
 
 const jobTypes = [
-  { value: 'Invoice', label: 'Invoice' },
-  { value: 'Payment', label: 'Payment' },
-  { value: 'Customer', label: 'Customer' },
-  { value: 'AuditLog', label: 'Audit Log' },
+  { value: 'Invoice', label: 'Invoices' },
+  { value: 'Payment', label: 'Payments' },
+  { value: 'Customer', label: 'Customers' },
+  { value: 'AuditLog', label: 'Audit Logs' },
   { value: 'CreditNote', label: 'Credit Notes' },
-  { value: 'Quotation', label: 'Quotation' },
+  { value: 'Quotation', label: 'Quotations' },
   { value: 'Product', label: 'Products' },
 ];
 const jobTypeLabel = value => jobTypes.find(option => option.value === value)?.label ?? value;

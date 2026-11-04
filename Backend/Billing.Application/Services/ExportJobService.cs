@@ -53,7 +53,8 @@ public class ExportJobService : IExportJobService
 
     public async Task<ApiResponse<ExportJobDto>> QueueExportJobAsync(CreateExportJobRequest request, int tenantId, string requestedBy, CancellationToken cancellationToken = default)
     {
-        var jobType = (request.JobType ?? "Invoice").Trim();
+        var rawJobType = (request.JobType ?? "Invoice").Trim();
+        var jobType = NormalizeJobType(rawJobType) ?? rawJobType;
         var format = (request.ExportFormat ?? "CSV").Trim().ToUpperInvariant();
 
         if (format != "CSV" && format != "JSON")
@@ -96,6 +97,8 @@ public class ExportJobService : IExportJobService
 
     public async Task<ApiResponse<PagedResult<ExportJobDto>>> GetExportJobsAsync(int tenantId, ExportJobFilterRequest filter, CancellationToken cancellationToken = default)
     {
+        if (!string.IsNullOrWhiteSpace(filter.JobType)) filter.JobType = NormalizeJobType(filter.JobType) ?? filter.JobType.Trim();
+        if (!string.IsNullOrWhiteSpace(filter.Status)) filter.Status = filter.Status.Trim();
         var paged = await _exportJobRepository.GetPagedAsync(tenantId, filter, cancellationToken);
         var dtos = paged.Items.Select(MapToDto).ToList();
 
@@ -142,6 +145,7 @@ public class ExportJobService : IExportJobService
             {
                 if (cancellationToken.IsCancellationRequested) break;
 
+                job.JobType = NormalizeJobType(job.JobType) ?? job.JobType;
                 job.Status = "Processing";
                 job.StartedAtUtc = DateTime.UtcNow;
                 await _exportJobRepository.UpdateAsync(job, cancellationToken);
@@ -598,6 +602,7 @@ public class ExportJobService : IExportJobService
         _ => throw new InvalidOperationException($"Unsupported export format '{format}'.")
     };
 
+    private static string? NormalizeJobType(string? rawJobType) => (rawJobType ?? "Invoice").Trim().Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant() switch { "invoice" or "invoices" => "Invoice", "payment" or "payments" => "Payment", "customer" or "customers" => "Customer", "auditlog" or "auditlogs" => "AuditLog", "creditnote" or "creditnotes" => "CreditNote", "quotation" or "quotations" => "Quotation", "product" or "products" => "Product", _ => null };
     private static ExportJobDto MapToDto(ExportJob job)
     {
         return new ExportJobDto
