@@ -73,9 +73,9 @@ export const chargeToApi = (form, update = false) => ({
   name: form.name.trim(), code: form.code.trim().toUpperCase(),
   description: form.description.trim() || null, chargeType: form.type,
   calculationType: form.calculationType, amount: Number(form.value),
-  minInvoiceAmount: form.minInvoiceAmount ?? null,
-  maxChargeAmount: form.maxChargeAmount ?? null,
-  isTaxable: form.taxable, taxCategory: form.taxCategory ?? null,
+  minInvoiceAmount: optionalNumber(form.minInvoiceAmount),
+  maxChargeAmount: optionalNumber(form.maxChargeAmount),
+  isTaxable: form.taxable, taxCategory: form.taxCategory?.trim() || null,
   status: form.status,
   ...(update ? { rowVersion: form.rowVersion } : {}),
 });

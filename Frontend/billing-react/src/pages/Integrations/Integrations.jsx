@@ -161,7 +161,7 @@ export function Integrations() {
                 onChange={event => { setSearch(event.target.value);  }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
               <FilterSelectField select size="small" label="Status" value={filters.status} onChange={event => setFilters(previous => ({ ...previous, status: event.target.value, pageNumber: 1 }))}>
-                <MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
               </FilterSelectField>
               <span className="integration-result-count">{page && !list.isError ? `${page.totalCount} application${page.totalCount === 1 ? '' : 's'}` : ''}</span>
               <div className="integrations-heading-actions">

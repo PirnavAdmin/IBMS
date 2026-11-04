@@ -253,7 +253,7 @@ test('Settings workspace uses route-aware tabs and preserves access to all confi
     assert.equal(ui.host.querySelector('[aria-selected="true"]').textContent, 'Notifications');
     assert.equal(ui.host.querySelector('.settings-nav-card'), null);
     assert.match(ui.host.querySelector('[role="tabpanel"]').textContent, /Existing settings form/);
-    const country = tabs.find(tab => tab.textContent === 'Country');
+    const country = tabs.find(tab => tab.textContent === 'Countries');
     await click(country);
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
     assert.equal(country.getAttribute('aria-selected'), 'true');

@@ -118,6 +118,10 @@ test('History uses confirmed server date parameters with inclusive IST days', ()
 test('Template list renders API values, status filters, preview and edit navigation', async () => {
   const ui = await mount();
   try {
+    assert.equal(button('Back to Settings', ui.host), undefined);
+    assert.ok(ui.host.querySelector('.notification-breadcrumb a[href="/settings"]'));
+    assert.ok(button('Communication History', ui.host));
+    assert.ok(button('Create Template', ui.host));
     assert.match(ui.host.textContent,/Customer invoice/); assert.match(ui.host.textContent,/Delivery email/);
     assert.match(ui.host.textContent,/Inactive receipt/); assert.match(ui.host.textContent,/Active/); assert.match(ui.host.textContent,/Inactive/);
     await select('Event Type filter','Invoice Overdue');
@@ -378,7 +382,7 @@ test('Routes and navigation extend existing protected layout without notificatio
   for(const path of [rootPath,`${rootPath}/new`,`${rootPath}/:id/edit`,`${rootPath}/history`]) assert.ok(routes.includes(`path="${path}"`));
   assert.equal((routes.match(/<ProtectedRoute>/g)||[]).length,1);
   assert.doesNotMatch(readFileSync('src/data/dashboardNavigation.js','utf8'),/id: 'notifications'/);
-  assert.match(readFileSync('src/pages/Settings/SettingsLanding.jsx','utf8'),/Notification Management/);
+  assert.match(readFileSync('src/pages/Settings/SettingsWorkspace.jsx','utf8'),/\['\/settings\/notifications', 'Notifications'\]/);
   for(const file of ['notificationService.js','NotificationTemplates.jsx','NotificationTemplateForm.jsx','NotificationHistory.jsx','NotificationShared.jsx']) assert.doesNotMatch(readFileSync(`src/pages/Notifications/${file}`,'utf8'),/localStorage|sessionStorage|axios\.create|https?:\/\/|Module 17|dangerouslySetInnerHTML/);
 });
 

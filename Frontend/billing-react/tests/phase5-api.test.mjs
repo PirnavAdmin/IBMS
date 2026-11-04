@@ -142,3 +142,27 @@ test('Settings screens and service have no runtime mock dependency', () => {
     assert.doesNotMatch(source, /settingsMockService|discountMock|chargesMock|fakeApi|fakePromise/);
   }
 });
+
+test('Charge optional settings send numeric limits and null for empty values', () => {
+  const filled = chargeToApi({ ...charge, minInvoiceAmount: '250', maxChargeAmount: '40.5', taxCategory: ' GST ' });
+  assert.equal(filled.minInvoiceAmount, 250);
+  assert.equal(filled.maxChargeAmount, 40.5);
+  assert.equal(filled.taxCategory, 'GST');
+  const empty = chargeToApi({ ...charge, minInvoiceAmount: '', maxChargeAmount: '', taxCategory: ' ' });
+  assert.equal(empty.minInvoiceAmount, null);
+  assert.equal(empty.maxChargeAmount, null);
+  assert.equal(empty.taxCategory, null);
+  assert.equal(chargeToApi({ ...charge, minInvoiceAmount: '0', maxChargeAmount: '0' }).maxChargeAmount, 0);
+});
+
+test('Charge optional settings validate backend ranges and category length', async () => {
+  const { validateCharge } = await import('../src/pages/Settings/chargeValidation.js');
+  assert.deepEqual(validateCharge({ ...charge, minInvoiceAmount: '', maxChargeAmount: '', taxCategory: '' }), {});
+  for (const value of ['-1', 'invalid', '100000000', Infinity]) {
+    const errors = validateCharge({ ...charge, minInvoiceAmount: value, maxChargeAmount: value });
+    assert.ok(errors.minInvoiceAmount);
+    assert.ok(errors.maxChargeAmount);
+  }
+  assert.ok(validateCharge({ ...charge, taxCategory: 'x'.repeat(65) }).taxCategory);
+  assert.deepEqual(validateCharge({ ...charge, minInvoiceAmount: 0, maxChargeAmount: '99999999.99', taxCategory: 'GST' }), {});
+});

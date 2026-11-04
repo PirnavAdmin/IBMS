@@ -8,6 +8,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { apiClient, API_BASE_URL, API_ENDPOINTS } from 'billing-api-client';
 import { NotificationBell } from '../src/components/dashboard/NotificationBell';
 import { DashboardHeader } from '../src/components/dashboard/DashboardHeader';
+import { userRoleAdministrationService as accountService } from '../src/pages/UserRoleAdministration/userRoleAdministrationService';
 import { notificationInboxService as inbox, notificationDestination, parseInboxPage } from '../src/services/notificationInboxService';
 
 const user = { userId: 'user-1', tenantId: 1, permissions: ['invoices.view'] };
@@ -111,8 +112,8 @@ test('profile menu and bell popup stay mutually exclusive', async () => {
   try {
     await open(); await click(view.host.querySelector('[aria-label="Open profile menu"]')); await settle();
     assert.equal(view.host.querySelector('[title="Notifications"]').getAttribute('aria-expanded'), 'false');
-    assert.ok(view.host.querySelector('.bd-profile-menu'));
-    await open(); assert.equal(view.host.querySelector('.bd-profile-menu'), null);
+    assert.ok(document.querySelector('.bd-account-menu'));
+    await open(); assert.equal(document.querySelector('.bd-account-menu'), null);
   } finally { await view.close(); localStorage.removeItem('billing_auth_user'); }
 });
 
@@ -150,7 +151,7 @@ test('navbar logout requires confirmation; cancel, Escape and backdrop preserve 
   const view = await mount(<DashboardHeader onSignOut={() => calls++} />);
   const request = async () => {
     await click(view.host.querySelector('[aria-label="Open profile menu"]'));
-    await click(view.host.querySelector('.bd-profile-menu'));
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(node => node.textContent.trim() === 'Sign out'));
     await settle();
     assert.equal(calls, 0);
     assert.equal(localStorage.getItem('billing_auth_token'), 'confirmation-test-token');
@@ -216,4 +217,95 @@ test('opening the bell refreshes an unread badge after a previously unavailable 
     await open();
     assert.equal(view.host.querySelector('.notification-badge').textContent, '3');
   } finally { await view.close(); }
+});
+test('account menu shows profile details and hides settings without permission', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ ...user, name: 'Account User', email: 'account@example.com' }));
+  const view = await mount(<DashboardHeader onSignOut={() => {}} />);
+  try {
+    await click(view.host.querySelector('[aria-label="Open profile menu"]')); await settle();
+    const entries = [...document.querySelectorAll('[role="menuitem"]')];
+    assert.deepEqual(entries.map(node => node.textContent.trim()), ['My Profile', 'Sign out']);
+    await click(entries[0]); await settle();
+    const dialog = document.querySelector('[aria-labelledby="account-profile-title"]');
+    assert.ok(dialog);
+    assert.match(dialog.textContent, /account@example.com/);
+    await click(button('Close')); await act(async () => { await new Promise(resolve => setTimeout(resolve, 260)); });
+    assert.equal(document.querySelector('[aria-labelledby="account-profile-title"]'), null);
+  } finally { await view.close(); localStorage.removeItem('billing_auth_user'); }
+});
+
+test('permitted account settings shortcuts navigate to existing settings pages', async () => {
+  localStorage.setItem('billing_auth_user', JSON.stringify({ ...user, permissions: ['settings.view'] }));
+  const view = await mount(<DashboardHeader onSignOut={() => {}} />);
+  try {
+    for (const [label, path] of [['Workspace Settings', '/settings'], ['Notification Settings', '/settings/notifications']]) {
+      await click(view.host.querySelector('[aria-label="Open profile menu"]')); await settle();
+      await click([...document.querySelectorAll('[role="menuitem"]')].find(node => node.textContent.trim() === label));
+      await settle();
+      assert.equal(view.host.querySelector('[data-location]').textContent, path);
+      assert.equal(view.host.querySelector('[aria-label="Open profile menu"]').getAttribute('aria-expanded'), 'false');
+    }
+  } finally { await view.close(); localStorage.removeItem('billing_auth_user'); }
+});
+
+test('profile editing saves only account details and refreshes the displayed name', async () => {
+  const original = accountService.updateUser;
+  const originalGetUser = accountService.getUser;
+  accountService.getUser = async () => ({ applicationId: 'EXISTING-APP' });
+  const current = { ...user, userId: 42, name: 'Original Admin', email: 'old@example.com', roles: ['TenantAdmin'] };
+  localStorage.setItem('billing_auth_user', JSON.stringify(current));
+  let calls = 0;
+  accountService.updateUser = async (id, payload) => {
+    calls++;
+    assert.equal(id, 42);
+    assert.deepEqual(payload, { name: 'Updated Admin', email: 'updated@example.com', applicationId: 'EXISTING-APP' });
+    return { data: { name: 'Updated Admin', email: 'updated@example.com', roles: ['Unexpected'] } };
+  };
+  const view = await mount(<DashboardHeader />);
+  try {
+    await click(view.host.querySelector('[aria-label="Open profile menu"]'));
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(node => node.textContent === 'My Profile'));
+    await click(button('Edit Profile'));
+    const name = document.querySelector('input[type="text"]');
+    const email = document.querySelector('input[type="email"]');
+    await act(async () => { Simulate.change(name, { target: { value: 'Updated Admin' } }); Simulate.change(email, { target: { value: 'updated@example.com' } }); });
+    await act(async () => { Simulate.submit(document.querySelector('[role="dialog"] form')); });
+    await settle();
+    assert.equal(calls, 1);
+    assert.equal(view.host.querySelector('.bd-user-copy strong').textContent, 'Updated Admin');
+    const saved = JSON.parse(localStorage.getItem('billing_auth_user'));
+    assert.equal(saved.email, 'updated@example.com');
+    assert.deepEqual(saved.roles, current.roles);
+    assert.deepEqual(saved.permissions, current.permissions);
+    assert.match(document.querySelector('[role="dialog"]').textContent, /Profile updated successfully/);
+  } finally { await view.close(); accountService.updateUser = original; accountService.getUser = originalGetUser; localStorage.removeItem('billing_auth_user'); }
+});
+
+test('invalid profile cannot save; failed save and cancel preserve the account', async () => {
+  const original = accountService.updateUser;
+  const originalGetUser = accountService.getUser;
+  accountService.getUser = async () => ({ applicationId: 'EXISTING-APP' });
+  const current = { ...user, userId: 42, name: 'Original Admin', email: 'old@example.com', roles: ['TenantAdmin'] };
+  localStorage.setItem('billing_auth_user', JSON.stringify(current));
+  let calls = 0;
+  accountService.updateUser = async () => { calls++; throw Object.assign(new Error('One or more validation errors occurred.'), { response: { data: { errors: { Email: ['Email already registered.'] } } } }); };
+  const view = await mount(<DashboardHeader />);
+  try {
+    await click(view.host.querySelector('[aria-label="Open profile menu"]'));
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(node => node.textContent === 'My Profile'));
+    await click(button('Edit Profile'));
+    const email = document.querySelector('input[type="email"]');
+    await act(async () => Simulate.change(email, { target: { value: 'invalid' } }));
+    assert.equal(button('Save changes').disabled, true);
+    await act(async () => Simulate.submit(document.querySelector('[role="dialog"] form')));
+    assert.equal(calls, 0);
+    await act(async () => Simulate.change(email, { target: { value: 'taken@example.com' } }));
+    await act(async () => Simulate.submit(document.querySelector('[role="dialog"] form')));
+    assert.equal(calls, 1);
+    assert.match(document.querySelector('[role="alert"]').textContent, /Email already registered/);
+    assert.deepEqual(JSON.parse(localStorage.getItem('billing_auth_user')), current);
+    await click(button('Cancel'));
+    assert.equal(document.querySelector('input[type="email"]'), null);
+    assert.equal(view.host.querySelector('.bd-user-copy strong').textContent, current.name);
+  } finally { await view.close(); accountService.updateUser = original; accountService.getUser = originalGetUser; localStorage.removeItem('billing_auth_user'); }
 });

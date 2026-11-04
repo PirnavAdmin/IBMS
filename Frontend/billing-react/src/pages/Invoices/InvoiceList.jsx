@@ -373,9 +373,6 @@ export function InvoiceList() {
                           {formattedValue}
                         </strong>
                         {countText && <small className="invoice-kpi-count-text">{countText}</small>}
-                        <small className="invoice-kpi-subtext">
-                          Filter invoices
-                        </small>
                       </div>
                     </button>
                   );
@@ -418,7 +415,7 @@ export function InvoiceList() {
             onChange={(event) => change("status", event.target.value)}
             className="invoice-filter-status"
           >
-            <MenuItem value="">All statuses</MenuItem>
+            <MenuItem value="">All Statuses</MenuItem>
             {INVOICE_STATUSES.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}

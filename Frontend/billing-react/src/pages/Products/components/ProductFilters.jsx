@@ -52,7 +52,7 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </FilterSelectField>
     <FilterSelectField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
-      <MenuItem value={ALL_STATUSES}>All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+      <MenuItem value={ALL_STATUSES}>All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </FilterSelectField>
     <TextField
       select

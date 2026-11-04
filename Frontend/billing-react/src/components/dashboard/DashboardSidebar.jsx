@@ -1,7 +1,7 @@
 import { BrandName } from '../BrandName';
 import { useEffect, useId, useRef, useState } from 'react';
 import Tooltip from '@mui/material/Tooltip';
-import { authApi } from 'billing-api-client';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
 import BrandingWatermarkOutlined from '@mui/icons-material/BrandingWatermarkOutlined';
 import FormatListNumberedOutlined from '@mui/icons-material/FormatListNumberedOutlined';
@@ -52,7 +52,7 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
   const activeSection = dashboardNavigation.find(section => section.label !== 'Overview' && section.items.some(item => item.id === activeItem))?.label;
   const [expandedSection, setExpandedSection] = useState(activeSection || 'Billing');
   useEffect(() => { if (activeSection) setExpandedSection(activeSection); }, [activeItem, activeSection]);
-  const user = authApi.getCurrentUser();
+  const user = useCurrentUser();
   const name = getDisplayName(user);
   const secondary = user?.email || (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
   const sections = dashboardNavigation.map(section => ({ ...section,
