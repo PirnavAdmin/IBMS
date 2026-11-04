@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { SearchField } from '../../../components/SearchField';
 import { hasPermission } from "../../../utils/permissionUtils";
 import { printCustomerList } from '../utils/customerReports';
@@ -133,8 +134,8 @@ const SORT_OPTIONS = [
   { label: "Recently Added", sortBy: "createdAt", sortOrder: "desc" },
   { label: "Alphabetical (A – Z)", sortBy: "name", sortOrder: "asc" },
   { label: "Alphabetical (Z – A)", sortBy: "name", sortOrder: "desc" },
-  { label: "Price: Low to High", sortBy: "price", sortOrder: "asc" },
-  { label: "Price: High to Low", sortBy: "price", sortOrder: "desc" },
+  { label: "Customer Code (A – Z)", sortBy: "customerCode", sortOrder: "asc" },
+  { label: "Customer Code (Z – A)", sortBy: "customerCode", sortOrder: "desc" },
   { label: "First Added", sortBy: "id", sortOrder: "asc" },
   { label: "Last Added", sortBy: "id", sortOrder: "desc" },
 ];
@@ -143,7 +144,6 @@ const ALLOWED_SORT_FIELDS = [
   "customerCode",
   "name",
   "createdAt",
-  "price",
   "id",
   "email",
   "companyName",
@@ -285,6 +285,7 @@ export function CustomerListPage() {
     }
   };
   const [search, setSearch] = useState(params.search);
+  useNavbarSearch(search, setSearch, 'Search customers');
   const change = (values) =>
     setUrl(
       (previous) => {

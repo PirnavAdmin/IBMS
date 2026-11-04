@@ -1,3 +1,4 @@
+import { customerTaxRegistrationType } from '../utils/customerTaxRegistration';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useReactHookFormDraft } from '../../../context/FormDraftContext';
@@ -129,27 +130,7 @@ export const CustomerForm = ({
   const getInitialValues = (values) => {
     const rawTax = String(values?.taxId || values?.gstin || values?.pan || '').trim();
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
-    const isPan = /^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(rawTax);
-    let taxType = '';
-    const providedTaxType = String(
-      values?.taxRegistrationType ?? values?.taxRegistration ?? ''
-    ).trim().toLowerCase();
-    if (providedTaxType === 'non-gst' || providedTaxType === 'unregistered') {
-      taxType = 'non-gst';
-    } else if (providedTaxType === 'gst' || providedTaxType === 'registered') {
-      taxType = 'gst';
-    } else if (providedTaxType) {
-      taxType = providedTaxType;
-    } else if (isGst || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(String(values?.gstin || '').trim())) {
-      taxType = 'gst';
-    } else if (isPan || values?.pan) {
-      // The customer API stores PAN/GSTIN in one taxId field and does not
-      // persist a separate registration flag. A PAN-only tax ID is therefore
-      // the durable signal for Non-GST / Unregistered customers on edit.
-      taxType = 'non-gst';
-    } else if (!rawTax && values?.id) {
-      taxType = 'non-gst';
-    }
+    const taxType = customerTaxRegistrationType(values);
 
     let initialPan = values?.pan || '';
     if (!initialPan) {

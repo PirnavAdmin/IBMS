@@ -1,4 +1,4 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Notification;
 using Billing.Domain.Entities;
@@ -108,6 +108,7 @@ public class NotificationService : INotificationService
                     <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
                 </div>
                 <p style='color:#64748b;font-size:13px;'>You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or NetBanking.</p>
+                <p style='color:#94a3b8;font-size:12px;font-style:italic;margin-top:12px;'>* Note: Single-use links. Once you click Approve or Decline, your decision is permanently recorded and both action buttons will be locked.</p>
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
@@ -307,9 +308,14 @@ public class NotificationService : INotificationService
             ["TotalAmount"] = quotation.TotalAmount.ToString("N2")
         };
 
-        var approveLink = $"http://localhost:5271/api/v1/quotations/public/{quotation.Id}/approve?tenantId={tenantId}";
+        var actionToken = !string.IsNullOrWhiteSpace(quotation.PublicActionToken)
+            ? quotation.PublicActionToken
+            : quotation.Id.ToString();
+        var approveLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={tenantId}";
+        var declineLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={tenantId}";
         var replyLink = $"mailto:{supportEmail}?subject=Feedback on Quotation {quotation.QuoteNumber}";
         variables["ApproveLink"] = approveLink;
+        variables["DeclineLink"] = declineLink;
         variables["ReplyLink"] = replyLink;
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, "QuotationSent", "Email");
@@ -318,17 +324,25 @@ public class NotificationService : INotificationService
             : $"Quotation {quotation.QuoteNumber} from {companyName}";
         string body = template != null
             ? _templateEngine.Render(template.BodyTemplate, variables)
-            : $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
-                <h2 style='color:#0f172a;margin-top:0;'>Quotation {quotation.QuoteNumber}</h2>
-                <p style='color:#475569;'>Dear {quotation.Customer.Name},</p>
-                <p style='color:#475569;'>Please find attached our official quotation <strong>{quotation.QuoteNumber}</strong> for the amount of <strong>{currency} {quotation.TotalAmount:N2}</strong>.</p>
-                <p style='color:#64748b;font-size:14px;'>Valid until: <strong>{quotation.ValidUntil:dd MMM yyyy}</strong></p>
-                <div style='margin:30px 0;'>
-                    <a href='{approveLink}' style='background-color:#16a34a;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;display:inline-block;margin-right:12px;'>&#10003; Approve Quotation</a>
-                    <a href='{replyLink}' style='background-color:#f1f5f9;color:#334155;padding:12px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;display:inline-block;border:1px solid #cbd5e1;'>&#9993; Request Changes</a>
+            : $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:540px;margin:auto;padding:24px 16px;color:#334155;'>
+                <div style='font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
+                <h2 style='color:#0f172a;margin:4px 0 16px;font-size:20px;'>Quotation {quotation.QuoteNumber}</h2>
+                <p style='color:#334155;font-size:14px;margin:0 0 16px;'>Hello <strong>{quotation.Customer.Name}</strong>,<br/>Thank you for choosing us. Please find our formal quotation details below:</p>
+                <table style='width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin:16px 0 24px;'>
+                    <tr><td style='padding:9px 14px;color:#64748b;'>Quotation Number</td><td style='padding:9px 14px;text-align:right;font-weight:600;color:#0f172a;'>{quotation.QuoteNumber}</td></tr>
+                    <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Valid Until</td><td style='padding:9px 14px;text-align:right;color:#334155;border-top:1px solid #f1f5f9;'>{quotation.ValidUntil:dd MMM yyyy}</td></tr>
+                    <tr style='border-top:1px solid #e2e8f0;background:#f1f5f9;'><td style='padding:11px 14px;font-weight:600;color:#0f172a;font-size:14px;'>Total Amount</td><td style='padding:11px 14px;text-align:right;font-weight:700;color:#0f172a;font-size:15px;'>{currency} {quotation.TotalAmount:N2}</td></tr>
+                </table>
+                <div style='margin:20px 0;text-align:center;'>
+                    <p style='font-size:13px;color:#64748b;margin:0 0 12px;'>Please select your response:</p>
+                    <div style='display:inline-block;'>
+                        <a href='{approveLink}' style='background-color:#16a34a;color:#ffffff;padding:9px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;display:inline-block;margin:3px 6px;'>&#10003; Approve</a>
+                        <a href='{declineLink}' style='background-color:#ffffff;color:#dc2626;border:1px solid #fca5a5;padding:8px 18px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;display:inline-block;margin:3px 6px;'>&#10006; Decline</a>
+                    </div>
+                    <div style='font-size:11px;color:#94a3b8;margin-top:10px;'>* Single-use link. Once clicked, your response is saved.</div>
                 </div>
-                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
-                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0 16px;'/>
+                <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
 
         var log = new NotificationLog

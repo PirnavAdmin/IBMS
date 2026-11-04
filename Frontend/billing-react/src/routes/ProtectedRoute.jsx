@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import Spin from 'antd/es/spin';
+import { PageLoading } from '../components/PageLoading';
 import { apiClient } from 'billing-api-client';
 import { queryClient } from '../queryClient';
 import { errorPresentation } from '../utils/errorPresentation';
@@ -57,12 +57,13 @@ export function ProtectedRoute({ children }) {
   const status = validation?.token === token && validation?.attempt === attempt ? validation.status : 'checking';
   if (status === 'authenticated') return children;
   if (status === 'invalid') return <Navigate to="/login" replace state={{ from: location }} />;
+  if (status !== 'error') return <PageLoading />;
   return <main className="protected-route-state">
-    {status === 'error' ? <section role="alert">
+    <section role="alert">
       <ConnectionStateIcon error={validation.error} />
       <h1>Unable to load</h1>
       <p>{errorPresentation(validation.error)}</p>
       <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>
-    </section> : <div role="status" aria-live="polite" className="protected-route-loading"><Spin size="large" /><span>Loading...</span></div>}
+    </section>
   </main>;
 }

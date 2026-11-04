@@ -72,7 +72,7 @@ export const VerifyOtp = () => {
       className="billing-otp-page"
       header={<div className="billing-recovery-heading"><div className="billing-auth-card-badge"><LockOutlined aria-hidden="true" /></div><h1 className="billing-auth-form-title">Enter verification code</h1></div>}
       tagLabel="OTP"
-      brandTitle="INVOICE.BILLING"
+      brandTitle="IBMS"
       brandSubtitle="TWO-STEP VERIFICATION"
       brandIcon={LockOutlined}
       cardDescription={

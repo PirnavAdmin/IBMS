@@ -27,6 +27,14 @@ public class FakeQuotationRepository : IQuotationRepository
         return Task.FromResult(match);
     }
 
+    public Task<Quotation?> GetByPublicActionTokenAsync(string token, int tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return Task.FromResult<Quotation?>(null);
+        var normalized = token.Trim();
+        var match = Quotations.FirstOrDefault(q => q.TenantId == tenantId && q.PublicActionToken == normalized);
+        return Task.FromResult(match);
+    }
+
     public Task<bool> ExistsQuoteNumberAsync(string quoteNumber, int tenantId, int? excludeId = null)
     {
         var normalized = quoteNumber.Trim().ToUpperInvariant();

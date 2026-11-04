@@ -24,13 +24,14 @@ test('Every frontend source module parses and every literal relative import reso
   console.log(`Parsed ${sources.length} frontend modules and checked literal relative imports.`);
 });
 
-test('Tracked source plus the four required runtime additions resolves clean-checkout relative imports', async () => {
+test('Tracked source plus required runtime additions resolves clean-checkout relative imports', async () => {
   const repository = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: root, encoding: 'utf8' }).trim();
   const required = [
     'Frontend/billing-react/src/components/DateRangeDatePicker.jsx',
     'Frontend/billing-react/src/pages/Dashboard/dashboardAging.js',
     'Frontend/billing-react/src/pages/Invoices/services/invoiceExport.js',
     'Frontend/billing-react/src/pages/NumberingSettings/validation/numberingTokens.js',
+    'Frontend/billing-react/src/pages/CreditNotes/utils/creditNoteInvoicePages.js',
   ];
   const tracked = execFileSync('git', ['ls-files', '-z', '--cached'], { cwd: repository, encoding: 'utf8' }).split('\0').filter(Boolean);
   const checkout = new Set([...tracked, ...required].map(path => resolve(repository, path)));

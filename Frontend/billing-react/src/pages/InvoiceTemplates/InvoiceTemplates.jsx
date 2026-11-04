@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { displayDateTime as formatDateTime } from '../../utils/localDate';
@@ -83,8 +84,18 @@ const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const paymentDetails = storedDetails.filter((line) => !line.startsWith('Payment method: ') && !line.startsWith('Branch: ') && !line.startsWith('Payment provider: ') && !line.startsWith('Secure payment link: ') && !line.startsWith('Card payment instructions: ')).join('\n');
   return { ...emptyConfig, name: template.name || template.Name || '', description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || company.contact || company.Contact || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
 };
-const paymentDetailsText = (config) => [config.paymentMethod && `Payment method: ${config.paymentMethod}`, config.branch && `Branch: ${config.branch}`, config.paymentProvider && `Payment provider: ${config.paymentProvider === 'Other' ? config.providerName : config.paymentProvider}`, config.securePaymentLink && `Secure payment link: ${config.securePaymentLink}`, config.cardPaymentInstructions && `Card payment instructions: ${config.cardPaymentInstructions}`, config.paymentDetails].filter(Boolean).join('\n');
-const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.paymentMethod === 'Bank Transfer' ? config.accountHolderName || null : null, bankName: config.paymentMethod === 'Bank Transfer' ? config.bankName || null : null, accountNumber: config.paymentMethod === 'Bank Transfer' ? config.accountNumber || null : null, ifscCode: config.paymentMethod === 'Bank Transfer' ? config.ifscCode || null : null, upiId: config.paymentMethod === 'UPI' ? config.upiId || null : null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
+const paymentDetailsText = (config) => [
+  config.bankName && `Bank: ${config.bankName}`,
+  config.accountHolderName && `A/C Name: ${config.accountHolderName}`,
+  config.accountNumber && `A/C No: ${config.accountNumber}`,
+  config.ifscCode && `IFSC: ${config.ifscCode}`,
+  config.branch && `Branch: ${config.branch}`,
+  config.upiId && `UPI ID: ${config.upiId}`,
+  config.paymentProvider && `Card Gateway: ${config.paymentProvider === 'Other' ? config.providerName : config.paymentProvider}`,
+  config.cardPaymentInstructions && `Card instructions: ${config.cardPaymentInstructions}`,
+  config.paymentDetails
+].filter(Boolean).join('\n');
+const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
 
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
@@ -130,7 +141,7 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       PaperProps={{ className: 'template-actions-menu ibms-row-actions-menu' }} MenuListProps={{ 'aria-labelledby': `${menuId}-button` }}>
       <MenuItem onClick={() => select(onView)}><ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>View</MenuItem>
-      {isDraft && <MenuItem onClick={() => select(onEdit)}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem>}
+      <MenuItem onClick={() => select(onEdit)}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem>
       {isActive && !isDefault && <MenuItem disabled={busy} onClick={() => select(onDefault)}><ListItemIcon><StarOutline fontSize="small" /></ListItemIcon>Make default</MenuItem>}
       <MenuItem className={isActive ? 'is-destructive' : undefined} disabled={busy} onClick={() => select(onStatus)}><ListItemIcon>{isActive ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>{isActive ? 'Deactivate' : 'Activate'}</MenuItem>
     </Menu>
@@ -139,6 +150,7 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
 
 export function InvoiceTemplates() {
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, value => { setSearch(value); setPage(1); }, 'Search templates');
   const [status, setStatus] = useState('');
   const [style, setStyle] = useState('');
   const navigate = useNavigate();
@@ -227,7 +239,7 @@ export function InvoiceTemplates() {
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
       <div className="template-list-filters">
         <TextField label="Search templates" value={search} onChange={(event) => setSearch(event.target.value)} size="small" />
-        <FilterSelectField label="Status" select value={status} onChange={(event) => setStatus(event.target.value)} size="small"><MenuItem value="">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></FilterSelectField>
+        <FilterSelectField label="Status" select value={status} onChange={(event) => setStatus(event.target.value)} size="small"><MenuItem value="">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></FilterSelectField>
         <FilterSelectField label="Style" select value={style} onChange={(event) => setStyle(event.target.value)} size="small"><MenuItem value="">All styles</MenuItem>{STYLES.map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</FilterSelectField>
       </div>
 
@@ -364,7 +376,50 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
     <div className="template-fields template-logo-controls"><TextField label="Logo position" select {...text('logoPosition')}><MenuItem value="left">Left</MenuItem><MenuItem value="center">Center</MenuItem><MenuItem value="right">Right</MenuItem></TextField><TextField label="Logo preview width (px)" type="number" inputProps={{ min: 48, max: 240 }} value={value.logoWidth} onChange={(event) => onChange('logoWidth', Math.min(240, Math.max(48, Number(event.target.value) || 48)))} /></div>
     <section className="template-colors-section" aria-labelledby="template-colors-heading"><h3 id="template-colors-heading">Template Colors</h3><div className="template-color-fields"><TemplateColorControl label="Primary Color" value={value.primary} onChange={(nextColor) => onChange('primary', nextColor)} onBlur={() => onBlur?.('primary', value.primary)} /><TemplateColorControl label="Accent Color" value={value.secondary} onChange={(nextColor) => onChange('secondary', nextColor)} onBlur={() => onBlur?.('secondary', value.secondary)} /></div></section>
     {colorContrast(value.primary) < 4.5 && <Alert severity="warning" role="status">This primary color may have low contrast against white. Review the sample preview for readability.</Alert>}
-    <h3>Invoice content</h3><div className="template-fields"><TextField label="Header text" {...text('header')} multiline minRows={2} fullWidth /><TextField label="Payment method" select value={value.paymentMethod} onChange={(event) => onChange('paymentMethod', event.target.value)} fullWidth><MenuItem value="">Select payment method</MenuItem>{['Bank Transfer', 'UPI', 'Credit/Debit Card'].map((method) => <MenuItem key={method} value={method}>{method}</MenuItem>)}</TextField>{value.paymentMethod === 'Bank Transfer' && <><TextField label="Account holder name" required error={Boolean(errors.accountHolderName)} helperText={errors.accountHolderName} {...text('accountHolderName')} fullWidth /><TextField label="Bank name" required error={Boolean(errors.bankName)} helperText={errors.bankName} {...text('bankName')} fullWidth /><TextField label="Account number" required inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 18 }} error={Boolean(errors.accountNumber)} helperText={errors.accountNumber} {...text('accountNumber')} fullWidth /><TextField label="IFSC code" required inputProps={{ maxLength: 11 }} error={Boolean(errors.ifscCode)} helperText={errors.ifscCode} {...text('ifscCode')} fullWidth /><TextField label="Branch" required error={Boolean(errors.branch)} helperText={errors.branch} {...text('branch')} fullWidth /></>}{value.paymentMethod === 'UPI' && <TextField label="UPI ID" required error={Boolean(errors.upiId)} helperText={errors.upiId} {...text('upiId')} fullWidth />}{value.paymentMethod === 'Credit/Debit Card' && <><h3>Card Payment</h3><TextField label="Payment Gateway" select required error={Boolean(errors.paymentProvider)} helperText={errors.paymentProvider} value={value.paymentProvider} onChange={(event) => onChange('paymentProvider', event.target.value)} fullWidth><MenuItem value="">Select payment gateway</MenuItem><MenuItem value="Razorpay">Razorpay</MenuItem><MenuItem value="Stripe">Stripe</MenuItem><MenuItem value="Other">Other</MenuItem></TextField>{value.paymentProvider === 'Other' && <TextField label="Provider name" required error={Boolean(errors.providerName)} helperText={errors.providerName} {...text('providerName')} fullWidth />}<TextField label="Payment Link" type="url" placeholder="https://pay.example.com/..." required error={Boolean(errors.securePaymentLink)} helperText={errors.securePaymentLink} {...text('securePaymentLink')} fullWidth /><TextField label="Instructions for Customer" placeholder="Click the payment link to securely pay using your Credit or Debit Card." required error={Boolean(errors.cardPaymentInstructions)} helperText={errors.cardPaymentInstructions} {...text('cardPaymentInstructions')} multiline minRows={2} fullWidth /><Alert severity="info">Customers will enter their card number, expiry date and CVV securely on the payment provider's checkout page. Card details are not stored in the invoice template.</Alert></>}<TextField label="Terms and conditions" {...text('terms')} multiline minRows={3} fullWidth /><TextField label="Footer text" {...text('footer')} multiline minRows={2} fullWidth /></div>
+    <h3>Invoice content</h3><div className="template-fields"><TextField label="Header text" {...text('header')} multiline minRows={2} fullWidth /></div>
+    
+    <div style={{ marginTop: 24, marginBottom: 24, padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#ffffff' }}>
+      <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#1e293b' }}>Payment Methods & Instructions</h3>
+      <p style={{ margin: '0 0 16px 0', fontSize: '0.875rem', color: '#64748b' }}>
+        Add your UPI ID, Bank Transfer details, and Card Payment instructions. All details will be available for customer checkout and invoice presentation.
+      </p>
+
+      {/* 1. UPI ID Section */}
+      <div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>📱 UPI Payment (PhonePe / GPay / Paytm)</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Generates dynamic UPI QR codes on invoice payment links and invoices.</p>
+        <TextField label="UPI ID (VPA)" placeholder="e.g. 9014177402@ybl" error={Boolean(errors.upiId)} helperText={errors.upiId || 'Enter your PhonePe, Google Pay, or BHIM UPI ID'} {...text('upiId')} fullWidth />
+      </div>
+
+      {/* 2. Bank Details Section */}
+      <div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>🏦 Bank Transfer Details (NEFT / IMPS / RTGS)</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Account information for direct bank wire transfers.</p>
+        <div className="template-fields">
+          <TextField label="Account Holder Name" {...text('accountHolderName')} fullWidth />
+          <TextField label="Bank Name" {...text('bankName')} fullWidth />
+          <TextField label="Account Number" inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', maxLength: 18 }} error={Boolean(errors.accountNumber)} helperText={errors.accountNumber} {...text('accountNumber')} fullWidth />
+          <TextField label="IFSC Code" inputProps={{ maxLength: 11 }} error={Boolean(errors.ifscCode)} helperText={errors.ifscCode} {...text('ifscCode')} fullWidth />
+          <TextField label="Branch" {...text('branch')} fullWidth />
+        </div>
+      </div>
+
+      {/* 3. Card & Gateway Section */}
+      <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>💳 Credit / Debit Cards & Razorpay</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Online gateway settings for card checkout.</p>
+        <div className="template-fields">
+          <TextField label="Payment Gateway" select value={value.paymentProvider || 'Razorpay'} onChange={(event) => onChange('paymentProvider', event.target.value)} fullWidth>
+            <MenuItem value="Razorpay">Razorpay</MenuItem>
+            <MenuItem value="Stripe">Stripe</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </TextField>
+          <TextField label="Card Payment Instructions" placeholder="Pay securely using Credit Cards, Debit Cards, NetBanking, or Wallets powered by Razorpay." {...text('cardPaymentInstructions')} multiline minRows={2} fullWidth />
+        </div>
+      </div>
+    </div>
+
+    <div className="template-fields"><TextField label="Terms and conditions" {...text('terms')} multiline minRows={3} fullWidth /><TextField label="Footer text" {...text('footer')} multiline minRows={2} fullWidth /></div>
   </>;
 }
 

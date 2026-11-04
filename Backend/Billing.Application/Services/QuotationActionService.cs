@@ -1,10 +1,11 @@
-using Billing.Application.Interfaces;
+﻿using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Financial;
 using Billing.Contracts.Numbering;
 using Billing.Domain.Entities;
 using Billing.Domain.Enums;
 using System.Text.Json;
+using Billing.Contracts.Quotation;
 
 namespace Billing.Application.Services;
 
@@ -22,6 +23,7 @@ public class QuotationActionService : IQuotationActionService
     private readonly ITenantRepository? _tenantRepository;
     private readonly INotificationLogRepository? _notificationLogRepository;
     private readonly INotificationService? _notificationService;
+    private readonly IInAppNotificationService? _inAppNotificationService;
 
     public QuotationActionService(
         IQuotationRepository quotationRepository,
@@ -35,7 +37,8 @@ public class QuotationActionService : IQuotationActionService
         IQuotationPdfEngine? quotationPdfEngine = null,
         ITenantRepository? tenantRepository = null,
         INotificationLogRepository? notificationLogRepository = null,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IInAppNotificationService? inAppNotificationService = null)
     {
         _quotationRepository = quotationRepository;
         _invoiceRepository = invoiceRepository;
@@ -49,6 +52,7 @@ public class QuotationActionService : IQuotationActionService
         _tenantRepository = tenantRepository;
         _notificationLogRepository = notificationLogRepository;
         _notificationService = notificationService;
+        _inAppNotificationService = inAppNotificationService;
     }
 
     public async Task<ApiResponse<bool>> CalculateAndFreezeSnapshotAsync(int quotationId, int tenantId)
@@ -148,6 +152,11 @@ public class QuotationActionService : IQuotationActionService
         var currency = string.IsNullOrWhiteSpace(customer.Currency) ? "INR" : customer.Currency.Trim().ToUpperInvariant();
         var subject = $"Quotation {quotation.QuoteNumber}";
 
+        if (string.IsNullOrWhiteSpace(quotation.PublicActionToken))
+        {
+            quotation.PublicActionToken = Guid.NewGuid().ToString("N");
+        }
+
         // 1. Generate Quotation PDF
         byte[]? pdfBytes = null;
         string pdfFileName = $"{quotation.QuoteNumber}.pdf";
@@ -164,7 +173,7 @@ public class QuotationActionService : IQuotationActionService
         }
 
         // 2. Build Clean Minimal Email Body (Fallback)
-        var body = $"Dear {customer.Name},\n\nPlease find attached the quotation {quotation.QuoteNumber} for the amount of {quotation.TotalAmount:0.00} {currency}.\n\nThank you for your business!";
+        var body = BuildQuotationHtmlEmail(quotation, customer, tenant, currency, pdfBytes != null);
 
         if (_notificationService != null)
         {
@@ -316,6 +325,9 @@ public class QuotationActionService : IQuotationActionService
         var companyAddress = !string.IsNullOrWhiteSpace(tenant?.Address) ? tenant.Address : "Hyderabad, Telangana";
         var companyPhone = !string.IsNullOrWhiteSpace(tenant?.Phone) ? tenant.Phone : "+91 9876543210";
         var companyEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail) ? tenant.CompanyEmail : "info@acmetech.com";
+        var actionToken = !string.IsNullOrWhiteSpace(quotation.PublicActionToken) ? quotation.PublicActionToken : quotation.Id.ToString();
+        var approveLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={quotation.TenantId}";
+        var declineLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={quotation.TenantId}";
 
         var sb = new System.Text.StringBuilder();
         sb.Append(@"<!DOCTYPE html>
@@ -469,6 +481,17 @@ public class QuotationActionService : IQuotationActionService
         }
 
         sb.Append(@"
+      <!-- Action Decision Section -->
+      <div style=""margin:20px 0;text-align:center;"">
+        <p style=""font-size:13px;color:#64748b;margin:0 0 12px;"">Please select your response:</p>
+        <div style=""display:inline-block;"">
+          <a href=""").Append(approveLink).Append(@""" style=""background-color:#16a34a;color:#ffffff;padding:9px 20px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;display:inline-block;margin:3px 6px;"">&#10003; Approve</a>
+          <a href=""").Append(declineLink).Append(@""" style=""background-color:#ffffff;color:#dc2626;border:1px solid #fca5a5;padding:8px 18px;text-decoration:none;border-radius:6px;font-weight:600;font-size:13px;display:inline-block;margin:3px 6px;"">&#10006; Decline</a>
+        </div>
+        <div style=""font-size:11px;color:#94a3b8;margin-top:10px;"">
+          * Single-use link. Once clicked, your response is saved.
+        </div>
+      </div>
       <div style=""margin-top:24px;padding-top:16px;border-top:1px solid #E8DDD5;font-size:13px;color:#555555;line-height:1.5;"">
         Best regards,<br>
         <strong style=""color:#222222;font-size:14px;"">").Append(System.Net.WebUtility.HtmlEncode(companyName)).Append(@"</strong><br>
@@ -694,5 +717,165 @@ public class QuotationActionService : IQuotationActionService
             await _unitOfWork.RollbackTransactionAsync();
             return ApiResponse<int>.Fail("Conversion failed: " + ex.Message);
         }
+    }
+
+    public async Task<ApiResponse<QuotationPublicDecisionResult>> ProcessCustomerDecisionAsync(string token, string action, int tenantId)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return ApiResponse<QuotationPublicDecisionResult>.Fail("Action token is required.", errorCode: "INVALID_TOKEN");
+
+        var normalizedAction = action?.Trim().ToLowerInvariant();
+        var isApproved = normalizedAction == "approve";
+        var isDecline = normalizedAction == "decline";
+
+        if (!isApproved && !isDecline)
+            return ApiResponse<QuotationPublicDecisionResult>.Fail("Invalid action requested. Supported actions are approve or decline.", errorCode: "INVALID_ACTION");
+
+        // 1. Look up quotation by PublicActionToken or numeric ID
+        var quotation = await _quotationRepository.GetByPublicActionTokenAsync(token.Trim(), tenantId);
+        if (quotation == null && int.TryParse(token.Trim(), out var quotationId))
+        {
+            quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
+                ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        }
+
+        if (quotation == null)
+            return ApiResponse<QuotationPublicDecisionResult>.Fail("Quotation not found or the action link is invalid.", errorCode: "NOT_FOUND");
+
+        var tenant = quotation.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId) : null);
+        var companyName = tenant?.Name ?? "Billing Team";
+        var currency = string.IsNullOrWhiteSpace(quotation.Customer?.Currency) ? "INR" : quotation.Customer.Currency.Trim().ToUpperInvariant();
+
+        // 2. Strict Single-Use / Invalidation Enforcement
+        // If CustomerRespondedAtUtc is set or Status is no longer Sent, the links are locked!
+        if (quotation.CustomerRespondedAtUtc.HasValue || quotation.Status != QuotationStatus.Sent)
+        {
+            var existingDecision = !string.IsNullOrWhiteSpace(quotation.CustomerDecision)
+                ? quotation.CustomerDecision
+                : (quotation.Status == QuotationStatus.Approved ? "Approved" : (quotation.Status == QuotationStatus.Cancelled ? "Declined" : quotation.Status.ToString()));
+
+            var respondedAt = quotation.CustomerRespondedAtUtc ?? quotation.UpdatedAtUtc ?? DateTime.UtcNow;
+
+            return ApiResponse<QuotationPublicDecisionResult>.Ok(new QuotationPublicDecisionResult
+            {
+                IsAlreadyRecorded = true,
+                ExistingDecision = existingDecision,
+                RespondedAtUtc = respondedAt,
+                Decision = existingDecision,
+                QuoteNumber = quotation.QuoteNumber,
+                TotalAmount = quotation.TotalAmount,
+                Currency = currency,
+                CustomerName = quotation.Customer?.Name ?? "Valued Customer",
+                CompanyName = companyName,
+                Message = $"Your decision ({existingDecision}) was already recorded on {respondedAt:dd MMM yyyy, hh:mm tt} UTC. These action buttons are single-use and permanently locked."
+            }, "Decision was already recorded.");
+        }
+
+        // 3. Apply Decision
+        var now = DateTime.UtcNow;
+        var decisionText = isApproved ? "Approved" : "Declined";
+        quotation.CustomerDecision = decisionText;
+        quotation.CustomerRespondedAtUtc = now;
+
+        if (isApproved)
+        {
+            quotation.Status = QuotationStatus.Approved;
+        }
+        else
+        {
+            quotation.Status = QuotationStatus.Cancelled;
+            quotation.Notes = string.IsNullOrWhiteSpace(quotation.Notes)
+                ? $"Declined by customer via email link on {now:yyyy-MM-dd HH:mm:ss} UTC."
+                : $"{quotation.Notes}\nDeclined by customer via email link on {now:yyyy-MM-dd HH:mm:ss} UTC.";
+        }
+
+        quotation.Communications.Add(new QuotationCommunication
+        {
+            QuotationId = quotation.Id,
+            CommunicationType = "EmailAction",
+            Recipient = quotation.Customer?.Email ?? "Customer",
+            Subject = $"Quotation {decisionText} by Customer",
+            Message = $"Customer recorded {decisionText} via secure email button at {now:yyyy-MM-dd HH:mm:ss} UTC.",
+            Status = "Recorded",
+            SentAt = now,
+            SentBy = "Customer (via Email)"
+        });
+
+        await _quotationRepository.UpdateAsync(quotation);
+
+        // 4. Record Audit Log
+        var auditLog = new AuditLog
+        {
+            TenantId = tenantId,
+            CustomerId = quotation.CustomerId,
+            EntityName = "Quotation",
+            EntityId = quotation.Id.ToString(),
+            Action = decisionText,
+            UserName = "Customer (via Email)",
+            Changes = $"Status changed to {quotation.Status}. Decision recorded by customer via email link.",
+            Timestamp = now
+        };
+        await _auditLogRepository.AddAsync(auditLog);
+
+        // 5. Publish Outbox Event
+        if (_outboxService != null)
+        {
+            try
+            {
+                await _outboxService.PublishEventAsync(tenantId, isApproved ? "quotation.approved" : "quotation.cancelled", new
+                {
+                    QuotationId = quotation.Id,
+                    QuoteNumber = quotation.QuoteNumber,
+                    CustomerId = quotation.CustomerId,
+                    CustomerName = quotation.Customer?.Name,
+                    Decision = decisionText,
+                    RespondedAtUtc = now
+                });
+            }
+            catch {}
+        }
+
+        // 6. Push In-App Bell Notification to Admin / Billing Team
+        if (_inAppNotificationService != null)
+        {
+            try
+            {
+                var notifTitle = isApproved
+                    ? $"Quotation {quotation.QuoteNumber} Approved"
+                    : $"Quotation {quotation.QuoteNumber} Declined";
+
+                var notifMsg = isApproved
+                    ? $"Customer {quotation.Customer?.Name} has approved quotation {quotation.QuoteNumber} ({currency} {quotation.TotalAmount:N2}) via email."
+                    : $"Customer {quotation.Customer?.Name} has declined quotation {quotation.QuoteNumber} via email.";
+
+                await _inAppNotificationService.CreateInAppNotificationAsync(new Billing.Contracts.Notification.CreateInAppNotificationCommand
+                {
+                    TenantId = tenantId,
+                    RecipientUserId = 1,
+                    EventType = isApproved ? "QuotationApproved" : "QuotationDeclined",
+                    EventDeduplicationId = $"quotation-{quotation.Id}-{decisionText.ToLowerInvariant()}",
+                    Title = notifTitle,
+                    Message = notifMsg,
+                    ActionModule = "quotations",
+                    ActionEntityId = quotation.Id.ToString()
+                });
+            }
+            catch {}
+        }
+
+        return ApiResponse<QuotationPublicDecisionResult>.Ok(new QuotationPublicDecisionResult
+        {
+            IsAlreadyRecorded = false,
+            Decision = decisionText,
+            RespondedAtUtc = now,
+            QuoteNumber = quotation.QuoteNumber,
+            TotalAmount = quotation.TotalAmount,
+            Currency = currency,
+            CustomerName = quotation.Customer?.Name ?? "Valued Customer",
+            CompanyName = companyName,
+            Message = isApproved
+                ? "Your quotation has been successfully approved! Our billing team has been notified and will proceed with your tax invoice."
+                : "Your decision to decline this quotation has been recorded. Our team has been notified."
+        }, $"Quotation successfully {decisionText.ToLowerInvariant()}.");
     }
 }

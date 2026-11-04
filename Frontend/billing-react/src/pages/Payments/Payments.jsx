@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
@@ -98,6 +99,7 @@ export const Payments = () => {
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState('');
   const [search, setSearch] = useState(''); const [reverse, setReverse] = useState(null);
+  useNavbarSearch(search, setSearch, 'Search payments');
   const user = usePaymentUser();
   useSearchCommit(search, value => setFilters(previous => ({ ...previous, search: value, pageNumber: 1 })));
   const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));
@@ -118,7 +120,7 @@ export const Payments = () => {
       <header className="payment-card-heading"><div><h2>Payments</h2><p>All recorded customer payments</p></div>{query.data?.totalCount > 0 && <span className="payment-count">{query.data.totalCount} payments{filters.currency ? ` ? ${filters.currency}` : ''}</span>}</header>
     <div className="payment-filters" role="search" aria-label="Payment filters">
       <SearchField size="small" className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} label="Search payments" placeholder="Number or customer" searchHint="Search by payment number, invoice number or customer." value={search} onChange={event => setSearch(event.target.value)} />
-      <FilterSelectField size="small" select label="Status" value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
+      <FilterSelectField size="small" select label="Status" value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All Statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
       <FilterSelectField size="small" select label="Payment Method" value={filters.method} onChange={event => change({ method: event.target.value })}><MenuItem value="">All methods</MenuItem>{PAYMENT_METHODS.map(method => <MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</FilterSelectField>
       <div className="payment-filter-actions"><DateRangeFilter startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => change({ from: startDate, to: endDate })} />
       <Button className="payment-clear" variant="outlined" onClick={() => { setSearch(''); change({ search: '', currency: '', status: '', method: '', from: '', to: '', sortBy: 'createdAtUtc', sortOrder: 'desc' }); }}>Clear Filters</Button></div>

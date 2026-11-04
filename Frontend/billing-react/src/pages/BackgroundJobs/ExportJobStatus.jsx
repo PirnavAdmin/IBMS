@@ -124,7 +124,7 @@ export function ExportJobStatus() {
                 <h2>Export history</h2>
                 <div>
                   <FilterSelectField select size="small" label="Status" value={status} onChange={event => { setStatus(event.target.value); setPage(1); }}>
-                    <MenuItem value="">All statuses</MenuItem>
+                    <MenuItem value="">All Statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                   </FilterSelectField>
                   <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>

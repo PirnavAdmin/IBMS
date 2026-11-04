@@ -21,6 +21,13 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUsers([FromQuery] UserQueryParameters query)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            if (!callerTenantId.HasValue) return Forbid();
+            query.TenantId = callerTenantId.Value;
+        }
+
         var (users, totalCount) = await _userService.GetUsersAsync(query);
         return Ok(new
         {
@@ -42,6 +49,15 @@ public class UsersController : ControllerBase
             return NotFound(new { success = false, message = "User not found." });
         }
 
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            if (user.TenantId != callerTenantId)
+            {
+                return Forbid();
+            }
+        }
+
         return Ok(new { success = true, data = user });
     }
 
@@ -49,6 +65,21 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            if (!callerTenantId.HasValue) return Forbid();
+
+            // TenantAdmin cannot create users in other tenants
+            request.TenantId = callerTenantId.Value;
+
+            // TenantAdmin cannot assign SuperAdmin role
+            if (request.Roles != null && request.Roles.Any(r => r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { success = false, message = "Tenant administrators cannot create or assign SuperAdmin accounts." });
+            }
+        }
+
         var (success, message, user) = await _userService.CreateUserAsync(request);
         if (!success)
         {
@@ -62,6 +93,28 @@ public class UsersController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            var existing = await _userService.GetUserByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            if (existing.TenantId != callerTenantId)
+            {
+                return Forbid();
+            }
+
+            request.TenantId = callerTenantId.Value;
+
+            if (request.Roles != null && request.Roles.Any(r => r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { success = false, message = "Tenant administrators cannot assign SuperAdmin role." });
+            }
+        }
+
         var (success, message, user) = await _userService.UpdateUserAsync(id, request);
         if (!success)
         {
@@ -75,6 +128,21 @@ public class UsersController : ControllerBase
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateUserStatusRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            var existing = await _userService.GetUserByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            if (existing.TenantId != callerTenantId)
+            {
+                return Forbid();
+            }
+        }
+
         var (success, message) = await _userService.UpdateUserStatusAsync(id, request.Status);
         if (!success)
         {
@@ -88,6 +156,26 @@ public class UsersController : ControllerBase
     [HttpPost("{id:int}/roles")]
     public async Task<IActionResult> AssignRoles(int id, [FromBody] AssignUserRolesRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            var existing = await _userService.GetUserByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            if (existing.TenantId != callerTenantId)
+            {
+                return Forbid();
+            }
+
+            if (request.Roles != null && request.Roles.Any(r => r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { success = false, message = "Tenant administrators cannot assign SuperAdmin role." });
+            }
+        }
+
         var (success, message, user) = await _userService.AssignUserRolesAsync(id, request.Roles);
         if (!success)
         {
@@ -101,6 +189,11 @@ public class UsersController : ControllerBase
     [HttpPut("{id:int}/assignment")]
     public async Task<IActionResult> AssignTenantAndApp(int id, [FromBody] AssignTenantAppRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
         var (success, message, user) = await _userService.AssignTenantAndAppAsync(id, request.TenantId, request.ApplicationId);
         if (!success)
         {
@@ -114,6 +207,18 @@ public class UsersController : ControllerBase
     [HttpPost("host-identity")]
     public async Task<IActionResult> MapHostIdentity([FromBody] HostIdentityMappingRequest request)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            if (!callerTenantId.HasValue) return Forbid();
+            request.TenantId = callerTenantId.Value;
+
+            if (request.Roles != null && request.Roles.Any(r => r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new { success = false, message = "Tenant administrators cannot map SuperAdmin accounts." });
+            }
+        }
+
         var (success, message, user) = await _userService.MapHostIdentityAsync(request);
         if (!success)
         {
@@ -127,12 +232,37 @@ public class UsersController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
+        if (!User.IsInRole("SuperAdmin"))
+        {
+            var callerTenantId = GetCallerTenantId();
+            var existing = await _userService.GetUserByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(new { success = false, message = "User not found." });
+            }
+
+            if (existing.TenantId != callerTenantId)
+            {
+                return Forbid();
+            }
+        }
+
         var (success, message) = await _userService.DeleteUserAsync(id);
         if (!success)
         {
-            return NotFound(new { success = false, message });
+            return BadRequest(new { success = false, message });
         }
 
         return Ok(new { success = true, message });
+    }
+
+    private int? GetCallerTenantId()
+    {
+        var tenantClaim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+        if (int.TryParse(tenantClaim, out var tenantId) && tenantId > 0)
+        {
+            return tenantId;
+        }
+        return null;
     }
 }

@@ -23,6 +23,12 @@ public class PaymentOrderDto
     public string? Status { get; set; }
     public string Currency { get; set; } = "INR";
     public string? KeyId { get; set; } = "rzp_test_ibms_sandbox";
+    public string? UpiId { get; set; }
+    public string? BankName { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? IfscCode { get; set; }
+    public string? AccountHolderName { get; set; }
+    public string? Branch { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerEmail { get; set; }
     public string? CustomerPhone { get; set; }

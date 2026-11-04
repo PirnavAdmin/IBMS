@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { DateRangeFilter } from '../../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
@@ -42,6 +43,7 @@ const sortable = { number: 'CreditNoteNumber', total: 'TotalAmount', status: 'St
 export function CreditNoteList() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
+  useNavbarSearch(searchInput, setSearchInput, 'Search credit notes');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -131,9 +133,9 @@ export function CreditNoteList() {
         <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div></div>
         <div className="cn-filter-bar">
           <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason' }} />
-          <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
+          <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All Statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
           <FilterSelectField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
-          <DateRangeFilter inline startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
+          <DateRangeFilter placement="topRight" startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
         </div>
         {statusMenuOpen && <div className="cn-status-menu-space" aria-hidden="true" />}
@@ -152,7 +154,7 @@ export function CreditNoteList() {
           <Table stickyHeader aria-label="Credit note register">
             <TableHead><TableRow>
               {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
-              <TableCell align="right">Actions</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {query.isPending && <TableRow><TableCell colSpan={9}><div className="cn-table-state"><span className="cn-spinner" />Loading credit notes…</div></TableCell></TableRow>}
@@ -166,7 +168,7 @@ export function CreditNoteList() {
                 <TableCell><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
                 <TableCell><CreditNoteStatusBadge status={note.status} /></TableCell>
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
-                <TableCell align="right"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
+                <TableCell align="center"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
               </TableRow>)}
             </TableBody>
           </Table>

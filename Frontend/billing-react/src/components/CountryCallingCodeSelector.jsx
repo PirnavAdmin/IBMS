@@ -17,7 +17,7 @@ import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
  * Requirements:
  * 1. Closed state displays ONLY: [ 🇮🇳  +91  ▾ ] (no country name in closed state).
  * 2. Dropdown displays: [ Flag | Country Name | Calling Code ] across all 195 countries.
- * 3. Default selection is supplied by the Country configured in INVOICE.BILLING Settings.
+ * 3. Default selection is supplied by the Country configured in INVOICE BILLING MANAGEMENT SYSTEM Settings.
  * 4. Separate from phone number input; preserves existing form validation & entered number.
  * 5. Handles shared calling codes (e.g. US/Canada +1, Italy/Holy See +39).
  */
@@ -50,7 +50,7 @@ export function CountryCallingCodeSelector({
   const searchInputRef = useRef(null);
   const listRef = useRef(null);
 
-  // 1. Determine default country from INVOICE.BILLING Settings
+  // 1. Determine default country from INVOICE BILLING MANAGEMENT SYSTEM Settings
   const defaultCountry = useMemo(() => {
     if (defaultCountryCode) {
       const match = findCountryByCallingCode(defaultCountryCode);

@@ -68,6 +68,17 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         page.Size(PageSizes.A4);
         var layout = template.Layout;
 
+        if (layout.UsePirnavSidebarLayout)
+        {
+            page.MarginTop(0, Unit.Millimetre);
+            page.MarginBottom(0, Unit.Millimetre);
+            page.MarginLeft(0, Unit.Millimetre);
+            page.MarginRight(0, Unit.Millimetre);
+            page.PageColor(Colors.White);
+            page.DefaultTextStyle(x => x.FontFamily(template.Branding.FontFamily ?? "Segoe UI").FontSize(9.5f).FontColor(Colors.Grey.Darken3));
+            return;
+        }
+
         var top = layout.MarginTopMm > 0 ? layout.MarginTopMm : 12;
         var bottom = layout.MarginBottomMm > 0 ? layout.MarginBottomMm : 12;
         var left = layout.MarginLeftMm > 0 ? layout.MarginLeftMm : 14;
@@ -88,6 +99,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeHeader(IContainer header, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
+        if (template.Layout.UsePirnavSidebarLayout) return;
         var primaryColor = template.Layout.UsePirnavStandardLayout ? "#6B2E0C" : template.Branding.PrimaryColor ?? "#0f2942";
         var company = template.CompanyDetails;
         var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
@@ -230,6 +242,11 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
+        if (template.Layout.UsePirnavSidebarLayout)
+        {
+            ComposePirnavSidebarContent(content, snapshot, template);
+            return;
+        }
         if (template.Layout.UsePirnavStandardLayout)
         {
             ComposePirnavContent(content, snapshot, template);
@@ -573,6 +590,214 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         IContainer RowCell(IContainer container) => container.Background(softBackground).PaddingVertical(5).PaddingHorizontal(6);
     }
 
+    private static void ComposePirnavSidebarContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        const string primary = "#5A2D16";
+        const string accent = "#C98A5E";
+        const string rowBackground = "#F7EDE5";
+
+        content.Row(row =>
+        {
+            // Left sidebar: Colored container with company, recipient, and invoice details
+            row.ConstantItem(185).Background(primary).PaddingTop(22).PaddingHorizontal(14).PaddingBottom(20).Column(sidebar =>
+            {
+                // 1. Logo Card
+                sidebar.Item().Background(Colors.White).CornerRadius(8).PaddingVertical(6).PaddingHorizontal(10).AlignCenter().Width(128).Height(38).Element(imgContainer =>
+                {
+                    var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
+                    if (logoBytes != null)
+                    {
+                        imgContainer.Image(logoBytes).FitArea();
+                    }
+                });
+
+                // 2. FROM Section
+                sidebar.Item().PaddingTop(24).Text("FROM").FontSize(8f).Bold().FontColor("#D5C0B0");
+                sidebar.Item().PaddingTop(4).Text(string.IsNullOrWhiteSpace(template.CompanyDetails.CompanyName) ? "Pirnav Software Solutions Pvt. Ltd." : template.CompanyDetails.CompanyName)
+                    .FontSize(9.5f).Bold().FontColor(Colors.White);
+
+                var address = template.CompanyDetails.AddressLine1 ?? "Capital Park Road, Cyber Hills Colony,\nVIP Hills,";
+                sidebar.Item().PaddingTop(2).Text(address).FontSize(7.5f).FontColor("#F4ECE6");
+
+                var location = !string.IsNullOrWhiteSpace(template.CompanyDetails.City)
+                    ? $"{template.CompanyDetails.City},\n{template.CompanyDetails.State}, {template.CompanyDetails.PostalCode}"
+                    : "Madhapur, Hitech City, Hyderabad,\nTelangana, 500081";
+                sidebar.Item().Text(location).FontSize(7.5f).FontColor("#F4ECE6");
+
+                var email = template.CompanyDetails.Email ?? "pradeep@pirnav.com";
+                var phone = template.CompanyDetails.Phone ?? "+91 8121076485";
+                sidebar.Item().PaddingTop(3).Text($"Email: {email} | Phone:\n{phone}").FontSize(7.5f).FontColor("#F4ECE6");
+
+                var website = template.CompanyDetails.Website ?? "https://www.pirnav.com/";
+                sidebar.Item().PaddingTop(2).Text(website).FontSize(7.5f).FontColor("#F4ECE6");
+
+                // 3. BILL TO Section
+                sidebar.Item().PaddingTop(24).Text("BILL TO").FontSize(8f).Bold().FontColor("#D5C0B0");
+                sidebar.Item().PaddingTop(4).Text(snapshot.Customer.CustomerName).FontSize(9.5f).Bold().FontColor(Colors.White);
+                if (!string.IsNullOrWhiteSpace(snapshot.Customer.CustomerCode))
+                {
+                    sidebar.Item().Text($"Customer Code: {snapshot.Customer.CustomerCode}").FontSize(7.5f).FontColor("#F4ECE6");
+                }
+                if (!string.IsNullOrWhiteSpace(snapshot.Customer.BillingAddress))
+                {
+                    sidebar.Item().Text(snapshot.Customer.BillingAddress).FontSize(7.5f).FontColor("#F4ECE6");
+                }
+                if (!string.IsNullOrWhiteSpace(snapshot.Customer.Email))
+                {
+                    sidebar.Item().Text($"Email: {snapshot.Customer.Email}").FontSize(7.5f).FontColor("#F4ECE6");
+                }
+
+                // 4. INVOICE DETAILS Section
+                sidebar.Item().PaddingTop(24).Text("INVOICE DETAILS").FontSize(8f).Bold().FontColor("#D5C0B0");
+
+                sidebar.Item().PaddingTop(6).Text("Invoice Date").FontSize(7.5f).FontColor("#C5B0A0");
+                sidebar.Item().Text(snapshot.IssueDate.ToString("dd MMM yyyy")).FontSize(8.5f).Bold().FontColor(Colors.White);
+
+                sidebar.Item().PaddingTop(6).Text("Customer Code").FontSize(7.5f).FontColor("#C5B0A0");
+                sidebar.Item().Text(snapshot.Customer.CustomerCode ?? "-").FontSize(8.5f).Bold().FontColor(Colors.White);
+
+                sidebar.Item().PaddingTop(6).Text("Currency").FontSize(7.5f).FontColor("#C5B0A0");
+                sidebar.Item().Text(snapshot.Currency).FontSize(8.5f).Bold().FontColor(Colors.White);
+
+                sidebar.Item().PaddingTop(6).Text("Status").FontSize(7.5f).FontColor("#C5B0A0");
+                sidebar.Item().Text(snapshot.Status).FontSize(8.5f).Bold().FontColor(Colors.White);
+            });
+
+            // Right column: Main content
+            row.RelativeItem().PaddingTop(22).PaddingLeft(20).PaddingRight(20).Column(main =>
+            {
+                // Top Header Row
+                main.Item().Row(headerRow =>
+                {
+                    headerRow.RelativeItem().Column(titleCol =>
+                    {
+                        titleCol.Item().Text("INVOICE").FontSize(24).Bold().FontColor("#4A200E");
+                        titleCol.Item().PaddingTop(2).Text(snapshot.InvoiceNumber).FontSize(10.5f).FontColor("#70472F");
+                        titleCol.Item().PaddingTop(5).Width(65).Height(3).Background(accent).CornerRadius(1.5f);
+                    });
+
+                    headerRow.ConstantItem(90).AlignRight().AlignTop().Element(badgeContainer =>
+                    {
+                        badgeContainer.Border(1).BorderColor("#70472F").CornerRadius(12).PaddingVertical(3).PaddingHorizontal(14)
+                            .Text(snapshot.Status.ToUpperInvariant()).FontSize(8.5f).Bold().FontColor("#70472F");
+                    });
+                });
+
+                // Items Table
+                main.Item().PaddingTop(24).Table(table =>
+                {
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.ConstantColumn(38);
+                        cols.RelativeColumn(3);
+                        cols.ConstantColumn(65);
+                        cols.ConstantColumn(75);
+                        cols.ConstantColumn(80);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Element(HeaderStyle).Text("ITEM #");
+                        header.Cell().Element(HeaderStyle).Text("DESCRIPTION");
+                        header.Cell().Element(HeaderStyle).AlignCenter().Text("MONTHS");
+                        header.Cell().Element(HeaderStyle).AlignRight().Text("RATE");
+                        header.Cell().Element(HeaderStyle).AlignRight().Text("AMOUNT");
+                    });
+
+                    var idx = 1;
+                    foreach (var item in snapshot.Items)
+                    {
+                        table.Cell().Element(RowStyle).Text(idx.ToString()).FontSize(8.5f);
+                        table.Cell().Element(RowStyle).Column(dc =>
+                        {
+                            dc.Item().Text(item.ItemName).FontSize(8.5f).Bold().FontColor("#2F2523");
+                            if (!string.IsNullOrWhiteSpace(item.Description) && item.Description != item.ItemName)
+                            {
+                                dc.Item().Text(item.Description).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                            }
+                        });
+                        table.Cell().Element(RowStyle).AlignCenter().Text(item.Quantity.ToString("0.##")).FontSize(8.5f);
+                        table.Cell().Element(RowStyle).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol)).FontSize(8.5f);
+                        table.Cell().Element(RowStyle).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).FontSize(8.5f).Bold().FontColor("#2F2523");
+                        idx++;
+                    }
+
+                    static IContainer HeaderStyle(IContainer container) =>
+                        container.PaddingBottom(6).DefaultTextStyle(s => s.FontSize(8).Bold().FontColor("#5A2D16"));
+
+                    static IContainer RowStyle(IContainer container) =>
+                        container.Background(rowBackground).PaddingVertical(6).PaddingHorizontal(5);
+                });
+
+                // Financial Totals
+                main.Item().PaddingTop(16).AlignRight().Width(235).Column(totals =>
+                {
+                    totals.Item().BorderBottom(0.5f).BorderColor("#E0D2C7").PaddingVertical(3).Row(r =>
+                    {
+                        r.RelativeItem().Text("Subtotal").FontSize(9).FontColor("#555");
+                        r.ConstantItem(90).AlignRight().Text(FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol)).FontSize(9).FontColor("#333");
+                    });
+
+                    totals.Item().BorderBottom(0.5f).BorderColor("#E0D2C7").PaddingVertical(3).Row(r =>
+                    {
+                        r.RelativeItem().Text("Total Amount").FontSize(9.5f).Bold().FontColor("#333");
+                        r.ConstantItem(90).AlignRight().Text(FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol)).FontSize(9.5f).Bold().FontColor("#333");
+                    });
+
+                    totals.Item().BorderBottom(0.5f).BorderColor("#E0D2C7").PaddingVertical(3).Row(r =>
+                    {
+                        r.RelativeItem().Text("Amount Paid").FontSize(9).FontColor("#166534");
+                        r.ConstantItem(90).AlignRight().Text(FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol)).FontSize(9).FontColor("#166534");
+                    });
+
+                    totals.Item().PaddingTop(4).Background(primary).PaddingVertical(4).PaddingHorizontal(8).Row(r =>
+                    {
+                        r.RelativeItem().Text("Balance Due").FontSize(9.5f).Bold().FontColor(Colors.White);
+                        r.ConstantItem(95).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(9.5f).Bold().FontColor(Colors.White);
+                    });
+                });
+
+                // AMOUNT IN WORDS
+                main.Item().PaddingTop(18).Text("AMOUNT IN WORDS").FontSize(8.5f).Bold().FontColor("#4A200E");
+                main.Item().PaddingTop(2).Text(FormatAmountInWords(snapshot.GrandTotal, snapshot.Currency)).FontSize(8.5f).FontColor("#333");
+
+                // TERMS & CONDITIONS
+                if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(template.Terms.TermsAndConditions))
+                {
+                    main.Item().PaddingTop(16).Text("TERMS & CONDITIONS").FontSize(8.5f).Bold().FontColor("#4A200E");
+                    main.Item().PaddingTop(4).Text(template.Terms.TermsAndConditions).FontSize(8).FontColor(Colors.Grey.Darken2);
+                }
+
+                // Signoff
+                main.Item().PaddingTop(22).Column(signoff =>
+                {
+                    signoff.Item().Text("Thank you for choosing us!").FontSize(11).Bold().FontColor("#4A200E");
+                    signoff.Item().PaddingTop(2).Text("This is a system-generated invoice and does not require a physical signature.").FontSize(7.5f).Italic().FontColor(Colors.Grey.Darken1);
+                });
+            });
+        });
+    }
+
+    private static void ComposePirnavSidebarFooter(IContainer footer, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        var company = template.CompanyDetails;
+        var address = !string.IsNullOrWhiteSpace(company.City)
+            ? $"{company.City}, {company.State}, {company.PostalCode}"
+            : "Hyderabad, Telangana, 500081";
+        var companyName = string.IsNullOrWhiteSpace(company.CompanyName)
+            ? "Pirnav Software Solutions Pvt. Ltd."
+            : company.CompanyName;
+        var email = string.IsNullOrWhiteSpace(company.Email) ? "pradeep@pirnav.com" : company.Email;
+        var phone = string.IsNullOrWhiteSpace(company.Phone) ? "+91 8121076485" : company.Phone;
+
+        footer.PaddingBottom(8, Unit.Millimetre).Column(col =>
+        {
+            col.Item().LineHorizontal(0.5f).LineColor("#D8B9A8");
+            col.Item().PaddingTop(4).AlignCenter().Text($"{companyName} | {address}").FontSize(8).FontColor(Colors.Grey.Darken1);
+            col.Item().AlignCenter().Text($"{email} | {phone}").FontSize(8).FontColor(Colors.Grey.Darken1);
+        });
+    }
+
     private static string FormatAmountInWords(decimal amount, string currency)
     {
         var roundedAmount = Math.Max(0, decimal.ToInt64(decimal.Truncate(amount)));
@@ -655,6 +880,11 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static void ComposeFooter(IContainer footer, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
     {
+        if (template.Layout.UsePirnavSidebarLayout)
+        {
+            ComposePirnavSidebarFooter(footer, snapshot, template);
+            return;
+        }
         if (template.Layout.UsePirnavStandardLayout)
         {
             var footerNote = string.IsNullOrWhiteSpace(template.Terms.FooterNote)
