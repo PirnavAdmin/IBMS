@@ -64,6 +64,7 @@ public class LayoutConfigDto
     /// template name or invoice-specific data.
     /// </summary>
     public bool UsePirnavStandardLayout { get; set; }
+    public string? TemplateDesign { get; set; }
     public bool ShowLogo { get; set; } = true;
     public bool ShowHeader { get; set; } = true;
     public bool ShowFooter { get; set; } = true;
@@ -207,6 +208,8 @@ public class CreateTemplateRequest
     };
 
     // Direct section toggles from Screen 2
+    public string? TemplateDesign { get => Layout.TemplateDesign; set => Layout.TemplateDesign = value; }
+    public string? TemplateName { get => Name; set => Name = value; }
     public Dictionary<string, bool>? Sections { get => Layout.Sections; set { if (value != null) Layout.Sections = value; } }
 }
 
@@ -234,6 +237,8 @@ public class UpdateTemplateRequest
 
     public TermsConfigDto Terms { get; set; } = new();
 
+    public string? TemplateDesign { get => Layout.TemplateDesign; set => Layout.TemplateDesign = value; }
+    public string? TemplateName { get => Name; set => Name = value; }
     public Dictionary<string, bool>? Sections { get => Layout.Sections; set { if (value != null) Layout.Sections = value; } }
 }
 
@@ -283,6 +288,8 @@ public class TemplatePreviewRequest
     public string? LogoName { get => Branding.LogoName; set => Branding.LogoName = value; }
     public string? LogoPosition { get => Branding.LogoPosition; set => Branding.LogoPosition = value ?? "left"; }
     public int? LogoWidth { get => Branding.LogoWidth; set => Branding.LogoWidth = value ?? 96; }
+    public string? TemplateDesign { get => Layout.TemplateDesign; set => Layout.TemplateDesign = value; }
+    public string? TemplateName { get => Name; set => Name = value; }
     public Dictionary<string, bool>? Sections { get => Layout.Sections; set { if (value != null) Layout.Sections = value; } }
 }
 
@@ -314,7 +321,7 @@ public class LogoUploadResponse
 }
 
 /// <summary>
-/// Audit trail activity record for Screen 6 (Audit & Traceability).
+/// Audit trail activity record for Screen 6 (Audit &amp; Traceability).
 /// </summary>
 public class TemplateAuditLogDto
 {
@@ -339,6 +346,27 @@ public class InvoiceSnapshotDto
     public string Status { get; set; } = "Issued";
     public string Currency { get; set; } = "INR";
     public string CurrencySymbol { get; set; } = "₹";
+    public string DocumentType { get; set; } = "Invoice";
+    public string DocumentTitle => string.IsNullOrWhiteSpace(DocumentType) ? "INVOICE" : DocumentType.ToUpperInvariant();
+    public string DocumentNumberLabel => DocumentType switch
+    {
+        "Quotation" => "Quotation #",
+        "Credit Note" or "CreditNote" => "Credit Note #",
+        "Payment Receipt" or "Receipt" => "Receipt #",
+        _ => "Invoice #"
+    };
+    public string DateLabel => DocumentType switch
+    {
+        "Quotation" => "Quotation Date",
+        "Payment Receipt" or "Receipt" => "Receipt Date",
+        _ => "Invoice Date"
+    };
+    public string DueDateLabel => DocumentType switch
+    {
+        "Quotation" => "Valid Until",
+        "Payment Receipt" or "Receipt" => "Payment Date",
+        _ => "Due Date"
+    };
 
     public CustomerSnapshotDto Customer { get; set; } = new();
     public List<InvoiceItemSnapshotDto> Items { get; set; } = new();

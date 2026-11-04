@@ -296,8 +296,9 @@ export const invoiceService = {
   async issue(id) {
     return requireInvoice(await invoiceApi.issueInvoice(id));
   },
-  async send(id) {
-    const sent = await invoiceApi.sendInvoice(id);
+  async send(id, payload = null) {
+    const res = await apiClient.post(`/api/v1/invoices/${encodeURIComponent(id)}/send`, payload);
+    const sent = res?.data ?? res;
     if (sent !== true) throw new Error("The invoice email was not sent.");
     return sent;
   },

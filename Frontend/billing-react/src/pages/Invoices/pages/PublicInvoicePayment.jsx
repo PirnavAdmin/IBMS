@@ -31,6 +31,7 @@ export function PublicInvoicePayment() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const tenantId = searchParams.get('tenantId') || '2';
+  const allowPartialParam = searchParams.get('allowPartial');
 
   const [loading, setLoading] = useState(true);
   const [qrLoading, setQrLoading] = useState(false);
@@ -46,6 +47,8 @@ export function PublicInvoicePayment() {
 
   const initialPaidRef = useRef(null);
   const initialBalanceRef = useRef(null);
+
+  const isPartialAllowed = (order?.allowPartialPayments ?? (allowPartialParam === '0' ? false : true)) !== false;
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5271';
 
@@ -255,14 +258,16 @@ export function PublicInvoicePayment() {
         orderId: order.orderId,
         paymentId: finalRef,
         amount: effectiveAmount,
-        gateway: 'UPI_Direct'
+        gateway: tab === 2 ? 'BankTransfer' : 'UPI_Direct'
       });
 
       if (res?.data?.success !== false) {
-        const remaining = Math.max(0, order.balanceAmount - effectiveAmount);
+        const backendData = res?.data?.data;
+        const paid = backendData?.amount ?? effectiveAmount;
+        const remaining = backendData?.balanceAmount ?? Math.max(0, order.balanceAmount - paid);
         setPaymentSuccess({
-          isFull: remaining === 0,
-          paidAmount: effectiveAmount,
+          isFull: remaining <= 0,
+          paidAmount: paid,
           remainingBalance: remaining,
           reference: finalRef,
           invoiceNumber: order.invoiceNumber,
@@ -501,10 +506,12 @@ export function PublicInvoicePayment() {
               {/* Editable Payment Amount Section */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#35271F', mb: 0.5 }}>
-                  Enter Amount to Pay (INR)
+                  {isPartialAllowed ? 'Enter Amount to Pay (INR)' : 'Amount to Pay (INR)'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block', mb: 1.5 }}>
-                  You can pay the full amount or any partial amount up to ₹{order.balanceAmount?.toLocaleString('en-IN')}.
+                  {isPartialAllowed
+                    ? `You can pay the full amount or any partial amount up to ₹${order.balanceAmount?.toLocaleString('en-IN')}.`
+                    : `Full payment of ₹${order.balanceAmount?.toLocaleString('en-IN')} is required for this invoice.`}
                 </Typography>
 
                 <TextField
@@ -512,11 +519,18 @@ export function PublicInvoicePayment() {
                   size="small"
                   type="number"
                   label="Amount to Pay (INR)"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
+                  value={isPartialAllowed ? payAmount : (order.balanceAmount || order.amount)}
+                  onChange={(e) => {
+                    if (isPartialAllowed) setPayAmount(e.target.value);
+                  }}
+                  disabled={!isPartialAllowed}
+                  InputProps={{
+                    readOnly: !isPartialAllowed,
+                  }}
+                  helperText={!isPartialAllowed ? "Full payment required. Partial payment is disabled for this invoice." : undefined}
                   inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
                   sx={{
-                    bgcolor: '#FFFFFF',
+                    bgcolor: isPartialAllowed ? '#FFFFFF' : '#FAF4EC',
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
                       '& fieldset': { borderColor: '#DECFBB' },
@@ -527,42 +541,44 @@ export function PublicInvoicePayment() {
                   }}
                 />
 
-                {isCapped && (
+                {isCapped && isPartialAllowed && (
                   <Alert severity="info" sx={{ mt: 1, py: 0.5, borderRadius: 2, bgcolor: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D' }}>
                     Amount exceeds outstanding balance. QR is locked to full payment of <strong>₹{order.balanceAmount?.toFixed(2)}</strong>.
                   </Alert>
                 )}
 
-                <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-                  <Chip
-                    size="small"
-                    label={`Pay Full (₹${order.balanceAmount})`}
-                    onClick={() => setPayAmount(order.balanceAmount.toString())}
-                    clickable
-                    sx={{
-                      fontWeight: 700,
-                      ...(Number(payAmount) === order.balanceAmount
-                        ? { bgcolor: '#65442E', color: '#FFF8EF', '&:hover': { bgcolor: '#513420' } }
-                        : { bgcolor: '#FAF4EC', color: '#65442E', border: '1px solid #DDCBB5', '&:hover': { bgcolor: '#F3E8DB' } }
-                      )
-                    }}
-                  />
-                  {order.balanceAmount > 100 && (
+                {isPartialAllowed && (
+                  <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                     <Chip
                       size="small"
-                      label={`Pay 50% (₹${Math.round(order.balanceAmount / 2)})`}
-                      onClick={() => setPayAmount(Math.round(order.balanceAmount / 2).toString())}
+                      label={`Pay Full (₹${order.balanceAmount})`}
+                      onClick={() => setPayAmount(order.balanceAmount.toString())}
                       clickable
                       sx={{
                         fontWeight: 700,
-                        ...(Number(payAmount) === Math.round(order.balanceAmount / 2)
+                        ...(Number(payAmount) === order.balanceAmount
                           ? { bgcolor: '#65442E', color: '#FFF8EF', '&:hover': { bgcolor: '#513420' } }
                           : { bgcolor: '#FAF4EC', color: '#65442E', border: '1px solid #DDCBB5', '&:hover': { bgcolor: '#F3E8DB' } }
                         )
                       }}
                     />
-                  )}
-                </Stack>
+                    {order.balanceAmount > 100 && (
+                      <Chip
+                        size="small"
+                        label={`Pay 50% (₹${Math.round(order.balanceAmount / 2)})`}
+                        onClick={() => setPayAmount(Math.round(order.balanceAmount / 2).toString())}
+                        clickable
+                        sx={{
+                          fontWeight: 700,
+                          ...(Number(payAmount) === Math.round(order.balanceAmount / 2)
+                            ? { bgcolor: '#65442E', color: '#FFF8EF', '&:hover': { bgcolor: '#513420' } }
+                            : { bgcolor: '#FAF4EC', color: '#65442E', border: '1px solid #DDCBB5', '&:hover': { bgcolor: '#F3E8DB' } }
+                          )
+                        }}
+                      />
+                    )}
+                  </Stack>
+                )}
               </Box>
 
               {/* Payment Methods Tabs */}
@@ -634,58 +650,22 @@ export function PublicInvoicePayment() {
                     {order.upiId && <span> • UPI ID: <strong style={{ color: '#35271F' }}>{order.upiId}</strong></span>}
                   </Typography>
 
-                  {/* Payment Confirmation Card for PhonePe / UPI */}
+                  {/* Real-time Payment Auto-Detection Notice */}
                   <Box sx={{
                     mt: 3,
-                    p: 2.5,
-                    bgcolor: '#FAF4EC',
-                    border: '1px solid #E8DCCE',
+                    p: 2,
+                    bgcolor: '#F3FAF4',
+                    border: '1px solid #86EFAC',
                     borderRadius: 3,
-                    textAlign: 'left'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1.5
                   }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#35271F', mb: 0.5 }}>
-                      Paid through PhonePe / UPI?
+                    <CircularProgress size={18} sx={{ color: '#16A34A' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 650, color: '#166534' }}>
+                      Waiting for UPI payment confirmation... (Auto-detecting)
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block', mb: 1.5 }}>
-                      Enter the 12-digit UTR from your PhonePe receipt (or click the button below) to instantly confirm and update your invoice:
-                    </Typography>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                      <TextField
-                        size="small"
-                        fullWidth
-                        placeholder="Enter PhonePe UTR (e.g. 430219876543)"
-                        value={utrNumber}
-                        onChange={(e) => setUtrNumber(e.target.value)}
-                        sx={{
-                          bgcolor: '#FFFFFF',
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            '& fieldset': { borderColor: '#DECFBB' },
-                            '&:hover fieldset': { borderColor: '#A2693E' },
-                            '&.Mui-focused fieldset': { borderColor: '#65442E' }
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="contained"
-                        disabled={processing}
-                        onClick={() => handleUtrSubmit()}
-                        sx={{
-                          minWidth: 160,
-                          py: 1,
-                          bgcolor: '#65442E',
-                          color: '#FFF8EF',
-                          fontWeight: 750,
-                          textTransform: 'none',
-                          borderRadius: 2,
-                          boxShadow: '0 4px 12px rgba(101, 68, 46, 0.2)',
-                          '&:hover': { bgcolor: '#513420' }
-                        }}
-                      >
-                        {processing ? 'Confirming...' : `I Have Paid ₹${Number(currentPayable).toFixed(2)}`}
-                      </Button>
-                    </Stack>
                   </Box>
                 </Box>
               )}
@@ -840,7 +820,7 @@ export function PublicInvoicePayment() {
                         size="large"
                         fullWidth
                         disabled={processing || !utrNumber.trim()}
-                        onClick={handleUtrSubmit}
+                        onClick={() => handleUtrSubmit(utrNumber)}
                         sx={{
                           py: 1.4,
                           fontWeight: 750,
@@ -851,7 +831,7 @@ export function PublicInvoicePayment() {
                           '&:hover': { bgcolor: '#15803D' }
                         }}
                       >
-                        {processing ? 'Confirming Transfer...' : `Confirm Payment of ₹${Number(currentPayable).toFixed(2)}`}
+                        {processing ? 'Verifying Transfer...' : `Completed Payment (₹${Number(currentPayable).toFixed(2)})`}
                       </Button>
                     </Stack>
                   </Box>

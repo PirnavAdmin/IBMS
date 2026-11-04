@@ -40,6 +40,8 @@ public class Invoice
 
     public decimal BalanceAmount { get; set; }
 
+    public bool AllowPartialPayments { get; set; } = true;
+
     public string? Notes { get; set; }
 
     public string? TermsAndConditions { get; set; }

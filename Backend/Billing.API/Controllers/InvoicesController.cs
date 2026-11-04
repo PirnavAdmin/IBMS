@@ -1,4 +1,4 @@
-﻿using Billing.Application.Interfaces;
+using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -176,12 +176,12 @@ public class InvoicesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
 
-    public async Task<IActionResult> SendInvoice(int id)
+    public async Task<IActionResult> SendInvoice(int id, [FromBody] Billing.Contracts.SendInvoiceRequest? request = null)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.DeliverInvoiceAsync(id, tenantId.Value, User.Identity?.Name);
+        var result = await _invoiceService.DeliverInvoiceAsync(id, tenantId.Value, User.Identity?.Name, request?.AllowPartialPayments);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

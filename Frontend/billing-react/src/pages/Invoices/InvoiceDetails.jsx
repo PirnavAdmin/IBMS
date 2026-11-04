@@ -10,6 +10,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import IconButton from '@mui/material/IconButton';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import RadioGroup from '@mui/material/RadioGroup';
+import Radio from '@mui/material/Radio';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
@@ -57,6 +62,7 @@ export function InvoiceDetails() {
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState("");
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [paymentPolicy, setPaymentPolicy] = useState("full");
   const [sendSuccessOpen, setSendSuccessOpen] = useState(false);
   const [invoiceEmailSent, setInvoiceEmailSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -1237,7 +1243,7 @@ export function InvoiceDetails() {
       <Dialog
         open={sendDialogOpen}
         onClose={sending ? undefined : () => setSendDialogOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Send Invoice</DialogTitle>
@@ -1246,9 +1252,57 @@ export function InvoiceDetails() {
             Send <strong>{row ? identifier(row) : "this invoice"}</strong> to{" "}
             <strong> {customerData?.email || "the customer"}</strong>?
           </p>
-          <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-            The generated invoice PDF will be attached to the email.
+          <p style={{ margin: "0 0 14px", color: "var(--text-secondary)", fontSize: "14px" }}>
+            The generated invoice PDF and online payment link will be sent to the customer.
           </p>
+
+          <Box sx={{
+            p: 2,
+            borderRadius: 2,
+            bgcolor: "#FAF4EC",
+            border: "1px solid #E8DCCE",
+            mt: 1.5,
+            mb: 1
+          }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "#35271F" }}>
+              Payment Policy for Customer:
+            </Typography>
+            <RadioGroup
+              value={paymentPolicy}
+              onChange={(e) => setPaymentPolicy(e.target.value)}
+            >
+              <FormControlLabel
+                value="full"
+                control={<Radio size="small" sx={{ color: '#65442E', '&.Mui-checked': { color: '#65442E' } }} />}
+                label={
+                  <Box sx={{ py: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 650, color: '#35271F' }}>
+                      Full payment should pay
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block' }}>
+                      Customer must pay the entire balance amount in one go. Partial payments are locked.
+                    </Typography>
+                  </Box>
+                }
+                sx={{ mb: 1, alignItems: 'flex-start' }}
+              />
+              <FormControlLabel
+                value="partial"
+                control={<Radio size="small" sx={{ color: '#65442E', '&.Mui-checked': { color: '#65442E' } }} />}
+                label={
+                  <Box sx={{ py: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 650, color: '#35271F' }}>
+                      Partial payment is accepted
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block' }}>
+                      Customer can enter any custom partial amount up to total balance, or pay in full.
+                    </Typography>
+                  </Box>
+                }
+                sx={{ alignItems: 'flex-start' }}
+              />
+            </RadioGroup>
+          </Box>
           {sendError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {sendError}
@@ -1268,7 +1322,9 @@ export function InvoiceDetails() {
               setSending(true);
               setSendError("");
               try {
-                await invoiceService.send(row.id);
+                await invoiceService.send(row.id, {
+                  allowPartialPayments: paymentPolicy === 'partial'
+                });
                 setInvoiceEmailSent(true);
                 setSendDialogOpen(false);
                 setSendSuccessOpen(true);
@@ -1290,7 +1346,7 @@ export function InvoiceDetails() {
       <Dialog
         open={issueDialogOpen}
         onClose={issuing ? undefined : () => setIssueDialogOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Issue Invoice</DialogTitle>
@@ -1358,3 +1414,4 @@ export function InvoiceDetails() {
     </InvoiceShell>
   );
 }
+

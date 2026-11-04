@@ -81,7 +81,9 @@ const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const cardPaymentInstructions = storedDetails.find((line) => line.startsWith('Card payment instructions: '))?.replace('Card payment instructions: ', '') || '';
   const paymentMethod = storedMethod || (payment.upiId && !payment.bankName && !payment.accountNumber ? 'UPI' : payment.bankName || payment.accountNumber ? 'Bank Transfer' : '');
   const paymentDetails = storedDetails.filter((line) => !line.startsWith('Payment method: ') && !line.startsWith('Branch: ') && !line.startsWith('Payment provider: ') && !line.startsWith('Secure payment link: ') && !line.startsWith('Card payment instructions: ')).join('\n');
-  return { ...emptyConfig, name: template.name || template.Name || '', description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || company.contact || company.Contact || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
+  const templateName = template.name || template.Name || '';
+  const detectedDesign = layout.templateDesign || layout.TemplateDesign || (templateName.includes('Template 4') ? 'Corner' : 'Standard');
+  return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || company.contact || company.Contact || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
 };
 const paymentDetailsText = (config) => [
   config.bankName && `Bank: ${config.bankName}`,
@@ -94,7 +96,7 @@ const paymentDetailsText = (config) => [
   config.cardPaymentInstructions && `Card instructions: ${config.cardPaymentInstructions}`,
   config.paymentDetails
 ].filter(Boolean).join('\n');
-const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
+const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
 
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
@@ -274,7 +276,7 @@ export function InvoiceTemplates() {
 }
 
 const DEFAULT_SECTIONS = { invoiceNumber: true, invoiceDate: true, dueDate: true, customer: true, items: true, quantity: true, unitPrice: true, discount: true, tax: true, lineTotals: true, totals: true };
-const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, sections: DEFAULT_SECTIONS };
+const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
 
 const validateContactField = (key, value) => {
   const text = value.trim();
@@ -611,9 +613,11 @@ export function BrandingSettings() {
 
 function SampleInvoicePreview({ style, config = {}, invoice = null, long = false }) {
   config = { ...config, contact: [config.email, config.phone, config.website].filter(Boolean).join(' · ') || config.contact, bankDetails: paymentDetailsText(config) || config.bankDetails };
-  const isPirnavStandardLayout = Boolean(config.usePirnavStandardLayout);
-  const primary = isPirnavStandardLayout ? '#6B2E0C' : config.primary || '#70472f';
-  const secondary = isPirnavStandardLayout ? '#F7EDE5' : config.secondary || '#e9dfd5';
+  const tName = config.name || '';
+  const isCorner = config.templateDesign === 'Corner' || tName.includes('Template 4') || /corner/i.test(tName);
+  const isPirnavStandardLayout = Boolean(config.usePirnavStandardLayout) || /pirnav/i.test(config.name || '') || isCorner;
+  const primary = isPirnavStandardLayout ? '#6B2D0C' : config.primary || '#70472f';
+  const secondary = isPirnavStandardLayout ? '#F6EBE3' : config.secondary || '#e9dfd5';
   const sections = { ...DEFAULT_SECTIONS, ...config.sections };
   const isRealInvoice = Boolean(invoice);
   const currency = invoice?.currency || 'INR';
@@ -643,10 +647,79 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
   const locationStart = companyAddress.search(/Hyderabad\b/i);
   const footerLocation = locationStart >= 0 ? companyAddress.slice(locationStart).trim() : companyAddress;
   const footerContact = [config.company, footerLocation, config.email, config.phone].filter(Boolean).join(' | ');
+
+  const renderTableRows = () => (
+    isRealInvoice && !items.length ? <tr><td colSpan={columns.length} className="sample-empty-row">This invoice has no line items.</td></tr> : sampleRows.map((item, index) => <Fragment key={isRealInvoice ? item.id || index : 'sample-fragment-' + item}>{!isRealInvoice && long && item === 7 && <tr className="sample-page-marker"><td colSpan={columns.length}>Page 1 boundary · Page 2 continues below; the column heading repeats</td></tr>}<tr>{isPirnavStandardLayout && <td>{index + 1}</td>}<td>{isRealInvoice ? item.description || 'Invoice item' : item === 0 ? 'Representative service item with a longer description' : 'Sample invoice line item ' + (item + 1) + ' with description wrapping'}</td>{sections.quantity && <td>{isRealInvoice ? item.quantity : item + 1}</td>}{sections.unitPrice && <td>{isRealInvoice ? previewMoney(item.unitPrice, currency) : '₹500.00'}</td>}{sections.discount && <td>{isRealInvoice ? previewMoney(item.discountAmount, currency) : 'Sample'}</td>}{sections.tax && <td>{isRealInvoice ? previewMoney(item.taxAmount, currency) : 'Sample'}</td>}{sections.lineTotals && <td>{isRealInvoice ? previewMoney(item.totalAmount, currency) : '₹500.00'}</td>}</tr></Fragment>)
+  );
+
+  if (isCorner) {
+    return (
+      <article className="invoice-sample pirnav-corner-layout" style={{ '--template-primary': primary, '--template-secondary': secondary }} aria-label="Corner invoice preview">
+        <div className="corner-top-row">
+          <div className="corner-badge" style={{ backgroundColor: primary, borderBottom: '3px solid #D9A57F', borderRight: '3px solid #D9A57F' }}>
+            <h2 style={{ color: '#fff' }}>INVOICE</h2>
+            <p style={{ color: '#F6EBE3' }}>Invoice #: {invoice?.invoiceNumber || 'INV-SAMPLE-001'}</p>
+            <p style={{ color: '#F6EBE3' }}>Date: {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</p>
+          </div>
+          <div className="corner-company-info">
+            {config.logoUrl && <img src={config.logoUrl} alt="Logo" style={{ width: config.logoWidth || 100 }} />}
+            <strong style={{ color: primary }}>{config.company || 'Sample Company Ltd.'}</strong>
+            <p>{previewCompanyAddress}</p>
+            <p>{config.email} · {config.phone}</p>
+          </div>
+        </div>
+        <div className="corner-mid-row">
+          <div className="corner-bill-to" style={{ backgroundColor: secondary }}>
+            <span className="corner-label" style={{ color: primary }}>BILL TO:</span>
+            <strong>{customer.name || 'Sample Customer Ltd.'}</strong>
+            <p>{customerAddress(customer) || '100 Market Street, Sample City'}</p>
+            <p>{customer.email || 'accounts@example.test'}</p>
+          </div>
+          <div className="corner-balance-card" style={{ backgroundColor: primary, color: '#fff' }}>
+            <span style={{ color: '#D9A57F' }}>BALANCE DUE</span>
+            <b style={{ fontSize: '1.4rem' }}>{isRealInvoice ? previewMoney(invoice.balanceAmount || invoice.totalAmount, currency) : '₹1,475.00'}</b>
+            <small style={{ color: '#F6EBE3' }}>Due: {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</small>
+          </div>
+        </div>
+        <div className="corner-strip" style={{ border: '1px dashed #D9A57F' }}>
+          <div><span>Invoice #:</span> <b>{invoice?.invoiceNumber || 'INV-SAMPLE-001'}</b></div>
+          <div><span>Date:</span> <b>{isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</b></div>
+          <div><span>Due:</span> <b>{isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</b></div>
+          <div><span>Currency:</span> <b>{currency}</b></div>
+          <div><span>Status:</span> <b style={{ color: primary }}>{invoice?.status || 'Issued'}</b></div>
+        </div>
+        <table className="sample-lines corner-table">
+          <thead><tr style={{ backgroundColor: primary, color: '#fff' }}>{columns.map(c => <th key={c.key} style={{ color: '#fff' }}>{c.title}</th>)}</tr></thead>
+          <tbody>{renderTableRows()}</tbody>
+        </table>
+        <div className="sample-bottom">
+          <div className="corner-words-terms-card" style={{ backgroundColor: secondary }}>
+            <b style={{ color: primary }}>Amount in Words</b>
+            <p>{isRealInvoice ? `Rupees ${invoice.totalAmount} Only` : 'Rupees One Thousand Four Hundred Seventy Five Only'}</p>
+            <b style={{ color: primary }}>Terms &amp; Conditions</b>
+            <p className="sample-copy">{config.terms || 'Payment terms apply.'}</p>
+          </div>
+          <div className="sample-totals">
+            <span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>
+            <span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span>
+            <span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span>
+            <span className="sample-paid" style={{ color: '#2E8B3D' }}>Amount Paid <b>{isRealInvoice ? previewMoney(invoice.paidAmount || 0, currency) : '₹0.00'}</b></span>
+            <div className="sample-balance-due-bar" style={{ backgroundColor: primary, color: '#fff' }}>
+              <span>Balance Due</span>
+              <b>{isRealInvoice ? previewMoney(invoice.balanceAmount || invoice.totalAmount, currency) : '₹1,475.00'}</b>
+            </div>
+          </div>
+        </div>
+        <div className="corner-footer-bar" style={{ height: 6, backgroundColor: primary }} />
+      </article>
+    );
+  }
+
+  // Standard Invoice Layout
   return <article className={'invoice-sample style-' + style.toLowerCase() + (isPirnavStandardLayout ? ' pirnav-standard-layout' : '')} style={{ '--template-primary': primary, '--template-secondary': secondary }} aria-label={style + (isRealInvoice ? ' invoice layout' : ' sample invoice layout')}>
     <div className="sample-brand"><div className={'sample-identity' + (isPirnavStandardLayout ? '' : ' position-' + (config.logoPosition || 'left'))}>{!isPirnavStandardLayout && config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo sample" style={{ width: config.logoWidth || 96 }} />}<div><strong>{config.company || 'Sample Company Ltd.'}</strong>{config.header && <span>{config.header}</span>}<span className="sample-company-address">{previewCompanyAddress}</span><span>{previewContact || 'billing@example.test · +00 000 000 0000'}</span>{isPirnavStandardLayout && config.website && <span>{config.website}</span>}</div></div>{isPirnavStandardLayout ? <div className="sample-logo-right">{config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo" />}</div> : <div className="sample-title"><span>INVOICE</span>{sections.invoiceNumber && <b>{invoice?.invoiceNumber || 'INV-SAMPLE-001'}</b>}</div>}</div>
     <div className="sample-meta">{sections.customer && <div><small>{isPirnavStandardLayout ? 'Bill To:' : 'BILL TO'}</small><strong>{customer.name || 'Sample Customer Ltd.'}</strong><span>{customer.email || 'accounts@example.test'}</span><span>{customerAddress(customer) || '100 Market Street, Sample City'}</span></div>}<div>{sections.invoiceDate && <span><b>Invoice date</b> {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</span>}{sections.dueDate && <span><b>Due date</b> {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</span>}</div></div>
-    {sections.items && <table className="sample-lines"><thead><tr>{columns.map((column) => <th key={column.key}>{column.title}</th>)}</tr></thead><tbody>{isRealInvoice && !items.length ? <tr><td colSpan={columns.length} className="sample-empty-row">This invoice has no line items.</td></tr> : sampleRows.map((item, index) => <Fragment key={isRealInvoice ? item.id || index : 'sample-fragment-' + item}>{!isRealInvoice && long && item === 7 && <tr className="sample-page-marker"><td colSpan={columns.length}>Page 1 boundary · Page 2 continues below; the column heading repeats</td></tr>}<tr>{isPirnavStandardLayout && <td>{index + 1}</td>}<td>{isRealInvoice ? item.description || 'Invoice item' : item === 0 ? 'Representative service item with a longer description' : 'Sample invoice line item ' + (item + 1) + ' with description wrapping'}</td>{sections.quantity && <td>{isRealInvoice ? item.quantity : item + 1}</td>}{sections.unitPrice && <td>{isRealInvoice ? previewMoney(item.unitPrice, currency) : '₹500.00'}</td>}{sections.discount && <td>{isRealInvoice ? previewMoney(item.discountAmount, currency) : 'Sample'}</td>}{sections.tax && <td>{isRealInvoice ? previewMoney(item.taxAmount, currency) : 'Sample'}</td>}{sections.lineTotals && <td>{isRealInvoice ? previewMoney(item.totalAmount, currency) : '₹500.00'}</td>}</tr></Fragment>)}</tbody></table>}
+    {sections.items && <table className="sample-lines"><thead><tr>{columns.map((column) => <th key={column.key}>{column.title}</th>)}</tr></thead><tbody>{renderTableRows()}</tbody></table>}
     <div className="sample-bottom"><div>{config.bankDetails && <><b>Payment details</b><p>{config.bankDetails}</p></>}<b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div>{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}</div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
   </article>;
 }
