@@ -1,4 +1,5 @@
 using Billing.Application.Interfaces;
+using Billing.Contracts.Platform;
 using Billing.Domain.Entities;
 
 namespace Billing.Tests.Unit.Fakes;
@@ -53,5 +54,19 @@ public class FakeAuditLogRepository : IAuditLogRepository
             Actions = actions,
             UserNames = userNames
         });
+    }
+
+    public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        var query = _logs.AsEnumerable();
+        if (filter.TenantId.HasValue)
+        {
+            query = query.Where(l => l.TenantId == filter.TenantId.Value);
+        }
+        var list = query.ToList();
+        var page = filter.PageNumber <= 0 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+        var items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Task.FromResult((items, list.Count));
     }
 }

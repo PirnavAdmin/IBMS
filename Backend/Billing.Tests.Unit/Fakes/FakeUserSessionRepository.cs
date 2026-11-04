@@ -84,6 +84,20 @@ public class FakeUserSessionRepository : IUserSessionRepository
         return Task.CompletedTask;
     }
 
+    public Task RevokeAllSessionsForTenantAsync(int tenantId, string reason)
+    {
+        var active = Sessions.Where(s => (s.User == null || s.User.TenantId == tenantId) && !s.IsRevoked).ToList();
+        var now = DateTime.UtcNow;
+        foreach (var s in active)
+        {
+            s.IsRevoked = true;
+            s.RevokedAtUtc = now;
+            s.LogoutAtUtc ??= now;
+            s.RevocationReason = reason;
+        }
+        return Task.CompletedTask;
+    }
+
     public Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null)
     {
         var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
