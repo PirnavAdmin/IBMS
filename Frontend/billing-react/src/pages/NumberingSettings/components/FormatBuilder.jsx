@@ -1,5 +1,6 @@
 import React from 'react';
-import { DeleteOutline, Add } from '@mui/icons-material';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import Add from '@mui/icons-material/Add';
 import { SUPPORTED_TOKENS } from '../validation/numberingValidation';
 
 const TOKEN_LABELS = {

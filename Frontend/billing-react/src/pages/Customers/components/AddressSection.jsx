@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { lookupIndiaPincode } from '../../../services/postalService';
-import { CheckCircleOutline, SyncOutlined } from '@mui/icons-material';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import SyncOutlined from '@mui/icons-material/SyncOutlined';
 import { CustomerSelectField } from './CustomerSelectField';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
 import { CountryFlag } from '../../../components/CountryFlag';

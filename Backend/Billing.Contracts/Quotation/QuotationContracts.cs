@@ -169,3 +169,17 @@ public class QuotationListFilterRequest
     public string? SortBy { get; set; } = "QuotationDate";
     public string? SortOrder { get; set; } = "desc";
 }
+
+public class QuotationPublicDecisionResult
+{
+    public bool IsAlreadyRecorded { get; set; }
+    public string? ExistingDecision { get; set; }
+    public DateTime? RespondedAtUtc { get; set; }
+    public string Decision { get; set; } = string.Empty; // "Approved" or "Declined"
+    public string QuoteNumber { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public string Currency { get; set; } = "INR";
+    public string CustomerName { get; set; } = string.Empty;
+    public string CompanyName { get; set; } = string.Empty;
+    public string? Message { get; set; }
+}

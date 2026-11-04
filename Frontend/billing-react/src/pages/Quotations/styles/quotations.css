@@ -8,7 +8,19 @@
 .quote-list-card:has(.quote-running-button[aria-pressed="false"]) > .quote-pagination { display: none; }
 .quote-overview { margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--border); }
 .quote-overview > h3 { margin: 0 0 10px; font-size: .9rem; }
-.quote-overview-table { min-width: 600px; }
+.quote-overview-table { min-width: 600px; table-layout: fixed; }
+.quote-overview-table col:nth-child(1) { width: 22%; }
+.quote-overview-table col:nth-child(2) { width: 26%; }
+.quote-overview-table col:nth-child(3) { width: 24%; }
+.quote-overview-table col:nth-child(4) { width: 28%; }
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > thead > tr > th:nth-child(1),
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > tbody > tr > td:nth-child(1) { text-align: left; }
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > thead > tr > th:nth-child(2),
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > tbody > tr > td:nth-child(2),
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > thead > tr > th:nth-child(3),
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > tbody > tr > td:nth-child(3) { text-align: center; }
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > thead > tr > th:nth-child(4),
+.app-layout .quotation-page .quote-overview .quote-table-wrap.ibms-table-frame .quote-overview-table > tbody > tr > td:nth-child(4) { text-align: right; padding-right: 112px; }
 .quote-audit-menu, .quote-filter-menu { position: relative; }
 .quote-running-button.active { border-color: var(--primary); background: #f8eee8; }
 .quote-audit-menu > .quote-btn.active, .quote-filter-menu > .quote-btn.active { border-color: var(--primary); background: #f8eee8; }
@@ -1446,6 +1458,10 @@
 .quotation-form-page .quote-product-picker .quote-picker-chevron{width:34px}
 .quote-item-select .quote-themed-select-trigger{box-sizing:border-box;width:100%;height:38px;min-height:38px;overflow:hidden}
 .quote-items-table tbody td{vertical-align:middle}
+.quotation-form-page .quote-items-table td:has(>.quote-item-quantity),
+.quotation-form-page .quote-items-table td:has(>.quote-item-unit-price){min-width:0;padding-inline:8px}
+.quotation-form-page .quote-items-table .quote-item-quantity,
+.quotation-form-page .quote-items-table .quote-item-unit-price{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
 .quote-items-table td.quote-item-discount>input,.quote-items-table td>.quote-item-tax{box-sizing:border-box;width:100%;max-width:none}
 .quote-items-table th:nth-child(1),.quote-items-table td:nth-child(1){width:15%}
 .quote-items-table th:nth-child(2),.quote-items-table td:nth-child(2){width:27%}
@@ -1521,6 +1537,7 @@
 .quotation-form-page .quote-items-actions { flex-wrap: wrap; justify-content: flex-end; }
 .quotation-form-page .quote-items-actions > strong { display: none; }
 .quotation-form-page .quote-items-actions > .quote-btn { min-height: 40px; }
+.quotation-form-page .quote-items-actions > .quote-add-item-button { height: 28px; min-height: 28px; padding: 3px 7px; gap: 4px; font-size: .72rem; }
 .quotation-form-page .quote-form-main > .quote-notes-card { grid-column: span 8; }
 .quotation-form-page .quote-form-main > .quote-summary-card { grid-column: span 4; }
 .quotation-form-page .quote-summary-card .quote-summary-rows { display: flex; flex-direction: column; gap: 0; padding: 0; }

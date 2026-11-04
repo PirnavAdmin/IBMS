@@ -1,10 +1,33 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { printCatalogReport } from '../utils/printCatalogReport';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, Breadcrumbs, Button, IconButton, InputAdornment, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
-import { Add, ArrowBack, CategoryOutlined, EditOutlined, MoreVert, PrintOutlined, SearchOutlined, ToggleOff, ToggleOn } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
+import Add from '@mui/icons-material/Add';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import MoreVert from '@mui/icons-material/MoreVert';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import ToggleOff from '@mui/icons-material/ToggleOff';
+import ToggleOn from '@mui/icons-material/ToggleOn';
 import { categoryService, useCategories, categoryError, invalidateCategories } from '../services/categoryService';
 import { DeactivateCategoryDialog } from '../components/DeactivateCategoryDialog';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
@@ -17,6 +40,7 @@ export function CategoryList() {
   const statusRank = { Active: 0, Unknown: 1, Inactive: 2 };
   const allCategories = [...(query.data || [])].sort((a, b) => (statusRank[a.status] ?? 1) - (statusRank[b.status] ?? 1));
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, value => { setSearch(value); setPage(0); }, 'Search categories');
   const searchTerm = search.trim().toLocaleLowerCase();
   const categories = searchTerm
     ? allCategories.filter(category => [category.name, category.description, category.status].some(value => String(value || '').toLocaleLowerCase().includes(searchTerm)))

@@ -1,29 +1,26 @@
+import { BrandName } from '../../components/BrandName';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { registrationSchema } from '../../utils/authValidation';
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  InputAdornment,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
-import {
-  PersonOutline,
-  MailOutline,
-  LockOutlined,
-  CheckCircleOutline,
-  CheckOutlined,
-  RadioButtonUncheckedOutlined,
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputAdornment from '@mui/material/InputAdornment';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import MailOutline from '@mui/icons-material/MailOutline';
+import LockOutlined from '@mui/icons-material/LockOutlined';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import CheckOutlined from '@mui/icons-material/CheckOutlined';
+import RadioButtonUncheckedOutlined from '@mui/icons-material/RadioButtonUncheckedOutlined';
 import { authApi } from 'billing-api-client';
 import '../../styles/Login.css';
 import { InvoiceBillingLogo } from '../../components/InvoiceBillingLogo';
@@ -102,7 +99,7 @@ export const Register = () => {
         <div className="billing-auth-hero-top">
           <div className="billing-auth-brand-wrap">
             <InvoiceBillingLogo tone="auth" size={28} />
-            <span className="billing-auth-brand-text">INVOICE.BILLING</span>
+            <BrandName />
           </div>
         </div>
 
@@ -135,7 +132,7 @@ export const Register = () => {
 
         <div className="billing-auth-hero-footer">
           <span className="billing-auth-hero-copyright">
-            &copy; 2026 INVOICE.BILLING. Built for better business.
+            &copy; 2026 IBMS. Built for better business.
           </span>
         </div>
       </Box>
@@ -299,7 +296,7 @@ export const Register = () => {
               <div className="billing-auth-consent">
                 <Controller name="terms" control={control} render={({ field }) => <FormControlLabel
                   control={<Checkbox id="registration-consent" size="small" checked={field.value === true} inputRef={field.ref} name={field.name} onBlur={field.onBlur} onChange={event => field.onChange(event.target.checked)} inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(errors.terms), 'aria-describedby': errors.terms ? 'registration-consent-error' : undefined }} />}
-                  label={<span className="billing-auth-terms-label">I agree to INVOICE.BILLING's Terms and Privacy Policy (required).</span>} sx={{ m: 0 }} />}
+                  label={<span className="billing-auth-terms-label">I agree to IBMS's Terms and Privacy Policy (required).</span>} sx={{ m: 0 }} />}
                 />
                 <div className="billing-auth-legal-documents" aria-label="Legal documents">
                   <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><span>and</span><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>

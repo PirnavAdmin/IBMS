@@ -1,13 +1,15 @@
-﻿import React from 'react';
-import { Typography } from '@mui/material';
-import { WhatsApp, Check } from '@mui/icons-material';
+import { BrandName } from '../../components/BrandName';
+import React from 'react';
+import Typography from '@mui/material/Typography';
+import WhatsApp from '@mui/icons-material/WhatsApp';
+import Check from '@mui/icons-material/Check';
 
 export const HeroMockup = () => (
   <div className="hero-mockup-wrapper">
     {/* Floating Invoice Sent Card */}
     <div className="hero-card-invoice">
       <div className="mockup-card-header">
-        <span className="mockup-brand-tag">INVOICE.BILLING</span>
+        <BrandName />
         <span className="mockup-status-paid">PAID ✓</span>
       </div>
       <div className="mockup-card-body">

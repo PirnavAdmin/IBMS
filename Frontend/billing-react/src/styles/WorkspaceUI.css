@@ -225,7 +225,7 @@
     .integrations-table-scroll, .background-jobs-table-scroll, .ura-table-wrap,
     .ant-table-content, .ant-table-body
   ):has(> table):not(.invoice-document *)::-webkit-scrollbar-thumb:hover {
-    background: #795334;
+    background-color: #795334;
   }
 }
 
@@ -252,11 +252,19 @@
     .app-layout .app-layout-content [data-table-scroll-header]:has(> table) {
       scrollbar-width: auto;
       scrollbar-color: auto;
+      /* Paint the header under the scrollbar lane on the rounded frame itself.
+         Native scrollbar backgrounds do not follow the frame's corner radius. */
+      background-image: linear-gradient(to bottom,
+        var(--ui-table-header-bg, #f5eee6) 0 var(--table-scroll-header-height, 0px),
+        var(--surface, #fffdf9) var(--table-scroll-header-height, 0px) 100%);
+      background-clip: padding-box;
     }
+    /* Leave the rounded border visible above and beside the row-only track. */
     .app-layout [data-table-scroll-header]::-webkit-scrollbar:vertical {
-      background: linear-gradient(to bottom,
-        var(--ui-table-header-bg, #f5eee6) 0 var(--table-scroll-header-height),
-        #f1e7dc var(--table-scroll-header-height) 100%);
+      background: transparent;
+    }
+    .app-layout [data-table-scroll-header]::-webkit-scrollbar-corner {
+      background: transparent;
     }
     .app-layout [data-table-scroll-header]::-webkit-scrollbar-track:vertical {
       margin-top: var(--table-scroll-header-height, 0px);
@@ -299,7 +307,7 @@
 
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table {
     width: 100%;
-    min-width: 1040px;
+    min-width: 1200px;
     table-layout: fixed;
   }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table :is(th, td) {
@@ -307,29 +315,57 @@
     box-sizing: border-box;
     padding: 12px 7px;
     white-space: normal;
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: normal;
   }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th { font-size: 11px; letter-spacing: .02em; overflow-wrap: normal; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(1) { width: 10%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(1) { width: 9%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(2) { width: 14%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(3) { width: 8%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(4) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(3) { width: 7%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(4) { width: 12%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(5) { width: 5%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(6) { width: 10%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(7) { width: 9%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(8) { width: 10%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(9) { width: 12%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(7) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(8) { width: 9%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(9) { width: 11%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(10) { width: 8%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(11) { width: 6%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(11) { width: 7%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] .MuiTableSortLabel-root { max-width: 100%; white-space: normal; }
   .app-layout .customers-page .customer-table:not(.is-inactive-view) > table {
     width: 100%;
-    min-width: 900px;
+    min-width: 1360px;
     table-layout: fixed;
   }
   .app-layout .customers-page .customer-table:not(.is-inactive-view) > table :is(th, td) {
     white-space: normal;
-    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  /* Short headers keep whole words; a wider viewport scrolls rather than
+     squeezing Customer/Actions into broken letter fragments. */
+  .app-layout .customers-page .customer-table > table thead :is(th, .MuiTableSortLabel-root) {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .app-layout .customers-page .customer-table > table thead th:last-child {
+    white-space: nowrap;
+  }
+  .app-layout .product-list-page .product-table .product-category {
+    max-width: 100%;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+/* Customer cards retain their fluid layout in narrow content areas. */
+@media screen {
+  @container customer-directory (max-width: 768px) {
+    .app-layout .customers-page .customer-panel .customer-table:not(.is-inactive-view) > table {
+      min-width: 0;
+    }
   }
 }
 /* Long desktop lists scroll within the table; short lists keep their natural height.

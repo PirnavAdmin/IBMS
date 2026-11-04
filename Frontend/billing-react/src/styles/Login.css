@@ -97,7 +97,7 @@
 }
 
 .billing-auth-brand-text {
-  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
+  font-size: clamp(.85rem, 1.3vw, 1.05rem);
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.02em;
@@ -749,3 +749,16 @@
 .billing-otp-card > .billing-auth-form-title, .billing-otp-card > .billing-auth-form-subtitle, .billing-otp-page .card-mode-desc { text-align: center; }
 .billing-auth-recovery-nav .MuiButton-root { padding: 4px 0; color: #795137; font: inherit; font-size: 13px; font-weight: 600; text-transform: none; }
 .billing-auth-recovery-nav .MuiButton-root:hover { background: #f6eee4; }
+
+@media (max-width: 960px) {
+  .billing-auth-login-page { width: 100%; }
+  .billing-auth-hero-top { flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
+  .billing-auth-secure-tag { flex-basis: 100%; font-size: 10px; }
+  .billing-auth-hero-content { margin-top: 20px; }
+}
+
+.billing-auth-brand-text { max-width: 300px; white-space: normal; line-height: 1.3; }
+.billing-auth-brand-wrap, .billing-auth-card-brand { min-width: 0; }
+.billing-auth-card-brand > span { max-width: 180px; white-space: normal; line-height: 1.3; font-size: .62rem; }
+.login-brand-header > div { min-width: 0; }
+.login-brand-header .login-brand-text { max-width: 300px; white-space: normal; font-size: 1rem !important; line-height: 1.3 !important; }

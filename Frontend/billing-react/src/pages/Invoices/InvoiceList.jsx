@@ -1,27 +1,24 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { searchInputError } from '../../utils/search';
 import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Autocomplete,
-  Button,
-  InputAdornment,
-  MenuItem,
-  TextField,
-} from "@mui/material";
-import {
-  Add,
-  CheckCircleOutline,
-  DescriptionOutlined,
-  HourglassEmptyOutlined,
-  ReceiptLongOutlined,
-  Refresh,
-  RestartAlt,
-  Search,
-  WarningAmberOutlined,
-} from "@mui/icons-material";
-import { Link, useLocation, useOutletContext } from "react-router-dom";
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Add from '@mui/icons-material/Add';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import Refresh from '@mui/icons-material/Refresh';
+import RestartAlt from '@mui/icons-material/RestartAlt';
+import Search from '@mui/icons-material/Search';
+import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
+import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./services/invoiceService";
 import { downloadInvoiceCsv } from './services/invoiceExport';
@@ -95,8 +92,9 @@ export function InvoiceList() {
     const params = new URLSearchParams(location.search);
     return { ...initialFilters, ...Object.fromEntries(['status', 'paymentState', 'currency', 'startDate', 'endDate'].filter(key => params.has(key)).map(key => [key, params.get(key)])) };
   };
-  const context = useOutletContext() || {};
+
   const [search, setSearch] = useState("");
+  useNavbarSearch(search, setSearch, 'Search invoices');
   const [filters, setFilters] = useState(navigationFilters);
   useEffect(() => { setFilters(navigationFilters()); }, [location.search]);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -105,8 +103,8 @@ export function InvoiceList() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
-  const searchError = searchInputError(context.searchQuery || search);
-  const querySearch = useDebounced((context.searchQuery || search).trim());
+  const searchError = searchInputError(search);
+  const querySearch = useDebounced((search).trim());
   const customerTerm = useDebounced(customerSearch);
   useEffect(
     () => setFilters((previous) => ({ ...previous, page: 1 })),
@@ -375,9 +373,6 @@ export function InvoiceList() {
                           {formattedValue}
                         </strong>
                         {countText && <small className="invoice-kpi-count-text">{countText}</small>}
-                        <small className="invoice-kpi-subtext">
-                          Filter invoices
-                        </small>
                       </div>
                     </button>
                   );
@@ -396,7 +391,7 @@ export function InvoiceList() {
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              context.onSearch?.("");
+              
               change("page", 1);
             }}
             type="search"
@@ -420,7 +415,7 @@ export function InvoiceList() {
             onChange={(event) => change("status", event.target.value)}
             className="invoice-filter-status"
           >
-            <MenuItem value="">All statuses</MenuItem>
+            <MenuItem value="">All Statuses</MenuItem>
             {INVOICE_STATUSES.map((status) => (
               <MenuItem key={status} value={status}>
                 {status}
@@ -475,7 +470,7 @@ export function InvoiceList() {
             onClick={() => {
               setFilters(initialFilters);
               setSearch("");
-              context.onSearch?.("");
+              
               setCustomer(null);
             }}
           >
@@ -619,9 +614,6 @@ export function InvoiceList() {
           onPageSizeChange={(pageSize) => change("pageSize", pageSize)}
         />}
       </section>
-      <p className="invoice-footnote">
-        CSV export uses the current filters and sorting, with a server limit of 10,000 invoices.
-      </p>
       {exportMessage && <Alert severity={exportMessage.severity} role="status">{exportMessage.text}</Alert>}
     </InvoiceShell>
   );

@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Modal, Select, Table, Tooltip } from 'antd';
+import Alert from 'antd/es/alert';
+import Button from 'antd/es/button';
+import Dropdown from 'antd/es/dropdown';
+import Modal from 'antd/es/modal';
+import Select from 'antd/es/select';
+import Table from 'antd/es/table';
+import Tooltip from 'antd/es/tooltip';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventLabel, eventOptions, notificationError, notificationService, previewPayload } from './notificationService';
-import { VisibilityOutlined, EditOutlined, DeleteOutline, MoreVert } from '@mui/icons-material';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import MoreVert from '@mui/icons-material/MoreVert';
 import { parseTemplateToVisualModel } from './templateVisualModel';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { NotificationEmpty, NotificationError, NotificationPreview, NotificationShell, NotificationStatus, useNotificationFeedback } from './NotificationShared';
@@ -61,8 +70,8 @@ export function NotificationTemplates() {
     {toastHolder}
     {query.error ? <NotificationError error={query.error} onRetry={() => query.refetch()} /> : <section className="notification-card">
       <div className="notification-filters" role="group" aria-label="Template filters">
-        <label>Event Type<Select aria-label="Event Type filter" placeholder="All events" allowClear options={eventOptions} value={filters.eventType} onChange={eventType => { setFilters(previous => ({ ...previous, eventType })); setPage(1); }} /></label>
-        <label>Status<Select aria-label="Template status filter" value={filters.isActive === undefined ? 'all' : String(filters.isActive)} options={[{ value: 'all', label: 'All statuses' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} onChange={value => { setFilters(previous => ({ ...previous, isActive: value === 'all' ? undefined : value === 'true' })); setPage(1); }} /></label>
+        <label>Event Type<Select classNames={{ popup: { root: 'notification-filter-dropdown' } }} aria-label="Event Type filter" placeholder="All events" allowClear options={eventOptions} value={filters.eventType} onChange={eventType => { setFilters(previous => ({ ...previous, eventType })); setPage(1); }} /></label>
+        <label>Status<Select classNames={{ popup: { root: 'notification-filter-dropdown' } }} aria-label="Template status filter" value={filters.isActive === undefined ? 'all' : String(filters.isActive)} options={[{ value: 'all', label: 'All Statuses' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} onChange={value => { setFilters(previous => ({ ...previous, isActive: value === 'all' ? undefined : value === 'true' })); setPage(1); }} /></label>
         <Button onClick={() => query.refetch()} disabled={query.isFetching}>Refresh</Button>
       </div>
       <Table className="ibms-table-frame notification-data-table" aria-label="Notification templates" rowKey="id" columns={columns} dataSource={(query.data || []).slice((page - 1) * pageSize, page * pageSize)} loading={query.isFetching} size="middle" scroll={{ x: 1000 }} pagination={false} locale={{ emptyText: <NotificationEmpty /> }} />

@@ -214,30 +214,51 @@ test('Invoice summary hides AOA groups returned by the backend and preserves INR
 
 test('Dashboard currency filter uses real ledger currencies, resets and keeps totals separate without refetching', async () => {
   let invoiceCalls = 0;
+  let paymentCalls = 0;
   await mock(authApi, { getCurrentUser: () => ({ role: 'TenantAdmin', tenantId: 1, id: 1 }) }, async () =>
     mock(invoiceService, { list: async () => { invoiceCalls++; return page([
-      { ...invoice, invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' },
+      { ...invoice, status: 'Issued', invoiceNumber: 'HISTORY-INR', invoiceDate: '2026-08-15' },
       { ...invoice, id: 8, currency: 'AOA', invoiceNumber: 'HISTORY-AOA' },
-      { ...invoice, id: 9, currency: 'USD', invoiceNumber: 'HISTORY-USD' },
+      { ...invoice, id: 9, status: 'Issued', currency: 'USD', invoiceNumber: 'HISTORY-USD', totalAmount: 200, balanceAmount: 160, paidAmount: 40 },
     ]); } }, async () =>
-      mock(paymentService, { getPayments: async () => page([]) }, async () => {
+      mock(paymentService, { getPayments: async () => { paymentCalls++; return page([
+        { id: 31, currency: 'USD', status: 'Completed', paymentNumber: 'PAY-USD', paymentDate: '2026-10-05', amount: 40 },
+        { id: 32, currency: 'GBP', status: 'Completed', paymentNumber: 'PAY-GBP', paymentDate: '2026-10-05', amount: 30 },
+      ]); } }, async () => {
         const mounted = await mount(<Dashboard />, '/dashboard');
         try {
-          const selector = mounted.host.querySelector('[aria-label="Billing Currency"]');
-          assert.deepEqual([...selector.options].map(option => option.value), ['INR', 'USD']);
-          assert.equal(selector.value, 'INR');
+          const selector = () => mounted.host.querySelector('[role="combobox"][aria-label="Billing Currency"]');
+          const total = key => mounted.host.querySelector(`.premium-stat-${key} strong`).textContent;
+          const choose = async code => {
+            await act(async () => selector().dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, button: 0 })));
+            await flush();
+            const options = [...document.querySelectorAll('[role="option"]')];
+            assert.deepEqual(options.map(option => option.getAttribute('data-value')), ['GBP', 'INR', 'USD']);
+            await click(options.find(option => option.getAttribute('data-value') === code));
+          };
+          assert.equal(selector().textContent, 'INR');
+          assert.match(total('invoiced'), /100\.00/);
+          assert.match(total('paid'), /0\.00/);
           assert.match(mounted.host.textContent, /HISTORY-INR/);
-          assert.doesNotMatch(mounted.host.textContent, /HISTORY-USD|AOA/);
-          await act(async () => { selector.value = 'USD'; selector.dispatchEvent(new window.Event('change', {bubbles:true})); });
-          await flush();
+          assert.doesNotMatch(mounted.host.textContent, /HISTORY-USD|HISTORY-AOA|PAY-USD|PAY-GBP/);
+          await choose('USD');
+          assert.equal(selector().textContent, 'USD');
+          assert.match(total('invoiced'), /200\.00/);
+          assert.match(total('paid'), /40\.00/);
+          assert.match(total('outstanding'), /160\.00/);
           assert.match(mounted.host.textContent, /HISTORY-USD/);
-          assert.doesNotMatch(mounted.host.textContent, /HISTORY-INR|AOA/);
+          assert.doesNotMatch(mounted.host.textContent, /HISTORY-INR|HISTORY-AOA|PAY-GBP/);
           assert.ok(mounted.host.querySelector('.premium-stat-invoiced').getAttribute('href').includes('currency=USD'));
-          assert.equal(invoiceCalls, 1);
+          await choose('GBP');
+          assert.match(total('invoiced'), /0\.00/);
+          assert.match(total('paid'), /30\.00/);
+          assert.match(mounted.host.textContent, /PAY-GBP/);
+          assert.doesNotMatch(mounted.host.textContent, /HISTORY-INR|HISTORY-USD|PAY-USD/);
           await click(button('Reset'));
-          assert.equal(mounted.host.querySelector('[aria-label="Billing Currency"]').value, 'INR');
+          assert.equal(selector().textContent, 'INR');
           assert.match(mounted.host.textContent, /HISTORY-INR/);
           assert.equal(invoiceCalls, 1);
+          assert.equal(paymentCalls, 1);
         } finally { await mounted.close(); }
       })));
 });

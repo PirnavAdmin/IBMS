@@ -1,5 +1,6 @@
-import { SettingsOutlined } from '@mui/icons-material';
-import { Tab, Tabs } from '@mui/material';
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import { Link, useLocation } from 'react-router-dom';
 import './settings.css';
 
@@ -9,7 +10,7 @@ const sections = [
   ['/settings/charges', 'Charges'],
   ['/settings/numbering', 'Invoice Numbering'],
   ['/settings/notifications', 'Notifications'],
-  ['/settings/countries', 'Country'],
+  ['/settings/countries', 'Countries'],
 ];
 
 export function SettingsWorkspace({ children }) {

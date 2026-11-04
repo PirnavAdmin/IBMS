@@ -1,5 +1,6 @@
 import { apiClient } from '../../../../../billing-api-client/apiClient.js';
 import { roundCurrency } from '../utils/creditNoteCalculations.js';
+import { fetchAllInvoicePages } from '../utils/creditNoteInvoicePages.js';
 
 const creditNotesPath = '/api/v1/credit-notes';
 const invoicesPath = '/api/v1/invoices';
@@ -28,25 +29,31 @@ const statusToApi = (status = '') => ({
   'Partially Refunded': 'PartiallyRefunded',
 }[status] || status);
 
-const mapListItem = (item) => ({
-  id: item.id,
-  number: item.creditNoteNumber,
-  invoiceId: item.invoiceId,
-  invoiceNumber: item.invoiceNumber,
-  customerId: item.customerId,
-  customer: item.customerName,
-  date: item.creditDate,
-  createdAt: item.createdAtUtc,
-  type: item.type,
-  subtotal: Number(item.subtotal || 0),
-  taxAmount: Number(item.taxAmount || 0),
-  total: Number(item.totalAmount || 0),
-  refunded: Number(item.refundedAmount || 0),
-  remainingRefundable: Number(item.remainingRefundableAmount || 0),
-  status: statusFromApi(item.status),
-  reason: item.reason,
-  currency: item.currency || 'INR',
-});
+const mapListItem = (item) => {
+  const total = Number(item.totalAmount || 0);
+  const refunded = Number(item.refundedAmount || 0);
+  return {
+    id: item.id,
+    number: item.creditNoteNumber,
+    invoiceId: item.invoiceId,
+    invoiceNumber: item.invoiceNumber,
+    customerId: item.customerId,
+    customer: item.customerName,
+    date: item.creditDate,
+    createdAt: item.createdAtUtc,
+    type: item.type,
+    subtotal: Number(item.subtotal || 0),
+    taxAmount: Number(item.taxAmount || 0),
+    total,
+    refunded,
+    remainingRefundable: item.remainingRefundableAmount == null || !Number.isFinite(Number(item.remainingRefundableAmount))
+      ? roundCurrency(Math.max(0, total - refunded))
+      : Number(item.remainingRefundableAmount),
+    status: statusFromApi(item.status),
+    reason: item.reason,
+    currency: item.currency || 'INR',
+  };
+};
 
 const mapDetail = (item) => {
   const note = mapListItem(item);
@@ -130,7 +137,7 @@ const mapInvoiceSummary = (summary, invoice = {}) => ({
   remainingAmount: Number(summary.remainingCreditableAmount || 0),
   eligible: Boolean(summary.isEligibleForCredit),
   ineligibilityReason: summary.ineligibilityReason || '',
-  items: (summary.items || []).map((line) => ({
+  items: [...new Map((summary.items || []).map((line) => [line.invoiceItemId, {
     id: line.invoiceItemId,
     invoiceItemId: line.invoiceItemId,
     productId: line.productId,
@@ -149,7 +156,7 @@ const mapInvoiceSummary = (summary, invoice = {}) => ({
     totalAmount: Number(line.totalAmount || 0),
     previouslyCreditedAmount: Number(line.previouslyCreditedAmount || 0),
     remainingEligibleAmount: Number(line.remainingEligibleAmount || 0),
-  })),
+  }])).values()],
 });
 
 const unwrapList = (response) => {
@@ -196,17 +203,26 @@ export const creditNoteService = {
 
   async getInvoices({ search = '' } = {}) {
     return request(async () => {
-      const page = await apiClient.get(invoicesPath, { params: { Page: 1, PageSize: 100, ...(search ? { SearchTerm: search } : {}) } });
-      if (!Array.isArray(page?.items)) throw new Error('The invoice API returned an invalid page.');
-      const candidates = page.items.filter((invoice) => !/^(draft|cancelled|canceled|void|voided)$/i.test(invoice.status || ''));
-      const summaries = await Promise.all(candidates.map((invoice) => this.getInvoiceCreditableSummary(invoice.id)));
-      return summaries
-        .map((summary, index) => summary ? {
-          ...summary,
-          dueDate: candidates[index].dueDate,
-          email: candidates[index].customer?.email || candidates[index].customer?.Email || summary.email,
-        } : null)
-        .filter((invoice) => invoice?.eligible && invoice.remainingAmount > 0);
+      const invoices = await fetchAllInvoicePages((page, pageSize) => apiClient.get(invoicesPath, {
+        params: { page, pageSize, ...(search ? { searchTerm: search } : {}) },
+      }));
+
+      const candidates = invoices.filter((invoice) => !/^(draft|cancelled|canceled|void|voided)$/i.test(invoice.status || ''));
+      const eligibleInvoices = [];
+      for (let offset = 0; offset < candidates.length; offset += 8) {
+        const batch = candidates.slice(offset, offset + 8);
+        const summaries = await Promise.all(batch.map((invoice) => this.getInvoiceCreditableSummary(invoice.id)));
+        summaries.forEach((summary, index) => {
+          if (!summary?.eligible || summary.remainingAmount <= 0) return;
+          const invoice = batch[index];
+          eligibleInvoices.push({
+            ...summary,
+            dueDate: invoice.dueDate,
+            email: invoice.customer?.email || invoice.customer?.Email || summary.email,
+          });
+        });
+      }
+      return eligibleInvoices;
     });
   },
 

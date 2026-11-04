@@ -1,5 +1,9 @@
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty, Modal, Spin, Tag } from 'antd';
+import Button from 'antd/es/button';
+import ConfigProvider from 'antd/es/config-provider';
+import Empty from 'antd/es/empty';
+import Modal from 'antd/es/modal';
+import Spin from 'antd/es/spin';
+import Tag from 'antd/es/tag';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -9,7 +13,7 @@ import { notificationError, notificationService } from './notificationService';
 import './notifications.css';
 
 const theme = {
-  token: { colorPrimary: '#795137', colorPrimaryBg: '#F0E2D0', colorPrimaryBgHover: '#E6D3BC', controlOutline: 'rgba(152,116,85,.14)', colorLink: '#795137', colorLinkHover: '#987455', colorInfo: '#795137', colorText: '#35231C', colorTextSecondary: '#806B5B', colorBgContainer: '#FFFDF9', colorBgElevated: '#FFFDF9', colorBorder: '#DCCEBF', colorBgLayout: '#F9F5EF', borderRadius: 8, controlHeight: 40, fontFamily: 'inherit' },
+  token: { colorPrimary: '#795137', colorPrimaryBg: '#F0E2D0', colorPrimaryBgHover: '#E6D3BC', controlOutline: 'rgba(152,116,85,.14)', colorLink: '#795137', colorLinkHover: '#987455', colorInfo: '#795137', colorText: '#35231C', colorTextSecondary: '#806B5B', colorTextPlaceholder: '#806B5B', colorBgContainer: '#FFFDF9', colorBgElevated: '#FFFDF9', colorBorder: '#DCCEBF', colorBgLayout: '#F9F5EF', borderRadius: 8, controlHeight: 40, fontSize: 14, fontFamily: 'inherit' },
   components: { Table: { headerBg: '#F6F1EA', headerColor: '#68462F', rowHoverBg: '#FAF5ED' }, Select: { optionSelectedBg: '#F0E2D0', activeBorderColor: '#987455', activeOutlineColor: 'rgba(152,116,85,.14)' }, Input: { activeBorderColor: '#987455', activeShadow: '0 0 0 3px rgba(152,116,85,.12)' }, DatePicker: { activeBorderColor: '#987455', activeShadow: '0 0 0 3px rgba(152,116,85,.12)' }, Modal: { contentBg: '#FFFDF9', headerBg: '#FFFDF9' } },
 };
 export function useNotificationFeedback() {
@@ -21,7 +25,7 @@ export function useNotificationFeedback() {
 export function NotificationShell({ title, description, actions, children }) {
   return <ConfigProvider theme={theme}><main className="notification-page">
     <nav className="notification-breadcrumb" aria-label="Breadcrumb"><span className="notification-breadcrumb-trail"><Link to="/settings">Settings</Link><span>/</span><Link to="/settings/notifications">Notifications</Link></span></nav>
-    <header className="notification-heading"><div><span className="notification-eyebrow">Configuration & administration</span><h1>{title}</h1><p>{description}</p></div><div className="notification-actions"><Link to="/settings"><Button icon={<ArrowLeftOutlined />}>Back to Settings</Button></Link>{actions}</div></header>
+    <header className="notification-heading"><div><span className="notification-eyebrow">Configuration & administration</span><h1>{title}</h1><p>{description}</p></div>{actions && <div className="notification-actions">{actions}</div>}</header>
     {children}
   </main></ConfigProvider>;
 }

@@ -3,8 +3,16 @@ import { DashboardErrorState } from '../../components/dashboard/DashboardStates'
 import '../../styles/Dashboard.css';
 import { useEffect, useRef, useState } from 'react';
 import { SettingsPageHeader } from './SettingsPageHeader';
-import { Alert, Button, MenuItem, Paper, Select, Switch, TextField } from '@mui/material';
-import { LocalOfferOutlined, SaveOutlined, RestartAlt } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
+import TextField from '@mui/material/TextField';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import RestartAlt from '@mui/icons-material/RestartAlt';
 import { DiscountRules } from './DiscountRules';
 import { phase5Api, validateDiscountConfiguration, validateRolePermissions } from './services/phase5Api';
 import './settings.css';

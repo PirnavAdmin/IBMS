@@ -1,4 +1,6 @@
-import { CalendarTodayOutlined, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
 import './ThemedDatePicker.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

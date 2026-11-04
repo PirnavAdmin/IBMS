@@ -1,7 +1,10 @@
-import { Skeleton } from '@mui/material';
+import Skeleton from '@mui/material/Skeleton';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { transportErrorMessage } from '../../../../billing-api-client/transportError.js';
-import { DnsOutlined, DescriptionOutlined, PowerOffOutlined, Refresh } from '@mui/icons-material';
+import DnsOutlined from '@mui/icons-material/DnsOutlined';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import PowerOffOutlined from '@mui/icons-material/PowerOffOutlined';
+import Refresh from '@mui/icons-material/Refresh';
 
 const SectionSkeleton = ({ title, chart = false }) => <section className="bd-card bd-section-skeleton" aria-label={`Loading ${title}`}>
   <Skeleton width="55%" height={32} />

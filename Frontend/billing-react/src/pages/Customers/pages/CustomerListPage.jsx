@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { SearchField } from '../../../components/SearchField';
 import { hasPermission } from "../../../utils/permissionUtils";
 import { printCustomerList } from '../utils/customerReports';
@@ -13,43 +14,39 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router-dom";
-import {
-  Alert,
-  Avatar,
-  Button,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  InputAdornment,
-  ListItemIcon,
-  Menu,
-  MenuItem,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TableSortLabel,
-  TextField,
-} from "@mui/material";
-import {
-  Add,
-  CheckCircleOutline,
-  GroupOutlined,
-  EditOutlined,
-  VisibilityOutlined,
-  PrintOutlined,
-  PersonOffOutlined,
-  Search,
-  AccountBalanceWalletOutlined,
-  MoreVert,
-  InfoOutlined,
-} from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
+import Avatar from '@mui/material/Avatar';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Skeleton from '@mui/material/Skeleton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TextField from '@mui/material/TextField';
+import Add from '@mui/icons-material/Add';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import GroupOutlined from '@mui/icons-material/GroupOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import PersonOffOutlined from '@mui/icons-material/PersonOffOutlined';
+import Search from '@mui/icons-material/Search';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
+import MoreVert from '@mui/icons-material/MoreVert';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import {
   useCustomers,
   useCustomerStatus,
@@ -137,8 +134,8 @@ const SORT_OPTIONS = [
   { label: "Recently Added", sortBy: "createdAt", sortOrder: "desc" },
   { label: "Alphabetical (A – Z)", sortBy: "name", sortOrder: "asc" },
   { label: "Alphabetical (Z – A)", sortBy: "name", sortOrder: "desc" },
-  { label: "Price: Low to High", sortBy: "price", sortOrder: "asc" },
-  { label: "Price: High to Low", sortBy: "price", sortOrder: "desc" },
+  { label: "Customer Code (A – Z)", sortBy: "customerCode", sortOrder: "asc" },
+  { label: "Customer Code (Z – A)", sortBy: "customerCode", sortOrder: "desc" },
   { label: "First Added", sortBy: "id", sortOrder: "asc" },
   { label: "Last Added", sortBy: "id", sortOrder: "desc" },
 ];
@@ -147,7 +144,6 @@ const ALLOWED_SORT_FIELDS = [
   "customerCode",
   "name",
   "createdAt",
-  "price",
   "id",
   "email",
   "companyName",
@@ -289,6 +285,7 @@ export function CustomerListPage() {
     }
   };
   const [search, setSearch] = useState(params.search);
+  useNavbarSearch(search, setSearch, 'Search customers');
   const change = (values) =>
     setUrl(
       (previous) => {

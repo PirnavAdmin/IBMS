@@ -1,5 +1,8 @@
 import { useId } from 'react';
-import { MenuItem, Pagination, PaginationItem, TextField } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import Pagination from '@mui/material/Pagination';
+import PaginationItem from '@mui/material/PaginationItem';
+import TextField from '@mui/material/TextField';
 import './WorkspacePagination.css';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
@@ -13,6 +16,7 @@ export function WorkspacePagination({
   onPageSizeChange,
   itemLabel = 'records',
   disabled = false,
+  disabledPageHint,
   className = '',
 }) {
   const pageSizeLabelId = useId();
@@ -28,6 +32,7 @@ export function WorkspacePagination({
       <span className="workspace-pagination-range" role="status">
         Showing {first}–{last} of {safeTotal} {itemLabel}
       </span>
+      {pageCount <= 1 && disabledPageHint && <span className="workspace-pagination-hint">{disabledPageHint}</span>}
       <div className="workspace-pagination-controls">
         <div className="workspace-pagination-size-field">
           <span id={pageSizeLabelId}>Rows per page</span>
@@ -64,6 +69,8 @@ export function WorkspacePagination({
           renderItem={(item) => (
             <PaginationItem
               {...item}
+              title={item.disabled && disabledPageHint ? disabledPageHint : undefined}
+              aria-label={item.disabled && disabledPageHint ? `${item['aria-label']}. ${disabledPageHint}` : item['aria-label']}
               slots={{
                 previous: () => <span>Previous</span>,
                 next: () => <span>Next</span>,

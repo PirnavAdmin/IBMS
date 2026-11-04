@@ -3,8 +3,18 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { Alert, Box, Button, CircularProgress, InputAdornment, Link, Stack, TextField, Typography } from '@mui/material';
-import { EmailOutlined, VpnKeyOutlined, SendOutlined } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import InputAdornment from '@mui/material/InputAdornment';
+import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import VpnKeyOutlined from '@mui/icons-material/VpnKeyOutlined';
+import SendOutlined from '@mui/icons-material/SendOutlined';
 import { Link as RouterLink } from 'react-router-dom';
 import { authApi } from 'billing-api-client';
 import { AuthCardLayout } from '../../components/AuthCardLayout';
@@ -53,7 +63,7 @@ export const ForgotPassword = () => {
       className="billing-forgot-page"
       header={<div className="billing-recovery-heading"><div className="billing-auth-card-badge"><VpnKeyOutlined aria-hidden="true" /></div><h1 className="billing-auth-form-title">Reset password</h1></div>}
       tagLabel="RECOVERY"
-      brandTitle="INVOICE.BILLING"
+      brandTitle="IBMS"
       brandSubtitle="PASSWORD RECOVERY"
       cardDescription="Enter your work email to receive a recovery code."
       alerts={

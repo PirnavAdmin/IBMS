@@ -1,8 +1,18 @@
-import { ArrowBack, DeleteOutline, DescriptionOutlined, DownloadOutlined, EditOutlined, PersonOutline, PrintOutlined, SaveOutlined, UndoOutlined, VisibilityOutlined } from '@mui/icons-material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import UndoOutlined from '@mui/icons-material/UndoOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import { useEffect, useRef, useState } from 'react';
 import { displayDate } from '../../../utils/localDate';
 import { formatQuotationTimestamp } from '../utils/quotationDates';
 import { apiClient } from 'billing-api-client/apiClient.js';
+import { hasPermission } from '../../../utils/permissionUtils';
 import { currency, lineTotals, quotationTotals } from '../utils/quotationCalculations';
 import { QuotationStatusBadge } from '../components/QuotationStatusBadge';
 
@@ -301,7 +311,7 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
   const actions = <div className="quote-header-actions">
     <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? <><ArrowBack /> Back to details</> : <><VisibilityOutlined /> View quotation</>}</button>
     {quotation.status === 'Draft' && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
-    {quotation.status === 'Sent' && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
+    {quotation.status === 'Sent' && (hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
     {quotation.status === 'Approved' && <button className="quote-btn primary" onClick={() => onAction('convert', quotation)}>Convert to Invoice</button>}
     {['Draft', 'Sent', 'Approved'].includes(quotation.status) && <button className="quote-btn danger" onClick={() => onAction('cancel', quotation)}>Cancel</button>}
   </div>;

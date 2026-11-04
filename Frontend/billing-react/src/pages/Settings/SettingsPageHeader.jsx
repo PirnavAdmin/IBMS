@@ -1,6 +1,3 @@
-import { ArrowBackOutlined } from '@mui/icons-material';
-import { Button } from '@mui/material';
-import { Link } from 'react-router-dom';
 import './settings.css';
 
 export function SettingsPageHeader({ title, description, children }) {
@@ -11,12 +8,7 @@ export function SettingsPageHeader({ title, description, children }) {
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <div className="settings-actions">
-        <Button className="settings-back-button" component={Link} to="/settings" variant="outlined" startIcon={<ArrowBackOutlined />}>
-          Back to Settings
-        </Button>
-        {children}
-      </div>
+      {children && <div className="settings-actions">{children}</div>}
     </header>
   );
 }

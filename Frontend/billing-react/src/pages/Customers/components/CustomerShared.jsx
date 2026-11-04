@@ -1,5 +1,6 @@
 import { displayDate as invoiceDate, displayDateTime } from '../../../utils/localDate';
-import { Card, Skeleton } from '@mui/material';
+import Card from '@mui/material/Card';
+import Skeleton from '@mui/material/Skeleton';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { StatusBadge as DashboardStatusBadge } from '../../../components/dashboard/DashboardSections';
 const StatusBadge = ({ value }) => value == null || value === '' ? <span>—</span> : <DashboardStatusBadge value={String(value)} />;

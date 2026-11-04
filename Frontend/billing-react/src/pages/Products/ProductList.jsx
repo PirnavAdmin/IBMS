@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { hasPermission } from "../../utils/permissionUtils";
 import { printDocument } from '../../utils/printDocument';
 import { buildProductListReport } from './utils/productListReport';
@@ -5,8 +6,11 @@ import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Breadcrumbs, Button } from '@mui/material';
-import { Add, Inventory2Outlined, PrintOutlined } from '@mui/icons-material';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import Add from '@mui/icons-material/Add';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import PrintOutlined from '@mui/icons-material/PrintOutlined';
 import { productService } from './services/productService';
 import { ProductFilters } from './components/ProductFilters';
 import { ProductTable } from './components/ProductTable';
@@ -37,6 +41,7 @@ export function ProductList() {
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search products and services');
   const [params, setParams] = useState(() => ({ ...initialParams, pageSize: getProductPageSize() }));
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');

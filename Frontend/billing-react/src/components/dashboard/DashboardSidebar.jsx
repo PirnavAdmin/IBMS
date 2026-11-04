@@ -1,28 +1,27 @@
+import { BrandName } from '../BrandName';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Tooltip } from '@mui/material';
-import { authApi } from 'billing-api-client';
+import Tooltip from '@mui/material/Tooltip';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
-import {
-  BrandingWatermarkOutlined,
-  FormatListNumberedOutlined,
-  FileDownloadOutlined,
-  IntegrationInstructionsOutlined,
-  ChevronLeft,
-  ExpandMore,
-  Logout,
-  DashboardOutlined,
-  HistoryOutlined,
-  Inventory2Outlined,
-  PaymentsOutlined,
-  ManageAccountsOutlined,
-  PeopleOutline,
-  ReceiptLongOutlined,
-  ReceiptOutlined,
-  RequestQuoteOutlined,
-  SettingsOutlined,
-  ScheduleOutlined,
-  NotificationsOutlined,
-} from '@mui/icons-material';
+import BrandingWatermarkOutlined from '@mui/icons-material/BrandingWatermarkOutlined';
+import FormatListNumberedOutlined from '@mui/icons-material/FormatListNumberedOutlined';
+import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
+import IntegrationInstructionsOutlined from '@mui/icons-material/IntegrationInstructionsOutlined';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+
+import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
+import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import ManageAccountsOutlined from '@mui/icons-material/ManageAccountsOutlined';
+import PeopleOutline from '@mui/icons-material/PeopleOutline';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import ReceiptOutlined from '@mui/icons-material/ReceiptOutlined';
+import RequestQuoteOutlined from '@mui/icons-material/RequestQuoteOutlined';
+import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
+import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
+import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import { InvoiceBillingLogo } from '../InvoiceBillingLogo';
 import { dashboardNavigation } from '../../data/dashboardNavigation';
 import { hasPermission } from '../../utils/permissionUtils';
@@ -47,13 +46,13 @@ const iconMap = {
   exports: FileDownloadOutlined,
 };
 
-export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile = false, onToggle, onSignOut, onSelect, onNavigate, onClose }) => {
+export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile = false, onToggle, onSelect, onNavigate, onClose }) => {
   const asideRef = useRef(null);
   const menuId = useId();
   const activeSection = dashboardNavigation.find(section => section.label !== 'Overview' && section.items.some(item => item.id === activeItem))?.label;
   const [expandedSection, setExpandedSection] = useState(activeSection || 'Billing');
   useEffect(() => { if (activeSection) setExpandedSection(activeSection); }, [activeItem, activeSection]);
-  const user = authApi.getCurrentUser();
+  const user = useCurrentUser();
   const name = getDisplayName(user);
   const secondary = user?.email || (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
   const sections = dashboardNavigation.map(section => ({ ...section,
@@ -108,7 +107,7 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
     <aside ref={asideRef} id="app-primary-navigation" className={`bd-sidebar astra-sidebar ${open ? 'is-open' : ''}`} style={{ '--astra-menu-count': count || 1 }} aria-label="Primary navigation" aria-hidden={mobile && !open ? true : undefined} inert={mobile && !open ? '' : undefined} onKeyDown={keyboard}>
       <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
       <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')} aria-label="Go to dashboard">
-        <InvoiceBillingLogo size={22} /><strong>INVOICE<span>.</span>BILLING</strong>
+        <InvoiceBillingLogo size={36} /><BrandName />
       </button>
       <nav id="astra-menu-content" className="astra-menu-content" aria-label="Module navigation">
         {sections.map(renderSection)}
@@ -116,7 +115,6 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
       <footer className="astra-profile">
         <span className="astra-avatar" title={name}>{getInitials(name)}</span>
         <div className="astra-profile-copy"><strong title={name}>{name}</strong><small title={secondary}>{secondary}</small></div>
-        <Tooltip title="Sign out" placement="right"><button type="button" aria-label="Sign out" className="astra-signout" onClick={onSignOut}><Logout /></button></Tooltip>
       </footer>
     </aside>
   </>;

@@ -1,3 +1,4 @@
+import { customerTaxRegistrationType } from '../utils/customerTaxRegistration';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useReactHookFormDraft } from '../../../context/FormDraftContext';
@@ -16,25 +17,23 @@ import {
 } from '../validation/customerValidation';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
 import { isCurrencyEnabled } from '../../../utils/currencies';
-import {
-  PersonOutline,
-  LocalOfferOutlined,
-  BusinessOutlined,
-  EmailOutlined,
-  PhoneOutlined,
-  LanguageOutlined,
-  ReceiptLongOutlined,
-  HomeOutlined,
-  CheckCircleOutlined,
-  LightbulbOutlined,
-  ArrowForward,
-  ArrowBack,
-  InfoOutlined,
-  Check,
-  EditOutlined,
-  DescriptionOutlined,
-  CategoryOutlined,
-} from '@mui/icons-material';
+import PersonOutline from '@mui/icons-material/PersonOutline';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
+import LanguageOutlined from '@mui/icons-material/LanguageOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import HomeOutlined from '@mui/icons-material/HomeOutlined';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import LightbulbOutlined from '@mui/icons-material/LightbulbOutlined';
+import ArrowForward from '@mui/icons-material/ArrowForward';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import Check from '@mui/icons-material/Check';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import '../styles/customer-form.css';
 
 const basicInfoValidationSchema = customerValidationSchema.pick(STEP_FIELDS[0]);
@@ -131,27 +130,7 @@ export const CustomerForm = ({
   const getInitialValues = (values) => {
     const rawTax = String(values?.taxId || values?.gstin || values?.pan || '').trim();
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
-    const isPan = /^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(rawTax);
-    let taxType = '';
-    const providedTaxType = String(
-      values?.taxRegistrationType ?? values?.taxRegistration ?? ''
-    ).trim().toLowerCase();
-    if (providedTaxType === 'non-gst' || providedTaxType === 'unregistered') {
-      taxType = 'non-gst';
-    } else if (providedTaxType === 'gst' || providedTaxType === 'registered') {
-      taxType = 'gst';
-    } else if (providedTaxType) {
-      taxType = providedTaxType;
-    } else if (isGst || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(String(values?.gstin || '').trim())) {
-      taxType = 'gst';
-    } else if (isPan || values?.pan) {
-      // The customer API stores PAN/GSTIN in one taxId field and does not
-      // persist a separate registration flag. A PAN-only tax ID is therefore
-      // the durable signal for Non-GST / Unregistered customers on edit.
-      taxType = 'non-gst';
-    } else if (!rawTax && values?.id) {
-      taxType = 'non-gst';
-    }
+    const taxType = customerTaxRegistrationType(values);
 
     let initialPan = values?.pan || '';
     if (!initialPan) {

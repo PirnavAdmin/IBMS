@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
-import { CheckCircleOutline, DescriptionOutlined, ReceiptLongOutlined, WarningAmber, AccountBalanceWalletOutlined } from '@mui/icons-material';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import WarningAmber from '@mui/icons-material/WarningAmber';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 import { money } from '../../pages/Dashboard/dashboardModel';
 const icons = { invoice: ReceiptLongOutlined, paid: CheckCircleOutline, wallet: AccountBalanceWalletOutlined, warning: WarningAmber, draft: DescriptionOutlined };
 export const formatInr = value => money(value, 'INR');

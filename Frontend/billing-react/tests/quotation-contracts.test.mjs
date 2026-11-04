@@ -49,11 +49,23 @@ test('quotation update sorting uses last update, then creation date when update 
  assert.ok(quotationUpdatedTimestamp(staleCreated)>quotationUpdatedTimestamp(moreRecentlyCreated));
  assert.deepEqual([moreRecentlyCreated,staleCreated].sort((a,b)=>compareQuotationUpdates(a,b,'desc')).map(item=>item.id),[1,2]);
 });
-test('recently created quotations are sorted newest first regardless of later edits to older quotations',()=>{
+test('recently created quotations are sorted newest first regardless of later edits to older quotations',async()=>{
  const olderEditedRecently={id:1,createdAtUtc:'2026-09-01T10:00:00Z',updatedAtUtc:'2026-10-09T10:00:00Z'};
  const newestCreated={id:2,createdAtUtc:'2026-10-10T10:00:00Z',updatedAtUtc:'2026-10-10T10:00:00Z'};
  assert.deepEqual([olderEditedRecently,newestCreated].sort((a,b)=>compareQuotationCreations(a,b,'desc')).map(item=>item.id),[2,1]);
  assert.deepEqual([olderEditedRecently,newestCreated].sort((a,b)=>compareQuotationCreations(a,b,'asc')).map(item=>item.id),[1,2]);
+ const list=await readFile(new URL('../src/pages/Quotations/pages/QuotationList.jsx',import.meta.url),'utf8');
+ assert.match(list,/<colgroup><col\/><col\/><col\/><col\/><\/colgroup>/);
+ const styles=await readFile(new URL('../src/pages/Quotations/styles/quotations.css',import.meta.url),'utf8');
+ assert.match(styles, /\.quote-overview-table \{ min-width: 600px; table-layout: fixed; \}/);
+ assert.match(styles, /\.quote-overview-table col:nth-child\(1\) \{ width: 22%; \}/);
+ assert.match(styles, /\.quote-overview-table col:nth-child\(2\) \{ width: 26%; \}/);
+ assert.match(styles, /\.quote-overview-table col:nth-child\(3\) \{ width: 24%; \}/);
+ assert.match(styles, /\.quote-overview-table col:nth-child\(4\) \{ width: 28%; \}/);
+ assert.match(styles, /text-align: left;/);
+ assert.match(styles, /text-align: center;/);
+ assert.match(styles, /text-align: right; padding-right: 112px;/);
+ assert.doesNotMatch(styles, /text-indent:|position: relative; left: -/);
 });
 test('quotation filter Apply uses selected newest/oldest creation order for the quotation table',async()=>{
  const source=await readFile(new URL('../src/pages/Quotations/pages/QuotationList.jsx',import.meta.url),'utf8');
@@ -233,7 +245,9 @@ test('quotation form retains the existing item controls and table layout',async(
  assert.match(html,/Discount \(%\)/);
  const source=await readFile(new URL('../src/pages/Quotations/components/QuotationForm.jsx',import.meta.url),'utf8');
  assert.match(source,/<strong>Actions<\/strong><button type="button" className="quote-items-actions-trigger ibms-row-actions-trigger" aria-label="Items actions"/);
- for(const action of ['Add tax','Add discount','Add item','Add charge'])assert.ok(source.includes(action));
+ for(const action of ['Add tax','Add discount','Add charge'])assert.ok(source.includes(action));
+ assert.match(source,/<button type="button" className="quote-btn primary quote-add-item-button" onClick={handleAddItem}><Add \/> Add item<\/button>/);
+ assert.doesNotMatch(source,/<button type="button" role="menuitem" onClick={handleAddItem}><Add \/> Add item<\/button>/);
  assert.match(source,/className="quote-items-actions-menu ibms-row-actions-menu" role="menu"/);
  assert.match(source,/<SearchablePicker className="quote-product-picker" ariaLabel="Product or service"/);
  assert.match(source,/placeholder="Select product"/);
@@ -296,6 +310,7 @@ test('themed quotation dropdown options use compact text without individual bord
  const form=await readFile(new URL('../src/pages/Quotations/components/QuotationForm.jsx',import.meta.url),'utf8');
  assert.match(form,/<h2>Additional charges<\/h2>/);
  assert.match(form,/<Add \/> Add charge/);
+ assert.match(source, /\.quotation-form-page \.quote-items-actions > \.quote-add-item-button \{ height: 28px; min-height: 28px; padding: 3px 7px; gap: 4px; font-size: \.72rem; \}/);
 });
 
 test('Save Draft stays disabled for incomplete quotations and guards direct submission',async()=>{

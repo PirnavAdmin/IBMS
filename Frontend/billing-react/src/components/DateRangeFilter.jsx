@@ -1,15 +1,19 @@
 import { useEffect, useId, useState } from 'react';
-import { Button, ConfigProvider, Popover } from 'antd';
+import Button from 'antd/es/button';
+import ConfigProvider from 'antd/es/config-provider';
+import Popover from 'antd/es/popover';
 import dayjs from 'dayjs';
 import { DateRangeDatePicker, dateRangeTheme } from './DateRangeDatePicker';
-import { ArrowDropDown, CalendarTodayOutlined, Close } from '@mui/icons-material';
+import ArrowDropDown from '@mui/icons-material/ArrowDropDown';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
+import Close from '@mui/icons-material/Close';
 import { displayDate, localCalendarDate } from '../utils/localDate';
 import { dateRangeError, validDate } from '../utils/dateRangeValidation';
 import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
-  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false }) {
+  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false, placement = 'bottomLeft' }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -63,7 +67,7 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
   </Button>;
   return <ConfigProvider theme={dateRangeTheme}>
     <div className={`date-range-control${inline ? ' date-range-control-inline' : ''}`}>
-      {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement="bottomLeft" content={content} destroyOnHidden zIndex={2000}
+      {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement={placement} content={content} destroyOnHidden zIndex={2000}
         classNames={{ root: 'date-range-popover' }} onOpenChange={changeOpen}>{trigger}</Popover>}
       {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback" role="status">{notice.message}</span>}
     </div>

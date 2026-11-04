@@ -1,25 +1,21 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
-import {
-  PublicOutlined,
-  SaveOutlined,
-  SearchOutlined,
-  Close,
-  DoneAllOutlined,
-  RemoveDoneOutlined,
-  ArrowBackOutlined,
-  CheckCircle,
-  FlagOutlined,
-  PhoneOutlined,
-  MonetizationOnOutlined,
-} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import PublicOutlined from '@mui/icons-material/PublicOutlined';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import Close from '@mui/icons-material/Close';
+import DoneAllOutlined from '@mui/icons-material/DoneAllOutlined';
+import RemoveDoneOutlined from '@mui/icons-material/RemoveDoneOutlined';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import FlagOutlined from '@mui/icons-material/FlagOutlined';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
+import MonetizationOnOutlined from '@mui/icons-material/MonetizationOnOutlined';
 import { SettingsPageHeader } from './SettingsPageHeader';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { CountryFlag } from '../../components/CountryFlag';
@@ -49,6 +45,7 @@ export function CountryConfiguration() {
   const ready = loaded && draft.scope === sessionScope;
   const validationError = countrySelectionError(selectedCountries);
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search countries');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const saveLock = useRef(false);
@@ -156,18 +153,6 @@ export function CountryConfiguration() {
               </span>
             </div>
           </div>
-          {selectedCountries.length > 0 && (
-            <Button
-              size="small"
-              variant="text"
-              color="inherit"
-              startIcon={<RemoveDoneOutlined />}
-              onClick={handleClearAll}
-              className="country-clear-btn"
-            >
-              Clear All
-            </Button>
-          )}
         </div>
 
         {selectedCountries.length > 0 ? (
@@ -437,28 +422,6 @@ export function CountryConfiguration() {
               </div>
             </div>
 
-            <div className="quick-card-actions">
-              <Button
-                variant="contained"
-                fullWidth
-                startIcon={<SaveOutlined />}
-                disabled={saving || !ready || Boolean(validationError)}
-                onClick={handleSave}
-                className="quick-save-btn"
-              >
-                {saving ? 'Saving...' : 'Save Configuration'}
-              </Button>
-              <Button
-                variant="outlined"
-                fullWidth
-                component={Link}
-                to="/settings"
-                startIcon={<ArrowBackOutlined />}
-                className="quick-back-btn"
-              >
-                Back to Settings
-              </Button>
-            </div>
           </div>
         </aside>
       </div>

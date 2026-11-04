@@ -1,6 +1,10 @@
 import React from 'react';
-import { Box, Button, Container, Grid, Typography } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { BackgroundLayers } from './BackgroundLayers.jsx';
 import { HoverboardCard } from './HoverboardCard.jsx';
 import { WindowDots } from './WindowDots.jsx';
@@ -14,7 +18,7 @@ export const AuthCardLayout = ({
   backLabel = 'Back to Sign In',
   tagLabel = 'AUTH',
   version = 'v2.6',
-  brandTitle = 'INVOICE.BILLING',
+  brandTitle = 'IBMS',
   brandSubtitle = 'PORTAL ACCESS',
   brandIcon,
   cardDescription = null,

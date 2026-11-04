@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import {
-  Alert, Autocomplete, Button, Checkbox, Dialog, DialogActions, DialogContent,
-  DialogTitle, FormControlLabel, IconButton, LinearProgress, MenuItem, TextField, Tooltip
-} from '@mui/material';
-import { Add, DeleteOutline, KeyOutlined, LockOutlined } from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import IconButton from '@mui/material/IconButton';
+import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Add from '@mui/icons-material/Add';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import KeyOutlined from '@mui/icons-material/KeyOutlined';
+import LockOutlined from '@mui/icons-material/LockOutlined';
 import { integrationService } from '../Integrations/integrationService';
 import { PAYLOAD_FORMATS, validateWebhook, webhookDto, webhookError } from './webhookService';
 

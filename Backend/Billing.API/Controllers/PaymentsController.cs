@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Payment;
@@ -13,10 +13,12 @@ namespace Billing.API.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly IPaymentGatewayService? _gatewayService;
 
-    public PaymentsController(IPaymentService paymentService)
+    public PaymentsController(IPaymentService paymentService, IPaymentGatewayService? gatewayService = null)
     {
         _paymentService = paymentService;
+        _gatewayService = gatewayService;
     }
 
     private int? GetTenantId()
@@ -325,4 +327,64 @@ public class PaymentsController : ControllerBase
             _ => BadRequest(response)
         };
     }
+
+    [HttpPost("gateway/create-order")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreateGatewayOrder([FromBody] CreatePaymentOrderRequest request, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? request.TenantId ?? GetTenantId() ?? 2;
+
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentOrderDto>.Fail("Payment gateway service not configured."));
+        var result = await _gatewayService.CreateOrderAsync(targetTenant, request);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("gateway/verify")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyGatewayPayment([FromBody] VerifyGatewayPaymentRequest request, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? request.TenantId ?? GetTenantId() ?? 2;
+
+        var performedBy = GetUserDisplayName() ?? "Customer (Online)";
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment gateway service not configured."));
+        var result = await _gatewayService.VerifyAndProcessPaymentAsync(targetTenant, request, performedBy);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpGet("gateway/qr/{invoiceId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetInvoiceQrCode(int invoiceId, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? GetTenantId() ?? 1;
+        if (_gatewayService == null) return NotFound();
+        var qrBytes = await _gatewayService.GenerateInvoiceQrCodeAsync(targetTenant, invoiceId);
+        return File(qrBytes, "image/png");
+    }
+
+    [HttpGet("gateway/invoice-status/{invoiceId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetInvoiceStatus(int invoiceId, [FromQuery] int? tenantId)
+    {
+        var targetTenant = tenantId ?? GetTenantId() ?? 2;
+        var balanceResult = await _paymentService.GetInvoiceBalanceAsync(targetTenant, invoiceId, null);
+        if (!balanceResult.IsSuccess || balanceResult.Data == null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Invoice not found."));
+        }
+
+        var data = balanceResult.Data;
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            invoiceId = data.InvoiceId,
+            invoiceNumber = data.InvoiceNumber,
+            totalAmount = data.TotalAmount,
+            paidAmount = data.PaidAmount,
+            balanceAmount = data.BalanceAmount,
+            status = data.Status,
+            currency = data.Currency,
+            isPaid = string.Equals(data.Status, "Paid", StringComparison.OrdinalIgnoreCase) || data.BalanceAmount <= 0,
+            isPartiallyPaid = string.Equals(data.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase)
+        }));
+    }
+
 }

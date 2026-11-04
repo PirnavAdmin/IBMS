@@ -1,8 +1,13 @@
 import { SearchField } from '../../../components/SearchField';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { useProductSelectProps } from './ProductSelect';
-import { Button, IconButton, InputAdornment, MenuItem, TextField } from '@mui/material';
-import { Close, Search } from '@mui/icons-material';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Close from '@mui/icons-material/Close';
+import Search from '@mui/icons-material/Search';
 
 const ALL_CATEGORIES = '';
 const ALL_STATUSES = '';
@@ -47,7 +52,7 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </FilterSelectField>
     <FilterSelectField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
-      <MenuItem value={ALL_STATUSES}>All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+      <MenuItem value={ALL_STATUSES}>All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </FilterSelectField>
     <TextField
       select

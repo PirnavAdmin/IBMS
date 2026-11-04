@@ -19,6 +19,7 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
             .Where(s => s.SessionExpiresAtUtc < expiredBeforeUtc ||
                         s.RefreshTokenExpiresAtUtc < expiredBeforeUtc ||
                         (s.IsRevoked && s.RevokedAtUtc.HasValue && s.RevokedAtUtc.Value < expiredBeforeUtc.AddDays(-7)))
+            .OrderBy(s => s.SessionExpiresAtUtc)
             .Take(500)
             .ToListAsync(ct);
 
@@ -37,6 +38,7 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
             .Where(m => (m.Status == "Published" || m.Status == "DeadLetter") &&
                         m.ProcessedAtUtc.HasValue &&
                         m.ProcessedAtUtc.Value < processedBeforeUtc)
+            .OrderBy(m => m.ProcessedAtUtc)
             .Take(500)
             .ToListAsync(ct);
 
@@ -54,6 +56,7 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
         var oldDeliveries = await _context.WebhookDeliveries
             .Where(d => (d.Status == "Success" || d.Status == "Failed" || d.Status == "DeadLetter") &&
                         d.CreatedAtUtc < createdBeforeUtc)
+            .OrderBy(d => d.CreatedAtUtc)
             .Take(500)
             .ToListAsync(ct);
 
@@ -70,6 +73,7 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
     {
         var oldPayments = await _context.Payments
             .Where(p => p.CreatedAtUtc < createdBeforeUtc && !string.IsNullOrEmpty(p.IdempotencyKey))
+            .OrderBy(p => p.CreatedAtUtc)
             .Take(500)
             .ToListAsync(ct);
 

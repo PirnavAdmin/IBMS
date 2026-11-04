@@ -1,17 +1,35 @@
+import { useNavbarSearch } from '../../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../../components/FilterSelectField';
 import { DateRangeFilter } from '../../../components/DateRangeFilter';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Add, ArrowDownward, ArrowUpward,
-  LocalPrintshopOutlined, MoreVert, PictureAsPdfOutlined, ReceiptLongOutlined, Search, SavingsOutlined, ScheduleOutlined,
-  Autorenew, VisibilityOutlined, EditOutlined,
-} from '@mui/icons-material';
-import {
-  Breadcrumbs, Button, IconButton, ListItemIcon, Menu, MenuItem, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TextField,
-} from '@mui/material';
+import Add from '@mui/icons-material/Add';
+import ArrowDownward from '@mui/icons-material/ArrowDownward';
+import ArrowUpward from '@mui/icons-material/ArrowUpward';
+import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
+import MoreVert from '@mui/icons-material/MoreVert';
+import PictureAsPdfOutlined from '@mui/icons-material/PictureAsPdfOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import Search from '@mui/icons-material/Search';
+import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
+import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
+import Autorenew from '@mui/icons-material/Autorenew';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TextField from '@mui/material/TextField';
 import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
@@ -25,6 +43,7 @@ const sortable = { number: 'CreditNoteNumber', total: 'TotalAmount', status: 'St
 export function CreditNoteList() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
+  useNavbarSearch(searchInput, setSearchInput, 'Search credit notes');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -111,12 +130,12 @@ export function CreditNoteList() {
       </section>
 
       <section className="cn-list-panel" id="credit-note-register" tabIndex={-1}>
-        <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div><span className="cn-result-count">{query.isPending ? 'Loading…' : `${totalCount} ${totalCount === 1 ? 'record' : 'records'}`}</span></div>
+        <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div></div>
         <div className="cn-filter-bar">
-          <TextField className="cn-search" size="small" placeholder="Search number, customer, invoice or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search credit notes' }} />
-          <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
+          <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason' }} />
+          <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All Statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
           <FilterSelectField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
-          <DateRangeFilter inline startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
+          <DateRangeFilter placement="topRight" startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
         </div>
         {statusMenuOpen && <div className="cn-status-menu-space" aria-hidden="true" />}
@@ -135,26 +154,26 @@ export function CreditNoteList() {
           <Table stickyHeader aria-label="Credit note register">
             <TableHead><TableRow>
               {[['number', 'Credit note'], ['customer', 'Customer / invoice'], ['type', 'Type'], ['total', 'Credit amount'], ['refunded', 'Refunded'], ['remainingRefundable', 'Remaining refundable'], ['status', 'Status'], ['date', 'Created']].map(([key, label]) => <TableCell key={key}><button className="cn-sort-button" disabled={!sortable[key]} onClick={() => changeSort(key)}>{label}{sort.key === key && (sort.direction === 'asc' ? <ArrowUpward /> : <ArrowDownward />)}</button></TableCell>)}
-              <TableCell align="right">Actions</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {query.isPending && <TableRow><TableCell colSpan={9}><div className="cn-table-state"><span className="cn-spinner" />Loading credit notes…</div></TableCell></TableRow>}
               {query.isError && <TableRow><TableCell colSpan={9}><DashboardErrorState title="Unable to load credit notes" message={query.error?.message} onRetry={() => query.refetch()} /></TableCell></TableRow>}
               {!query.isPending && !query.isError && items.map((note) => <TableRow hover key={note.id} className="cn-data-row" onClick={() => navigate(`/credit-notes/${note.id}`)}>
                 <TableCell><span className="cn-number-cell" title={note.number}>{note.number}</span><span className="cn-sub-cell">{formatDate(note.date)}</span></TableCell>
-                <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell">{note.invoiceNumber}</span></TableCell>
+                <TableCell><strong className="cn-customer-cell">{note.customer}</strong><span className="cn-sub-cell cn-customer-invoice-cell" title={note.invoiceNumber}>{note.invoiceNumber}</span></TableCell>
                 <TableCell><span className={`cn-type-pill ${String(note.type).toLowerCase()}`}>{note.type}</span></TableCell>
                 <TableCell><strong className="cn-money-cell">{money(note.total, note.currency)}</strong></TableCell>
                 <TableCell><span className="cn-refunded-cell">{money(note.refunded, note.currency)}</span></TableCell>
                 <TableCell><span className="cn-refunded-cell">{money(note.remainingRefundable, note.currency)}</span></TableCell>
                 <TableCell><CreditNoteStatusBadge status={note.status} /></TableCell>
                 <TableCell>{formatDate(note.createdAt || note.date)}</TableCell>
-                <TableCell align="right"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
+                <TableCell align="center"><IconButton className="ibms-row-actions-trigger" aria-haspopup="menu" aria-expanded={Boolean(menuAnchor) && menuNote?.id === note.id} size="small" onClick={(event) => { event.stopPropagation(); openMenu(event, note); }} aria-label={`Actions for ${note.number}`}><MoreVert /></IconButton></TableCell>
               </TableRow>)}
             </TableBody>
           </Table>
         </TableContainer>}
-        {totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={totalCount} itemLabel="credit notes" onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setPageSize(value); setPage(0); }} />}
+        {totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={totalCount} itemLabel="credit notes" disabledPageHint={totalCount <= pageSize ? 'All credit notes fit on this page.' : undefined} className="cn-pagination" onPageChange={(value) => setPage(value - 1)} onPageSizeChange={(value) => { setPageSize(value); setPage(0); }} />}
       </section>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>

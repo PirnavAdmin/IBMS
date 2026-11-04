@@ -628,3 +628,22 @@
     align-items: flex-start;
   }
 }
+
+/* Keep the search input tall enough when the shell applies border-box sizing. */
+@media screen {
+  .customers-page .customer-search .MuiOutlinedInput-root {
+    height: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .customers-page .customer-search .MuiOutlinedInput-input {
+    box-sizing: border-box;
+    height: 100%;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .customers-page .customer-search .MuiFormHelperText-root {
+    margin-top: 6px;
+  }
+}

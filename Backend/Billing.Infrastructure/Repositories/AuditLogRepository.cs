@@ -1,4 +1,5 @@
 using Billing.Application.Interfaces;
+using Billing.Contracts.Platform;
 using Billing.Domain.Entities;
 using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -89,6 +90,52 @@ public class AuditLogRepository : IAuditLogRepository
             .OrderByDescending(a => a.Timestamp)
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
+            .ToListAsync(cancellationToken);
+
+        items.ForEach(SanitizeChanges);
+        return (items, totalCount);
+    }
+
+    public async Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        var query = _context.AuditLogs
+            .AsNoTracking()
+            .Include(a => a.Tenant)
+            .AsQueryable();
+
+        if (filter.TenantId.HasValue && filter.TenantId.Value > 0)
+            query = query.Where(a => a.TenantId == filter.TenantId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.EntityName))
+            query = query.Where(a => a.EntityName == filter.EntityName.Trim());
+
+        if (!string.IsNullOrWhiteSpace(filter.Actor))
+        {
+            var actor = filter.Actor.Trim().ToLower();
+            query = query.Where(a => a.UserName.ToLower().Contains(actor));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Action))
+        {
+            var action = filter.Action.Trim().ToLower();
+            query = query.Where(a => a.Action.ToLower() == action);
+        }
+
+        if (filter.StartDate.HasValue)
+            query = query.Where(a => a.Timestamp >= filter.StartDate.Value);
+
+        if (filter.EndDate.HasValue)
+            query = query.Where(a => a.Timestamp <= filter.EndDate.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var page = filter.PageNumber > 0 ? filter.PageNumber : 1;
+        var pageSize = filter.PageSize > 0 ? filter.PageSize : 20;
+
+        var items = await query
+            .OrderByDescending(a => a.Timestamp)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
         items.ForEach(SanitizeChanges);

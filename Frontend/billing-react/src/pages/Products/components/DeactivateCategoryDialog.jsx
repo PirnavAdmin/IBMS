@@ -1,4 +1,10 @@
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 
 export function DeactivateCategoryDialog({ open, onClose, onConfirm, busy = false, error = '', activating = false }) {
   return <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="xs" aria-labelledby="deactivate-category-title" aria-describedby="deactivate-category-description">

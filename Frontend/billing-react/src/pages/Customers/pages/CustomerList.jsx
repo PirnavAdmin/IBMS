@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MenuItem, Select } from '@mui/material';
-import {
-  Add,
-  Search,
-  PeopleOutline,
-  CheckCircleOutline,
-  HighlightOff,
-  VisibilityOutlined,
-  EditOutlined,
-  DeleteOutline,
-  Refresh,
-} from '@mui/icons-material';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Add from '@mui/icons-material/Add';
+import Search from '@mui/icons-material/Search';
+import PeopleOutline from '@mui/icons-material/PeopleOutline';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import HighlightOff from '@mui/icons-material/HighlightOff';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import Refresh from '@mui/icons-material/Refresh';
 import { customerApi } from 'billing-api-client';
 import { CustomerStatusBadge } from '../components/CustomerStatusBadge';
 import '../styles/customer-form.css';

@@ -1,44 +1,41 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  AccountTreeOutlined,
-  AdminPanelSettingsOutlined,
-  ArrowBackOutlined,
-  BadgeOutlined,
-  BlockOutlined,
-  CheckCircleOutline,
-  DeleteOutline,
-  EditOutlined,
-  GroupOutlined,
-  MoreVertOutlined,
-  PersonAddAlt1Outlined,
-  SearchOutlined,
-  ShieldOutlined,
-  VpnKeyOutlined,
-  VisibilityOutlined,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  FormControl,
-  FormControlLabel,
-  FormGroup,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  ListItemIcon,
-  Menu,
-  MenuItem,
-  Select,
-  Tab,
-  Tabs,
-  TextField,
-  Tooltip,
-} from '@mui/material';
+import AccountTreeOutlined from '@mui/icons-material/AccountTreeOutlined';
+import AdminPanelSettingsOutlined from '@mui/icons-material/AdminPanelSettingsOutlined';
+import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
+import BadgeOutlined from '@mui/icons-material/BadgeOutlined';
+import BlockOutlined from '@mui/icons-material/BlockOutlined';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import EditOutlined from '@mui/icons-material/EditOutlined';
+import GroupOutlined from '@mui/icons-material/GroupOutlined';
+import MoreVertOutlined from '@mui/icons-material/MoreVertOutlined';
+import PersonAddAlt1Outlined from '@mui/icons-material/PersonAddAlt1Outlined';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
+import ShieldOutlined from '@mui/icons-material/ShieldOutlined';
+import VpnKeyOutlined from '@mui/icons-material/VpnKeyOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormGroup from '@mui/material/FormGroup';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import InputLabel from '@mui/material/InputLabel';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import { userRoleAdministrationService as service } from './userRoleAdministrationService';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
@@ -226,6 +223,7 @@ function RowActionsMenu({ actions }) {
 
 function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUser, assignmentMode = false }) {
   const [searchInput, setSearchInput] = useState('');
+  useNavbarSearch(searchInput, value => { setSearchInput(value); setPage(0); }, 'Search users');
   const [status, setStatus] = useState('all');
   const [role, setRole] = useState('all');
   const [identityType, setIdentityType] = useState('all');
@@ -262,7 +260,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
     />
     <div className="ura-filter-bar ura-user-filter-bar">
       <div className="ura-filter-field ura-filter-search"><TextField id="ura-user-search" label="Search" InputLabelProps={{ shrink: true }} size="small" fullWidth placeholder="Name, username, or email" value={searchInput} onChange={changeSearch} InputProps={{ startAdornment: <SearchOutlined className="ura-search-icon" /> }} inputProps={{ 'aria-label': 'Search users by name, username, or email' }} /></div>
-      <div className="ura-filter-field ura-filter-status"><FormControl size="small" fullWidth><InputLabel id="ura-status-filter-label" shrink>Status</InputLabel><Select MenuProps={selectMenuProps} id="ura-status-filter" labelId="ura-status-filter-label" label="Status" value={status} onChange={changeStatus}><MenuItem value="all">All statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl></div>
+      <div className="ura-filter-field ura-filter-status"><FormControl size="small" fullWidth><InputLabel id="ura-status-filter-label" shrink>Status</InputLabel><Select MenuProps={selectMenuProps} id="ura-status-filter" labelId="ura-status-filter-label" label="Status" value={status} onChange={changeStatus}><MenuItem value="all">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl></div>
       <div className="ura-filter-role ura-filter-field"><FormControl size="small" fullWidth disabled={rolesQuery.isPending || rolesQuery.isError}><InputLabel id="ura-role-filter-label" shrink>Role</InputLabel><Select MenuProps={selectMenuProps} id="ura-role-filter" labelId="ura-role-filter-label" label="Role" value={role} onChange={changeRole}><MenuItem value="all">All roles</MenuItem>{roles.map((item) => { const name = recordValue(item, 'name', 'Name'); return <MenuItem key={name} value={name}>{name}</MenuItem>; })}</Select></FormControl></div>
       <div className="ura-filter-field ura-filter-identity"><FormControl size="small" fullWidth><InputLabel id="ura-identity-filter-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} id="ura-identity-filter" labelId="ura-identity-filter-label" label="Identity type" value={identityType} onChange={changeIdentityType}><MenuItem value="all">All identity types</MenuItem><MenuItem value="Platform">Platform</MenuItem><MenuItem value="Host">Host</MenuItem></Select></FormControl></div>
       <Button className="ura-reset-filters" variant="text" onClick={resetFilters} disabled={!hasFilters}>Clear Filters</Button>
@@ -508,6 +506,7 @@ function UserDetails({ userId, onEdit, onBack, notice }) {
 
 function RoleList({ onCreate, onView, onEdit, onDelete }) {
   const [search, setSearch] = useState('');
+  useNavbarSearch(search, setSearch, 'Search roles');
   const tenantId = currentTenantId();
   const rolesQuery = useQuery({ queryKey: ['ura', 'roles', tenantId], queryFn: ({ signal }) => service.listRoles({ tenantId, signal }), retry: false });
   const roles = useMemo(() => (rolesQuery.data ?? []).filter((role) => {

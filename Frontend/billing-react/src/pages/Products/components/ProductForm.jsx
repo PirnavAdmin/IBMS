@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Alert, Button, CircularProgress, Collapse, Switch, useMediaQuery } from '@mui/material';
-import {
-  Inventory2Outlined,
-  ReceiptLongOutlined,
-  TuneOutlined,
-  ArrowBack,
-  SaveOutlined,
-} from '@mui/icons-material';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Collapse from '@mui/material/Collapse';
+import Switch from '@mui/material/Switch';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
+import TuneOutlined from '@mui/icons-material/TuneOutlined';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import SaveOutlined from '@mui/icons-material/SaveOutlined';
 import {
   productValidationSchema,
   DEFAULT_PRODUCT_VALUES,
