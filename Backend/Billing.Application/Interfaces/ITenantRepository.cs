@@ -13,4 +13,5 @@ public interface ITenantRepository
     Task<(List<Tenant> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize);
     Task<int> GetCountByStatusAsync(string? status = null);
     Task<List<User>> GetTenantAdminsAsync(int tenantId);
+    Task<Tenant?> GetByIdempotencyKeyAsync(string idempotencyKey);
 }

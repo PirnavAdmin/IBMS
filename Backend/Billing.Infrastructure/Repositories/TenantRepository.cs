@@ -99,9 +99,17 @@ public class TenantRepository : ITenantRepository
     {
         return await _context.Users
             .AsNoTracking()
-            .Where(u => u.TenantId == tenantId &&
-                        (u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin")))
-            .OrderBy(u => u.Name)
+            .Where(u => u.TenantId == tenantId && (u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin")))
+            .OrderByDescending(u => u.CreatedAtUtc)
             .ToListAsync();
+    }
+
+    public async Task<Tenant?> GetByIdempotencyKeyAsync(string idempotencyKey)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        var key = idempotencyKey.Trim();
+        return await _context.Tenants
+            .Include(t => t.Users)
+            .FirstOrDefaultAsync(t => t.IdempotencyKey == key);
     }
 }

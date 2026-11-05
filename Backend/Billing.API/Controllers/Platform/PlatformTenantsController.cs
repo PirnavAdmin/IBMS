@@ -84,12 +84,22 @@ public class PlatformTenantsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateTenant([FromBody] CreateTenantRequest request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && Request?.Headers != null)
+        {
+            var headerKey = Request.Headers["Idempotency-Key"].FirstOrDefault()
+                ?? Request.Headers["X-Idempotency-Key"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(headerKey))
+            {
+                request.IdempotencyKey = headerKey.Trim();
+            }
+        }
+
         var currentUserName = GetCurrentUserName();
         var (success, message, createdTenant, errorCode) = await _platformService.CreateTenantAsync(request, currentUserName, cancellationToken);
 
         if (!success)
         {
-            if (errorCode == "DUPLICATE_CODE" || errorCode == "CONFLICT")
+            if (errorCode != null && (errorCode.Contains("CONFLICT") || errorCode.Contains("DUPLICATE")))
             {
                 return Conflict(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode));
             }
@@ -189,9 +199,9 @@ public class PlatformTenantsController : ControllerBase
 
     private string GetCurrentUserName()
     {
-        return User.FindFirst(ClaimTypes.Name)?.Value
-               ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-               ?? User.Identity?.Name
+        return User?.FindFirst(ClaimTypes.Name)?.Value
+               ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? User?.Identity?.Name
                ?? "SuperAdmin";
     }
 }

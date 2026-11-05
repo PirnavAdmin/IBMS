@@ -87,6 +87,7 @@ public class BillingDbContext : DbContext
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<ExportJob> ExportJobs { get; set; }
     public DbSet<CountrySetting> CountrySettings { get; set; }
+    public DbSet<PlatformSetting> PlatformSettings { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
