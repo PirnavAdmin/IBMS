@@ -39,6 +39,8 @@ export function PublicInvoicePayment() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState(null);
   const [payAmount, setPayAmount] = useState('');
+  const [bankAmount, setBankAmount] = useState('');
+  const [simulatingUpi, setSimulatingUpi] = useState(false);
   const [tab, setTab] = useState(0); // 0 = UPI QR, 1 = Razorpay Card, 2 = Bank Transfer
   const [paymentSuccess, setPaymentSuccess] = useState(null);
   const [copiedField, setCopiedField] = useState('');
@@ -79,7 +81,9 @@ export function PublicInvoicePayment() {
           initialBalanceRef.current = data.balanceAmount ?? 0;
         }
         if (updateInputText || customAmount === null) {
-          setPayAmount(data.balanceAmount?.toString() || data.amount?.toString() || '');
+          const balStr = data.balanceAmount?.toString() || data.amount?.toString() || '';
+          setPayAmount(balStr);
+          setBankAmount(balStr);
         }
       }
     } catch (err) {
@@ -237,6 +241,91 @@ export function PublicInvoicePayment() {
     } catch (err) {
       setError('Could not open Razorpay checkout: ' + err.message);
       setProcessing(false);
+    }
+  };
+
+  // Bank transfer submission with explicit customer amount
+  const handleBankTransferSubmit = async () => {
+    const finalRef = (utrNumber || '').trim();
+    if (!finalRef) {
+      setError('Please enter your Bank UTR or Transaction Reference Number.');
+      return;
+    }
+
+    const rawBank = parseFloat(bankAmount);
+    if (isNaN(rawBank) || rawBank <= 0) {
+      setError('Please enter a valid amount transferred.');
+      return;
+    }
+
+    if (rawBank > order.balanceAmount) {
+      setError(`Amount transferred cannot exceed the outstanding balance of ₹${order.balanceAmount.toFixed(2)}.`);
+      return;
+    }
+
+    const effectiveAmount = isPartialAllowed ? rawBank : order.balanceAmount;
+
+    setProcessing(true);
+    setError('');
+
+    try {
+      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/verify`, {
+        invoiceId: order.invoiceId,
+        tenantId: parseInt(tenantId, 10),
+        orderId: order.orderId,
+        paymentId: finalRef,
+        amount: effectiveAmount,
+        gateway: 'BankTransfer'
+      });
+
+      if (res?.data?.success !== false) {
+        const backendData = res?.data?.data;
+        const paid = backendData?.amount ?? effectiveAmount;
+        const remaining = backendData?.balanceAmount ?? Math.max(0, order.balanceAmount - paid);
+        setPaymentSuccess({
+          isFull: remaining <= 0,
+          paidAmount: paid,
+          remainingBalance: remaining,
+          reference: finalRef,
+          invoiceNumber: order.invoiceNumber,
+          customerName: order.customerName
+        });
+      } else {
+        setError(res?.data?.message || 'Payment verification failed.');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to submit bank transfer reference.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Simulate UPI Payment in Sandbox/Dev mode for instant auto-detection (Option B)
+  const handleSimulateUpiPayment = async () => {
+    if (!order || simulatingUpi) return;
+    setSimulatingUpi(true);
+    setError('');
+
+    try {
+      const rawVal = parseFloat(payAmount);
+      const effectiveAmount = !isNaN(rawVal) && rawVal > 0
+        ? Math.min(rawVal, order.balanceAmount)
+        : order.balanceAmount;
+
+      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/simulate-qr-payment/${order.invoiceId}?tenantId=${tenantId}`, {
+        tenantId: parseInt(tenantId, 10),
+        amount: effectiveAmount,
+        utrReference: `UPI${Date.now()}`
+      });
+
+      if (res?.data?.success === false) {
+        setError(res?.data?.message || 'UPI Simulation failed.');
+      }
+      // The auto-polling loop running every 2.5s detects the recorded payment and switches to success screen!
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to simulate UPI payment.');
+    } finally {
+      setSimulatingUpi(false);
     }
   };
 
@@ -400,28 +489,77 @@ export function PublicInvoicePayment() {
                       }}
                     />
                   </Box>
+                  {paymentSuccess.reference && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" sx={{ color: '#7E6B5C', fontWeight: 600 }}>Reference / UTR:</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace', color: '#35271F' }}>
+                        {paymentSuccess.reference}
+                      </Typography>
+                    </Box>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
 
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBack />}
-              onClick={() => {
-                setPaymentSuccess(null);
-                fetchOrder(null, true);
-              }}
+            <Alert
+              severity="success"
               sx={{
-                borderColor: '#DECFBB',
-                color: '#65442E',
-                fontWeight: 700,
+                mb: 3,
+                textAlign: 'left',
                 borderRadius: 2.5,
-                px: 3,
-                '&:hover': { borderColor: '#65442E', bgcolor: '#FAF4EC' }
+                bgcolor: '#F0FDF4',
+                color: '#166534',
+                border: '1px solid #BBF7D0'
               }}
             >
-              Back to Invoice Summary
-            </Button>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                📧 An official Payment Receipt email has been dispatched with your updated Tax Invoice attached (Current Balance Due: ₹{Number(paymentSuccess.remainingBalance).toFixed(2)}).
+              </Typography>
+            </Alert>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">
+              <Button
+                variant="contained"
+                component="a"
+                href={`${API_URL}/api/v1/invoices/${order?.invoiceId || id}/pdf?tenantId=${tenantId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                startIcon={<PaymentOutlined />}
+                sx={{
+                  bgcolor: '#65442E',
+                  color: '#FFF8EF',
+                  fontWeight: 750,
+                  borderRadius: 2.5,
+                  px: 3,
+                  py: 1.2,
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: '#513420' }
+                }}
+              >
+                Download Updated Tax Invoice (PDF)
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBack />}
+                onClick={() => {
+                  setPaymentSuccess(null);
+                  fetchOrder(null, true);
+                }}
+                sx={{
+                  borderColor: '#DECFBB',
+                  color: '#65442E',
+                  fontWeight: 700,
+                  borderRadius: 2.5,
+                  px: 3,
+                  py: 1.2,
+                  textTransform: 'none',
+                  '&:hover': { borderColor: '#65442E', bgcolor: '#FAF4EC' }
+                }}
+              >
+                Back to Invoice Summary
+              </Button>
+            </Stack>
           </Paper>
         ) : order ? (
           <Paper
@@ -667,6 +805,34 @@ export function PublicInvoicePayment() {
                       Waiting for UPI payment confirmation... (Auto-detecting)
                     </Typography>
                   </Box>
+
+                  {/* Option B: Gateway / Sandbox Simulation Trigger */}
+                  <Box sx={{ mt: 2.5, p: 2, bgcolor: '#FAF4EC', border: '1px dashed #DECFBB', borderRadius: 2.5 }}>
+                    <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block', mb: 1, fontWeight: 600 }}>
+                      Testing in Sandbox / Dev mode:
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disabled={simulatingUpi}
+                      onClick={handleSimulateUpiPayment}
+                      sx={{
+                        bgcolor: '#16A34A',
+                        color: '#FFFFFF',
+                        fontWeight: 750,
+                        textTransform: 'none',
+                        borderRadius: 2,
+                        px: 2.5,
+                        py: 0.8,
+                        '&:hover': { bgcolor: '#15803D' }
+                      }}
+                    >
+                      {simulatingUpi ? 'Triggering UPI Simulation...' : `⚡ Test Auto-Detect: Simulate UPI App Payment (₹${Number(currentPayable).toFixed(2)})`}
+                    </Button>
+                    <Typography variant="caption" sx={{ color: '#8A6850', display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
+                      Sends a gateway transaction event; the system auto-detects it and transitions screen to Payment Completed instantly.
+                    </Typography>
+                  </Box>
                 </Box>
               )}
 
@@ -794,10 +960,57 @@ export function PublicInvoicePayment() {
                       After Transferring, Confirm Your Payment:
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#4B6353', display: 'block', mb: 2 }}>
-                      Once you complete the transfer in your bank app, enter the 12-digit UTR / Transaction Reference Number below to instantly confirm your payment.
+                      Once you complete the transfer in your bank app, enter the amount you transferred and the 12-digit UTR / Reference Number below to record your payment.
                     </Typography>
 
-                    <Stack spacing={1.5}>
+                    <Stack spacing={2}>
+                      <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#166534' }}>
+                            Amount Transferred (₹)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#4B6353', fontWeight: 600 }}>
+                            {isPartialAllowed ? `Max: ₹${order.balanceAmount?.toFixed(2)}` : 'Full Balance Required'}
+                          </Typography>
+                        </Box>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          type="number"
+                          value={bankAmount}
+                          disabled={!isPartialAllowed}
+                          onChange={(e) => setBankAmount(e.target.value)}
+                          placeholder={`Enter amount transferred (e.g. ${order.balanceAmount})`}
+                          inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
+                          sx={{
+                            bgcolor: '#FFFFFF',
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: 2,
+                              '& fieldset': { borderColor: '#DECFBB' },
+                              '&:hover fieldset': { borderColor: '#16A34A' },
+                              '&.Mui-focused fieldset': { borderColor: '#16A34A' }
+                            }
+                          }}
+                        />
+
+                        {/* Live Settlement Status Preview */}
+                        {(() => {
+                          const numBank = parseFloat(bankAmount);
+                          if (isNaN(numBank) || numBank <= 0) return null;
+                          const rem = Math.max(0, order.balanceAmount - numBank);
+                          const isFull = rem <= 0.01;
+                          return (
+                            <Box sx={{ mt: 1, p: 1, bgcolor: isFull ? '#DCFCE7' : '#FEF3C7', borderRadius: 1.5, border: isFull ? '1px solid #86EFAC' : '1px solid #FCD34D' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 750, color: isFull ? '#166534' : '#92400E', display: 'block' }}>
+                                {isFull
+                                  ? `✓ Full Settlement: Invoice will be marked as FULLY PAID (Remaining Due: ₹0.00)`
+                                  : `ℹ Partial Payment: ₹${numBank.toFixed(2)} will be recorded (Remaining Balance Due will be ₹${rem.toFixed(2)})`}
+                              </Typography>
+                            </Box>
+                          );
+                        })()}
+                      </Box>
+
                       <TextField
                         size="small"
                         fullWidth
@@ -815,12 +1028,19 @@ export function PublicInvoicePayment() {
                           }
                         }}
                       />
+
                       <Button
                         variant="contained"
                         size="large"
                         fullWidth
-                        disabled={processing || !utrNumber.trim()}
-                        onClick={() => handleUtrSubmit(utrNumber)}
+                        disabled={
+                          processing ||
+                          !utrNumber.trim() ||
+                          !bankAmount ||
+                          parseFloat(bankAmount) <= 0 ||
+                          parseFloat(bankAmount) > order.balanceAmount
+                        }
+                        onClick={handleBankTransferSubmit}
                         sx={{
                           py: 1.4,
                           fontWeight: 750,
@@ -831,7 +1051,7 @@ export function PublicInvoicePayment() {
                           '&:hover': { bgcolor: '#15803D' }
                         }}
                       >
-                        {processing ? 'Verifying Transfer...' : `Completed Payment (₹${Number(currentPayable).toFixed(2)})`}
+                        {processing ? 'Recording Bank Payment...' : `Confirm Payment of ₹${(parseFloat(bankAmount) || 0).toFixed(2)}`}
                       </Button>
                     </Stack>
                   </Box>

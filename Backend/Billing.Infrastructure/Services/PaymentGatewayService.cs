@@ -155,6 +155,12 @@ public class PaymentGatewayService : IPaymentGatewayService
         var paymentId = string.IsNullOrWhiteSpace(request.PaymentId) ? $"pay_{Guid.NewGuid():N}"[..20] : request.PaymentId.Trim();
         var amount = request.Amount > 0 ? request.Amount : invoice.BalanceAmount;
 
+        var isBankTransfer = string.Equals(request.Gateway, "BankTransfer", StringComparison.OrdinalIgnoreCase);
+        var isUpi = request.Gateway?.Contains("UPI", StringComparison.OrdinalIgnoreCase) == true;
+        var method = isBankTransfer ? "BankTransfer" : (isUpi ? "UPI" : "Gateway");
+        var provider = isBankTransfer ? "Bank Transfer" : (isUpi ? "UPI Payment" : (request.Gateway ?? "Razorpay"));
+        var reference = isBankTransfer || isUpi ? paymentId : $"{request.OrderId}|{paymentId}";
+
         // Record the payment cleanly through the existing PaymentService
         var createRequest = new CreatePaymentRequest
         {
@@ -162,11 +168,11 @@ public class PaymentGatewayService : IPaymentGatewayService
             CustomerId = invoice.CustomerId,
             Amount = amount,
             Currency = invoice.Currency ?? "INR",
-            Method = "Gateway",
-            ProviderName = request.Gateway ?? "Razorpay",
+            Method = method,
+            ProviderName = provider,
             ProviderTransactionId = paymentId,
-            CustomMethodName = request.Gateway ?? "Razorpay",
-            Reference = $"{request.OrderId}|{paymentId}",
+            CustomMethodName = provider,
+            Reference = reference,
             PaymentDate = DateTime.UtcNow,
             Allocations = new List<CreatePaymentAllocationRequest>
             {

@@ -21,6 +21,7 @@ public class NotificationService : INotificationService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly ILogger<NotificationService> _logger;
     private readonly IQuotationPdfEngine? _quotationPdfEngine;
+    private readonly IInvoiceTemplateService? _invoiceTemplateService;
 
     public NotificationService(
         INotificationTemplateRepository templateRepository,
@@ -34,7 +35,8 @@ public class NotificationService : INotificationService
         ITenantRepository tenantRepository,
         IAuditLogRepository auditLogRepository,
         ILogger<NotificationService> logger,
-        IQuotationPdfEngine? quotationPdfEngine = null)
+        IQuotationPdfEngine? quotationPdfEngine = null,
+        IInvoiceTemplateService? invoiceTemplateService = null)
     {
         _templateRepository = templateRepository;
         _logRepository = logRepository;
@@ -48,6 +50,7 @@ public class NotificationService : INotificationService
         _auditLogRepository = auditLogRepository;
         _logger = logger;
         _quotationPdfEngine = quotationPdfEngine;
+        _invoiceTemplateService = invoiceTemplateService;
     }
 
     public async Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(
@@ -190,8 +193,37 @@ public class NotificationService : INotificationService
         var currency = payment.Currency ?? "INR";
 
         var firstAllocation = payment.Allocations?.FirstOrDefault();
-        var invoiceNumber = firstAllocation?.Invoice?.InvoiceNumber ?? "N/A";
-        var remainingBalance = firstAllocation?.Invoice?.BalanceAmount.ToString("N2") ?? "0.00";
+        var invoiceId = firstAllocation?.InvoiceId;
+        Invoice? invoice = null;
+        if (invoiceId.HasValue)
+        {
+            invoice = await _invoiceRepository.GetByIdAsync(invoiceId.Value, tenantId);
+        }
+
+        var invoiceNumber = invoice?.InvoiceNumber ?? firstAllocation?.Invoice?.InvoiceNumber ?? "N/A";
+        var balanceDueAmount = invoice?.BalanceAmount ?? firstAllocation?.Invoice?.BalanceAmount ?? 0m;
+        var remainingBalance = balanceDueAmount.ToString("N2");
+        var isFullyPaid = balanceDueAmount <= 0;
+
+        byte[]? pdfAttachment = null;
+        string? pdfFileName = null;
+
+        if (_invoiceTemplateService != null && invoiceId.HasValue)
+        {
+            try
+            {
+                var (bytes, fileName, _) = await _invoiceTemplateService.GetInvoicePdfAsync(
+                    invoiceId.Value,
+                    tenantId,
+                    forceRegenerate: true);
+                pdfAttachment = bytes;
+                pdfFileName = fileName ?? $"{invoiceNumber}.pdf";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not generate invoice PDF attachment for payment {PaymentId} on Invoice {InvoiceId}", paymentId, invoiceId);
+            }
+        }
 
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -207,7 +239,7 @@ public class NotificationService : INotificationService
             ["InvoiceNumber"] = invoiceNumber,
             ["RemainingBalance"] = remainingBalance,
             ["FailureReason"] = eventType == "PaymentFailed" ? "Payment was declined or cancelled." : string.Empty,
-            ["PaymentLink"] = $"/portal/invoices/{invoiceNumber}/pay"
+            ["PaymentLink"] = invoiceId.HasValue ? $"http://localhost:3000/pay/{invoiceId.Value}?tenantId={tenantId}" : $"/portal/invoices/{invoiceNumber}/pay"
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
@@ -221,10 +253,54 @@ public class NotificationService : INotificationService
         }
         else
         {
-            subject = eventType == "PaymentReceived"
-                ? $"Payment Receipt: {payment.PaymentNumber} from {companyName}"
-                : $"Payment Failed for Invoice {invoiceNumber}";
-            body = $"<p>Dear {customerName},</p><p>Payment receipt for {payment.PaymentNumber}: {currency} {payment.Amount:N2}.</p><p>Regards,<br>{companyName}</p>";
+            if (eventType == "PaymentReceived")
+            {
+                subject = $"Payment Receipt: {payment.PaymentNumber} for Invoice {invoiceNumber}";
+                var statusBadge = isFullyPaid
+                    ? "<span style='display:inline-block;padding:3px 10px;background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:12px;font-weight:700;font-size:12px;'>Fully Paid</span>"
+                    : "<span style='display:inline-block;padding:3px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:12px;font-weight:700;font-size:12px;'>Partially Paid</span>";
+
+                var balanceColor = isFullyPaid ? "#166534" : "#b91c1c";
+                var balanceText = isFullyPaid ? $"{currency} 0.00 (Cleared)" : $"{currency} {remainingBalance}";
+
+                var payLink = invoiceId.HasValue
+                    ? $"http://localhost:3000/pay/{invoiceId.Value}?tenantId={tenantId}"
+                    : "#";
+
+                var payRemainingButton = (!isFullyPaid && invoiceId.HasValue)
+                    ? $@"<div style='margin:20px 0;text-align:center;'>
+                            <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:11px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;display:inline-block;'>Pay Remaining Balance Online</a>
+                         </div>"
+                    : "";
+
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:580px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;color:#334155;'>
+                    <div style='font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
+                    <h2 style='color:#0f172a;margin:6px 0 16px;font-size:22px;'>Payment Receipt: {payment.PaymentNumber}</h2>
+                    <p style='color:#334155;font-size:14px;margin:0 0 16px;'>Dear <strong>{customerName}</strong>,<br/>Thank you for your payment. Your transaction has been successfully processed.</p>
+                    
+                    <table style='width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin:16px 0;'>
+                        <tr><td style='padding:9px 14px;color:#64748b;'>Receipt Number</td><td style='padding:9px 14px;text-align:right;font-weight:600;color:#0f172a;'>{payment.PaymentNumber}</td></tr>
+                        <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Payment Date</td><td style='padding:9px 14px;text-align:right;color:#334155;border-top:1px solid #f1f5f9;'>{payment.PaymentDate:dd MMM yyyy}</td></tr>
+                        <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Payment Method</td><td style='padding:9px 14px;text-align:right;color:#334155;border-top:1px solid #f1f5f9;'>{payment.Method} {(string.IsNullOrWhiteSpace(payment.Reference) ? "" : $"({payment.Reference})")}</td></tr>
+                        <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Invoice Number</td><td style='padding:9px 14px;text-align:right;font-weight:600;color:#0f172a;border-top:1px solid #f1f5f9;'>{invoiceNumber}</td></tr>
+                        <tr style='border-top:1px solid #e2e8f0;background:#f1f5f9;'><td style='padding:11px 14px;font-weight:600;color:#0f172a;font-size:14px;'>Amount Paid</td><td style='padding:11px 14px;text-align:right;font-weight:700;color:#16a34a;font-size:16px;'>{currency} {payment.Amount:N2}</td></tr>
+                        <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #e2e8f0;'>Invoice Status</td><td style='padding:9px 14px;text-align:right;border-top:1px solid #e2e8f0;'>{statusBadge}</td></tr>
+                        <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Remaining Balance Due</td><td style='padding:9px 14px;text-align:right;font-weight:700;color:{balanceColor};border-top:1px solid #f1f5f9;'>{balanceText}</td></tr>
+                    </table>
+
+                    {(pdfAttachment != null ? "<p style='color:#64748b;font-size:13px;margin:12px 0;'>&#128206; <em>Your updated tax invoice reflecting this payment is attached to this email.</em></p>" : "")}
+                    
+                    {payRemainingButton}
+
+                    <hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0 16px;'/>
+                    <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+                </div>";
+            }
+            else
+            {
+                subject = $"Payment Failed for Invoice {invoiceNumber}";
+                body = $"<p>Dear {customerName},</p><p>Your payment attempt for Invoice {invoiceNumber} could not be completed.</p><p>Regards,<br>{companyName}</p>";
+            }
         }
 
         var log = new NotificationLog
@@ -245,7 +321,7 @@ public class NotificationService : INotificationService
 
         try
         {
-            await _emailService.SendEmailAsync(customerEmail, subject, body);
+            await _emailService.SendEmailAsync(customerEmail, subject, body, pdfAttachment, pdfFileName);
 
             log.Status = "Sent";
             log.SentAtUtc = DateTime.UtcNow;
