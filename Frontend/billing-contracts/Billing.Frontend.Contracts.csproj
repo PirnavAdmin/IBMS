@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <BaseIntermediateOutputPath>..\..\.vs\obj\Billing.Frontend.Contracts\</BaseIntermediateOutputPath>
+    <BaseOutputPath>..\..\.vs\bin\Billing.Frontend.Contracts\</BaseOutputPath>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <Target Name="Compile" />
+  <Target Name="CopyFilesToOutputDirectory" />
+  <ItemGroup>
+    <None Include="**\*" Exclude="node_modules\**;dist\**;bin\**;obj\**;*.csproj;*.user" />
+  </ItemGroup>
+</Project>

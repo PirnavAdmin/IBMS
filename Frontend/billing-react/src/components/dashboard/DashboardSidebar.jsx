@@ -23,6 +23,7 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import { InvoiceBillingLogo } from '../InvoiceBillingLogo';
+import { isPlatformAdmin, platformNavigation } from '../../pages/Platform/platformAccess';
 import { dashboardNavigation } from '../../data/dashboardNavigation';
 import { hasPermission } from '../../utils/permissionUtils';
 
@@ -49,13 +50,14 @@ const iconMap = {
 export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile = false, onToggle, onSelect, onNavigate, onClose }) => {
   const asideRef = useRef(null);
   const menuId = useId();
-  const activeSection = dashboardNavigation.find(section => section.label !== 'Overview' && section.items.some(item => item.id === activeItem))?.label;
+  const user = useCurrentUser();
+  const navigation = isPlatformAdmin(user) ? platformNavigation : dashboardNavigation;
+  const activeSection = navigation.find(section => section.label !== 'Overview' && section.items.some(item => item.id === activeItem))?.label;
   const [expandedSection, setExpandedSection] = useState(activeSection || 'Billing');
   useEffect(() => { if (activeSection) setExpandedSection(activeSection); }, [activeItem, activeSection]);
-  const user = useCurrentUser();
   const name = getDisplayName(user);
   const secondary = user?.email || (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
-  const sections = dashboardNavigation.map(section => ({ ...section,
+  const sections = navigation.map(section => ({ ...section,
     items: section.items.filter(item => !item.permission || hasPermission(item.permission)),
   })).filter(section => section.items.length);
   const count = sections.reduce((sum, section) => sum + section.items.length, 0);
@@ -106,8 +108,8 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
     <button type="button" className={`bd-sidebar-backdrop ${open ? 'is-open' : ''}`} onClick={onClose} aria-label="Close navigation" />
     <aside ref={asideRef} id="app-primary-navigation" className={`bd-sidebar astra-sidebar ${open ? 'is-open' : ''}`} style={{ '--astra-menu-count': count || 1 }} aria-label="Primary navigation" aria-hidden={mobile && !open ? true : undefined} inert={mobile && !open ? '' : undefined} onKeyDown={keyboard}>
       <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
-      <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate('/dashboard')} aria-label="Go to dashboard">
-        <InvoiceBillingLogo size={36} /><BrandName />
+      <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate(isPlatformAdmin(user) ? '/platform/dashboard' : '/dashboard')} aria-label="Go to dashboard">
+        <InvoiceBillingLogo size={36} tone={isPlatformAdmin(user) ? 'on-dark' : undefined} /><BrandName />
       </button>
       <nav id="astra-menu-content" className="astra-menu-content" aria-label="Module navigation">
         {sections.map(renderSection)}

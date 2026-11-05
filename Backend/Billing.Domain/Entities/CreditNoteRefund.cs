@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Billing.Domain.Entities;
 
 public class CreditNoteRefund
@@ -24,4 +26,18 @@ public class CreditNoteRefund
     public string ProcessedBy { get; set; } = "System";
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    [NotMapped]
+    public string Status { get; set; } = RefundStatuses.Completed;
+
+    [NotMapped]
+    public string? FailureReason { get; set; }
+
+    public static class RefundStatuses
+    {
+        public const string Pending = "Pending";
+        public const string Completed = "Completed";
+        public const string Failed = "Failed";
+        public const string ManualVerification = "ManualVerification";
+    }
 }

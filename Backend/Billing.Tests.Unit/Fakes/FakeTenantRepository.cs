@@ -5,7 +5,16 @@ namespace Billing.Tests.Unit.Fakes;
 
 public class FakeTenantRepository : ITenantRepository
 {
-    public List<Tenant> Tenants { get; } = new();
+    public List<Tenant> Tenants { get; set; } = new();
+
+    public FakeTenantRepository()
+    {
+    }
+
+    public FakeTenantRepository(List<Tenant> tenants)
+    {
+        Tenants = tenants;
+    }
 
     public Task<Tenant?> GetByIdAsync(int id)
     {

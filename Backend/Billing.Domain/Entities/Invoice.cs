@@ -40,6 +40,8 @@ public class Invoice
 
     public decimal BalanceAmount { get; set; }
 
+    public bool AllowPartialPayments { get; set; } = true;
+
     public string? Notes { get; set; }
 
     public string? TermsAndConditions { get; set; }
@@ -91,7 +93,7 @@ public class Invoice
 
         if (string.Equals(normStatus, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normStatus, "Canceled", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase))
+            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase) || string.Equals(normStatus, "Voided", StringComparison.OrdinalIgnoreCase))
         {
             reason = $"Invoice '{InvoiceNumber}' is {normStatus} and cannot accept payments.";
             return false;
@@ -131,7 +133,7 @@ public class Invoice
 
         if (string.Equals(normStatus, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normStatus, "Canceled", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase))
+            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase) || string.Equals(normStatus, "Voided", StringComparison.OrdinalIgnoreCase))
         {
             reason = $"Invoice '{InvoiceNumber}' is {normStatus} and cannot have credit notes applied.";
             return false;
@@ -175,7 +177,7 @@ public class Invoice
         var normStatus = (Status ?? string.Empty).Trim();
         if (string.Equals(normStatus, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normStatus, "Canceled", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase))
+            string.Equals(normStatus, "Void", StringComparison.OrdinalIgnoreCase) || string.Equals(normStatus, "Voided", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }

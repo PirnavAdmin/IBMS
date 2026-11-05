@@ -109,6 +109,12 @@ public class ProcessRefundRequest
 
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    public DateTime? RefundDate { get; set; }
+
+    public string? IdempotencyKey { get; set; }
+
+    public bool SimulateProviderFailure { get; set; }
 }
 
 public class CreditNoteFilterRequest
@@ -137,7 +143,12 @@ public class CreditNoteListItemDto
     public DateTime CreditDate { get; set; }
     public string Type { get; set; } = "Full";
     public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal RoundingAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal RefundedAmount { get; set; }
     public decimal RemainingRefundableAmount { get; set; }
@@ -159,7 +170,12 @@ public class CreditNoteDetailDto
     public DateTime CreditDate { get; set; }
     public string Type { get; set; } = "Full";
     public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal RoundingAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal RefundedAmount { get; set; }
     public decimal RemainingRefundableAmount { get; set; }
@@ -173,6 +189,7 @@ public class CreditNoteDetailDto
     public decimal InvoicePaidAmount { get; set; }
     public decimal InvoiceCreditedAmount { get; set; }
     public decimal InvoiceBalanceAmount { get; set; }
+    public decimal InvoiceRemainingCreditableAmount { get; set; }
     public string InvoiceStatus { get; set; } = string.Empty;
 
     // Audit / Actors
@@ -188,6 +205,7 @@ public class CreditNoteDetailDto
     public string? CancelledBy { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
     public string? CancellationReason { get; set; }
+    public DateTime? UpdatedAtUtc { get; set; }
 
     public List<CreditNoteItemDto> Items { get; set; } = new();
     public List<CreditNoteRefundDto> Refunds { get; set; } = new();
@@ -202,9 +220,14 @@ public class CreditNoteItemDto
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DiscountAmount { get; set; }
+    public decimal TaxableAmount { get; set; }
     public string? TaxType { get; set; }
     public decimal? TaxRate { get; set; }
     public decimal TaxAmount { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstAmount { get; set; }
+    public bool IsTaxInclusive { get; set; }
     public decimal TotalAmount { get; set; }
     public string? HSNSAC { get; set; }
 }
@@ -218,6 +241,8 @@ public class CreditNoteRefundDto
     public string PaymentMethod { get; set; } = string.Empty;
     public string? ReferenceNumber { get; set; }
     public string? Notes { get; set; }
+    public string Status { get; set; } = "Completed";
+    public string? FailureReason { get; set; }
     public string ProcessedBy { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
 }
@@ -231,6 +256,9 @@ public class InvoiceCreditableSummaryDto
     public string Currency { get; set; } = "INR";
     public DateTime InvoiceDate { get; set; }
     public string InvoiceStatus { get; set; } = string.Empty;
+    public decimal Subtotal { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal CreditedAmount { get; set; }

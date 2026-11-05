@@ -21,7 +21,7 @@ import { searchInputError } from '../../utils/search';
 import { billingCurrencies } from '../../utils/currencies';
 import '../../styles/Dashboard.css';
 import '../../styles/DashboardPremium.css';
-const Notice = ({ children, retry }) => <div className="premium-notice" role="alert"><span>{children}</span>{retry && <button onClick={retry}>Retry</button>}</div>;
+const Notice = ({ children, retry, retryLabel = 'Retry' }) => <div className="premium-notice" role="alert"><span>{children}</span>{retry && <button type="button" onClick={retry}>{retryLabel}</button>}</div>;
 export const DashboardRecords = ({ title, query, allowed, rows, type, searchQuery = '', recent = true }) => {
   const term = searchQuery.trim().toLocaleLowerCase();
   const error = searchInputError(searchQuery);
@@ -49,7 +49,7 @@ export const Dashboard = () => {
   const mainRef = useRef(null);
   const updateRecordsSearch = value => { setRecordsSearch(value); mainRef.current?.scrollTo({ top: 0 }); };
   const [filters, setFilters] = useState(defaultDashboardFilters);
-  const { invoices, payments, invoicesAllowed, paymentsAllowed, refresh } = useDashboard(filters);
+  const { invoices, payments, invoicesAllowed, paymentsAllowed, isDateRangeInverted, refresh } = useDashboard(filters);
   const user = authApi.getCurrentUser();
   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);
   const currency = selectDashboardCurrency(currencies, filters.currency || '');
@@ -70,7 +70,7 @@ export const Dashboard = () => {
     <div className="premium-title"><div><span className="premium-eyebrow">BILLING OVERVIEW</span><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div><span className="premium-tag">Tenant-scoped data</span></div>
     <DashboardFilters currencies={currencies} currency={currency} values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} />
     {recordsSearch.trim() ? <DashboardSearchResults invoices={invoices} payments={payments} invoicesAllowed={invoicesAllowed} paymentsAllowed={paymentsAllowed} currency={currency} searchQuery={recordsSearch} onClear={() => updateRecordsSearch('')} /> : <>
-    {loading ? <DashboardSkeleton /> : <>
+    {isDateRangeInverted ? <Notice retry={() => setFilters(defaultDashboardFilters())} retryLabel="Reset dates">The selected date range is invalid: From Date ({filters.start}) cannot be later than To Date ({filters.end}). Please adjust your dates or reset the filter.</Notice> : loading ? <DashboardSkeleton /> : <>
       {!invoicesAllowed ? <Notice>Invoice analytics are unavailable for your role.</Notice> : invoices.isError && <Notice retry={invoices.refetch}>Invoice data could not be loaded. {invoices.error.message}</Notice>}
       {!paymentsAllowed ? <Notice>Payment analytics are unavailable for your role.</Notice> : payments.isError && <Notice retry={payments.refetch}>Payment data could not be loaded. {payments.error.message}</Notice>}
       {result.error && <Notice retry={refresh}>{result.error.message}</Notice>}

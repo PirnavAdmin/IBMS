@@ -1,4 +1,4 @@
-﻿using Billing.Application.Interfaces;
+using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Financial;
 using Billing.Contracts.Numbering;
@@ -389,12 +389,18 @@ public class InvoiceService : IInvoiceService
         return ApiResponse<Invoice>.Ok(invoice, "Invoice voided successfully.");
     }
 
-    public async Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId, string? userName = null)
+    public async Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId, string? userName = null, bool? allowPartialPayments = null)
     {
         var invoice = await _invoiceRepository.GetByIdAsync(id, tenantId);
         if (invoice == null) return ApiResponse<bool>.Fail("Invoice not found.");
         if (invoice.Status == "Draft" || invoice.Status == "Cancelled" || invoice.Status == "Voided") 
             return ApiResponse<bool>.Fail("Invoice cannot be delivered in its current state.");
+
+        if (allowPartialPayments.HasValue)
+        {
+            invoice.AllowPartialPayments = allowPartialPayments.Value;
+            await _invoiceRepository.UpdateAsync(invoice);
+        }
 
         if (invoice.Customer == null || string.IsNullOrWhiteSpace(invoice.Customer.Email))
             return ApiResponse<bool>.Fail("Customer does not have a valid email address.");

@@ -1,0 +1,74 @@
+/* Tenant workspace palette. Platform administration keeps its own theme. */
+@media screen {
+  .app-layout:not(.platform-layout) {
+    --workspace-secondary: #F6EDE0;
+    --workspace-surface: #F6EDE0;
+    --text-secondary: #705A48;
+    --shell-sidebar: #F1DEC3;
+    --shell-taupe: #FFF3E5;
+    --shell-hover: #F6D5AA;
+    --shell-active: #674730;
+    --shell-icon: #674730;
+    --action-primary: #674730;
+    --action-hover: #503522;
+    --tenant-green: #176A3A;
+    --tenant-green-tint: #F5FCF6;
+    --tenant-green-icon: #CDEFD6;
+    --tenant-amber: #8A550A;
+    --tenant-amber-tint: #FFFBF1;
+    --tenant-amber-icon: #FFE6AF;
+    --tenant-purple: #7041A1;
+    --tenant-purple-tint: #FBF6FF;
+    --tenant-purple-icon: #E9D8FB;
+    --tenant-red: #A63236;
+    --tenant-red-tint: #FFF7F5;
+    --tenant-red-icon: #FFDCD5;
+  }
+
+  .app-layout.astra-layout:not(.platform-layout) .astra-active-pill { background: var(--shell-active); }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item > svg:not(.bd-nav-arrow) { background: var(--shell-icon); }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item:hover { background: var(--shell-hover); }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle:is(:hover, [aria-expanded="true"]) { background: #EAC99F; color: #593517; }
+  .app-layout:not(.platform-layout) .astra-profile { background: #EFD5B2; }
+
+  /* Brighter accents on light cards keep the amounts easy to read. */
+  .app-layout:not(.platform-layout) .premium-stat-invoiced { --stat-accent: #245FAD; --stat-icon: #D5E7FF; --stat-light: #F6F9FF; --stat-tint: #E3EEFF; }
+  .app-layout:not(.platform-layout) .premium-stat-paid { --stat-accent: var(--tenant-green); --stat-icon: var(--tenant-green-icon); --stat-light: var(--tenant-green-tint); --stat-tint: #DFF4E4; }
+  .app-layout:not(.platform-layout) .premium-stat-outstanding { --stat-accent: var(--tenant-amber); --stat-icon: var(--tenant-amber-icon); --stat-light: var(--tenant-amber-tint); --stat-tint: #FFF0C9; }
+  .app-layout:not(.platform-layout) .premium-stat-overdue { --stat-accent: var(--tenant-red); --stat-icon: var(--tenant-red-icon); --stat-light: var(--tenant-red-tint); --stat-tint: #FFE5DF; }
+  .app-layout:not(.platform-layout) .premium-stat-drafts { --stat-accent: var(--tenant-purple); --stat-icon: var(--tenant-purple-icon); --stat-light: var(--tenant-purple-tint); --stat-tint: #EEDFFC; }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-kpis .premium-stat { background: var(--stat-light); }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-stat > small { color: #705A48; }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-invoice i { background: #D5E7FF; color: #245FAD; }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-payment i { background: var(--tenant-green-icon); color: var(--tenant-green); }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-customer i { background: var(--tenant-amber-icon); color: var(--tenant-amber); }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-product i { background: var(--tenant-purple-icon); color: var(--tenant-purple); }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-credit i { background: var(--tenant-red-icon); color: var(--tenant-red); }
+
+  .app-layout:not(.platform-layout) .invoice-tone-sand { --kpi-card-bg: #FFFAF2; --kpi-accent: #9A521C; --kpi-label: #854316; --kpi-value: #70350E; }
+  .app-layout:not(.platform-layout) .invoice-tone-mint { --kpi-card-bg: var(--tenant-green-tint); --kpi-accent: #20884B; --kpi-label: var(--tenant-green); --kpi-value: #15562F; }
+  .app-layout:not(.platform-layout) .invoice-tone-amber { --kpi-card-bg: var(--tenant-amber-tint); --kpi-accent: #B86C08; --kpi-label: var(--tenant-amber); --kpi-value: #744305; }
+  .app-layout:not(.platform-layout) .invoice-tone-rose { --kpi-card-bg: var(--tenant-red-tint); --kpi-accent: #D53C44; --kpi-label: var(--tenant-red); --kpi-value: #8F292E; }
+
+  .app-layout:not(.platform-layout) :is(.tax-summary-total, .product-summary-card.tone-total) { --tenant-card-accent: #8A4D17; --tenant-card-tint: #FFFAF2; --tenant-card-icon: #FFE3B8; }
+  .app-layout:not(.platform-layout) :is(.tax-summary-active, .product-summary-card.tone-active) { --tenant-card-accent: var(--tenant-green); --tenant-card-tint: var(--tenant-green-tint); --tenant-card-icon: var(--tenant-green-icon); }
+  .app-layout:not(.platform-layout) .tax-summary-inactive,
+  .app-layout:not(.platform-layout) .product-summary-card.tone-services { --tenant-card-accent: var(--tenant-purple); --tenant-card-tint: var(--tenant-purple-tint); --tenant-card-icon: var(--tenant-purple-icon); }
+  .app-layout:not(.platform-layout) .product-summary-card.tone-inactive { --tenant-card-accent: var(--tenant-red); --tenant-card-tint: var(--tenant-red-tint); --tenant-card-icon: var(--tenant-red-icon); }
+  .app-layout:not(.platform-layout) .tax-summary-types { --tenant-card-accent: var(--tenant-amber); --tenant-card-tint: var(--tenant-amber-tint); --tenant-card-icon: var(--tenant-amber-icon); }
+  .app-layout:not(.platform-layout) :is(.tax-summary-card, .product-list-page .product-summary-card) {
+    --product-accent: var(--tenant-card-accent);
+    background: var(--tenant-card-tint);
+    border-top-color: var(--tenant-card-accent);
+  }
+  .app-layout:not(.platform-layout) :is(.tax-summary-card, .product-list-page .product-summary-card) strong { color: var(--tenant-card-accent); }
+  .app-layout:not(.platform-layout) :is(.tax-summary-card .tax-summary-icon, .product-list-page .product-summary-card .product-summary-icon) { background: var(--tenant-card-icon); color: var(--tenant-card-accent); }
+  .app-layout:not(.platform-layout) .product-list-page .product-summary-card.selected { background: color-mix(in srgb, var(--tenant-card-icon) 35%, white); border-color: var(--product-accent); }
+  .app-layout:not(.platform-layout) .product-list-page .product-summary-card.selected .product-summary-icon { background: var(--product-accent); color: #fff; }
+
+  /* Preserve status meaning while replacing muddy grey/brown tints. */
+  .app-layout:not(.platform-layout) :is(.premium-status.status-paid, .premium-status.status-completed, .payment-status[data-status="Completed"], .tax-status-active) { background: #DFF5E5; color: var(--tenant-green); border-color: #B8DFC5; }
+  .app-layout:not(.platform-layout) :is(.premium-status.status-overdue, .premium-status.status-failed, .payment-status[data-status="Failed"]) { background: #FFE4DF; color: var(--tenant-red); border-color: #F2C1B8; }
+  .app-layout:not(.platform-layout) :is(.premium-status.status-draft, .premium-status.status-pending, .payment-status[data-status="Reversed"], .tax-status-inactive) { background: #EEE2FA; color: var(--tenant-purple); border-color: #D9C5ED; }
+}

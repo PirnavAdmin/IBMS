@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { billingInsights, collectPages, defaultDashboardFilters, selectDashboardCurrency } from './dashboardModel.js';
+import { billingInsights, collectPages, defaultDashboardFilters, selectDashboardCurrency, money, getCurrencyLocale } from './dashboardModel.js';
 const invoice = (id, patch = {}) => ({ id, currency: 'INR', status: 'Issued', totalAmount: 100, balanceAmount: 60, invoiceDate: '2026-10-02', dueDate: '2026-10-01', ...patch });
 const payment = (id, patch = {}) => ({ id, currency: 'INR', status: 'Completed', amount: 40, paymentDate: '2026-10-03', ...patch });
 const now = new Date('2026-10-06T12:00:00Z');
@@ -66,4 +66,15 @@ test('decimal money reconciles summary, aging and monthly totals to cents', () =
   assert.deepEqual(data.summary.slice(0, 4).map(row => row.value), [0.3, 0.3, 0.3, 0.3]);
   assert.equal(data.aging.reduce((sum, row) => sum + row.value, 0), 0.3);
   assert.deepEqual(data.revenue, [{ label: '2026-10', invoiced: 0.3, collected: 0.3 }]);
+});
+
+test('money formats INR using Indian numbering and international currencies using standard grouping', () => {
+  assert.equal(getCurrencyLocale('INR'), 'en-IN');
+  assert.equal(getCurrencyLocale('USD'), 'en-US');
+  assert.equal(getCurrencyLocale('EUR'), 'en-US');
+  assert.match(money(100000, 'INR'), /1,00,000/);
+  assert.match(money(100000, 'USD'), /100,000/);
+  assert.match(money(100000, 'EUR'), /100,000/);
+  assert.equal(money(null, 'USD'), '—');
+  assert.throws(() => money(0, 'INVALID'), /Invalid currency/);
 });

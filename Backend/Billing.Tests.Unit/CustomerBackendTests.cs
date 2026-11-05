@@ -66,6 +66,8 @@ public class CustomerBackendTests
             return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
         }
 
+        public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default) => Task.FromResult((Logs.ToList(), Logs.Count));
+
         public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
         {
             var tenantLogs = Logs.Where(l => l.TenantId == tenantId).ToList();

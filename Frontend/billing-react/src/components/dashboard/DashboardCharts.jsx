@@ -30,7 +30,7 @@ const AmountRing = ({ label, value, currency, tone, percentage, description }) =
         <circle className="premium-ring-progress" cx="100" cy="100" r="80" pathLength="100" strokeDasharray={percentage == null ? undefined : `${Math.min(100, Math.max(0, percentage))} 100`} transform="rotate(-90 100 100)" />
 
       </svg>
-      <div className="premium-ring-value"><strong>{percentage != null ? `${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 }).format(percentage)}%` : value == null ? 'Unavailable' : new Intl.NumberFormat('en-IN', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 2 }).format(value)}</strong><small>{label}</small></div>
+      <div className="premium-ring-value"><strong>{percentage != null ? `${new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { maximumFractionDigits: 1 }).format(percentage)}%` : value == null ? 'Unavailable' : new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 2 }).format(value)}</strong><small>{label}</small></div>
     </div>
     <span className="premium-ring-label"><i />{label} <small>{value == null ? '' : money(value, currency)}</small></span>
   </div>

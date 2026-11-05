@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
+import { PlatformRoute, DashboardEntry } from '../pages/Platform/PlatformRoute';
 import { PermissionRoute } from './PermissionRoute';
 
 // Keep the shell mounted while the selected page loads; unrelated modules stay unloaded.
@@ -77,6 +78,13 @@ const EditCustomer = lazyPage(() => import('../pages/Customers/pages/EditCustome
 const CustomerDetailsPage = lazyPage(() => import('../pages/Customers/pages/CustomerDetailsPage'), 'CustomerDetailsPage');
 const CustomerPrintPage = lazyPage(() => import('../pages/Customers/pages/CustomerPrintPage'), 'CustomerPrintPage');
 
+const PlatformDashboard = lazyPage(() => import('../pages/Platform/PlatformDashboard'), 'PlatformDashboard');
+const PlatformTenants = lazyPage(() => import('../pages/Platform/PlatformTenants'), 'PlatformTenants');
+const PlatformTenantDetails = lazyPage(() => import('../pages/Platform/PlatformTenants'), 'PlatformTenantDetails');
+const PlatformUsers = lazyPage(() => import('../pages/Platform/PlatformUsers'), 'PlatformUsers');
+const PlatformAudit = lazyPage(() => import('../pages/Platform/PlatformAudit'), 'PlatformAudit');
+const PlatformSettings = lazyPage(() => import('../pages/Platform/PlatformSettings'), 'PlatformSettings');
+
 export const AppRoutes = () => (
   <Routes>
     {/* Public Routes */}
@@ -92,7 +100,13 @@ export const AppRoutes = () => (
 
     {/* Application Routes */}
     <Route element={<ProtectedRoute><FormDraftProvider><AppLayout /></FormDraftProvider></ProtectedRoute>}>
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={<DashboardEntry><Dashboard /></DashboardEntry>} />
+      <Route path="/platform/dashboard" element={<PlatformRoute><PlatformDashboard /></PlatformRoute>} />
+      <Route path="/platform/tenants" element={<PlatformRoute><PlatformTenants /></PlatformRoute>} />
+      <Route path="/platform/tenants/:id" element={<PlatformRoute><PlatformTenantDetails /></PlatformRoute>} />
+      <Route path="/platform/users" element={<PlatformRoute><PlatformUsers /></PlatformRoute>} />
+      <Route path="/platform/audit" element={<PlatformRoute><PlatformAudit /></PlatformRoute>} />
+      <Route path="/platform/settings" element={<PlatformRoute><PlatformSettings /></PlatformRoute>} />
 
       {/* Invoices */}
       <Route path="/invoices" element={<PermissionRoute permission="invoices.view"><InvoiceList /></PermissionRoute>} />
