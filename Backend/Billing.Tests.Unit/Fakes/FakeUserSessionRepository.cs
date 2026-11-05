@@ -5,18 +5,25 @@ namespace Billing.Tests.Unit.Fakes;
 
 public class FakeUserSessionRepository : IUserSessionRepository
 {
-    public List<UserSession> Sessions { get; } = new();
+    public List<UserSession> Sessions { get; set; } = new();
 
-    private int _nextId = 1;
+    public FakeUserSessionRepository()
+    {
+    }
 
-    public Task CreateSessionAsync(UserSession session)
+    public FakeUserSessionRepository(List<UserSession> sessions)
+    {
+        Sessions = sessions;
+    }
+
+    public Task<UserSession> CreateAsync(UserSession session)
     {
         if (session.Id == 0)
         {
-            session.Id = _nextId++;
+            session.Id = Sessions.Any() ? Sessions.Max(s => s.Id) + 1 : 1;
         }
         Sessions.Add(session);
-        return Task.CompletedTask;
+        return Task.FromResult(session);
     }
 
     public Task<UserSession?> GetByIdAsync(int id)

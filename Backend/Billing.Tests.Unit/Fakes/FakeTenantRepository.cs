@@ -5,7 +5,16 @@ namespace Billing.Tests.Unit.Fakes;
 
 public class FakeTenantRepository : ITenantRepository
 {
-    public List<Tenant> Tenants { get; } = new();
+    public List<Tenant> Tenants { get; set; } = new();
+
+    public FakeTenantRepository()
+    {
+    }
+
+    public FakeTenantRepository(List<Tenant> tenants)
+    {
+        Tenants = tenants;
+    }
 
     public Task<Tenant?> GetByIdAsync(int id)
     {
@@ -53,29 +62,36 @@ public class FakeTenantRepository : ITenantRepository
         var query = Tenants.AsEnumerable();
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(t => t.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || t.TenantCode.Contains(search, StringComparison.OrdinalIgnoreCase));
+            var s = search.Trim();
+            query = query.Where(t => t.Name.Contains(s, StringComparison.OrdinalIgnoreCase) || t.TenantCode.Contains(s, StringComparison.OrdinalIgnoreCase));
         }
         if (!string.IsNullOrWhiteSpace(status))
         {
-            query = query.Where(t => string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(t => t.Status.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase));
         }
-        var list = query.ToList();
-        var page = pageNumber <= 0 ? 1 : pageNumber;
-        var size = pageSize <= 0 ? 10 : pageSize;
-        return Task.FromResult((list.Skip((page - 1) * size).Take(size).ToList(), list.Count));
+        var total = query.Count();
+        var page = pageNumber > 0 ? pageNumber : 1;
+        var size = pageSize > 0 ? pageSize : 10;
+        var items = query.Skip((page - 1) * size).Take(size).ToList();
+        return Task.FromResult((items, total));
     }
 
     public Task<int> GetCountByStatusAsync(string? status = null)
     {
-        if (string.IsNullOrWhiteSpace(status))
-        {
-            return Task.FromResult(Tenants.Count);
-        }
-        return Task.FromResult(Tenants.Count(t => string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase)));
+        if (string.IsNullOrWhiteSpace(status)) return Task.FromResult(Tenants.Count);
+        return Task.FromResult(Tenants.Count(t => t.Status.Equals(status.Trim(), StringComparison.OrdinalIgnoreCase)));
     }
 
     public Task<List<User>> GetTenantAdminsAsync(int tenantId)
     {
-        return Task.FromResult(new List<User>());
+        var tenant = Tenants.FirstOrDefault(t => t.Id == tenantId);
+        if (tenant?.Users == null) return Task.FromResult(new List<User>());
+        return Task.FromResult(tenant.Users.Where(u => u.Roles.Contains("TenantAdmin") || u.Roles.Contains("Admin")).ToList());
+    }
+
+    public Task<Tenant?> GetByIdempotencyKeyAsync(string idempotencyKey)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return Task.FromResult<Tenant?>(null);
+        return Task.FromResult(Tenants.FirstOrDefault(t => string.Equals(t.IdempotencyKey, idempotencyKey.Trim(), StringComparison.Ordinal)));
     }
 }

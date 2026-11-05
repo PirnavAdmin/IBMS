@@ -18,6 +18,14 @@ public class AuditLog
 
     public string UserName { get; set; } = string.Empty;
 
+    public string? ActorUserId { get; set; }
+
+    public string? ActorRole { get; set; }
+
+    public string? CorrelationId { get; set; }
+
+    public string ResultStatus { get; set; } = "Success";
+
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     public string? Changes { get; set; } // Human-readable change description

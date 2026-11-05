@@ -6,7 +6,18 @@ export const selectDashboardCurrency = (currencies, selected) => {
   const enabled = currencies.filter(isCurrencyEnabled);
   return enabled.includes(selected) ? selected : enabled.includes('INR') ? 'INR' : enabled[0];
 };
-export const money = (value, currency) => new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
+export const getCurrencyLocale = (currency) => {
+  if (currency === 'INR') return 'en-IN';
+  return 'en-US';
+};
+export const money = (value, currency = 'INR') => {
+  if (value == null) return '—';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '—';
+  const curr = currency || 'INR';
+  const locale = getCurrencyLocale(curr);
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: curr, maximumFractionDigits: 2 }).format(num);
+};
 export async function collectPages(load, signal, limit = 2000) {
   const first = await load(1, signal);
   if (first.totalCount > limit) throw new Error(`This range contains more than ${limit.toLocaleString()} records. Narrow the dates to load accurate analytics.`);

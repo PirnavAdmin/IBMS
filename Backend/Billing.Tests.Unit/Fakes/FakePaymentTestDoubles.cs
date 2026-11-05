@@ -597,6 +597,14 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
                 UserNames = userNames
             });
         }
+        }
+    public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var filtered = _logs.Where(l => !filter.TenantId.HasValue || l.TenantId == filter.TenantId.Value).ToList();
+            return Task.FromResult((filtered, filtered.Count));
+        }
     }
 }
 

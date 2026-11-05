@@ -1,3 +1,4 @@
+import { loginDestination } from '../Platform/platformAccess';
 import { BrandName } from '../../components/BrandName';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import React, { useState, useEffect } from 'react';
@@ -259,7 +260,7 @@ export const Login = () => {
       // LOGIN SUCCESS
       // ------------------------------------------------------
 
-      navigate('/dashboard');
+      navigate(loginDestination(user));
 
     } catch (error) {
       console.error('Login failed:', error);
