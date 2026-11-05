@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.CreditNote;
@@ -129,6 +129,18 @@ public class CreditNotesController : ControllerBase
 
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(request.IdempotencyKey) && Request?.Headers != null)
+        {
+            if (Request.Headers.TryGetValue("Idempotency-Key", out var idemHeader) && !string.IsNullOrWhiteSpace(idemHeader))
+            {
+                request.IdempotencyKey = idemHeader.ToString().Trim();
+            }
+            else if (Request.Headers.TryGetValue("X-Idempotency-Key", out var xIdemHeader) && !string.IsNullOrWhiteSpace(xIdemHeader))
+            {
+                request.IdempotencyKey = xIdemHeader.ToString().Trim();
+            }
+        }
 
         var result = await _creditNoteService.CreateCreditNoteAsync(
             tenantId.Value,

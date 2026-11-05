@@ -1,3 +1,4 @@
+import { isPlatformAdmin } from '../../pages/Platform/platformAccess';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -67,8 +68,8 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, sear
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{ className: 'bd-account-menu' }} MenuListProps={{ id: 'navbar-profile-menu', 'aria-label': 'Account options' }}>
         <MenuItem onClick={() => { setMenuOpen(false); setProfileOpen(true); }}><ListItemIcon><PersonOutline fontSize="small" /></ListItemIcon>My Profile</MenuItem>
-        {canViewSettings && <MenuItem onClick={() => goTo('/settings')}><ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>Workspace Settings</MenuItem>}
-        {canViewSettings && <MenuItem onClick={() => goTo('/settings/notifications')}><ListItemIcon><NotificationsOutlined fontSize="small" /></ListItemIcon>Notification Settings</MenuItem>}
+        {canViewSettings && <MenuItem onClick={() => goTo(isPlatformAdmin(user) ? '/platform/settings' : '/settings')}><ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>{isPlatformAdmin(user) ? 'Platform Settings' : 'Workspace Settings'}</MenuItem>}
+        {canViewSettings && !isPlatformAdmin(user) && <MenuItem onClick={() => goTo('/settings/notifications')}><ListItemIcon><NotificationsOutlined fontSize="small" /></ListItemIcon>Notification Settings</MenuItem>}
         <Divider />
         <MenuItem onClick={requestSignOut}><ListItemIcon><Logout fontSize="small" /></ListItemIcon>Sign out</MenuItem>
       </ProfileMenu>

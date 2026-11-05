@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Billing.Domain.Entities;
 
 public class CreditNoteItem
@@ -30,4 +32,19 @@ public class CreditNoteItem
     public decimal TotalAmount { get; set; }
 
     public string? HSNSAC { get; set; }
+
+    [NotMapped]
+    public decimal TaxableAmount { get; set; }
+
+    [NotMapped]
+    public decimal CgstAmount { get; set; }
+
+    [NotMapped]
+    public decimal SgstAmount { get; set; }
+
+    [NotMapped]
+    public decimal IgstAmount { get; set; }
+
+    [NotMapped]
+    public bool IsTaxInclusive { get; set; }
 }
