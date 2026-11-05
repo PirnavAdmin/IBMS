@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     resolve: {
-      dedupe: ['axios'],
+      dedupe: ['axios', '@emotion/react', '@emotion/styled', '@mui/material', '@mui/icons-material'],
       alias: {
         '@': path.resolve(__dirname, './src'),
         axios: path.resolve(__dirname, './node_modules/axios/index.js'),

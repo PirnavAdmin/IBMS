@@ -204,15 +204,16 @@ function FormActions({ busy, onCancel, onSubmit, saveLabel = 'Save' }) {
 }
 
 function StatusBadge({ status }) {
-  const active = String(status).toLowerCase() === 'active';
-  return <span className={`ura-status-badge ${active ? 'is-active' : 'is-inactive'}`}>{status || '—'}</span>;
+  const normalizedStatus = String(status || '').toLowerCase();
+  const stateClass = normalizedStatus === 'active' ? 'is-active' : normalizedStatus === 'inactive' ? 'is-inactive' : 'is-other';
+  return <span className={`ura-status-badge ${stateClass}`}>{status || '—'}</span>;
 }
 
 function RowActionsMenu({ actions }) {
   const [anchor, setAnchor] = useState(null);
   const close = () => setAnchor(null);
   return <>
-    <IconButton className="ura-action-menu-button" size="small" aria-label="Open row actions" aria-haspopup="menu" onClick={(event) => setAnchor(event.currentTarget)}><MoreVertOutlined /></IconButton>
+    <Tooltip title="Open row actions" describeChild><IconButton className="ura-action-menu-button" size="small" aria-label="Open row actions" aria-haspopup="menu" onClick={(event) => setAnchor(event.currentTarget)}><MoreVertOutlined /></IconButton></Tooltip>
     <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={close} PaperProps={{ className: 'ura-select-menu ura-action-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
       {actions.map(({ label, onClick, disabled, icon: Icon }) => <MenuItem key={label} className={label.startsWith('Delete') ? 'ura-delete-action' : ''} disabled={disabled} onClick={() => { close(); onClick(); }}>
         {Icon && <ListItemIcon><Icon fontSize="small" /></ListItemIcon>}{label}
@@ -249,30 +250,29 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
   const changeIdentityType = (event) => { setIdentityType(event.target.value); setPage(0); };
   const resetFilters = () => { setSearchInput(''); setStatus('all'); setRole('all'); setIdentityType('all'); setPage(0); };
   const hasFilters = Boolean(searchInput || status !== 'all' || role !== 'all' || identityType !== 'all');
-  const totalUsers = usersQuery.data?.totalCount ?? users.length;
 
   return <>
     <SectionHeading
       icon={assignmentMode ? AccountTreeOutlined : GroupOutlined}
       title={assignmentMode ? 'User assignments' : 'Users'}
       description={assignmentMode ? 'Review each user’s assigned roles, tenant, and application.' : 'Search users and review their role, tenant, application, and account status.'}
-      action={<div className="ura-user-header-actions"><div className="ura-user-count-card ura-user-count-pill" aria-live="polite"><strong>{usersQuery.isPending ? '…' : totalUsers}</strong><span>{totalUsers === 1 ? 'User' : 'Users'}</span></div>{!assignmentMode && <Button variant="contained" startIcon={<PersonAddAlt1Outlined />} onClick={onCreate}>Create user</Button>}</div>}
+      action={<div className="ura-user-header-actions">{!assignmentMode && <Button variant="contained" startIcon={<PersonAddAlt1Outlined />} onClick={onCreate}>Create user</Button>}</div>}
     />
     <div className="ura-filter-bar ura-user-filter-bar">
-      <div className="ura-filter-field ura-filter-search"><TextField id="ura-user-search" label="Search" InputLabelProps={{ shrink: true }} size="small" fullWidth placeholder="Name, username, or email" value={searchInput} onChange={changeSearch} InputProps={{ startAdornment: <SearchOutlined className="ura-search-icon" /> }} inputProps={{ 'aria-label': 'Search users by name, username, or email' }} /></div>
+      <div className="ura-filter-field ura-filter-search"><TextField id="ura-user-search" label="Search" InputLabelProps={{ shrink: true }} size="small" fullWidth placeholder="Search users by name, username, or email" value={searchInput} onChange={changeSearch} InputProps={{ startAdornment: <SearchOutlined className="ura-search-icon" /> }} inputProps={{ 'aria-label': 'Search users by name, username, or email' }} /></div>
       <div className="ura-filter-field ura-filter-status"><FormControl size="small" fullWidth><InputLabel id="ura-status-filter-label" shrink>Status</InputLabel><Select MenuProps={selectMenuProps} id="ura-status-filter" labelId="ura-status-filter-label" label="Status" value={status} onChange={changeStatus}><MenuItem value="all">All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl></div>
       <div className="ura-filter-role ura-filter-field"><FormControl size="small" fullWidth disabled={rolesQuery.isPending || rolesQuery.isError}><InputLabel id="ura-role-filter-label" shrink>Role</InputLabel><Select MenuProps={selectMenuProps} id="ura-role-filter" labelId="ura-role-filter-label" label="Role" value={role} onChange={changeRole}><MenuItem value="all">All roles</MenuItem>{roles.map((item) => { const name = recordValue(item, 'name', 'Name'); return <MenuItem key={name} value={name}>{name}</MenuItem>; })}</Select></FormControl></div>
       <div className="ura-filter-field ura-filter-identity"><FormControl size="small" fullWidth><InputLabel id="ura-identity-filter-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} id="ura-identity-filter" labelId="ura-identity-filter-label" label="Identity type" value={identityType} onChange={changeIdentityType}><MenuItem value="all">All identity types</MenuItem><MenuItem value="Platform">Platform</MenuItem><MenuItem value="Host">Host</MenuItem></Select></FormControl></div>
-      <Button className="ura-reset-filters" variant="text" onClick={resetFilters} disabled={!hasFilters}>Clear Filters</Button>
+      <Button className={`ura-reset-filters${hasFilters ? ' ura-has-filters' : ''}`} variant="text" onClick={resetFilters} disabled={!hasFilters}>Clear Filters</Button>
     </div>
     {dataError ? <DashboardErrorState
       title={`Unable to load ${usersQuery.isError ? 'users' : 'roles'}`}
       message={getError(errorQuery.error)}
       onRetry={() => { void usersQuery.refetch(); void rolesQuery.refetch(); }}
     /> : <><div className="ura-table-wrap" role="region" aria-label="Scrollable users" tabIndex={0}><table className={`ura-table ura-user-table${assignmentMode ? ' ura-assignment-table' : ''}`}>
-      <thead><tr>{assignmentMode ? <><th>Name</th><th>Roles</th><th>Tenant</th><th>Application</th><th>Status</th><th>Actions</th></> : <><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></>}</tr></thead>
+      <thead><tr>{assignmentMode ? <><th>Name</th><th>Roles</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></> : <><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Tenant</th><th>Application</th><th>Identity type</th><th>Status</th><th>Actions</th></>}</tr></thead>
       <tbody>
-        {usersQuery.isPending && <tr><td colSpan={assignmentMode ? 6 : 9}><div className="ura-resource-state"><CircularProgress size={22} /><span>Loading users…</span></div></td></tr>}
+        {usersQuery.isPending && <tr><td colSpan={assignmentMode ? 7 : 9}><div className="ura-resource-state"><CircularProgress size={22} /><span>Loading users…</span></div></td></tr>}
         {!usersQuery.isPending && !usersQuery.isError && users.map((user) => {
           const id = recordValue(user, 'id', 'Id');
           const userRoles = recordValue(user, 'roles', 'Roles') ?? [];
@@ -292,14 +292,14 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
               return <td key={field}><Tooltip title={value} describeChild><span className="ura-user-identity-text" tabIndex={0}>{value}</span></Tooltip></td>;
             })}
             <td>{Array.isArray(userRoles) && userRoles.length ? userRoles.join(', ') : '—'}</td>
-            <td>{tenant}</td><td>{application}</td>{!assignmentMode && <td>{recordValue(user, 'identityType', 'IdentityType') || '—'}</td>}<td><StatusBadge status={statusValue(user)} /></td>
+            <td><Tooltip title={tenant} describeChild><span className="ura-tenant-text" tabIndex={0}>{tenant}</span></Tooltip></td><td>{application}</td><td>{recordValue(user, 'identityType', 'IdentityType') || '—'}</td><td><StatusBadge status={statusValue(user)} /></td>
             <td className="ura-action-cell"><RowActionsMenu actions={actions} /></td>
           </tr>;
         })}
-        {!usersQuery.isPending && !usersQuery.isError && users.length === 0 && <tr><td colSpan={assignmentMode ? 6 : 9}><EmptyState title="No users available">No users were returned by the User API for the current search and filters.</EmptyState></td></tr>}
+        {!usersQuery.isPending && !usersQuery.isError && users.length === 0 && <tr><td colSpan={assignmentMode ? 7 : 9}><EmptyState title="No users available">No users were returned by the User API for the current search and filters.</EmptyState></td></tr>}
       </tbody>
     </table></div>
-    <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={usersQuery.data?.totalCount ?? 0} itemLabel="users" disabled={usersQuery.isFetching} onPageChange={value => setPage(value - 1)} onPageSizeChange={value => { setPageSize(value); setPage(0); }} />
+    {usersQuery.data?.totalCount > 0 && <WorkspacePagination page={page + 1} pageSize={pageSize} totalCount={usersQuery.data.totalCount} itemLabel="users" disabled={usersQuery.isFetching} hideSinglePageControls onPageChange={value => setPage(value - 1)} onPageSizeChange={value => { setPageSize(value); setPage(0); }} />}
     </>}
   </>;
 }
