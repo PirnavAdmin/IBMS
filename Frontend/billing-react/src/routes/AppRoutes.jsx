@@ -168,8 +168,8 @@ export const AppRoutes = () => (
       <Route path="/integrations" element={<PermissionRoute permission="integrations.manage"><Integrations /></PermissionRoute>} />
       <Route path="/webhooks" element={<PermissionRoute permission="integrations.manage"><Webhooks /></PermissionRoute>} />
       <Route path="/webhooks/deliveries" element={<PermissionRoute permission="integrations.manage"><DeliveryHistory /></PermissionRoute>} />
-      <Route path="/background-jobs" element={<PermissionRoute permission={['settings.view', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />
-      <Route path="/export-jobs" element={<PermissionRoute permission={['billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />
+      <Route path="/background-jobs" element={<PermissionRoute permission={['backgroundjobs.view', 'backgroundjobs.manage', 'settings.manage', 'integrations.manage']}><BackgroundJobStatus /></PermissionRoute>} />
+      <Route path="/export-jobs" element={<PermissionRoute permission={['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view']}><ExportJobStatus /></PermissionRoute>} />
       <Route path="/integration-settings" element={<Navigate to="/integrations" replace />} />
       <Route path="/settings" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><SettingsLanding /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/user-role-administration/*" element={<PermissionRoute permission={['users.view', 'roles.view', 'users.assign']}><UserRoleAdministration /></PermissionRoute>} />

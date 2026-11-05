@@ -1,6 +1,6 @@
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -9,7 +9,6 @@ import TextField from '@mui/material/TextField';
 import Download from '@mui/icons-material/Download';
 import Refresh from '@mui/icons-material/Refresh';
 import { apiClient } from 'billing-api-client';
-import { integrationAccess } from '../Integrations/integrationService';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { backgroundJobError, backgroundJobService } from './backgroundJobService';
@@ -37,6 +36,34 @@ const formatBytes = value => {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+export function exportJobAccess(response) {
+  const user = response?.data ?? response;
+  const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
+  const hasAllowedRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+    .flatMap(value => String(value).split(','))
+    .some(role => ['tenantadmin', 'superadmin', 'admin', 'billingmanager', 'accountant', 'user'].includes(role.trim().toLowerCase()));
+  if (hasAllowedRole) return true;
+
+  const rawPerms = user?.permissions ?? user?.Permissions ?? [];
+  return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
+    .flatMap(value => String(value).split(','))
+    .some(perm => ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view', 'all', '*'].includes(perm.trim().toLowerCase()));
+}
+
+export function canExportAuditLogs(response) {
+  const user = response?.data ?? response;
+  const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
+  const hasAuditRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+    .flatMap(value => String(value).split(','))
+    .some(role => ['tenantadmin', 'superadmin', 'admin', 'accountant'].includes(role.trim().toLowerCase()));
+  if (hasAuditRole) return true;
+
+  const rawPerms = user?.permissions ?? user?.Permissions ?? [];
+  return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
+    .flatMap(value => String(value).split(','))
+    .some(perm => ['audit.view', 'audit.export', 'all', '*'].includes(perm.trim().toLowerCase()));
+}
+
 export function ExportJobStatus() {
   const client = useQueryClient();
   const [jobType, setJobType] = useState('Invoice');
@@ -52,7 +79,15 @@ export function ExportJobStatus() {
     retry: false,
     staleTime: 60000,
   });
-  const allowed = integrationAccess(user.data);
+  const allowed = exportJobAccess(user.data);
+  const auditAllowed = canExportAuditLogs(user.data);
+  const availableJobTypes = auditAllowed
+    ? jobTypes
+    : jobTypes.filter(option => option.value !== 'AuditLog');
+  useEffect(() => {
+    if (!auditAllowed && jobType === 'AuditLog') setJobType('Invoice');
+    if (!auditAllowed && filterJobType === 'AuditLog') setFilterJobType('');
+  }, [auditAllowed, jobType, filterJobType]);
   const profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
   const query = useQuery({
@@ -64,7 +99,7 @@ export function ExportJobStatus() {
   });
   const createJob = useMutation({
     mutationFn: () => backgroundJobService.createExport({ jobType, exportFormat }),
-    onSuccess: job => {
+    onSuccess: () => {
       setPage(1);
       setFilterJobType('');
       setStatus('');
@@ -96,6 +131,7 @@ export function ExportJobStatus() {
     }
   };
   const result = query.data;
+  const visibleItems = (result?.items || []).filter(job => auditAllowed || job.jobType !== 'AuditLog');
 
   return <main className="background-jobs-page">
     <header className="background-jobs-heading">
@@ -105,12 +141,12 @@ export function ExportJobStatus() {
     <FeedbackSnackbar message={feedback?.message || ''} severity={feedback?.severity} onClose={() => setFeedback(null)} />
     {user.isPending ? <div role="status">Checking access…</div>
       : user.isError ? <DashboardErrorState title="Unable to check access" message={backgroundJobError(user.error)} onRetry={() => user.refetch()} />
-        : !allowed ? <Alert severity="warning">Export jobs are available to TenantAdmin, SuperAdmin, and User roles.</Alert>
+        : !allowed ? <Alert severity="warning">Export jobs are available to TenantAdmin, SuperAdmin, Admin, BillingManager, Accountant, and User roles.</Alert>
           : <>
             <section className="export-job-create">
               <h2>Create an export</h2>
               <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small">
-                {jobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
               </TextField>
               <TextField select label="Format" value={exportFormat} onChange={event => setExportFormat(event.target.value)} size="small">
                 {formats.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
@@ -129,25 +165,25 @@ export function ExportJobStatus() {
                   </FilterSelectField>
                   <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
-                    {jobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                    {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
                   </FilterSelectField>
                 </div>
               </div>
               {query.isError ? <DashboardErrorState title="Unable to load exports" message={backgroundJobError(query.error)} onRetry={refresh} />
                 : query.isFetching && !result ? <div role="status">Loading export history…</div>
-                  : <div className="background-jobs-table-scroll">
+                  : <div className="background-jobs-table-scroll ibms-table-frame">
                     <table className="background-jobs-table" aria-label="Export job history" aria-busy={query.isFetching}>
                       <thead><tr><th>Export</th><th>Status</th><th>Progress</th><th>Requested</th><th>Started</th><th>Completed</th><th>File size</th><th>Actions</th></tr></thead>
                       <tbody>
-                        {(result?.items || []).map(job => <tr key={job.id}>
+                        {visibleItems.map(job => <tr key={job.id}>
                           <td><strong>#{job.id} · {jobTypeLabel(job.jobType)}</strong><span>{job.exportFormat} · {job.requestedBy || 'User'}</span>{job.errorMessage && <span className="export-job-error">{job.errorMessage}</span>}</td>
                           <td><span className={`export-job-status status-${job.status.toLowerCase()}`}>{job.status}</span></td>
-                          <td>{job.processedRecords}{job.totalRecords ? ` / ${job.totalRecords}` : ''}</td>
+                          <td>{job.totalRecords ? `${job.processedRecords} / ${job.totalRecords}` : job.processedRecords > 0 ? job.processedRecords : job.status === 'Pending' ? 'Queued' : job.status === 'Processing' ? 'Processing…' : 0}</td>
                           <td>{dateTime(job.createdAtUtc)}</td><td>{dateTime(job.startedAtUtc)}</td><td>{dateTime(job.completedAtUtc)}</td>
                           <td>{formatBytes(job.fileSizeBytes)}</td>
                           <td>{job.status === 'Completed' ? <Button size="small" startIcon={<Download />} onClick={() => download(job)}>Download</Button> : '—'}</td>
                         </tr>)}
-                        {!query.isFetching && !result?.items.length && <tr><td colSpan="8" className="background-jobs-empty">No export jobs found.</td></tr>}
+                        {!query.isFetching && !visibleItems.length && <tr><td colSpan="8" className="background-jobs-empty">No export jobs found.</td></tr>}
                       </tbody>
                     </table>
                   </div>}

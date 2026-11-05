@@ -27,17 +27,31 @@ public class OutboxProcessorHostedService : BackgroundService
             try
             {
                 using var scope = _serviceProvider.CreateScope();
-                var outboxService = scope.ServiceProvider.GetRequiredService<IOutboxService>();
-
-                await outboxService.ProcessPendingOutboxMessagesAsync(stoppingToken);
-                await outboxService.ProcessPendingRetriesAsync(stoppingToken);
+                var coordinator = scope.ServiceProvider.GetService<IBackgroundJobCoordinator>();
+                if (coordinator != null)
+                {
+                    await coordinator.RunJobByNameAsync("WebhookDeliveryJob", cancellationToken: stoppingToken);
+                }
+                else
+                {
+                    var outboxService = scope.ServiceProvider.GetRequiredService<IOutboxService>();
+                    await outboxService.ProcessPendingOutboxMessagesAsync(stoppingToken);
+                    await outboxService.ProcessPendingRetriesAsync(stoppingToken);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during outbox background processing.");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
 
         _logger.LogInformation("Outbox and Webhook Delivery processor background service stopping.");
