@@ -152,7 +152,7 @@ public class CreditNoteRepository : ICreditNoteRepository
                 TaxAmount = c.TaxAmount,
                 TotalAmount = c.TotalAmount,
                 RefundedAmount = c.RefundedAmount,
-                RemainingRefundableAmount = c.RemainingRefundableAmount,
+                RemainingRefundableAmount = (c.Status == "Issued" || c.Status == "PartiallyRefunded" || c.Status == "Refunded") ? c.RemainingRefundableAmount : 0m,
                 Status = c.Status,
                 Reason = c.Reason,
                 Currency = c.Invoice != null && c.Invoice.Customer != null && !string.IsNullOrWhiteSpace(c.Invoice.Customer.Currency)

@@ -15,6 +15,13 @@ namespace Billing.Infrastructure.Services;
 public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 {
     private const string PirnavLogoPath = "/template-assets/pirnav.png";
+    private const string PrimaryBrown = "#6B2D0C";
+    private const string TanFill = "#F6EBE3";
+    private const string LightLine = "#E8C4AE";
+    private const string AccentTan = "#D9A57F";
+    private const string TextDark = "#333333";
+    private const string TextMuted = "#555555";
+    private const string PaidGreen = "#2E8B3D";
 
     static QuestPdfInvoiceEngine()
     {
@@ -29,14 +36,23 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(template);
 
+        var design = ResolveDesign(template);
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
             {
-                ApplyPageSetup(page, template);
-                ComposeHeader(page.Header(), snapshot, template);
-                ComposeContent(page.Content(), snapshot, template);
-                ComposeFooter(page.Footer(), snapshot, template);
+                if (design == "Corner")
+                {
+                    ComposeCornerDocument(page, snapshot, template);
+                }
+                else
+                {
+                    ApplyPageSetup(page, template);
+                    ComposeHeader(page.Header(), snapshot, template);
+                    ComposeContent(page.Content(), snapshot, template);
+                    ComposeFooter(page.Footer(), snapshot, template);
+                }
             });
         });
 
@@ -58,7 +74,22 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             Terms = request.Terms
         };
 
+        if (string.IsNullOrWhiteSpace(mockTemplate.Layout.TemplateDesign))
+        {
+            if (request.Name?.Contains("Template 4", StringComparison.OrdinalIgnoreCase) == true) mockTemplate.Layout.TemplateDesign = "Corner";
+        }
+
         return GenerateInvoicePdf(sampleSnapshot, mockTemplate);
+    }
+
+    private static string ResolveDesign(TemplateVersionDto template)
+    {
+        var design = template.Layout.TemplateDesign;
+        if (string.Equals(design, "Corner", StringComparison.OrdinalIgnoreCase)) return "Corner";
+
+        if (template.VersionDescription?.Contains("Template 4", StringComparison.OrdinalIgnoreCase) == true) return "Corner";
+
+        return "Standard";
     }
 
     #region Layout & Page Configuration
@@ -1022,6 +1053,193 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             ]
         };
     }
+
+    #region Pirnav 4 Design Layout Composers
+
+    private static void ComposeCornerDocument(PageDescriptor page, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
+    {
+        page.Size(PageSizes.A4);
+        page.MarginTop(12, Unit.Millimetre);
+        page.MarginBottom(12, Unit.Millimetre);
+        page.MarginLeft(14, Unit.Millimetre);
+        page.MarginRight(14, Unit.Millimetre);
+        page.PageColor(Colors.White);
+        page.DefaultTextStyle(x => x.FontFamily(template.Branding.FontFamily ?? "Segoe UI").FontSize(9f).FontColor(Color.FromHex(TextDark)));
+
+        page.Header().Row(h =>
+        {
+            // Corner Badge holding Title, Number, Date
+            h.RelativeItem(3).Background(PrimaryBrown).BorderBottom(2f).BorderRight(2f).BorderColor(AccentTan).CornerRadius(4).Padding(8).Column(badge =>
+            {
+                badge.Item().Text(snapshot.DocumentTitle).FontSize(19).ExtraBold().FontColor(Colors.White);
+                badge.Item().Text($"{snapshot.DocumentNumberLabel}: {snapshot.InvoiceNumber}").FontSize(8.5f).FontColor(Color.FromHex(TanFill));
+                badge.Item().Text($"{snapshot.DateLabel}: {snapshot.IssueDate:dd MMM yyyy}").FontSize(8.5f).FontColor(Color.FromHex(TanFill));
+            });
+
+            // Company Logo + Details on top right
+            h.RelativeItem(4).AlignRight().Column(comp =>
+            {
+                var logoBytes = TryGetLogoBytes(template.Branding.LogoUrl);
+                if (template.Layout.ShowLogo && logoBytes is not null)
+                {
+                    comp.Item().AlignRight().Width(110).Height(45).Image(logoBytes).FitArea();
+                    comp.Item().PaddingBottom(2);
+                }
+                var companyName = string.IsNullOrWhiteSpace(template.CompanyDetails.CompanyName) ? "IBMS Solutions" : template.CompanyDetails.CompanyName;
+                comp.Item().AlignRight().Text(companyName).FontSize(11).Bold().FontColor(PrimaryBrown);
+                var address = $"{template.CompanyDetails.AddressLine1} {template.CompanyDetails.AddressLine2}, {template.CompanyDetails.City} {template.CompanyDetails.State} {template.CompanyDetails.PostalCode}".Trim().Trim(',').Trim();
+                if (!string.IsNullOrWhiteSpace(address)) comp.Item().AlignRight().Text(address).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                if (!string.IsNullOrWhiteSpace(template.CompanyDetails.Email)) comp.Item().AlignRight().Text(template.CompanyDetails.Email).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                if (!string.IsNullOrWhiteSpace(template.CompanyDetails.Phone)) comp.Item().AlignRight().Text(template.CompanyDetails.Phone).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+            });
+        });
+
+        page.Footer().Column(f =>
+        {
+            f.Item().Background(PrimaryBrown).Height(5);
+            var footerNote = string.IsNullOrWhiteSpace(template.Terms.FooterNote)
+                ? "Thank you for choosing us! This is a system-generated document and does not require a physical signature."
+                : template.Terms.FooterNote;
+            f.Item().PaddingTop(3).Row(row =>
+            {
+                row.RelativeItem().Text(footerNote).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                row.ConstantItem(80).AlignRight().Text(x =>
+                {
+                    x.Span("Page ").FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                    x.CurrentPageNumber().FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                    x.Span(" of ").FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                    x.TotalPages().FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                });
+            });
+        });
+
+        page.Content().PaddingTop(12).Column(col =>
+        {
+            // Bill To and Balance Due highlight box
+            col.Item().PaddingBottom(12).Row(r =>
+            {
+                r.RelativeItem().Background(TanFill).Border(0.5f).BorderColor(LightLine).CornerRadius(4).Padding(8).Column(c =>
+                {
+                    c.Item().Text("BILL TO:").FontSize(8.5f).Bold().FontColor(PrimaryBrown);
+                    c.Item().PaddingTop(2).Text(snapshot.Customer.CustomerName).FontSize(10f).Bold().FontColor(Color.FromHex(TextDark));
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.CustomerCode)) c.Item().Text($"Code: {snapshot.Customer.CustomerCode}").FontSize(8f).FontColor(Color.FromHex(TextMuted));
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.BillingAddress)) c.Item().Text(snapshot.Customer.BillingAddress).FontSize(8f).FontColor(Color.FromHex(TextMuted));
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.Email)) c.Item().Text(snapshot.Customer.Email).FontSize(8f).FontColor(Color.FromHex(TextMuted));
+                });
+
+                r.ConstantItem(14);
+
+                r.RelativeItem().Background(PrimaryBrown).CornerRadius(6).Padding(10).Column(c =>
+                {
+                    c.Item().Text("BALANCE DUE").FontSize(9).Bold().FontColor(Color.FromHex(AccentTan));
+                    c.Item().PaddingTop(2).Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(16).ExtraBold().FontColor(Colors.White);
+                    c.Item().PaddingTop(2).Text($"Due: {snapshot.DueDate:dd MMM yyyy}").FontSize(8).FontColor(Color.FromHex(TanFill));
+                });
+            });
+
+            // Dashed border details strip
+            col.Item().PaddingBottom(12).Border(0.5f).BorderColor(Color.FromHex(AccentTan)).Padding(6).Row(strip =>
+            {
+                strip.RelativeItem().Column(c => { c.Item().Text(snapshot.DocumentNumberLabel).FontSize(7.5f).FontColor(Color.FromHex(TextMuted)); c.Item().Text(snapshot.InvoiceNumber).FontSize(8.5f).Bold(); });
+                strip.RelativeItem().Column(c => { c.Item().Text(snapshot.DateLabel).FontSize(7.5f).FontColor(Color.FromHex(TextMuted)); c.Item().Text(snapshot.IssueDate.ToString("dd MMM yyyy")).FontSize(8.5f); });
+                strip.RelativeItem().Column(c => { c.Item().Text(snapshot.DueDateLabel).FontSize(7.5f).FontColor(Color.FromHex(TextMuted)); c.Item().Text(snapshot.DueDate.ToString("dd MMM yyyy")).FontSize(8.5f); });
+                strip.RelativeItem().Column(c => { c.Item().Text("Currency").FontSize(7.5f).FontColor(Color.FromHex(TextMuted)); c.Item().Text(snapshot.Currency).FontSize(8.5f); });
+                strip.RelativeItem().Column(c => { c.Item().Text("Status").FontSize(7.5f).FontColor(Color.FromHex(TextMuted)); c.Item().Text(snapshot.Status).FontSize(8.5f).Bold().FontColor(PrimaryBrown); });
+            });
+
+            // Rounded brown table header with subtle row lines
+            col.Item().Table(table => ComposeCornerTable(table, snapshot));
+
+            // Totals and Notes
+            col.Item().PaddingTop(12).Row(r =>
+            {
+                r.RelativeItem(3).Background(TanFill).Border(0.5f).BorderColor(LightLine).CornerRadius(4).Padding(8).Column(notes =>
+                {
+                    notes.Item().Text("Amount in Words").FontSize(8.5f).Bold().FontColor(PrimaryBrown);
+                    notes.Item().Text(FormatAmountInWords(snapshot.GrandTotal, snapshot.Currency)).FontSize(8.5f);
+
+                    if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(template.Terms.TermsAndConditions))
+                    {
+                        notes.Item().PaddingTop(8).Text("Terms & Conditions").FontSize(8.5f).Bold().FontColor(PrimaryBrown);
+                        notes.Item().Text(template.Terms.TermsAndConditions).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+                    }
+                });
+
+                r.ConstantItem(14);
+
+                r.RelativeItem(2).Column(totals =>
+                {
+                    ComposeTotalsBreakdown(totals, snapshot);
+                });
+            });
+        });
+    }
+
+    private static void ComposeTotalsBreakdown(ColumnDescriptor totals, InvoiceSnapshotDto snapshot)
+    {
+        PirnavTotalRow(totals, "Subtotal", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
+        if (snapshot.TotalDiscount > 0)
+        {
+            PirnavTotalRow(totals, "Discount", $"-{FormatMoney(snapshot.TotalDiscount, snapshot.CurrencySymbol)}", false, Colors.Red.Darken1);
+        }
+        foreach (var tax in snapshot.TaxBreakdowns)
+        {
+            PirnavTotalRow(totals, $"{tax.TaxName} ({tax.RatePercent:N0}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
+        }
+        PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, Color.FromHex(PrimaryBrown));
+        PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Color.FromHex(PaidGreen));
+        totals.Item().Background(PrimaryBrown).CornerRadius(3).PaddingVertical(4).PaddingHorizontal(6).Row(row =>
+        {
+            row.RelativeItem().Text("Balance Due").FontSize(9.5f).Bold().FontColor(Colors.White);
+            row.ConstantItem(85).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(9.5f).Bold().FontColor(Colors.White);
+        });
+    }
+
+    private static void ComposeCornerTable(TableDescriptor table, InvoiceSnapshotDto snapshot)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.ConstantColumn(36);
+            columns.RelativeColumn(3);
+            columns.ConstantColumn(95);
+            columns.ConstantColumn(80);
+            columns.ConstantColumn(85);
+        });
+        table.Header(header =>
+        {
+            header.Cell().Element(HeaderCell).Text("Item #");
+            header.Cell().Element(HeaderCell).Text("Description");
+            header.Cell().Element(HeaderCell).Text("Months / Payment");
+            header.Cell().Element(HeaderCell).AlignRight().Text("Rate");
+            header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+        });
+        var number = 1;
+        foreach (var item in snapshot.Items)
+        {
+            table.Cell().Element(RowCell).Text(number.ToString());
+            table.Cell().Element(RowCell).Column(desc =>
+            {
+                desc.Item().Text(item.ItemName).FontSize(8.5f).Bold().FontColor(Color.FromHex(TextDark));
+                if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.ItemName, item.Description, StringComparison.Ordinal))
+                    desc.Item().Text(item.Description).FontSize(7.5f).FontColor(Color.FromHex(TextMuted));
+            });
+            table.Cell().Element(RowCell).Text(string.IsNullOrWhiteSpace(item.Unit) ? "-" : item.Unit).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol)).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).FontSize(8.5f).Bold().FontColor(PrimaryBrown);
+            number++;
+        }
+        static IContainer HeaderCell(IContainer c) => c.Background(PrimaryBrown).CornerRadius(3).PaddingVertical(5).PaddingHorizontal(6).DefaultTextStyle(s => s.FontSize(8.5f).Bold().FontColor(Colors.White));
+        static IContainer RowCell(IContainer c) => c.BorderBottom(0.5f).BorderColor(LightLine).PaddingVertical(4).PaddingHorizontal(6);
+    }
+
+    private static string ExtractThankYouNote(string? footerNote)
+    {
+        if (string.IsNullOrWhiteSpace(footerNote)) return "Thank you for choosing us!";
+        var sep = footerNote.IndexOf(" This is", StringComparison.OrdinalIgnoreCase);
+        return sep > 0 ? footerNote[..sep].Trim() : footerNote;
+    }
+
+    #endregion
 
     #endregion
 }

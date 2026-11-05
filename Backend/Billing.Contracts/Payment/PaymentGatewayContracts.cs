@@ -20,6 +20,7 @@ public class PaymentOrderDto
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal BalanceAmount { get; set; }
+    public bool AllowPartialPayments { get; set; } = true;
     public string? Status { get; set; }
     public string Currency { get; set; } = "INR";
     public string? KeyId { get; set; } = "rzp_test_ibms_sandbox";

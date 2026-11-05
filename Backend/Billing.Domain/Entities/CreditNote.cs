@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Billing.Domain.Entities;
 
 public class CreditNote
@@ -31,6 +33,24 @@ public class CreditNote
     public decimal RefundedAmount { get; set; }
 
     public decimal RemainingRefundableAmount { get; set; }
+
+    [NotMapped]
+    public decimal DiscountAmount { get; set; }
+
+    [NotMapped]
+    public decimal CgstAmount { get; set; }
+
+    [NotMapped]
+    public decimal SgstAmount { get; set; }
+
+    [NotMapped]
+    public decimal IgstAmount { get; set; }
+
+    [NotMapped]
+    public decimal RoundingAmount { get; set; }
+
+    [NotMapped]
+    public string? IdempotencyKey { get; set; }
 
     /// <summary>
     /// Lifecycle Status: Draft, PendingApproval, Approved, Issued, PartiallyRefunded, Refunded, Cancelled, Rejected
@@ -66,6 +86,24 @@ public class CreditNote
 
     public ICollection<CreditNoteRefund> Refunds { get; set; } = new List<CreditNoteRefund>();
 
+    public static class Statuses
+    {
+        public const string Draft = "Draft";
+        public const string PendingApproval = "PendingApproval";
+        public const string Approved = "Approved";
+        public const string Rejected = "Rejected";
+        public const string Issued = "Issued";
+        public const string PartiallyRefunded = "PartiallyRefunded";
+        public const string Refunded = "Refunded";
+        public const string Cancelled = "Cancelled";
+    }
+
+    public static class Types
+    {
+        public const string Full = "Full";
+        public const string Partial = "Partial";
+    }
+
     public bool CanEdit() => string.Equals(Status, "Draft", StringComparison.OrdinalIgnoreCase);
 
     public bool CanSubmit() => string.Equals(Status, "Draft", StringComparison.OrdinalIgnoreCase);
@@ -78,19 +116,21 @@ public class CreditNote
                                string.Equals(Status, "PendingApproval", StringComparison.OrdinalIgnoreCase) ||
                                string.Equals(Status, "Approved", StringComparison.OrdinalIgnoreCase);
 
-    public bool CanRefund() => string.Equals(Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
-                               string.Equals(Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase);
+    public bool CanRefund() => (string.Equals(Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase)) &&
+                               RemainingRefundableAmount > 0m;
 
     public void RecalculateRefundableBalance()
     {
         var total = Math.Max(0m, Math.Round(TotalAmount, 2, MidpointRounding.AwayFromZero));
         var refunded = Math.Max(0m, Math.Round(RefundedAmount, 2, MidpointRounding.AwayFromZero));
-        RemainingRefundableAmount = Math.Max(0m, Math.Round(total - refunded, 2, MidpointRounding.AwayFromZero));
 
         if (string.Equals(Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Status, "Refunded", StringComparison.OrdinalIgnoreCase))
         {
+            RemainingRefundableAmount = Math.Max(0m, Math.Round(total - refunded, 2, MidpointRounding.AwayFromZero));
+
             if (RemainingRefundableAmount == 0m && total > 0m)
             {
                 Status = "Refunded";
@@ -103,6 +143,10 @@ public class CreditNote
             {
                 Status = "Issued";
             }
+        }
+        else
+        {
+            RemainingRefundableAmount = 0m;
         }
 
         UpdatedAtUtc = DateTime.UtcNow;

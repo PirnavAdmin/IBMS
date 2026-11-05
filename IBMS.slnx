@@ -11,4 +11,9 @@
     <Project Path="Backend/Billing.Tests.Unit/Billing.Tests.Unit.csproj" />
     <Project Path="Backend/Billing.Worker/Billing.Worker.csproj" />
   </Folder>
+  <Folder Name="/IBMS/frontend/">
+    <Project Path="Frontend/billing-react/Billing.Frontend.csproj" />
+    <Project Path="Frontend/billing-api-client/Billing.ApiClient.csproj" />
+    <Project Path="Frontend/billing-contracts/Billing.Frontend.Contracts.csproj" />
+  </Folder>
 </Solution>

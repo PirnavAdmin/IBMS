@@ -1,0 +1,62 @@
+import { useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import MoreVert from '@mui/icons-material/MoreVert';
+import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
+import { IconButton, Menu, CircularProgress, Chip, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { WorkspacePagination } from '../../components/WorkspacePagination';
+import { platformError } from './platformService';
+import './platform.css';
+let lastToken, epoch = 0;
+export function platformScope(user) {
+  const token = localStorage.getItem('billing_auth_token');
+  if (token !== lastToken) { lastToken = token; epoch++; }
+  return ['platform', user?.userId ?? user?.UserId ?? user?.id, user?.tenantId ?? user?.TenantId, epoch];
+}
+export function usePlatformQuery(name, params, fetcher) {
+  const user = useCurrentUser();
+  return useQuery({ queryKey: [...platformScope(user), name, params], queryFn: ({ signal }) => fetcher(signal), retry: false, gcTime: 0 });
+}
+const descriptions = { 'Platform Dashboard': 'An overview of your organizations, administrators and recent activity.', 'Tenant Management': 'Manage organizations and their workspace access.', 'Platform Users': 'Manage administrator accounts, roles and tenant assignments.', 'Platform Audit Logs': 'Review administration activity across authorized workspaces.', 'Platform Settings': 'Manage platform preferences, access and security policies.' };
+export function PlatformShell({ title, actions, children }) {
+  return <main className="platform-page"><header className="platform-heading"><div><p>PLATFORM ADMINISTRATION</p><h1>{title}</h1>{descriptions[title] && <span className="platform-description">{descriptions[title]}</span>}</div>{actions && <div className="platform-actions">{actions}</div>}</header>{children}</main>;
+}
+export function QueryState({ query, children }) {
+  if (query.isPending) return <div role="status" className="platform-loading"><CircularProgress size={28}/><span>Loading…</span></div>;
+  if (query.isError) return <Alert severity="error" action={<Button onClick={() => query.refetch()}>Retry</Button>}>{platformError(query.error)}</Alert>;
+  return children;
+}
+export const dateText = value => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+export const readableLabel = value => typeof value === 'string' ? value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/^[A-Z ]+$/, text => text.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase())) : value;
+export function PlatformStatus({ value }) {
+  const tone = { Active:'active', Success:'active', Suspended:'warning', Inactive:'muted', Failed:'danger' }[value] || 'muted';
+  return <span className={'platform-status platform-status-' + tone}><i aria-hidden="true" />{readableLabel(value) || '—'}</span>;
+}
+export function PlatformRefresh({ query }) { return <Button variant="outlined" startIcon={<RefreshOutlined/>} disabled={query.isFetching} onClick={()=>query.refetch()}>Refresh</Button>; }
+export function RowActions({ label, items }) {
+  const [anchor,setAnchor]=useState(null);
+  return <><IconButton className="ibms-row-actions-trigger" aria-label={'Actions for '+label} aria-haspopup="menu" aria-expanded={Boolean(anchor)} onClick={event=>setAnchor(event.currentTarget)}><MoreVert/></IconButton><Menu anchorEl={anchor} open={Boolean(anchor)} onClose={()=>setAnchor(null)} PaperProps={{className:'ibms-row-actions-menu'}}>{items.map(item=><MenuItem key={item.label} disabled={item.disabled} onClick={()=>{setAnchor(null);item.onClick();}}>{item.label}</MenuItem>)}</Menu></>;
+}
+export function PlatformTable({ rows, columns, label = "Records" }) {
+  return <div className="platform-table-wrap ibms-table-frame" role="region" aria-label={label + ' table scroll area'} tabIndex={0}><table aria-label={label}><thead><tr>{columns.map(c => <th key={c[0]}>{c[1]}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => <tr key={row.id ?? index}>{columns.map(c => <td key={c[0]}>{['status','resultStatus'].includes(c[0]) ? <PlatformStatus value={row[c[0]]}/> : c[0]==='roles' && Array.isArray(row.roles) ? <div className="platform-role-tags">{row.roles.map(role=><Chip key={role} size="small" label={readableLabel(role)}/>)}</div> : c[2] ? c[2](row) : ['action','entityType','entityName'].includes(c[0]) ? readableLabel(row[c[0]]) || '—' : row[c[0]] ?? '—'}</td>)}</tr>) : <tr><td colSpan={columns.length}><div className="platform-empty"><strong>No records found.</strong><span>Try adjusting your search or filters.</span></div></td></tr>}</tbody></table></div>;
+}
+export function Pager({ data, filters, setFilters, audit = false, itemLabel = 'records' }) {
+  const key = audit ? 'pageNumber' : 'page';
+  return <WorkspacePagination itemLabel={itemLabel} page={filters[key]} pageSize={filters.pageSize} totalCount={data.totalCount} onPageChange={page => setFilters(f => ({ ...f, [key]: page }))} onPageSizeChange={pageSize => setFilters(f => ({ ...f, pageSize, [key]: 1 }))} />;
+}
+export function SelectFilter({ label, value, options, onChange }) {
+  return <TextField select size="small" InputLabelProps={{shrink:true}} SelectProps={{displayEmpty:true}} label={label} value={value || ''} onChange={e => onChange(e.target.value)}><MenuItem value="">All {label.toLowerCase() === 'status' ? 'statuses' : label.toLowerCase()}</MenuItem>{options.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>;
+}
+export function MutationDialog({ title, initial, fields, submit, onDone, onClose, description }) {
+  const [values, setValues] = useState(initial);
+  const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const lock = useRef(false);
+  const client = useQueryClient();
+  const session = useRef(localStorage.getItem('billing_auth_token')).current;
+  const save = async event => {
+    event.preventDefault(); if (lock.current || session !== localStorage.getItem('billing_auth_token')) return;
+    lock.current = true; setBusy(true); setError('');
+    try { const result = await submit(values); if (session !== localStorage.getItem('billing_auth_token')) return; await client.invalidateQueries({ queryKey: ['platform'] }); onDone?.(result); onClose(); }
+    catch (e) { setError(platformError(e)); } finally { lock.current = false; setBusy(false); }
+  };
+  return <Dialog open fullWidth maxWidth="sm" onClose={() => !lock.current && onClose()} aria-labelledby="platform-editor-title"><form onSubmit={save}><DialogTitle id="platform-editor-title">{title}</DialogTitle><DialogContent>{description && <p className="platform-dialog-description">{description}</p>}{error && <Alert severity="error">{error}</Alert>}<div className="platform-form">{fields.map(field => <TextField key={field.name} label={field.label} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => setValues(v => ({ ...v, [field.name]: e.target.value }))}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>)}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
+}

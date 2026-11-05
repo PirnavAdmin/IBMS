@@ -48,9 +48,9 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
     public async Task<PagedResult<InvoiceTemplateDto>> GetTemplatesAsync(TemplateFilterRequest filter, int tenantId, CancellationToken ct = default)
     {
-        if (tenantId > 0 && !await _templateRepository.ExistsByNameAsync("Pirnav Standard Invoice", tenantId))
+        if (tenantId > 0)
         {
-            await EnsurePirnavStandardTemplateAsync(tenantId, ct);
+            await EnsurePirnavTemplatesAsync(tenantId, ct);
         }
 
         if (tenantId > 0 && !await _templateRepository.ExistsByNameAsync("Pirnav Gemini Modern", tenantId))
@@ -84,45 +84,57 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         return new PagedResult<InvoiceTemplateDto>(dtos, totalCount, filter.PageNumber, filter.PageSize);
     }
 
-    private async Task EnsurePirnavStandardTemplateAsync(int tenantId, CancellationToken ct)
+    private async Task EnsurePirnavTemplatesAsync(int tenantId, CancellationToken ct)
     {
-        try
+        var templatesToEnsure = new (string Name, string Design, string Description, DomainStyle Style)[]
         {
-            var pirnavTemplate = new InvoiceTemplate
-            {
-                TenantId = tenantId,
-                Name = "Pirnav Standard Invoice",
-                Description = "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.",
-                Style = DomainStyle.Professional,
-                Status = DomainStatus.Active,
-                CurrentVersionNumber = 1,
-                CreatedAtUtc = DateTime.UtcNow,
-                CreatedBy = "SystemSeed"
-            };
+            ("Pirnav Standard Invoice", "Banner", "Reusable Pirnav-branded invoice layout. Customer, invoice, item, payment, and total values are populated from the selected invoice.", DomainStyle.Professional),
+            ("Pirnav Template 4", "Corner", "Angled brown corner badge, highlighted balance due box, dashed details strip, and rounded header.", DomainStyle.Professional)
+        };
 
-            var pirnavVersion = new TemplateVersion
-            {
-                TenantId = tenantId,
-                VersionNumber = 1,
-                Status = DomainStatus.Active,
-                VersionDescription = "Initial reusable Pirnav standard invoice layout",
-                BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#70472f\",\"SecondaryColor\":\"#a46a43\",\"AccentColor\":\"#f1e6dc\",\"FontFamily\":\"Segoe UI\"}",
-                CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"\",\"Phone\":\"\",\"Website\":\"\",\"AddressLine1\":\"\",\"Country\":\"India\"}",
-                LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}",
-                PaymentInstructionsJson = "{}",
-                TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}",
-                CreatedAtUtc = DateTime.UtcNow,
-                CreatedBy = "SystemSeed"
-            };
-
-            pirnavTemplate.Versions.Add(pirnavVersion);
-            await _templateRepository.AddAsync(pirnavTemplate);
-            pirnavTemplate.ActiveVersionId = pirnavVersion.Id;
-            await _templateRepository.UpdateAsync(pirnavTemplate);
-        }
-        catch
+        foreach (var item in templatesToEnsure)
         {
-            // Ignore concurrent creation
+            try
+            {
+                if (await _templateRepository.ExistsByNameAsync(item.Name, tenantId))
+                    continue;
+
+                var template = new InvoiceTemplate
+                {
+                    TenantId = tenantId,
+                    Name = item.Name,
+                    Description = item.Description,
+                    Style = item.Style,
+                    Status = DomainStatus.Active,
+                    CurrentVersionNumber = 1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                var version = new TemplateVersion
+                {
+                    TenantId = tenantId,
+                    VersionNumber = 1,
+                    Status = DomainStatus.Active,
+                    VersionDescription = $"Initial {item.Name} layout",
+                    BrandingJson = "{\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoName\":\"pirnav.png\",\"LogoPosition\":\"right\",\"LogoWidth\":132,\"PrimaryColor\":\"#6B2D0C\",\"SecondaryColor\":\"#F6EBE3\",\"AccentColor\":\"#D9A57F\",\"FontFamily\":\"Segoe UI\"}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"info@pirnav.com\",\"Phone\":\"+91 8121076485\",\"Website\":\"https://www.pirnav.com/\",\"AddressLine1\":\"Capital Park Road, Madhapur, Hitech City, Hyderabad, Telangana 500081\",\"Country\":\"India\"}",
+                    LayoutJson = $"{{\"UsePirnavStandardLayout\":true,\"TemplateDesign\":\"{item.Design}\",\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTaxBreakdown\":true,\"ShowPaymentInstructions\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\",\"MarginTopMm\":12,\"MarginBottomMm\":12,\"MarginLeftMm\":14,\"MarginRightMm\":14}}",
+                    PaymentInstructionsJson = "{}",
+                    TermsJson = "{\"TermsAndConditions\":\"1. Payment should be made against this invoice as per the agreed payment terms.\\n2. Please mention the invoice number in all payment references.\\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\\n4. Services are subject to the agreed scope and commercial terms.\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}",
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CreatedBy = "SystemSeed"
+                };
+
+                template.Versions.Add(version);
+                await _templateRepository.AddAsync(template);
+                template.ActiveVersionId = version.Id;
+                await _templateRepository.UpdateAsync(template);
+            }
+            catch
+            {
+                // Ignore concurrent creation
+            }
         }
     }
 

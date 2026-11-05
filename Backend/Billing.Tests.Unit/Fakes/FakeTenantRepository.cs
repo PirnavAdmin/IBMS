@@ -47,4 +47,35 @@ public class FakeTenantRepository : ITenantRepository
     {
         return Task.FromResult(Tenants.Any(t => t.TenantCode.Equals(tenantCode, StringComparison.OrdinalIgnoreCase)));
     }
+
+    public Task<(List<Tenant> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize)
+    {
+        var query = Tenants.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(t => t.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || t.TenantCode.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(t => string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase));
+        }
+        var list = query.ToList();
+        var page = pageNumber <= 0 ? 1 : pageNumber;
+        var size = pageSize <= 0 ? 10 : pageSize;
+        return Task.FromResult((list.Skip((page - 1) * size).Take(size).ToList(), list.Count));
+    }
+
+    public Task<int> GetCountByStatusAsync(string? status = null)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return Task.FromResult(Tenants.Count);
+        }
+        return Task.FromResult(Tenants.Count(t => string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public Task<List<User>> GetTenantAdminsAsync(int tenantId)
+    {
+        return Task.FromResult(new List<User>());
+    }
 }
