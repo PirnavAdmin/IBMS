@@ -1,7 +1,7 @@
-import { apiClient } from 'billing-api-client';
+import { apiClient, getUserFriendlyError } from 'billing-api-client';
 const base = '/api/v1/platform';
 export function unwrapPlatform(response) {
-  if (response?.success !== true || response.data == null) throw new Error(response?.message || 'Invalid platform API response.');
+  if (response?.success !== true || response.data == null) throw Object.assign(new Error(response?.message || 'Invalid platform API response.'), { response: { data: response } });
   return response.data;
 }
 export function platformPage(response) {
@@ -28,12 +28,31 @@ export const platformService = {
   settings: signal => get('/settings', undefined, signal),
   updateSettings: payload => write('put', '/settings', payload),
 };
+const errorText = value => typeof value === 'string' && !/<(?:!doctype|html|body)[\s>]/i.test(value) ? value.trim() : '';
+const validationMessages = details => details?.errors && typeof details.errors === 'object'
+  ? Object.values(details.errors).flat().map(errorText).filter(Boolean) : [];
+export function platformFieldErrors(error, fields) {
+  const errors = error?.response?.data?.errors;
+  if (!errors || Array.isArray(errors) || typeof errors !== 'object') return {};
+  const result = {};
+  for (const [key, value] of Object.entries(errors)) {
+    const name = key.split('.').pop().replace(/\[\d+\]/g, '').toLowerCase();
+    const field = fields.find(item => item.name.toLowerCase() === name);
+    const message = (Array.isArray(value) ? value : [value]).map(errorText).filter(Boolean).join(' ');
+    if (field && message) result[field.name] = [result[field.name], message].filter(Boolean).join(' ');
+  }
+  return result;
+}
 export function platformError(error) {
-  const status = error?.response?.status;
+  const status = error?.response?.status ?? error?.status;
   if (status === 401) return 'Your session expired. Please sign in again.';
   if (status === 403) return 'You do not have platform administration access.';
   if (status === 404) return 'The platform endpoint or record was not found.';
+  if (status === 429) return 'Too many requests. Please wait a moment and try again.';
+  if (status >= 500) return 'Server is currently unavailable. Please try again later.';
+  if (!status && (error?.request || ['ERR_NETWORK', 'ECONNABORTED', 'ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EHOSTUNREACH'].includes(error?.code) || /network error|failed to fetch|unable to reach the server|no internet connection/i.test(error?.message || ''))) return getUserFriendlyError(error);
   const details = error?.response?.data;
-  const messages = details?.errors && typeof details.errors === 'object' ? Object.values(details.errors).flat().filter(v => typeof v === 'string').join(' ') : '';
-  return (status === 409 ? 'Conflict: ' : '') + (messages || details?.message || error?.message || 'Unable to complete the request.');
+  const message = validationMessages(details).join(' ') || errorText(details?.detail) || errorText(details?.message) || errorText(details?.title) || errorText(error?.userMessage) || errorText(error?.message);
+  if (status === 409) return 'Conflict: ' + (message || 'This record changed. Refresh the page and try again.');
+  return message || (status === 400 || status === 422 ? 'Check the entered values and try again.' : 'Unable to complete the request. Please try again.');
 }

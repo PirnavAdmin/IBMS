@@ -1,7 +1,7 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Alert from '@mui/material/Alert';
-import LinearProgress from '@mui/material/LinearProgress';
+import { PageLoading } from '../../components/PageLoading';
 import { useLocation } from 'react-router-dom';
 import { apiClient } from 'billing-api-client/apiClient.js';
 import { authApi } from 'billing-api-client/authApi.js';
@@ -71,6 +71,7 @@ export function QuotationManagement() {
   const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
   const [listFailed,setListFailed]=useState(false);
   const locked=useRef(false), generation=useRef(0);
+  const listViewState=useRef(null);
   const screenRoot=useRef(null), listScroll=useRef(0), previousScreen=useRef({screen:'list',id:null});
   useLayoutEffect(()=>{
     const container=screenRoot.current?.closest('.app-layout-content');
@@ -101,7 +102,7 @@ export function QuotationManagement() {
     ]);
     if(version!==generation.current)return;
     try {
-      const [q,c,p,profile,charges]=results; setListFailed(results.some(result=>result.status==='rejected'));
+      const [q,c,p,profile,charges]=results; setListFailed(q.status==='rejected');
       if(q.status==='fulfilled')setQuotes(q.value.map(normalizeQuotation));
       if(c.status==='fulfilled')setCustomers(c.value.map(parseCustomerResponse).filter(Boolean).map(row=>({...row,id:String(row.id),code:row.customerCode,mobile:row.phone,billingAddress:address(row.billingAddress),shippingAddress:address(row.shippingAddress),taxInfo:row.taxId||''})));
       if(p.status==='fulfilled')setProducts(p.value.filter(row=>row.isActive!==false&&row.status!=='Inactive').map(normalizeQuotationProduct));
@@ -176,14 +177,15 @@ export function QuotationManagement() {
     ?run(()=>refreshDetails(current.id))
     :load();
   return <>
-    {(loading||busy)&&<LinearProgress/>}
+    {loading&&<PageLoading/>}
+    {busy&&<div className="quotation-operation-loading"><PageLoading/></div>}
     {error&&!listFailed&&<Alert severity="error" action={<button disabled={loading||busy} onClick={retry}>Retry</button>}>{error}</Alert>}
-    <fieldset ref={screenRoot} disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
+    <fieldset ref={screenRoot} hidden={loading} disabled={busy||loading} style={{border:0,padding:0,margin:0,minWidth:0}} aria-busy={busy||loading}>
       {screen==='create'||screen==='edit'
         ?<QuotationForm key={current?.id||'new'} initial={screen==='edit'?enrich(current):newQuotation()} customers={customers.filter(c=>c.isActive!==false||c.id===current?.customerId)} products={products} configuredCharges={configuredCharges} onSave={save} onCancel={cancelEdit} onBack={()=>setScreen('list')} onNotice={setNotice}/>
         :screen==='details'&&current
           ?<QuotationDetails quotation={enrich(current)} tenantProfile={tenantProfile} onBack={()=>setScreen('list')} onEdit={q=>open('edit',q)} onAction={action}/>
-          :<QuotationList quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>run(async()=>{await refreshConfiguredCharges();setCurrent(null);setScreen('create');})} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
+          :<QuotationList initialViewState={listViewState.current} onViewStateChange={value=>{listViewState.current=value;}} quotations={quotes.map(enrich)} customers={customers} loading={loading} loadFailed={listFailed} error={error} onRetry={load} onCreate={()=>run(async()=>{await refreshConfiguredCharges();setCurrent(null);setScreen('create');})} onView={q=>open('details',q)} onEdit={q=>open('edit',q)} onAction={action}/>}
       <QuotationDialog key={dialog||'closed'} type={dialog} quotation={current&&enrich(current)} error={error} onClose={()=>setDialog(null)} onConfirm={transition}/>
     </fieldset>
     <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />

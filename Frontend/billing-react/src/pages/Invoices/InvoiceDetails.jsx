@@ -1,3 +1,4 @@
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { hasPermission } from "../../utils/permissionUtils";
 import { useState } from "react";
@@ -172,10 +173,11 @@ export function InvoiceDetails() {
       }
       actions={
         <>
-          <Button component={Link} to="/invoices">
+          <Button component={Link} to="/invoices" variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />}>
             Back to invoices
           </Button>
           <Button
+            variant="outlined"
             startIcon={<Refresh />}
            disabled={invoice.isFetching || !user.permissions.view}
             onClick={() => {

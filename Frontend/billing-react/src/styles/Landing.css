@@ -79,7 +79,7 @@
 .whatsapp-sent-bubble { display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 6px 12px; border-radius: 99px; margin-top: 14px; width: fit-content; }
 .hero-phone-mockup { position: relative; background: #9A4F2F; border-radius: 28px; padding: 10px; box-shadow: 0 25px 50px -10px rgba(154, 79, 47, 0.35), 0 10px 20px -5px rgba(45, 33, 28, 0.2); width: 100%; max-width: 280px; box-sizing: border-box; z-index: 2; border: 2.5px solid #853E21; }
 .phone-screen { background: #ffffff; border-radius: 20px; padding: 20px 14px; text-align: center; border: 1px solid rgba(231, 216, 203, 0.7); }
-.phone-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #DFA24B; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 6px 16px rgba(223, 162, 75, 0.35); }
+.phone-check-circle { width: 44px; height: 44px; border-radius: 50%; background: #548268; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; box-shadow: 0 6px 16px rgba(84, 130, 104, 0.22); }
 .phone-success-title { font-weight: 800 !important; color: #2D211C !important; font-size: 0.85rem !important; }
 .phone-success-amount { font-weight: 900 !important; color: #9A4F2F !important; font-size: 1.15rem !important; font-family: monospace !important; margin: 4px 0 10px !important; }
 .phone-payment-method { font-size: 0.65rem; font-weight: 700; color: #9A4F2F; background: #F5ECE3; border: 1px solid #F5ECE3; padding: 3px 8px; border-radius: 6px; display: inline-block; }
@@ -281,3 +281,40 @@
 .mockup-brand-tag { font-size: .78rem; line-height: 1.3; }
 
 @media (max-width: 600px) { .swipe-brand-caption { max-width: min(190px, calc(100vw - 170px)); } }
+
+/* Keep ledger columns readable inside narrow feature cards. */
+.landing-root .reconciliation-table { overflow-x: auto; }
+.landing-root .reconciliation-table-header,
+.landing-root .reconciliation-row {
+  min-width: 560px;
+  box-sizing: border-box;
+  grid-template-columns: 96px minmax(130px, 1fr) 120px 100px;
+  column-gap: 12px;
+}
+.landing-root .rec-inv-id,
+.landing-root .rec-status-chip,
+.landing-root .rec-amount { white-space: nowrap; }
+.landing-root .swipe-toolbar { gap: 20px; }
+.landing-root .payment-card-header { flex-wrap: wrap; gap: 12px; }
+.landing-root .inv-badge-group { flex-wrap: wrap; }
+.landing-root .payment-amount-display { white-space: nowrap; }
+@media (min-width: 960px) and (max-width: 1100px) {
+  .landing-root .secure-badge-pill { display: none; }
+}
+
+/* Public-page controls retain native keyboard and link behavior. */
+.landing-root .swipe-brand,
+.landing-root .nav-link,
+.landing-root .footer-nav-links a { text-decoration: none; }
+.landing-root .footer-nav-links a { color: inherit; }
+.landing-root .footer-nav-links a:hover { color: #fff; }
+.landing-root .payment-option-pill { width: 100%; font: inherit; text-align: left; color: inherit; }
+.landing-root a:focus-visible,
+.landing-root button:focus-visible,
+.landing-root [tabindex="0"]:focus-visible { outline: 3px solid #548268; outline-offset: 3px; }
+.landing-root .invoices-marquee-track:focus-within { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-root .invoices-marquee-track,
+  .landing-root .landing-bg-orb { animation: none; }
+  .landing-root .invoices-marquee-container { overflow-x: auto; mask-image: none; -webkit-mask-image: none; }
+}

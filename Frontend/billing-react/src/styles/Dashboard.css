@@ -453,3 +453,5 @@
 @media (max-width: 380px) {
   .bd-requirements-dashboard .bd-filter { flex-basis: 100%; }
 }
+
+.bd-retry:disabled, .bd-retry:disabled:hover { opacity: .6; cursor: not-allowed; background: #5A2508; }

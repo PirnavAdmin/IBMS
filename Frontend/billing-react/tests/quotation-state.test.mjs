@@ -7,7 +7,7 @@ import vm from 'node:vm';
 
 // Exercise the page's async handlers with deterministic hook state and API responses.
 // Child components are boundaries; rendering and styling are checked by the production build.
-async function harness(loadFailure = null) {
+async function harness(loadFailure = null, profileFailure = null) {
   const slots = []; let cursor = 0; const effects = []; const calls = [];
   let record = { id: 1, customerId: '1', customer: {}, status: 'Draft', items: [], communications: [], auditLogs: [], rowVersion: 'v1' };
   let failGet = false, failAudit = false, failSave = false, saveGate, chargeLoads = 0;
@@ -23,6 +23,7 @@ async function harness(loadFailure = null) {
     createElement: (type, props, ...children) => ({ type, props: { ...props, children } }),
     useState: initial => { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
     useRef: initial => { const i = cursor++; return slots[i] ||= { current: initial }; },
+    useLayoutEffect: () => {},
     useEffect: fn => { const i = cursor++; if (!(i in slots)) { slots[i] = true; effects.push(fn); } },
   };
   const router = { useLocation: () => ({ state: null }) };
@@ -30,6 +31,7 @@ async function harness(loadFailure = null) {
   const compiled = await transform(source, { loader: 'jsx', format: 'cjs', jsx: 'transform' });
   const module = { exports: {} };
   vm.runInNewContext(compiled.code, { module, exports: module.exports, React: react, setTimeout, clearTimeout, require: id => {
+    if (id === '@mui/material/Alert') return { __esModule: true, default: 'Alert' };
     if (id === 'react') return react;
     if (id === 'react-router-dom') return router;
     if (id.includes('FormDraftContext')) return { useFormDraft: () => ({ clear: () => calls.push('clearDraft') }) };
@@ -53,7 +55,7 @@ async function harness(loadFailure = null) {
         { id: 13, name: 'Inactive Fee', code: 'INACTIVE', value: 50, calculationType: 'Fixed', status: 'Inactive' },
       ];
     } } };
-    if (id.includes('templateApi')) return { templateApi: { list: async () => [] } };
+    if (id.includes('templateApi')) return { templateApi: { list: async () => { if (profileFailure) throw profileFailure; return []; } } };
     if (id.includes('apiClient')) return { apiClient: { get: async () => { if (loadFailure) throw loadFailure; return []; } } };
     if (id.includes('customer.contracts')) return { parseCustomerResponse: q => q };
     if (id.includes('quotationErrors')) return { quotationErrorMessage: e => e.message };
@@ -66,9 +68,9 @@ async function harness(loadFailure = null) {
     for (const child of [node.props?.children].flat(Infinity)) { const found = find(child, type); if (found) return found; }
   };
   const props = type => find(render(), type);
-  render(); effects.forEach(fn => fn());
+  const initialTree = render(); effects.forEach(fn => fn());
   await new Promise(resolve => setImmediate(resolve));
-  return { props, calls, api, get chargeLoads() { return chargeLoads; }, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
+  return { initialLoader: find(initialTree, 'PageLoading'), props, calls, api, get chargeLoads() { return chargeLoads; }, setFailGet: v => { failGet = v; }, setFailAudit: v => { failAudit = v; }, setFailSave: v => { failSave = v; }, setSaveGate: v => { saveGate = v; } };
 }
 
 test('create and edit refresh details/history and update the list without reloading', async () => {
@@ -224,4 +226,28 @@ test('converted quotation rejects repeat conversion and duplicate confirmation i
   assert.equal(h.calls.filter(call => call === 'convert').length, 1);
   await h.props('QuotationList').onAction('convert', { id: 1 });
   assert.match(h.props('Alert').children.join(''), /no longer available/);
+});
+
+
+test('optional profile/template failure preserves the loaded quotation directory', async () => {
+  const h = await harness(null, new Error('Templates unavailable'));
+  const list = h.props('QuotationList');
+  assert.equal(list.loadFailed, false);
+  assert.equal(list.quotations.length, 1);
+  assert.match(list.error, /Templates unavailable/);
+});
+
+
+test('quotation initial and in-progress requests reuse the shared page loader',async()=>{
+  const h = await harness();
+  assert.ok(h.initialLoader);
+  assert.equal(h.props('PageLoading'),undefined);
+  let release;
+  const original=h.api.get;
+  h.api.get=async(...args)=>{await new Promise(resolve=>{release=resolve;});return original(...args);};
+  const pending=h.props('QuotationList').onEdit({id:1});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.ok(h.props('PageLoading'));
+  release();await pending;
+  assert.equal(h.props('PageLoading'),undefined);
 });
