@@ -107,6 +107,12 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult((paged, total));
     }
 
+    public Task<List<User>> GetActiveUsersByTenantAsync(int tenantId)
+    {
+        var active = Users.Where(u => u.TenantId == tenantId && u.Status == "Active").ToList();
+        return Task.FromResult(active);
+    }
+
     public Task<User?> GetByExternalSubjectAsync(string provider, string subjectId)
     {
         var match = Users.FirstOrDefault(u =>

@@ -1,5 +1,5 @@
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -33,6 +33,9 @@ const forgotSchema = yup.object({
 
 export const ForgotPassword = () => {
   const { handleNav, isExiting } = useAuthNav();
+  const submitLock = useRef(false);
+  const redirectTimer = useRef(null);
+  useEffect(() => () => clearTimeout(redirectTimer.current), []);
   const [apiError, setApiError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successDismissed, setSuccessDismissed] = useState(false);
@@ -44,13 +47,16 @@ export const ForgotPassword = () => {
   });
 
   const onSubmit = async ({ email }) => {
+    if (submitLock.current) return;
+    submitLock.current = true;
     try {
       setApiError(null);
       await authApi.forgotPassword({ email });
       setSuccessDismissed(false);
       setIsSuccess(true);
-      setTimeout(() => handleNav('/verify-otp', { email }), 700);
+      redirectTimer.current = setTimeout(() => handleNav('/verify-otp', { email }), 700);
     } catch (err) {
+      submitLock.current = false;
       setApiError(err?.message || 'Unable to send recovery code. Please verify your email and try again.');
     }
   };
@@ -77,10 +83,10 @@ export const ForgotPassword = () => {
         <Stack spacing={2}>
           <Box>
             <label htmlFor="email" className="billing-auth-input-label">Work email<span className="billing-auth-required" aria-hidden="true"> *</span></label>
-            <TextField fullWidth size="small" id="email" required type="email" placeholder="name@company.com" autoFocus disabled={isSubmitting} {...register('email')} error={Boolean(errors.email)} helperText={errors.email?.message} className="billing-auth-input dark-glass-input auth-neutral-input" InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlined fontSize="small" sx={{ color: '#64748b' }} /></InputAdornment> }} />
+            <TextField fullWidth size="small" id="email" required autoComplete="email" type="email" placeholder="name@company.com" autoFocus disabled={isSubmitting || isSuccess} {...register('email')} error={Boolean(errors.email)} helperText={errors.email?.message} className="billing-auth-input dark-glass-input auth-neutral-input" InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlined fontSize="small" sx={{ color: '#64748b' }} /></InputAdornment> }} />
           </Box>
-          <div className="billing-auth-recovery-nav"><RouterLink to="/login" onClick={event => { event.preventDefault(); handleNav('/login'); }}>Back to Login</RouterLink></div>
-          <Button type="submit" fullWidth variant="contained" disabled={isSubmitting} className="auth-submit-btn" endIcon={!isSubmitting && <SendOutlined fontSize="small" />}>
+          <div className="billing-auth-recovery-nav"><RouterLink to="/login" onClick={event => { event.preventDefault(); if (!isSubmitting && !isSuccess) handleNav('/login'); }}>Back to Login</RouterLink></div>
+          <Button type="submit" fullWidth variant="contained" disabled={isSubmitting || isSuccess} className="billing-auth-submit-btn" endIcon={!isSubmitting && <SendOutlined fontSize="small" />}>
             {isSubmitting ? <CircularProgress size={20} color="inherit" /> : 'Send OTP'}
           </Button>
         </Stack>

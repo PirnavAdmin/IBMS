@@ -21,4 +21,6 @@ public interface IUserRepository
     Task<(List<User> Users, int TotalCount)> GetPagedUsersAsync(string? search, string? status, string? role, int? tenantId, string? identityType, int pageNumber, int pageSize);
 
     Task<User?> GetByExternalSubjectAsync(string provider, string subjectId);
+
+    Task<List<User>> GetActiveUsersByTenantAsync(int tenantId);
 }

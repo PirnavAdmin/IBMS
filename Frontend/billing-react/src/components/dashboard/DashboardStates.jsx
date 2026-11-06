@@ -17,7 +17,7 @@ export const DashboardSkeleton = () => <div className="bd-dashboard-skeleton" ro
   <div className="bd-detail-grid">{['Recent Payments', 'Top Customers'].map((title) => <SectionSkeleton key={title} title={title} />)}</div>
 </div>;
 
-export const DashboardErrorState = ({ onRetry, title = "Unable to load data", message }) => {
+export const DashboardErrorState = ({ onRetry, title = "Unable to load data", message, description, retryLabel = "Retry", retryDisabled = false }) => {
   const isTransportFailure = Boolean(transportErrorMessage(message));
   const moduleName = title.replace(/^Unable to (?:load|check)\s+/i, '').trim();
   const displayMessage = isTransportFailure
@@ -27,7 +27,7 @@ export const DashboardErrorState = ({ onRetry, title = "Unable to load data", me
   return <section className="bd-dashboard-error" role="alert">
     <div className="bd-error-illustration" aria-hidden="true"><PowerOffOutlined /><div><DnsOutlined /><DescriptionOutlined /></div></div>
     <h2>{title}</h2>
-    <p>{displayMessage}</p>
-    {onRetry && <button className="bd-retry" onClick={onRetry}><Refresh /> Retry</button>}
+    <p>{description ?? displayMessage}</p>
+    {onRetry && <button type="button" className="bd-retry" disabled={retryDisabled} onClick={onRetry}><Refresh />{retryLabel}</button>}
   </section>;
 };

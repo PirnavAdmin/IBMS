@@ -25,8 +25,14 @@ export function parseInboxPage(response) {
 export function notificationDestination(action, user) {
   if (!action || !/^[A-Za-z0-9_-]+$/.test(String(action.entityId ?? ''))) return null;
   const routes = {
-    invoices: ['invoices.view', '/invoices/'], payments: ['payments.view', '/payments/'],
-    customers: ['customers.view', '/customers/'], 'credit-notes': ['creditnotes.view', '/credit-notes/'],
+    invoices: ['invoices.view', '/invoices/'],
+    payments: ['payments.view', '/payments/'],
+    customers: ['customers.view', '/customers/'],
+    'credit-notes': ['creditnotes.view', '/credit-notes/'],
+    quotations: ['quotations.view', '/quotations?id='],
+    notifications: ['settings.view', '/settings/notifications/history?id='],
+    exports: ['billing.view', '/export-jobs?id='],
+    jobs: ['settings.view', '/background-jobs?id='],
   };
   const route = Object.hasOwn(routes, action.module) ? routes[action.module] : null;
   return route && hasPermission(route[0], user) ? route[1] + encodeURIComponent(action.entityId) : null;

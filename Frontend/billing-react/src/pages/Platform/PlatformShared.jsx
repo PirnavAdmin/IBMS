@@ -1,11 +1,12 @@
+import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MoreVert from '@mui/icons-material/MoreVert';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
-import { IconButton, Menu, CircularProgress, Chip, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { IconButton, Menu, CircularProgress, Chip, Alert, AlertTitle, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
-import { platformError } from './platformService';
+import { platformError, platformFieldErrors } from './platformService';
 import './platform.css';
 let lastToken, epoch = 0;
 export function platformScope(user) {
@@ -21,13 +22,27 @@ const descriptions = { 'Platform Dashboard': 'An overview of your organizations,
 export function PlatformShell({ title, actions, children }) {
   return <main className="platform-page"><header className="platform-heading"><div><p>PLATFORM ADMINISTRATION</p><h1>{title}</h1>{descriptions[title] && <span className="platform-description">{descriptions[title]}</span>}</div>{actions && <div className="platform-actions">{actions}</div>}</header>{children}</main>;
 }
-export function QueryState({ query, children }) {
+export function QueryState({ query, children, resource = 'platform data' }) {
+  const paused = query.fetchStatus === 'paused';
+  if (query.isError || paused) return <div className="platform-query-error" aria-busy={Boolean(query.isFetching)}><DashboardErrorState
+    title={`Unable to load ${resource}`}
+    message={platformError(query.error)}
+    description={paused ? 'No internet connection. Check your network; loading will resume when you reconnect.' : undefined}
+    onRetry={() => query.refetch()}
+    retryDisabled={query.isFetching || paused}
+    retryLabel={query.isFetching ? 'Retrying\u2026' : 'Retry'}
+  /></div>;
   if (query.isPending) return <div role="status" className="platform-loading"><CircularProgress size={28}/><span>Loading…</span></div>;
-  if (query.isError) return <Alert severity="error" action={<Button onClick={() => query.refetch()}>Retry</Button>}>{platformError(query.error)}</Alert>;
   return children;
 }
 export const dateText = value => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 export const readableLabel = value => typeof value === 'string' ? value.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/^[A-Z ]+$/, text => text.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase())) : value;
+export function platformMatches(record, search) {
+  const term = search.trim().toLocaleLowerCase();
+  if (!term) return true;
+  const values = Array.isArray(record) ? record : Object.values(record);
+  return values.flat().some(value => ['string','number','boolean'].includes(typeof value) && (String(value).toLocaleLowerCase().includes(term) || readableLabel(String(value)).toLocaleLowerCase().includes(term)));
+}
 export function PlatformStatus({ value }) {
   const tone = { Active:'active', Success:'active', Suspended:'warning', Inactive:'muted', Failed:'danger' }[value] || 'muted';
   return <span className={'platform-status platform-status-' + tone}><i aria-hidden="true" />{readableLabel(value) || '—'}</span>;
@@ -49,14 +64,14 @@ export function SelectFilter({ label, value, options, onChange }) {
 }
 export function MutationDialog({ title, initial, fields, submit, onDone, onClose, description }) {
   const [values, setValues] = useState(initial);
-  const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const lock = useRef(false);
+  const [error, setError] = useState(''); const [fieldErrors, setFieldErrors] = useState({}); const [busy, setBusy] = useState(false); const lock = useRef(false);
   const client = useQueryClient();
   const session = useRef(localStorage.getItem('billing_auth_token')).current;
   const save = async event => {
-    event.preventDefault(); if (lock.current || session !== localStorage.getItem('billing_auth_token')) return;
-    lock.current = true; setBusy(true); setError('');
+    event.preventDefault(); if (lock.current) return; if (session !== localStorage.getItem('billing_auth_token')) { setError('Your session changed. Close this form and reopen it before saving.'); return; }
+    lock.current = true; setBusy(true); setError(''); setFieldErrors({});
     try { const result = await submit(values); if (session !== localStorage.getItem('billing_auth_token')) return; await client.invalidateQueries({ queryKey: ['platform'] }); onDone?.(result); onClose(); }
-    catch (e) { setError(platformError(e)); } finally { lock.current = false; setBusy(false); }
+    catch (e) { if (session === localStorage.getItem('billing_auth_token')) { setError(platformError(e)); setFieldErrors(platformFieldErrors(e, fields)); } } finally { lock.current = false; setBusy(false); }
   };
-  return <Dialog open fullWidth maxWidth="sm" onClose={() => !lock.current && onClose()} aria-labelledby="platform-editor-title"><form onSubmit={save}><DialogTitle id="platform-editor-title">{title}</DialogTitle><DialogContent>{description && <p className="platform-dialog-description">{description}</p>}{error && <Alert severity="error">{error}</Alert>}<div className="platform-form">{fields.map(field => <TextField key={field.name} label={field.label} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => setValues(v => ({ ...v, [field.name]: e.target.value }))}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>)}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
+  return <Dialog open fullWidth maxWidth="sm" onClose={() => !lock.current && onClose()} aria-labelledby="platform-editor-title"><form onSubmit={save}><DialogTitle id="platform-editor-title">{title}</DialogTitle><DialogContent>{description && <p className="platform-dialog-description">{description}</p>}{error && <Alert severity="error"><AlertTitle>Unable to save changes</AlertTitle>{error}</Alert>}<div className="platform-form">{fields.map(field => <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name]} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>)}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
 }

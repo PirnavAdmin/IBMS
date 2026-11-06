@@ -606,16 +606,14 @@ test("List Date Range stages dates, validates order, applies existing filters an
 
       await openRange();
       await input(to(), '2026-10-14');
-      await click(button('Apply'));
+      assert.equal(button('Apply').disabled, true, 'Both bounds are required by the shared date-range filter');
       assert.equal(calls.at(-1).startDate, '');
-      assert.equal(calls.at(-1).endDate, '2026-10-14');
-      await flush(250);
-      await openRange();
-      await input(to(), '');
+      assert.equal(calls.at(-1).endDate, '');
       await input(from(), '2026-10-10');
       await click(button('Apply'));
       assert.equal(calls.at(-1).startDate, '2026-10-10');
-      assert.equal(calls.at(-1).endDate, '');
+      assert.equal(calls.at(-1).endDate, '2026-10-14');
+      await flush(250);
       await click(button('Reset Filters'));
       assert.equal(document.querySelector('.invoice-filter-date-range').textContent, 'Date Range');
     } finally {
@@ -1488,4 +1486,22 @@ test('Invoice billing address: switching ignores late responses, distinguishes l
       assert.doesNotMatch(mounted.host.textContent, /Late second address|Customer address request unavailable/);
     } finally { await mounted.close(); }
   }));
+});
+
+test('Invoice List shows summary and customer lookup errors while keeping available rows', async () => {
+  await defaults({list:async()=>page([invoice]),summary:async()=>{throw Error('Summary unavailable');},customers:async()=>{throw Error('Customer lookup unavailable');}},async()=>{
+    const mounted=await mount(<InvoiceList/>);try{assert.match(mounted.host.textContent,/Invoice summary could not be loaded/);assert.match(mounted.host.textContent,/Customer filter options could not be loaded/);assert.ok(button('Retry summary'));assert.ok(button('Retry customers'));assert.equal(mounted.host.querySelectorAll('.invoice-list-table tbody tr').length,1);}finally{await mounted.close();}
+  });
+});
+test('Invoice List invalid date links cannot trigger a request through Refresh', async () => {
+  let requests=0;await defaults({list:async()=>{requests++;return page([invoice]);},summary:async()=>[]},async()=>{const mounted=await mount(<InvoiceList/>,'/invoices?startDate=2026-10-20&endDate=2026-10-01');try{assert.match(mounted.host.textContent,/End date must be on or after start date/);assert.equal(button('Refresh').disabled,true);assert.equal(requests,0);assert.equal(mounted.host.querySelector('.invoice-list-table'),null);}finally{await mounted.close();}});
+});
+test('Invoice List invalid search hides cached rows and disables refresh',async()=>{
+  await defaults({list:async()=>page([invoice]),summary:async()=>[]},async()=>{const mounted=await mount(<InvoiceList/>);try{assert.ok(mounted.host.querySelector('.invoice-list-table'));await input(mounted.host.querySelector('input[type="search"]'),'@@@');assert.match(mounted.host.textContent,/at least one letter or number/);assert.equal(mounted.host.querySelector('.invoice-list-table'),null);assert.equal(button('Refresh').disabled,true);assert.equal(mounted.host.querySelector('.workspace-pagination'),null);}finally{await mounted.close();}});
+});
+test('Invoice List recovers to the last real page after the result count shrinks',async()=>{
+  const requests=[];await defaults({summary:async()=>[],list:async filters=>{requests.push(filters.page);return {...page(filters.page===1?[invoice]:[]),pageNumber:filters.page,totalCount:requests.length===1?42:1};}},async()=>{const mounted=await mount(<InvoiceList/>);try{await click(button('Next'));await flush();assert.deepEqual(requests,[1,2,1]);assert.equal(mounted.host.querySelectorAll('.invoice-list-table tbody tr').length,1);}finally{await mounted.close();}});
+});
+test('Invoice summary does not mark Total Invoiced active for an unfiltered currency directory',async()=>{
+  await defaults({list:async()=>page([invoice]),summary:async()=>[{currency:'INR',totalInvoiced:100,totalPaid:0,totalOutstanding:100,overdueAmount:0,draftCount:1,draftAmount:100}]},async()=>{const mounted=await mount(<InvoiceList/>,'/invoices?currency=INR');try{const card=mounted.host.querySelector('[aria-label="Filter invoices by Total Invoiced (INR)"]');assert.equal(card.classList.contains('is-active'),false);await click(card);await flush();assert.equal(card.classList.contains('is-active'),true);assert.match(mounted.host.textContent,/1 invoice/);}finally{await mounted.close();}});
 });

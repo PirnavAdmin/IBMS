@@ -398,3 +398,18 @@
 
 /* Search feedback must remain visible inside compact filter bars. */
 .app-layout .ibms-search-field .MuiFormHelperText-root { display: block !important; white-space: normal; line-height: 1.45; }
+
+
+/* Keep secondary back navigation distinct from the workspace background. */
+.app-layout :is(button, a).workspace-back-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 40px; padding: 8px 14px; border: 1px solid #baa18b;
+  border-radius: 8px; background: #fffdf9; color: #65442e;
+  font-family: inherit; font-size: 13px; line-height: 1.5; font-weight: 600;
+  text-transform: none; text-decoration: none; box-shadow: 0 2px 5px #35231c0a;
+}
+.app-layout :is(button, a).workspace-back-button:not(:disabled):not(.Mui-disabled):hover {
+  background: #f6eee4; border-color: #96704e; color: #513420;
+}
+.app-layout .workspace-back-button:focus-visible { outline: 2px solid #96704e; outline-offset: 3px; }
+.app-layout .workspace-back-button:is(:disabled, .Mui-disabled) { opacity: .55; box-shadow: none; }

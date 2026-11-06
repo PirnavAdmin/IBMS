@@ -111,19 +111,24 @@ export function InvoiceList() {
     [querySearch],
   );
   const change = (key, value) =>
-    setFilters((previous) => ({ ...previous, [key]: value, page: 1 }));
+    setFilters((previous) => ({ ...previous, [key]: value, page: key === "page" ? value : 1 }));
   const invalidDates =
     filters.startDate && filters.endDate && filters.startDate > filters.endDate;
+  const canLoadList = user.permissions.view && !invalidDates && !searchError;
   const list = useQuery({
     queryKey: ["invoices", "list", filters, querySearch],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     queryFn: ({ signal }) =>
       invoiceService.list({ ...filters, search: querySearch }, { signal }),
-    enabled: user.permissions.view && !invalidDates && !searchError,
+    enabled: Boolean(canLoadList),
     retry: false,
     staleTime: 0,
   });
   const summary = useQuery({
     queryKey: ["invoices", "summary"],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     queryFn: ({ signal }) => invoiceService.summary({ signal }),
     enabled: user.permissions.view,
     retry: false,
@@ -156,6 +161,11 @@ export function InvoiceList() {
     </button>
   );
   const rows = list.data?.items || [];
+  useEffect(() => {
+    if (!canLoadList || !list.isSuccess || !list.data) return;
+    const lastPage = Math.max(1, Math.ceil(list.data.totalCount / filters.pageSize));
+    if (filters.page > lastPage) setFilters(previous => ({ ...previous, page: lastPage }));
+  }, [canLoadList, list.isSuccess, list.data, filters.page, filters.pageSize]);
   const exportCsv = async () => {
     if (exportLock.current || !user.permissions.view || invalidDates || searchError) return;
     exportLock.current = true;
@@ -184,10 +194,10 @@ export function InvoiceList() {
             variant="outlined"
             startIcon={<Refresh />}
             onClick={() => {
-              list.refetch();
-              summary.refetch();
+              if (canLoadList) list.refetch();
+              if (user.permissions.view) summary.refetch();
             }}
-            disabled={list.isFetching || !user.permissions.view || Boolean(searchError)}
+            disabled={list.isFetching || summary.isFetching || !canLoadList}
           >
             Refresh
           </Button>
@@ -210,7 +220,8 @@ export function InvoiceList() {
           You do not have permission to view invoices.
         </Alert>
       )}
-      {billingCurrencyGroups(summary.data || []).map((group) => {
+      {user.permissions.view && summary.isError && <Alert severity="error" action={<Button disabled={summary.isFetching} onClick={() => summary.refetch()}>Retry summary</Button>}>Invoice summary could not be loaded. {invoiceError(summary.error)}</Alert>}
+      {billingCurrencyGroups(user.permissions.view && !summary.isError ? summary.data || [] : []).map((group) => {
         const totalInvoicedNum = Number(group.totalInvoiced) || 0;
         const totalPaidNum = Number(group.totalPaid) || 0;
         const totalOutstandingNum = Number(group.totalOutstanding) || 0;
@@ -273,7 +284,7 @@ export function InvoiceList() {
           {
             label: "Overdue Amount",
             formattedValue: money(group.overdueAmount, group.currency),
-            countText: `${overdueCountNum} invoices`,
+            countText: `${overdueCountNum} ${overdueCountNum === 1 ? "invoice" : "invoices"}`,
             paymentState: "Overdue",
             statusFilter: "",
             icon: <WarningAmberOutlined />,
@@ -292,7 +303,7 @@ export function InvoiceList() {
           {
             label: "Draft Amount",
             formattedValue: money(group.draftAmount, group.currency),
-            countText: `${draftCountNum} invoices`,
+            countText: `${draftCountNum} ${draftCountNum === 1 ? "invoice" : "invoices"}`,
             paymentState: "",
             statusFilter: "Draft",
             icon: <DescriptionOutlined />,
@@ -334,7 +345,7 @@ export function InvoiceList() {
                   const isActive =
                     filters.currency === group.currency &&
                     (label === "Total Invoiced"
-                      ? (!filters.paymentState || filters.paymentState === "Invoiced") && !filters.status
+                      ? filters.paymentState === "Invoiced" && !filters.status
                       : label === "Total Paid"
                       ? filters.paymentState === "Paid" && !filters.status
                       : label === "Total Outstanding"
@@ -472,11 +483,13 @@ export function InvoiceList() {
               setSearch("");
               
               setCustomer(null);
+              setCustomerSearch("");
             }}
           >
             Reset Filters
           </Button>
         </div>
+        {user.permissions.view && customers.isError && <Alert severity="error" action={<Button disabled={customers.isFetching} onClick={() => customers.refetch()}>Retry customers</Button>}>Customer filter options could not be loaded. {invoiceError(customers.error)}</Alert>}
         {invalidDates && (
           <Alert severity="error">
             End date must be on or after start date.
@@ -487,14 +500,14 @@ export function InvoiceList() {
           error={list.error}
           retry={() => list.refetch()}
         />
-        {!invalidDates && !list.error && (
+        {canLoadList && !list.error && (
           <div className="invoice-table-card ibms-table-frame">
             <div className="invoice-table-heading">
               <div className="invoice-list-heading-title">
                 <h2>Invoices</h2>
                 <span>All customer invoices</span>
               </div>
-              {list.data && <span className="invoice-count-badge">{list.data.totalCount} invoices</span>}
+              {list.data && <span className="invoice-count-badge">{list.data.totalCount} {list.data.totalCount === 1 ? "invoice" : "invoices"}</span>}
             </div>
             <div
               className="invoice-table-scroll"
@@ -599,12 +612,12 @@ export function InvoiceList() {
         )}
         <InvoiceState
           empty={
-            list.data && !rows.length
+            canLoadList && !list.isFetching && !list.error && list.data && !rows.length
               ? "No invoices found. Create an invoice or adjust your filters."
               : ""
           }
         />
-        {list.data && <WorkspacePagination
+        {canLoadList && !list.error && list.data && <WorkspacePagination
           page={list.data.pageNumber}
           pageSize={list.data.pageSize}
           totalCount={list.data.totalCount}

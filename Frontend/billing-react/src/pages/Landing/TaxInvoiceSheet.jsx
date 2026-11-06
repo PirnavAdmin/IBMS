@@ -7,7 +7,16 @@ import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 export const TaxInvoiceSheet = ({ inv, isSelected, onSelect }) => (
   <div
     className={`tax-invoice-sheet ${isSelected ? 'sheet-highlight' : ''}`}
-    onClick={() => onSelect && onSelect(inv.id)}
+    role={onSelect ? 'button' : undefined}
+    tabIndex={onSelect ? 0 : undefined}
+    aria-label={onSelect ? `Preview ${inv.company} invoice` : undefined}
+    onClick={() => onSelect?.(inv.id)}
+    onKeyDown={event => {
+      if (onSelect && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        onSelect(inv.id);
+      }
+    }}
   >
     {/* 1. Header: Brand Logo & Template Title */}
     <div className="invoice-sheet-top">

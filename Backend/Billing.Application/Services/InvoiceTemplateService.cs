@@ -539,6 +539,15 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 versionDto = JsonSerializer.Deserialize<TemplateVersionDto>(snapshot.TemplateConfigJson, JsonOpts)
                              ?? (version != null ? MapVersionToDto(version) : BuildDefaultVersionDto());
             }
+
+            if (request.ForceRegenerate)
+            {
+                snapshotDto.AmountPaid = invoice.PaidAmount;
+                snapshotDto.BalanceDue = invoice.BalanceAmount;
+                snapshotDto.Status = invoice.Status.ToString();
+                snapshot.SnapshotDataJson = JsonSerializer.Serialize(snapshotDto, JsonOpts);
+                refreshSnapshotTemplate = true;
+            }
         }
         else
         {
@@ -618,27 +627,35 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         };
     }
 
-    public async Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, CancellationToken ct = default)
+    public Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, CancellationToken ct = default)
     {
-        var existingDoc = await _documentRepository.GetByInvoiceIdAsync(invoiceId, tenantId);
-        if (existingDoc != null)
+        return GetInvoicePdfAsync(invoiceId, tenantId, false, ct);
+    }
+
+    public async Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, bool forceRegenerate, CancellationToken ct = default)
+    {
+        if (!forceRegenerate)
         {
-            try
+            var existingDoc = await _documentRepository.GetByInvoiceIdAsync(invoiceId, tenantId);
+            if (existingDoc != null)
             {
-                if (await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+                try
                 {
-                    var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
-                    return (bytes, existingDoc.FileName, existingDoc.ContentType);
+                    if (await _storageService.ExistsAsync(existingDoc.StoragePath, tenantId, ct))
+                    {
+                        var bytes = await _storageService.GetDocumentAsync(existingDoc.StoragePath, tenantId, ct);
+                        return (bytes, existingDoc.FileName, existingDoc.ContentType);
+                    }
                 }
-            }
-            catch (IOException)
-            {
-                // The file may disappear after the existence check or be unavailable.
-                // Reproduce once below. Authorization and cancellation errors still propagate.
+                catch (IOException)
+                {
+                    // The file may disappear after the existence check or be unavailable.
+                    // Reproduce once below. Authorization and cancellation errors still propagate.
+                }
             }
         }
 
-        // If not cached physically, reproduce on-the-fly via snapshot
+        // If forceRegenerate is true or not cached physically, reproduce on-the-fly via snapshot
         var response = await GenerateInvoicePdfAsync(new GenerateInvoicePdfRequest
         {
             InvoiceId = invoiceId,

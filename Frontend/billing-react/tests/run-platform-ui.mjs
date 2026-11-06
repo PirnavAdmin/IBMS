@@ -20,7 +20,7 @@ try {
       global.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
       global.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
       window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} });
-      global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+      global.MutationObserver = dom.window.MutationObserver; global.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
       window.scrollTo = () => {}; HTMLElement.prototype.scrollTo = () => {};
       global.IS_REACT_ACT_ENVIRONMENT = true;` },
   });

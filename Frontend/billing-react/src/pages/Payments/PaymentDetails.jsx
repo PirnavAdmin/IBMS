@@ -235,8 +235,8 @@ export function PaymentDetails() {
   }, [p, id, location.search]);
 
   return <PaymentShell title="Payment Details" subtitle="Review payment information, allocations and print receipt." actions={<>
-    <Button component={Link} to="/payments">Back to Payments</Button>
-    <Button disabled={query.isFetching} onClick={() => query.refetch()}>Refresh</Button>
+    <Button component={Link} to="/payments" variant="outlined" className="workspace-back-button">Back to Payments</Button>
+    <Button variant="outlined" disabled={query.isFetching} onClick={() => query.refetch()}>Refresh</Button>
     <Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => printPaymentDocument(buildPaymentReceiptReport(p))} disabled={!p || query.isFetching}>Print Receipt</Button>
     {p?.isReversible && p.status !== 'Reversed' && user.permissions.reverse && <Button onClick={() => setReversal(true)}>Reverse Payment</Button>}
   </>}>

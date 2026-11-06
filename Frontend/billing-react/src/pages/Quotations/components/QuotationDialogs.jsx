@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { displayDate } from '../../../utils/localDate';
 import { currency } from '../utils/quotationCalculations';
 import { ThemedSelect } from './ThemedSelect';
 export function QuotationDialog({ type, quotation, onClose, onConfirm, error }) {
@@ -10,7 +11,7 @@ export function QuotationDialog({ type, quotation, onClose, onConfirm, error }) 
   return <div className="quote-dialog-backdrop"><section className="quote-dialog" role="dialog" aria-modal="true" aria-labelledby="quote-dialog-title">
     <h2 id="quote-dialog-title">{title}</h2><p><strong>{quotation.quoteNumber}</strong> for {quotation.customer.name}</p>
     {error&&<p className="quote-error" role="alert">{error}</p>}
-    <dl><div><dt>Recipient</dt><dd>{quotation.customer.email||'Not provided'}</dd></div><div><dt>Amount</dt><dd>{currency(quotation.totalAmount)}</dd></div><div><dt>Valid until</dt><dd>{quotation.validUntil}</dd></div></dl>
+    <dl><div><dt>Recipient</dt><dd>{quotation.customer.email||'Not provided'}</dd></div><div><dt>Amount</dt><dd>{currency(quotation.totalAmount)}</dd></div><div><dt>Valid until</dt><dd>{displayDate(quotation.validUntil)}</dd></div></dl>
     {type==='cancel'&&<label>Cancellation reason<ThemedSelect label="Cancellation reason" value={reason} onChange={setReason} options={['Customer requested cancellation','Pricing changed','Duplicate quotation','Expired requirement','Other'].map(v=>({value:v,label:v}))}/>{reason==='Other'&&<input value={other} onChange={e=>setOther(e.target.value)} placeholder="Enter cancellation reason"/>}</label>}
     <div className="quote-dialog-actions"><button className="quote-btn secondary" onClick={onClose}>Back</button><button disabled={type==='cancel'&&!cancellationReason} className={`quote-btn ${type==='cancel'?'danger':'primary'}`} onClick={()=>onConfirm(type==='cancel'?cancellationReason:undefined)}>{action}</button></div>
   </section></div>;

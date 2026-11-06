@@ -54,7 +54,7 @@ export function CreditNoteExportPage() {
   };
 
   if (query.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading credit note…</div></main>;
-  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes">Back to Credit Notes</Button></main>;
+  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes" variant="outlined" className="workspace-back-button">Back to Credit Notes</Button></main>;
 
   const approvalEvents = [
     ['Submitted', note.createdBy, note.createdAt], ['Approved', note.approvedBy, note.approvedAt],
@@ -63,7 +63,7 @@ export function CreditNoteExportPage() {
 
   return <main className="cn-page cn-export-page">
     <Breadcrumbs className="cn-breadcrumbs"><Link to="/credit-notes">Credit Notes</Link><Link to={`/credit-notes/${id}`}>Credit Note Details</Link><span>Export PDF</span></Breadcrumbs>
-    <header className="cn-page-heading"><div><span className="cn-eyebrow">CREDIT NOTE DOCUMENT</span><h1>Export Credit Note</h1><p>{note.number} <CreditNoteStatusBadge status={note.status} /></p></div><div className="cn-export-actions"><Button startIcon={<ArrowBack />} onClick={() => navigate(`/credit-notes/${id}`)}>Back to details</Button><Button variant="contained" disabled={busy} startIcon={<DownloadOutlined />} onClick={download}>{busy ? 'Generating…' : 'Download PDF'}</Button></div></header>
+    <header className="cn-page-heading"><div><span className="cn-eyebrow">CREDIT NOTE DOCUMENT</span><h1>Export Credit Note</h1><p>{note.number} <CreditNoteStatusBadge status={note.status} /></p></div><div className="cn-export-actions"><Button variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />} onClick={() => navigate(`/credit-notes/${id}`)}>Back to details</Button><Button variant="contained" disabled={busy} startIcon={<DownloadOutlined />} onClick={download}>{busy ? 'Generating…' : 'Download PDF'}</Button></div></header>
     <div className="cn-export-layout"><section className="cn-export-preview-panel"><div className="cn-export-panel-heading"><div><h2>Document preview</h2><p>Preview updates with the selected options.</p></div><PictureAsPdfOutlined /></div>
       <div className="cn-export-preview-stage"><article id="cn-export-document" className={`cn-export-paper ${orientation}`}>
         <header className="cn-export-paper-header"><div><strong>IBMS</strong><small>Billing &amp; Credit Management</small></div><div><span>CREDIT NOTE</span><b>{note.number}</b><small>{formatDate(note.date)}</small></div></header>

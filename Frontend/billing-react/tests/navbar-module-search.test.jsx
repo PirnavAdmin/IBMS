@@ -22,8 +22,8 @@ const products = [{ id: 1, name: 'vivo phone', productCode: 'VIVO', price: 100, 
 function Links() { return <nav aria-label="Test routes"><Link to="/customers">Customers test</Link><Link to="/products">Products test</Link><Link to="/unsupported">Form test</Link><Link to="/other">Other test</Link></nav>; }
 function Location() { const location = useLocation(); return <output data-location>{location.pathname + location.search}</output>; }
 function OtherModule() { const [search, setSearch] = useState(''); useNavbarSearch(search, setSearch, 'Search other records'); return <input aria-label="Local other search" value={search} onChange={event => setSearch(event.target.value)} />; }
-async function mount(path = '/customers') {
-  localStorage.setItem('billing_auth_user', JSON.stringify({ userId: 'search-test', tenantId: 1, roles: ['TenantAdmin'] }));
+async function mount(path = '/customers', user = { userId: 'search-test', tenantId: 1, roles: ['TenantAdmin'] }) {
+  localStorage.setItem('billing_auth_user', JSON.stringify(user));
   const originalGet = apiClient.get; const originalProducts = productService.getProducts; const originalMetadata = productService.getCatalogMetadata; const originalCategories = categoryService.getAll;
   const calls = [];
   apiClient.get = async (url, config = {}) => {
@@ -93,12 +93,13 @@ test('Products navbar and local search share filters, empty results, clear and p
   } finally { await view.close(); }
 });
 
-test('route changes unregister old search; unsupported pages omit navbar search and remount starts clean', async () => {
+test('route changes unregister old search; forms retain scoped module search and remount starts clean', async () => {
   const view = await mount('/products');
   try {
     await type(header(view.host), 'vivo'); await settle(360);
     await click(view.host.querySelector('a[href="/unsupported"]')); await settle();
-    assert.equal(header(view.host), null);
+    assert.equal(header(view.host).getAttribute('aria-label'), 'Search modules');
+    assert.equal(header(view.host).value, '');
     await click(view.host.querySelector('a[href="/other"]')); await settle();
     assert.equal(header(view.host).getAttribute('aria-label'), 'Search other records');
     assert.equal(header(view.host).value, '');
@@ -145,4 +146,38 @@ test('IMS-104 legacy price sort URLs are ignored and direct price-sort requests 
     assert.equal(customerQuery({ page: 1, pageSize: 10, sortBy: 'customerCode', sortOrder: 'desc' }).sortBy, 'code');
     assert.equal(customerQuery({ page: 1, pageSize: 10, sortBy: 'name', sortOrder: 'asc' }).sortBy, 'name');
   } finally { await view.close(); }
+});
+
+test('form-page navbar searches authorized module links and opens the chosen directory',async()=>{
+  const view=await mount('/unsupported');try{
+    await type(header(view.host),'Customers');
+    const results=view.host.querySelector('[aria-label="Module search results"]');
+    assert.ok(results);assert.equal(results.querySelectorAll('a').length,1);
+    await click(results.querySelector('a'));await settle();
+    assert.equal(view.host.querySelector('[data-location]').textContent,'/customers');
+    assert.equal(header(view.host).getAttribute('aria-label'),'Search customers');
+    assert.equal(header(view.host).value,'');
+  }finally{await view.close();}
+});
+test('module search filters links by existing tenant permissions and supports empty results/Escape',async()=>{
+  const view=await mount('/unsupported',{userId:2,roles:['Viewer'],permissions:['customers.view']});try{
+    await type(header(view.host),'Products');
+    let results=view.host.querySelector('[aria-label="Module search results"]');
+    assert.match(results.textContent,/No modules match/);assert.equal(results.querySelector('a'),null);
+    await type(header(view.host),'Customers');
+    results=view.host.querySelector('[aria-label="Module search results"]');
+    assert.equal(results.querySelector('a').getAttribute('href'),'/customers');
+    await act(async()=>Simulate.keyDown(header(view.host),{key:'Escape'}));
+    assert.equal(header(view.host).value,'');assert.equal(view.host.querySelector('[aria-label="Module search results"]'),null);
+  }finally{await view.close();}
+});
+test('dual-role SuperAdmin module search uses only platform navigation and supports Enter',async()=>{
+  const view=await mount('/unsupported',{userId:3,roles:['SuperAdmin','TenantAdmin']});try{
+    await type(header(view.host),'Platform');
+    const links=[...view.host.querySelectorAll('[aria-label="Module search results"] a')];
+    assert.ok(links.length);assert.ok(links.every(a=>a.getAttribute('href').startsWith('/platform/')));
+    await type(header(view.host),'Tenant Management');
+    await act(async()=>Simulate.keyDown(header(view.host),{key:'Enter'}));await settle();
+    assert.equal(view.host.querySelector('[data-location]').textContent,'/platform/tenants');
+  }finally{await view.close();}
 });
