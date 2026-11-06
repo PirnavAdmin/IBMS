@@ -64,6 +64,7 @@ public class OverdueInvoiceJobService : IOverdueInvoiceJobService
                     i.DueDate.Value.Date < today &&
                     !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Paid", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
@@ -77,7 +78,10 @@ public class OverdueInvoiceJobService : IOverdueInvoiceJobService
                     if (cancellationToken.IsCancellationRequested) break;
 
                     invoice.RecalculateBalanceAndStatus();
-                    if (invoice.BalanceAmount <= 0) continue;
+                    if (invoice.BalanceAmount <= 0 || string.Equals(invoice.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
 
                     invoice.Status = "Overdue";
                     invoice.UpdatedAtUtc = DateTime.UtcNow;

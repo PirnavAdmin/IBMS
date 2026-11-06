@@ -22,11 +22,18 @@ const countdown = (value, now) => {
   const remainder = seconds % 60;
   return hours ? `Next run in ${hours}h ${minutes}m` : minutes ? `Next run in ${minutes}m ${remainder}s` : `Next run in ${remainder}s`;
 };
-function backgroundJobAccess(response) {
+export function backgroundJobAccess(response) {
   const user = response?.data ?? response;
-  const raw = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
-  return (Array.isArray(raw) ? raw : [raw]).flatMap(value => String(value).split(','))
-    .some(role => ['tenantadmin', 'superadmin'].includes(role.trim().toLowerCase()));
+  const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
+  const hasAllowedRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+    .flatMap(value => String(value).split(','))
+    .some(role => ['tenantadmin', 'superadmin', 'admin'].includes(role.trim().toLowerCase()));
+  if (hasAllowedRole) return true;
+
+  const rawPerms = user?.permissions ?? user?.Permissions ?? [];
+  return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
+    .flatMap(value => String(value).split(','))
+    .some(perm => ['backgroundjobs.view', 'backgroundjobs.manage', 'settings.manage', 'integrations.manage', 'all', '*'].includes(perm.trim().toLowerCase()));
 }
 const statusColor = status => ({ Running: 'info', Succeeded: 'success', Failed: 'error', Idle: 'default' }[status] || 'default');
 const formatJobName = name => name.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
@@ -60,7 +67,7 @@ export function BackgroundJobStatus() {
     </header>
     {user.isPending ? <div role="status"><LinearProgress />Checking access…</div>
       : user.isError ? <DashboardErrorState title="Unable to check access" message={backgroundJobError(user.error)} onRetry={() => user.refetch()} />
-        : !allowed ? <Alert severity="warning">Background job status is available to TenantAdmin and SuperAdmin roles.</Alert>
+        : !allowed ? <Alert severity="warning">Background job status is available to TenantAdmin, SuperAdmin, and Admin roles.</Alert>
           : query.isError ? <DashboardErrorState title="Unable to load background jobs" message={backgroundJobError(query.error)} onRetry={refresh} />
             : <>
               {query.isFetching && <LinearProgress aria-label="Refreshing background job status" />}

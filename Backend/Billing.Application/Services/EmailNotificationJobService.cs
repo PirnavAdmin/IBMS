@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Billing.Application.Interfaces;
 using Billing.Contracts.BackgroundJobs;
 using Billing.Contracts.Notification;
+using Billing.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace Billing.Application.Services;
@@ -52,22 +53,33 @@ public class EmailNotificationJobService : IEmailNotificationJobService
             {
                 if (cancellationToken.IsCancellationRequested) break;
 
-                // Query queued logs
+                // Query queued logs that are due for dispatch
                 var queuedLogs = await _logRepository.QueryLogsAsync(tId, new NotificationLogQueryParameters
                 {
                     Status = "Queued",
                     PageSize = 50
                 });
 
-                // Query failed logs eligible for retry
-                var failedLogs = await _logRepository.QueryLogsAsync(tId, new NotificationLogQueryParameters
+                // Query failed logs eligible for retry directly (avoids starvation by permanently failed logs)
+                var retryableFailedLogs = await _logRepository.GetFailedForRetryAsync(tId, maxRetryCount: 3) ?? new List<NotificationLog>();
+                if (retryableFailedLogs.Count == 0)
                 {
-                    Status = "Failed",
-                    PageSize = 50
-                });
+                    var failedPage = await _logRepository.QueryLogsAsync(tId, new NotificationLogQueryParameters
+                    {
+                        Status = "Failed",
+                        PageSize = 50
+                    });
+                    if (failedPage?.Items != null)
+                    {
+                        retryableFailedLogs = failedPage.Items
+                            .Where(l => l.RetryCount < 3 && (l.NextRetryAtUtc == null || l.NextRetryAtUtc <= now))
+                            .ToList();
+                    }
+                }
 
-                var eligibleLogs = queuedLogs.Items
-                    .Concat(failedLogs.Items.Where(l => l.RetryCount < 3 && (l.NextRetryAtUtc == null || l.NextRetryAtUtc <= now)))
+                var eligibleLogs = (queuedLogs?.Items ?? new List<NotificationLog>())
+                    .Where(l => l.RetryCount < 3 && (l.NextRetryAtUtc == null || l.NextRetryAtUtc <= now))
+                    .Concat(retryableFailedLogs.Where(l => l.RetryCount < 3 && (l.NextRetryAtUtc == null || l.NextRetryAtUtc <= now)))
                     .DistinctBy(l => l.Id)
                     .ToList();
 
@@ -77,6 +89,10 @@ public class EmailNotificationJobService : IEmailNotificationJobService
 
                     var log = await _logRepository.GetByIdAsync(logDto.Id, tId);
                     if (log == null) continue;
+                    if (log.RetryCount >= 3 || (log.NextRetryAtUtc.HasValue && log.NextRetryAtUtc.Value > now))
+                    {
+                        continue;
+                    }
 
                     try
                     {
@@ -95,15 +111,15 @@ public class EmailNotificationJobService : IEmailNotificationJobService
                         _logger.LogWarning(ex, "Failed to dispatch email for NotificationLog {LogId}", log.Id);
                         log.RetryCount++;
                         log.FailureReason = ex.Message;
+                        log.Status = "Failed";
 
                         if (log.RetryCount >= 3)
                         {
-                            log.Status = "Failed";
                             log.NextRetryAtUtc = null;
                         }
                         else
                         {
-                            // Exponential backoff: 5m, 10m, 20m
+                            // Exponential backoff: 10m, 20m
                             var delayMinutes = Math.Pow(2, log.RetryCount) * 5;
                             log.NextRetryAtUtc = DateTime.UtcNow.AddMinutes(delayMinutes);
                         }

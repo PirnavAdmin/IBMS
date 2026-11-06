@@ -112,7 +112,9 @@ public class AuditLogRepository : IAuditLogRepository
         if (!string.IsNullOrWhiteSpace(filter.Actor))
         {
             var actor = filter.Actor.Trim().ToLower();
-            query = query.Where(a => a.UserName.ToLower().Contains(actor));
+            query = query.Where(a => a.UserName.ToLower().Contains(actor) ||
+                                     (a.ActorUserId != null && a.ActorUserId.ToLower().Contains(actor)) ||
+                                     (a.ActorRole != null && a.ActorRole.ToLower().Contains(actor)));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Action))

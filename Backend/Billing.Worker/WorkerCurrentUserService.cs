@@ -7,4 +7,6 @@ public class WorkerCurrentUserService : ICurrentUserService
     public string? UserId => "system-worker";
     public int? TenantId => 1;
     public string? UserName => "SystemWorker";
+    public string? Role => "System";
+    public string? CorrelationId => Guid.NewGuid().ToString("N");
 }

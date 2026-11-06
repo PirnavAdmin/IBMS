@@ -16,6 +16,11 @@ namespace Billing.Application.Services;
 
 public class ExportJobService : IExportJobService
 {
+    private static readonly JsonSerializerOptions FilterJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IExportJobRepository _exportJobRepository;
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IPaymentRepository _paymentRepository;
@@ -100,9 +105,14 @@ public class ExportJobService : IExportJobService
         if (!string.IsNullOrWhiteSpace(filter.JobType)) filter.JobType = NormalizeJobType(filter.JobType) ?? filter.JobType.Trim();
         if (!string.IsNullOrWhiteSpace(filter.Status)) filter.Status = filter.Status.Trim();
         var paged = await _exportJobRepository.GetPagedAsync(tenantId, filter, cancellationToken);
-        var dtos = paged.Items.Select(MapToDto).ToList();
+        var items = filter.ExcludeAuditLogs
+            ? paged.Items.Where(j => !string.Equals(j.JobType, "AuditLog", StringComparison.OrdinalIgnoreCase)).ToList()
+            : paged.Items;
+        var dtos = items.Select(MapToDto).ToList();
+        var removedCount = paged.Items.Count - items.Count;
+        var totalCount = Math.Max(0, paged.TotalCount - removedCount);
 
-        var result = new PagedResult<ExportJobDto>(dtos, paged.TotalCount, paged.PageNumber, paged.PageSize);
+        var result = new PagedResult<ExportJobDto>(dtos, totalCount, paged.PageNumber, paged.PageSize);
         return ApiResponse<PagedResult<ExportJobDto>>.Ok(result);
     }
 
@@ -159,20 +169,31 @@ public class ExportJobService : IExportJobService
 
                     if (string.Equals(job.JobType, "Invoice", StringComparison.OrdinalIgnoreCase))
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var invoices = await _invoiceRepository.GetAllAsync(job.TenantId);
+                        var invoiceFilter = ParseFilter<InvoiceFilterRequest>(job.FilterParametersJson);
+                        if (invoiceFilter != null)
+                        {
+                            invoices = ApplyInvoiceFilter(invoices, invoiceFilter);
+                        }
                         recordCount = invoices.Count;
+                        await UpdateJobProgressAsync(job, recordCount, recordCount, cancellationToken);
                         fileBytes = GenerateInvoiceExport(invoices, job.ExportFormat);
                     }
                     else if (string.Equals(job.JobType, "Payment", StringComparison.OrdinalIgnoreCase))
                     {
                         var allPayments = new List<Payment>();
+                        var baseFilter = ParseFilter<PaymentListFilterRequest>(job.FilterParametersJson) ?? new PaymentListFilterRequest();
                         int pageNum = 1;
                         while (true)
                         {
-                            if (cancellationToken.IsCancellationRequested) break;
-                            var pagedPayments = await _paymentRepository.GetPagedListAsync(job.TenantId, new PaymentListFilterRequest { PageNumber = pageNum, PageSize = 100 });
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.PageNumber = pageNum;
+                            baseFilter.PageSize = 100;
+                            var pagedPayments = await _paymentRepository.GetPagedListAsync(job.TenantId, baseFilter);
                             if (pagedPayments.Items.Count == 0) break;
                             allPayments.AddRange(pagedPayments.Items);
+                            await UpdateJobProgressAsync(job, allPayments.Count, Math.Max(allPayments.Count, pagedPayments.TotalCount), cancellationToken);
                             if (allPayments.Count >= pagedPayments.TotalCount || pagedPayments.Items.Count < 100) break;
                             pageNum++;
                         }
@@ -182,13 +203,17 @@ public class ExportJobService : IExportJobService
                     else if (string.Equals(job.JobType, "Customer", StringComparison.OrdinalIgnoreCase))
                     {
                         var allCustomers = new List<Customer>();
+                        var baseFilter = ParseFilter<CustomerQueryParameters>(job.FilterParametersJson) ?? new CustomerQueryParameters();
                         int pageNum = 1;
                         while (true)
                         {
-                            if (cancellationToken.IsCancellationRequested) break;
-                            var (customers, total) = await _customerRepository.GetPagedListAsync(job.TenantId, new CustomerQueryParameters { PageNumber = pageNum, PageSize = 100 });
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.PageNumber = pageNum;
+                            baseFilter.PageSize = 100;
+                            var (customers, total) = await _customerRepository.GetPagedListAsync(job.TenantId, baseFilter);
                             if (customers.Count == 0) break;
                             allCustomers.AddRange(customers);
+                            await UpdateJobProgressAsync(job, allCustomers.Count, Math.Max(allCustomers.Count, total), cancellationToken);
                             if (allCustomers.Count >= total || customers.Count < 100) break;
                             pageNum++;
                         }
@@ -198,13 +223,17 @@ public class ExportJobService : IExportJobService
                     else if (string.Equals(job.JobType, "AuditLog", StringComparison.OrdinalIgnoreCase))
                     {
                         var allAuditLogs = new List<AuditLog>();
+                        var baseFilter = ParseFilter<AuditLogFilterRequest>(job.FilterParametersJson) ?? new AuditLogFilterRequest();
                         int pageNum = 1;
                         while (true)
                         {
-                            if (cancellationToken.IsCancellationRequested) break;
-                            var (auditLogs, total) = await _auditLogRepository.GetFilteredPagedAsync(job.TenantId, new AuditLogFilterRequest { Page = pageNum, PageSize = 1000 }, cancellationToken);
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.Page = pageNum;
+                            baseFilter.PageSize = 1000;
+                            var (auditLogs, total) = await _auditLogRepository.GetFilteredPagedAsync(job.TenantId, baseFilter, cancellationToken);
                             if (auditLogs.Count == 0) break;
                             allAuditLogs.AddRange(auditLogs);
+                            await UpdateJobProgressAsync(job, allAuditLogs.Count, Math.Max(allAuditLogs.Count, total), cancellationToken);
                             if (allAuditLogs.Count >= total || auditLogs.Count < 1000) break;
                             pageNum++;
                         }
@@ -217,15 +246,20 @@ public class ExportJobService : IExportJobService
                             throw new InvalidOperationException("Credit note export is not configured.");
 
                         var allCreditNotes = new List<CreditNoteListItemDto>();
+                        var baseFilter = ParseFilter<CreditNoteFilterRequest>(job.FilterParametersJson) ?? new CreditNoteFilterRequest();
                         var pageNumber = 1;
-                        while (!cancellationToken.IsCancellationRequested)
+                        while (true)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.Page = pageNumber;
+                            baseFilter.PageSize = 100;
                             var page = await _creditNoteRepository.GetPagedAsync(
                                 job.TenantId,
-                                new CreditNoteFilterRequest { Page = pageNumber, PageSize = 100 },
+                                baseFilter,
                                 cancellationToken: cancellationToken);
                             if (page.Items.Count == 0) break;
                             allCreditNotes.AddRange(page.Items);
+                            await UpdateJobProgressAsync(job, allCreditNotes.Count, Math.Max(allCreditNotes.Count, page.TotalCount), cancellationToken);
                             if (allCreditNotes.Count >= page.TotalCount || page.Items.Count < 100) break;
                             pageNumber++;
                         }
@@ -259,14 +293,19 @@ public class ExportJobService : IExportJobService
                             throw new InvalidOperationException("Quotation export is not configured.");
 
                         var allQuotations = new List<Quotation>();
+                        var baseFilter = ParseFilter<QuotationListFilterRequest>(job.FilterParametersJson) ?? new QuotationListFilterRequest();
                         var pageNumber = 1;
-                        while (!cancellationToken.IsCancellationRequested)
+                        while (true)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.PageNumber = pageNumber;
+                            baseFilter.PageSize = 100;
                             var page = await _quotationRepository.GetPagedListAsync(
                                 job.TenantId,
-                                new QuotationListFilterRequest { PageNumber = pageNumber, PageSize = 100 });
+                                baseFilter);
                             if (page.Items.Count == 0) break;
                             allQuotations.AddRange(page.Items);
+                            await UpdateJobProgressAsync(job, allQuotations.Count, Math.Max(allQuotations.Count, page.TotalCount), cancellationToken);
                             if (allQuotations.Count >= page.TotalCount || page.Items.Count < 100) break;
                             pageNumber++;
                         }
@@ -300,14 +339,19 @@ public class ExportJobService : IExportJobService
                             throw new InvalidOperationException("Product export is not configured.");
 
                         var allProducts = new List<Product>();
+                        var baseFilter = ParseFilter<ProductQueryParameters>(job.FilterParametersJson) ?? new ProductQueryParameters();
                         var pageNumber = 1;
-                        while (!cancellationToken.IsCancellationRequested)
+                        while (true)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            baseFilter.PageNumber = pageNumber;
+                            baseFilter.PageSize = 100;
                             var page = await _productRepository.GetPagedListAsync(
                                 job.TenantId,
-                                new ProductQueryParameters { PageNumber = pageNumber, PageSize = 100 });
+                                baseFilter);
                             if (page.Items.Count == 0) break;
                             allProducts.AddRange(page.Items);
+                            await UpdateJobProgressAsync(job, allProducts.Count, Math.Max(allProducts.Count, page.TotalCount), cancellationToken);
                             if (allProducts.Count >= page.TotalCount || page.Items.Count < 100) break;
                             pageNumber++;
                         }
@@ -338,6 +382,8 @@ public class ExportJobService : IExportJobService
                         throw new InvalidOperationException($"Unsupported job type '{job.JobType}'.");
                     }
 
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     job.ContentType = GetContentType(job.ExportFormat);
                     var storagePath = await _storageService.SaveDocumentAsync(fileBytes, fileName, job.ContentType, job.TenantId, cancellationToken);
 
@@ -353,13 +399,22 @@ public class ExportJobService : IExportJobService
                     await _exportJobRepository.UpdateAsync(job, cancellationToken);
                     processedCount++;
                 }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("Export job {JobId} was cancelled before completion.", job.Id);
+                    job.Status = "Failed";
+                    job.ErrorMessage = "Export job was cancelled before completion.";
+                    job.CompletedAtUtc = DateTime.UtcNow;
+                    await _exportJobRepository.UpdateAsync(job, CancellationToken.None);
+                    break;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to process export job {JobId}", job.Id);
                     job.Status = "Failed";
                     job.ErrorMessage = ex.Message;
                     job.CompletedAtUtc = DateTime.UtcNow;
-                    await _exportJobRepository.UpdateAsync(job, cancellationToken);
+                    await _exportJobRepository.UpdateAsync(job, CancellationToken.None);
                 }
             }
 
@@ -386,6 +441,71 @@ public class ExportJobService : IExportJobService
                 Message = $"Failed to execute ExportJob: {ex.Message}"
             };
         }
+    }
+
+    private async Task UpdateJobProgressAsync(ExportJob job, int processedRecords, int totalRecords, CancellationToken cancellationToken)
+    {
+        job.ProcessedRecords = processedRecords;
+        job.TotalRecords = totalRecords;
+        await _exportJobRepository.UpdateAsync(job, cancellationToken);
+    }
+
+    private static T? ParseFilter<T>(string? filterJson) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(filterJson)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(filterJson, FilterJsonOptions);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static List<Invoice> ApplyInvoiceFilter(List<Invoice> invoices, InvoiceFilterRequest filter)
+    {
+        IEnumerable<Invoice> query = invoices;
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var status = filter.Status.Trim();
+            query = query.Where(i => string.Equals(i.Status, status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.CustomerId.HasValue)
+        {
+            query = query.Where(i => i.CustomerId == filter.CustomerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Currency))
+        {
+            var currency = filter.Currency.Trim();
+            query = query.Where(i => string.Equals(i.GetCurrency(), currency, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.StartDate.HasValue)
+        {
+            var start = filter.StartDate.Value.Date;
+            query = query.Where(i => i.InvoiceDate.Date >= start);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            var end = filter.EndDate.Value.Date;
+            query = query.Where(i => i.InvoiceDate.Date <= end);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var term = filter.SearchTerm.Trim();
+            query = query.Where(i =>
+                (i.InvoiceNumber != null && i.InvoiceNumber.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (i.Customer?.Name != null && i.Customer.Name.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (i.Customer?.Email != null && i.Customer.Email.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        return query.ToList();
     }
 
     private static byte[] GenerateInvoiceExport(List<Invoice> invoices, string format)
@@ -585,14 +705,28 @@ public class ExportJobService : IExportJobService
         return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
     }
 
-    private static string EscapeCsv(string value)
+    private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "";
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+
+        var sanitized = value;
+        var trimmed = sanitized.TrimStart(' ', '\t', '\r', '\n');
+        var firstChar = sanitized[0];
+        var firstNonWsChar = trimmed.Length > 0 ? trimmed[0] : '\0';
+
+        if (firstChar is '=' or '@' or '\t' or '\r' ||
+            firstNonWsChar is '=' or '@' ||
+            ((firstChar is '+' or '-') && !decimal.TryParse(sanitized, NumberStyles.Any, CultureInfo.InvariantCulture, out _)) ||
+            ((firstNonWsChar is '+' or '-') && !decimal.TryParse(trimmed, NumberStyles.Any, CultureInfo.InvariantCulture, out _)))
         {
-            return $"\"{value.Replace("\"", "\"\"")}\"";
+            sanitized = "'" + sanitized;
         }
-        return value;
+
+        if (sanitized.Contains(',') || sanitized.Contains('"') || sanitized.Contains('\n') || sanitized.Contains('\r'))
+        {
+            return $"\"{sanitized.Replace("\"", "\"\"")}\"";
+        }
+        return sanitized;
     }
 
     private static string GetContentType(string format) => format.ToUpperInvariant() switch
@@ -603,6 +737,7 @@ public class ExportJobService : IExportJobService
     };
 
     private static string? NormalizeJobType(string? rawJobType) => (rawJobType ?? "Invoice").Trim().Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant() switch { "invoice" or "invoices" => "Invoice", "payment" or "payments" => "Payment", "customer" or "customers" => "Customer", "auditlog" or "auditlogs" => "AuditLog", "creditnote" or "creditnotes" => "CreditNote", "quotation" or "quotations" => "Quotation", "product" or "products" => "Product", _ => null };
+
     private static ExportJobDto MapToDto(ExportJob job)
     {
         return new ExportJobDto

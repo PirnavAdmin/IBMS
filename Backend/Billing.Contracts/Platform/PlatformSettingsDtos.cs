@@ -16,6 +16,7 @@ public class PlatformSettingsDto
     public string AccountRecoveryContact { get; set; } = "support@ibms.com";
     public DateTime UpdatedAtUtc { get; set; }
     public string UpdatedBy { get; set; } = "System";
+    public string? Version { get; set; }
 }
 
 public class UpdatePlatformSettingsRequest
@@ -45,4 +46,8 @@ public class UpdatePlatformSettingsRequest
 
     [EmailAddress(ErrorMessage = "Invalid account recovery contact email format.")]
     public string AccountRecoveryContact { get; set; } = "support@ibms.com";
+
+    public DateTime? ExpectedUpdatedAtUtc { get; set; }
+
+    public string? Version { get; set; }
 }

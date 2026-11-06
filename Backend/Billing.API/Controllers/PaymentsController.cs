@@ -38,11 +38,18 @@ public class PaymentsController : ControllerBase
                     return headerTenantId;
                 }
             }
+
+            var superAdminClaim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
+            if (int.TryParse(superAdminClaim, out var tid) && tid > 0)
+            {
+                return tid;
+            }
+
             return 1;
         }
 
-        var claim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
-        if (int.TryParse(claim, out var tenantId) && tenantId > 0)
+        var tenantClaim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
+        if (int.TryParse(tenantClaim, out var tenantId) && tenantId > 0)
         {
             return tenantId;
         }

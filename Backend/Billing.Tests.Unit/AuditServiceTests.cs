@@ -59,6 +59,12 @@ public class AuditServiceTests
                 UserNames = userNames
             });
         }
+    
+        public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+        {
+            var filtered = Logs.Where(l => !filter.TenantId.HasValue || l.TenantId == filter.TenantId.Value).ToList();
+            return Task.FromResult((filtered, filtered.Count));
+        }
     }
 
     [Fact]
