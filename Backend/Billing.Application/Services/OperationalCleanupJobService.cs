@@ -116,7 +116,7 @@ public class OperationalCleanupJobService : IOperationalCleanupJobService
 
             await _auditLogRepository.AddAsync(new AuditLog
             {
-                TenantId = 0,
+                TenantId = 1,
                 Action = "Operational Cleanup",
                 EntityName = "System",
                 EntityId = "Maintenance",
