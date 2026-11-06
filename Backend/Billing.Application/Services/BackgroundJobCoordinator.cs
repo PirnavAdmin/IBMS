@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Billing.Application.Interfaces;
 using Billing.Contracts.BackgroundJobs;
 using Microsoft.Extensions.Logging;
@@ -81,7 +82,21 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
 
     public List<BackgroundJobStatusDto> GetAllJobStatuses()
     {
-        return _jobStatuses.Values.OrderBy(j => j.JobName).ToList();
+        return _jobStatuses.Values
+            .OrderBy(j => j.JobName)
+            .Select(j => new BackgroundJobStatusDto
+            {
+                JobName = j.JobName,
+                Description = j.Description,
+                Status = j.Status,
+                LastRunAtUtc = j.LastRunAtUtc,
+                NextScheduledRunUtc = j.NextScheduledRunUtc,
+                LastRunSuccess = j.LastRunSuccess,
+                LastRunMessage = j.LastRunMessage,
+                LastProcessedCount = j.LastProcessedCount,
+                LastExecutionDurationMs = j.LastExecutionDurationMs
+            })
+            .ToList();
     }
 
     public async Task<JobExecutionResultDto> RunJobByNameAsync(string jobName, int? tenantId = null, CancellationToken cancellationToken = default)
@@ -109,6 +124,7 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
             };
         }
 
+        var sw = Stopwatch.StartNew();
         statusDto.Status = "Running";
         JobExecutionResultDto result;
 
@@ -175,31 +191,39 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                     break;
             }
 
+            sw.Stop();
             var completedAt = DateTime.UtcNow;
             statusDto.LastRunAtUtc = completedAt;
             statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
             statusDto.LastRunSuccess = result.Success;
             statusDto.LastRunMessage = result.Message;
             statusDto.LastProcessedCount = result.ProcessedCount;
-            statusDto.LastExecutionDurationMs = result.Duration.TotalMilliseconds;
+            statusDto.LastExecutionDurationMs = result.Duration.TotalMilliseconds > 0
+                ? result.Duration.TotalMilliseconds
+                : sw.Elapsed.TotalMilliseconds;
             statusDto.Status = result.Success ? "Succeeded" : "Failed";
 
             return result;
         }
         catch (Exception ex)
         {
+            sw.Stop();
             _logger.LogError(ex, "Failed running background job {JobName}", jobName);
             var completedAt = DateTime.UtcNow;
             statusDto.LastRunAtUtc = completedAt;
             statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
             statusDto.LastRunSuccess = false;
             statusDto.LastRunMessage = ex.Message;
+            statusDto.LastProcessedCount = 0;
+            statusDto.LastExecutionDurationMs = sw.Elapsed.TotalMilliseconds;
             statusDto.Status = "Failed";
 
             return new JobExecutionResultDto
             {
                 JobName = jobName ?? "Unknown",
                 Success = false,
+                ProcessedCount = 0,
+                Duration = sw.Elapsed,
                 Message = $"Job failed with exception: {ex.Message}",
                 ExecutedAtUtc = completedAt
             };

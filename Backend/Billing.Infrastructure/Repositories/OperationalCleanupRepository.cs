@@ -16,10 +16,9 @@ public class OperationalCleanupRepository : IOperationalCleanupRepository
     public async Task<int> CleanupExpiredSessionsAsync(DateTime expiredBeforeUtc, CancellationToken ct = default)
     {
         var expiredSessions = await _context.UserSessions
-            .Where(s => s.SessionExpiresAtUtc < expiredBeforeUtc ||
-                        s.RefreshTokenExpiresAtUtc < expiredBeforeUtc ||
+            .Where(s => (s.SessionExpiresAtUtc < expiredBeforeUtc && s.RefreshTokenExpiresAtUtc < expiredBeforeUtc) ||
                         (s.IsRevoked && s.RevokedAtUtc.HasValue && s.RevokedAtUtc.Value < expiredBeforeUtc.AddDays(-7)))
-            .OrderBy(s => s.SessionExpiresAtUtc)
+            .OrderBy(s => s.RefreshTokenExpiresAtUtc)
             .Take(500)
             .ToListAsync(ct);
 
