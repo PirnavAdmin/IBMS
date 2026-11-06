@@ -38,12 +38,13 @@ export const OtpInputGroup = ({ otp, onChange, disabled = false, autoFocus = tru
   };
 
   return (
-    <div className="otp-input-group" onPaste={handlePaste}>
+    <div className="otp-input-group" role="group" aria-label="Verification code" onPaste={handlePaste}>
       {otp.map((digit, idx) => (
         <input
           key={idx}
           ref={(el) => (inputRefs.current[idx] = el)}
           type="text"
+          aria-label={`Verification code digit ${idx + 1}`}
           inputMode="numeric"
           maxLength={1}
           value={digit}

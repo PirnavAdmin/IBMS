@@ -9,7 +9,8 @@ import { NotificationBell } from './NotificationBell';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { AccountProfileDialog } from './AccountProfileDialog';
 import { getDisplayName, getInitials } from '../../utils/userDisplay';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { searchInputError } from '../../utils/search';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 import Search from '@mui/icons-material/Search';
 import Close from '@mui/icons-material/Close';
@@ -23,11 +24,16 @@ import Divider from '@mui/material/Divider';
 import PersonOutline from '@mui/icons-material/PersonOutline';
 import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { hasPermission } from '../../utils/permissionUtils';
 import './DashboardHeader.css';
 
-export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, searchPlaceholder = 'Search displayed records...', searchLabel = 'Search dashboard', searchResultsId }) => {
+export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, searchPlaceholder = 'Search displayed records...', searchLabel = 'Search dashboard', searchResultsId, navigationItems }) => {
+  const navigationResultsId = useId();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const navigationError = navigationItems ? searchInputError(searchQuery) : '';
+  const navigationTerms = String(searchQuery || '').trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const navigationMatches = (navigationItems || []).filter(item => navigationTerms.every(term => item.label.toLocaleLowerCase().includes(term)));
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
@@ -58,7 +64,18 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, sear
   const canViewSettings = hasPermission(['settings.view', 'settings.manage'], user);
   return <><header className={`bd-header${onSearch ? '' : ' bd-header-profile-only'}`}>
     {onMenu && <button className="bd-mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu /></button>}
-    {onSearch && <div className="bd-search" role="search"><Search aria-hidden="true" /><input ref={searchRef} value={searchQuery || ''} onChange={(event) => onSearch(event.target.value)} onKeyDown={event => { if (event.key === 'Escape' && searchQuery) { event.preventDefault(); clearSearch(); } }} placeholder={searchPlaceholder} aria-label={searchLabel} aria-controls={searchQuery?.trim() ? searchResultsId : undefined} />{searchQuery && <button type="button" className="bd-search-clear" onClick={clearSearch} aria-label="Clear search" title="Clear search"><Close /></button>}</div>}
+    {onSearch && <div className="bd-search" role="search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setNavigationOpen(false); }}>
+      <Search aria-hidden="true" />
+      <input ref={searchRef} value={searchQuery || ''} onFocus={() => setNavigationOpen(true)} onChange={event => { setNavigationOpen(true); onSearch(event.target.value); }} onKeyDown={event => {
+        if (event.key === 'Escape' && searchQuery) { event.preventDefault(); setNavigationOpen(false); clearSearch(); }
+        if (event.key === 'Enter' && navigationItems && navigationTerms.length && !navigationError && navigationMatches.length === 1) { event.preventDefault(); onSearch(''); setNavigationOpen(false); navigate(navigationMatches[0].route); }
+      }} placeholder={searchPlaceholder} aria-label={searchLabel} aria-controls={searchQuery?.trim() ? navigationItems ? navigationResultsId : searchResultsId : undefined} />
+      {searchQuery && <button type="button" className="bd-search-clear" onClick={clearSearch} aria-label="Clear search" title="Clear search"><Close /></button>}
+      {navigationItems && navigationOpen && navigationTerms.length > 0 && <div id={navigationResultsId} className="bd-module-search-results" role="region" aria-label="Module search results">
+        <strong>Modules</strong>
+        {navigationError ? <p role="status">{navigationError}</p> : navigationMatches.length ? <ul>{navigationMatches.map(item => <li key={item.route}><Link to={item.route} onClick={() => { onSearch(''); setNavigationOpen(false); }}>{item.label}</Link></li>)}</ul> : <p role="status">No modules match your search.</p>}
+      </div>}
+    </div>}
     <div className="bd-profile-area">
       <NotificationBell user={user} />
       <div className="bd-avatar">{getInitials(displayName)}</div>

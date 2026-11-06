@@ -1,3 +1,4 @@
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { useEffect, useState } from "react";
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -56,11 +57,11 @@ export function InvoicePreview() {
       subtitle="Review the saved invoice. Open the server PDF for the final branding and document snapshot."
       actions={
         <>
-          <Button component={Link} to={`/invoices/${id}`}>
+          <Button component={Link} to={`/invoices/${id}`} variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />}>
             Back to invoice
           </Button>
           {invoice.data?.status === "Draft" && (
-            <Button component={Link} to={`/invoices/${id}/edit`}>
+            <Button variant="outlined" component={Link} to={`/invoices/${id}/edit`}>
               Edit draft
             </Button>
           )}

@@ -172,6 +172,7 @@ export const Register = () => {
                   fullWidth
                   size="small"
                   id="fullName"
+                  autoComplete="name"
                   required
                   placeholder="Your full name"
                   disabled={isSubmitting || registering || isSuccess}
@@ -198,6 +199,7 @@ export const Register = () => {
                   fullWidth
                   size="small"
                   id="email"
+                  autoComplete="email"
                   required
                   type="email"
                   placeholder="you@company.com"
@@ -225,6 +227,7 @@ export const Register = () => {
                   fullWidth
                   size="small"
                   id="password"
+                  autoComplete="new-password"
                   required
                   type={showPassword ? 'text' : 'password'}
                   placeholder="At least 8 characters"
@@ -264,6 +267,7 @@ export const Register = () => {
                   fullWidth
                   size="small"
                   id="confirmPassword"
+                  autoComplete="new-password"
                   required
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Re-enter your password"
@@ -295,12 +299,9 @@ export const Register = () => {
 
               <div className="billing-auth-consent">
                 <Controller name="terms" control={control} render={({ field }) => <FormControlLabel
-                  control={<Checkbox id="registration-consent" size="small" checked={field.value === true} inputRef={field.ref} name={field.name} onBlur={field.onBlur} onChange={event => field.onChange(event.target.checked)} inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(errors.terms), 'aria-describedby': errors.terms ? 'registration-consent-error' : undefined }} />}
-                  label={<span className="billing-auth-terms-label">I agree to IBMS's Terms and Privacy Policy (required).</span>} sx={{ m: 0 }} />}
+                  control={<Checkbox id="registration-consent" disabled={isSubmitting || registering || isSuccess} size="small" checked={field.value === true} inputRef={field.ref} name={field.name} onBlur={field.onBlur} onChange={event => field.onChange(event.target.checked)} inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(errors.terms), 'aria-describedby': errors.terms ? 'registration-consent-error' : undefined }} />}
+                  label={<span className="billing-auth-terms-label">I agree to IBMS's <a className="billing-auth-terms-link" href="/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a className="billing-auth-terms-link" href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> (required).</span>} sx={{ m: 0 }} />}
                 />
-                <div className="billing-auth-legal-documents" aria-label="Legal documents">
-                  <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a><span>and</span><a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
-                </div>
                 {errors.terms && <p id="registration-consent-error" role="alert" className="billing-auth-consent-error">{errors.terms.message}</p>}
               </div>
 

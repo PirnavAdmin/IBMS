@@ -1694,3 +1694,67 @@
   .quotation-form-page .quote-items-table td > .quote-item-tax,
   .quotation-form-page .quote-items-table td > input { box-sizing: border-box; }
 }
+
+
+/* Reuse the application loader without unmounting an in-progress form/dialog. */
+.quotation-operation-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  display: grid;
+  place-items: center;
+  background: rgba(249, 245, 239, .65);
+}
+.quotation-operation-loading .page-loading {
+  min-height: 0;
+  width: auto;
+  padding: 28px 36px;
+  border: 1px solid #eadfd2;
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 8px 28px rgba(53, 35, 28, .12);
+}
+
+/* Clear, responsive quotation overview without changing document/print styles. */
+.quotation-details-page .quote-details-combined { grid-template-columns: minmax(0, 1.5fr) minmax(290px, 1fr); gap: 20px; max-width: none; padding: 0; border: 0; background: transparent; box-shadow: none; align-items: start; }
+.quote-details-combined > .quote-card, .quote-details-notes > .quote-card { min-width: 0; padding: 24px; }
+.quote-overview-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.quote-overview-heading h2 { margin: 0; font-size: 17px; line-height: 1.4; }
+.quote-overview-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: #f4eadc; color: #674730; }
+.quote-overview-icon svg { font-size: 20px; }
+.quote-overview-card .quote-detail-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+.quote-overview-card .quote-detail-list > div { min-width: 0; padding: 14px 0; border-bottom: 1px solid #eee5da; }
+.quote-overview-card .quote-detail-list dt { margin-bottom: 6px; font-size: 12px; line-height: 1.5; color: #756354; }
+.quote-overview-card .quote-detail-list dd { margin: 0; font-size: 14px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; color: #35231c; }
+.quote-overview-card .quote-detail-list dd small { display: block; color: #756354; font-size: 12px; font-weight: 500; }
+.quote-overview-card .quote-detail-number { font-variant-numeric: tabular-nums; }
+.quote-overview-card .quote-converted-reference { grid-column: 1 / -1; }
+.quote-converted-reference a { color: #674730; text-decoration: underline; text-underline-offset: 3px; }
+.quote-details-combined .quotation-financial-summary { margin: 0; padding: 24px; border: 1px solid #e5d5c2; background: #fffdf9; }
+.quote-financial-rows { margin: 0; }
+.quote-financial-rows > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #eee5da; font-size: 14px; line-height: 1.5; }
+.quote-financial-rows dt { color: #756354; }
+.quote-financial-rows dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: #35231c; }
+.quote-details-combined .quotation-financial-summary .quote-grand-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; max-width: none; margin-top: 18px; padding: 16px; border: 1px solid #e5d5c2; border-radius: 10px; background: #f4eadc; color: #493125; }
+.quotation-financial-summary .quote-grand-total span { font-size: 13px; }
+.quotation-financial-summary .quote-grand-total strong { font-size: clamp(22px, 2vw, 28px); line-height: 1.3; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.quote-details-notes { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 20px; }
+.quote-note-card h2 { margin-bottom: 12px; font-size: 16px; }
+.quote-note-card p { margin: 0; font-size: 14px; line-height: 1.75; color: #67564b; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .quotation-details-page .quote-details-combined { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .quote-details-notes { grid-template-columns: minmax(0, 1fr); } .quote-details-combined > .quote-card, .quote-details-notes > .quote-card { padding: 20px; } .quote-overview-card .quote-detail-list { gap: 0 16px; } }
+@media (max-width: 380px) { .quote-overview-card .quote-detail-list { grid-template-columns: minmax(0, 1fr); } }
+.quotation-details-page .quote-details-combined { background: transparent !important; box-shadow: none !important; }
+
+
+/* Decorative icons keep each quotation label easy to scan. */
+.quote-overview-card .quote-detail-list dt, .quote-financial-rows dt,
+.quotation-financial-summary .quote-grand-total > span { display: flex; align-items: center; gap: 7px; }
+.quote-overview-card .quote-detail-list dt svg, .quote-financial-rows dt svg,
+.quotation-financial-summary .quote-grand-total > span svg { font-size: 16px; flex-shrink: 0; color: #89664a; }
+.quote-overview-card .quote-detail-list dd { padding-left: 23px; }
+.quote-note-card h2 { display: flex; align-items: center; gap: 10px; }
+.quote-note-card .quote-overview-icon { width: 32px; height: 32px; border-radius: 8px; }
+.quote-note-card .quote-overview-icon svg { font-size: 18px; }
+
+@media (max-width: 600px) { .quote-overview-card .quote-detail-list dd { padding-left: 0; } }

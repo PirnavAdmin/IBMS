@@ -74,7 +74,7 @@ export const Landing = () => {
   const handleSignIn = () => handleNav('/login');
 
   return (
-    <Box className={`landing-root ${isExiting ? 'page-exit-active' : 'page-enter-active'}`}>
+    <Box id="top" className={`landing-root ${isExiting ? 'page-exit-active' : 'page-enter-active'}`}>
       {/* Dynamic Fintech Ambient Background */}
       <div className="landing-bg-container" aria-hidden="true">
         <div className="landing-bg-grid" />
@@ -100,7 +100,7 @@ export const Landing = () => {
       >
         <Container maxWidth="lg">
           <Toolbar disableGutters className="swipe-toolbar">
-            <Box className="swipe-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <Box component="a" href="#top" className="swipe-brand" aria-label="IBMS home">
               <InvoiceBillingLogo />
               <Box>
                 <Typography variant="h6" className="swipe-brand-title">
@@ -113,10 +113,10 @@ export const Landing = () => {
             </Box>
 
             <Box className="navbar-center-links">
-              <span className="nav-link" onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}>Invoices</span>
-              <span className="nav-link" onClick={() => document.getElementById('payments')?.scrollIntoView({ behavior: 'smooth' })}>Payments</span>
-              <span className="nav-link" onClick={() => document.getElementById('share')?.scrollIntoView({ behavior: 'smooth' })}>WhatsApp</span>
-              <span className="nav-link" onClick={() => document.getElementById('inventory')?.scrollIntoView({ behavior: 'smooth' })}>Reconciliation</span>
+              <a className="nav-link" href="#templates">Invoices</a>
+              <a className="nav-link" href="#payments">Payments</a>
+              <a className="nav-link" href="#share">WhatsApp</a>
+              <a className="nav-link" href="#inventory">Reconciliation</a>
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -310,9 +310,11 @@ export const Landing = () => {
                   <span className="payment-amount-display">₹1,24,500.00</span>
                 </div>
 
-                <div className="payment-methods-selector">
+                <div className="payment-methods-selector" role="group" aria-label="Sample payment method">
                   {PAYMENT_MODES.map((mode) => (
-                    <div
+                    <button
+                      type="button"
+                      aria-pressed={selectedPayment === mode.id}
                       key={mode.id}
                       className={`payment-option-pill ${selectedPayment === mode.id ? 'selected' : ''}`}
                       onClick={() => setSelectedPayment(mode.id)}
@@ -320,7 +322,7 @@ export const Landing = () => {
                       <div className={`option-icon-box ${mode.color}`}>{PAYMENT_ICONS[mode.id]}</div>
                       <span className="option-name">{mode.name}</span>
                       {selectedPayment === mode.id && <Check className="selected-check" />}
-                    </div>
+                    </button>
                   ))}
                 </div>
 
@@ -426,7 +428,7 @@ export const Landing = () => {
                   <span className="reconciliation-status-pill">Live 2-Way Sync</span>
                 </div>
 
-                <div className="reconciliation-table">
+                <div className="reconciliation-table" tabIndex={0} role="region" aria-label="Sample invoice settlement ledger">
                   <div className="reconciliation-table-header">
                     <span>Invoice #</span>
                     <span>Client / Payer</span>
@@ -443,10 +445,7 @@ export const Landing = () => {
                   ))}
                 </div>
 
-                <div className="reconciliation-action-btns">
-                  <div className="rec-btn match">Auto-Match Bank Feeds ✓</div>
-                  <div className="rec-btn export">Export GSTR-1 Summary &rarr;</div>
-                </div>
+
               </div>
             </Grid>
           </Grid>
@@ -481,6 +480,7 @@ export const Landing = () => {
             <Typography variant="body1" className="cta-bold-sub">
               Create professional GST invoices, share bills directly on WhatsApp, and collect payments with automated bank reconciliation today.
             </Typography>
+            <Button href="/register" variant="contained" className="cta-action-btn">Create Account</Button>
             <div className="cta-footer-trust">
               <span>✓ 100% Free Trial</span>
               <span>&bull;</span>
@@ -501,11 +501,8 @@ export const Landing = () => {
               <BrandName />
             </Box>
             <div className="footer-nav-links">
-              <span>Privacy Policy</span>
-              <span>Terms of Service</span>
-              <span>GST Guide</span>
-              <span>API Documentation</span>
-              <span>Contact Support</span>
+              <a href="/privacy">Privacy Policy</a>
+              <a href="/terms">Terms of Service</a>
             </div>
           </div>
           <div className="footer-divider" />
