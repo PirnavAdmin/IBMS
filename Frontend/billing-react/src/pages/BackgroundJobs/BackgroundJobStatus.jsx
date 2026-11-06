@@ -25,10 +25,12 @@ const countdown = (value, now) => {
 export function backgroundJobAccess(response) {
   const user = response?.data ?? response;
   const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
-  const hasAllowedRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+  const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
     .flatMap(value => String(value).split(','))
-    .some(role => ['tenantadmin', 'superadmin', 'admin'].includes(role.trim().toLowerCase()));
-  if (hasAllowedRole) return true;
+    .map(role => role.trim().toLowerCase())
+    .filter(Boolean);
+  if (roles.some(role => ['tenantadmin', 'superadmin', 'admin'].includes(role))) return true;
+  if (roles.some(role => ['customer', 'viewer'].includes(role))) return false;
 
   const rawPerms = user?.permissions ?? user?.Permissions ?? [];
   return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
