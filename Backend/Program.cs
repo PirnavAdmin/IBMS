@@ -54,6 +54,12 @@ builder.Services.AddControllers()
 // ============================================================
 // CORS
 // ============================================================
+builder.WebHost.UseUrls("https://localhost:7117", "http://localhost:5271");
+Billing.Application.Common.AppUrlResolver.Configure(
+    builder.Configuration["AppUrls:FrontendBaseUrl"],
+    builder.Configuration["AppUrls:ApiBaseUrl"]
+);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -161,6 +167,7 @@ builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
+builder.Services.AddSingleton<Billing.Application.Interfaces.IPaymentLedgerService, Billing.Application.Services.PaymentLedgerService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IInvoiceTemplateService, InvoiceTemplateService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();

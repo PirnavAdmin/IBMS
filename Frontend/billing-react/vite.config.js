@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiTarget = (env.VITE_API_BASE_URL || 'https://pediatric-astrology-outrank.ngrok-free.dev').replace(/\/+$/, '');
+  const apiTarget = (env.VITE_API_BASE_URL || 'http://127.0.0.1:5271').replace(/\/+$/, '');
 
   return {
     plugins: [react()],
@@ -24,7 +24,9 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      open: true,
+      host: '0.0.0.0',
+      open: false,
+      allowedHosts: true,
       proxy: {
         '/api/pincode': {
           target: 'https://api.postalpincode.in',

@@ -1,3 +1,4 @@
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Notification;
@@ -85,14 +86,14 @@ public class NotificationService : INotificationService
             ["DueDate"] = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt",
             ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
             ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
-            ["PaymentLink"] = $"http://localhost:3000/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}"
+            ["PaymentLink"] = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}"
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
         string subject;
         string body;
 
-        var payLink = $"http://localhost:3000/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
+        var payLink = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
 
         if (template != null)
         {
@@ -239,7 +240,7 @@ public class NotificationService : INotificationService
             ["InvoiceNumber"] = invoiceNumber,
             ["RemainingBalance"] = remainingBalance,
             ["FailureReason"] = eventType == "PaymentFailed" ? "Payment was declined or cancelled." : string.Empty,
-            ["PaymentLink"] = invoiceId.HasValue ? $"http://localhost:3000/pay/{invoiceId.Value}?tenantId={tenantId}" : $"/portal/invoices/{invoiceNumber}/pay"
+            ["PaymentLink"] = invoiceId.HasValue ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoiceId.Value}?tenantId={tenantId}" : $"/portal/invoices/{invoiceNumber}/pay"
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
@@ -264,7 +265,7 @@ public class NotificationService : INotificationService
                 var balanceText = isFullyPaid ? $"{currency} 0.00 (Cleared)" : $"{currency} {remainingBalance}";
 
                 var payLink = invoiceId.HasValue
-                    ? $"http://localhost:3000/pay/{invoiceId.Value}?tenantId={tenantId}"
+                    ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoiceId.Value}?tenantId={tenantId}"
                     : "#";
 
                 var payRemainingButton = (!isFullyPaid && invoiceId.HasValue)
@@ -387,8 +388,8 @@ public class NotificationService : INotificationService
         var actionToken = !string.IsNullOrWhiteSpace(quotation.PublicActionToken)
             ? quotation.PublicActionToken
             : quotation.Id.ToString();
-        var approveLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={tenantId}";
-        var declineLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={tenantId}";
+        var approveLink = $"{AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={tenantId}";
+        var declineLink = $"{AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={tenantId}";
         var replyLink = $"mailto:{supportEmail}?subject=Feedback on Quotation {quotation.QuoteNumber}";
         variables["ApproveLink"] = approveLink;
         variables["DeclineLink"] = declineLink;

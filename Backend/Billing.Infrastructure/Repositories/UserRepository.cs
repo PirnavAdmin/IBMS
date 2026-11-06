@@ -116,6 +116,14 @@ public class UserRepository : IUserRepository
         return (users, totalCount);
     }
 
+    public async Task<List<User>> GetActiveUsersByTenantAsync(int tenantId)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.TenantId == tenantId && u.Status == "Active")
+            .ToListAsync();
+    }
+
     public async Task<User?> GetByExternalSubjectAsync(string provider, string subjectId)
     {
         return await _context.Users

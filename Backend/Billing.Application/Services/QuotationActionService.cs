@@ -1,4 +1,4 @@
-﻿using Billing.Application.Interfaces;
+using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Financial;
 using Billing.Contracts.Numbering;
@@ -326,8 +326,8 @@ public class QuotationActionService : IQuotationActionService
         var companyPhone = !string.IsNullOrWhiteSpace(tenant?.Phone) ? tenant.Phone : "+91 9876543210";
         var companyEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail) ? tenant.CompanyEmail : "info@acmetech.com";
         var actionToken = !string.IsNullOrWhiteSpace(quotation.PublicActionToken) ? quotation.PublicActionToken : quotation.Id.ToString();
-        var approveLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={quotation.TenantId}";
-        var declineLink = $"http://localhost:5271/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={quotation.TenantId}";
+        var approveLink = $"{Billing.Application.Common.AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={quotation.TenantId}";
+        var declineLink = $"{Billing.Application.Common.AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={quotation.TenantId}";
 
         var sb = new System.Text.StringBuilder();
         sb.Append(@"<!DOCTYPE html>
@@ -848,10 +848,9 @@ public class QuotationActionService : IQuotationActionService
                     ? $"Customer {quotation.Customer?.Name} has approved quotation {quotation.QuoteNumber} ({currency} {quotation.TotalAmount:N2}) via email."
                     : $"Customer {quotation.Customer?.Name} has declined quotation {quotation.QuoteNumber} via email.";
 
-                await _inAppNotificationService.CreateInAppNotificationAsync(new Billing.Contracts.Notification.CreateInAppNotificationCommand
+                await _inAppNotificationService.PublishTenantNotificationAsync(new Billing.Contracts.Notification.PublishTenantNotificationCommand
                 {
                     TenantId = tenantId,
-                    RecipientUserId = 1,
                     EventType = isApproved ? "QuotationApproved" : "QuotationDeclined",
                     EventDeduplicationId = $"quotation-{quotation.Id}-{decisionText.ToLowerInvariant()}",
                     Title = notifTitle,

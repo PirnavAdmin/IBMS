@@ -116,6 +116,8 @@ export function InvoiceList() {
     filters.startDate && filters.endDate && filters.startDate > filters.endDate;
   const list = useQuery({
     queryKey: ["invoices", "list", filters, querySearch],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     queryFn: ({ signal }) =>
       invoiceService.list({ ...filters, search: querySearch }, { signal }),
     enabled: user.permissions.view && !invalidDates && !searchError,
@@ -124,6 +126,8 @@ export function InvoiceList() {
   });
   const summary = useQuery({
     queryKey: ["invoices", "summary"],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
     queryFn: ({ signal }) => invoiceService.summary({ signal }),
     enabled: user.permissions.view,
     retry: false,

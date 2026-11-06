@@ -15,11 +15,16 @@ public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
     private readonly IPaymentGatewayService? _gatewayService;
+    private readonly IPaymentLedgerService? _ledgerService;
 
-    public PaymentsController(IPaymentService paymentService, IPaymentGatewayService? gatewayService = null)
+    public PaymentsController(
+        IPaymentService paymentService,
+        IPaymentGatewayService? gatewayService = null,
+        IPaymentLedgerService? ledgerService = null)
     {
         _paymentService = paymentService;
         _gatewayService = gatewayService;
+        _ledgerService = ledgerService;
     }
 
     private int? GetTenantId()
@@ -480,6 +485,25 @@ public class PaymentsController : ControllerBase
         {
             return StatusCode(500, new { error = ex.Message });
         }
+    }
+
+    [HttpGet("gateway/export-excel")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExportPaymentLedger([FromQuery] int? tenantId)
+    {
+        if (_ledgerService == null) return NotFound("Ledger service not configured.");
+        var bytes = await _ledgerService.GetExcelBytesAsync(tenantId);
+        var fileName = $"Payments_Ledger_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
+
+    [HttpGet("gateway/live-ledger")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLiveLedger([FromQuery] int? tenantId, [FromQuery] int limit = 50)
+    {
+        if (_ledgerService == null) return NotFound("Ledger service not configured.");
+        var entries = await _ledgerService.GetRecentEntriesAsync(tenantId, limit);
+        return Ok(ApiResponse<List<PaymentLedgerEntry>>.Ok(entries, "Live payment ledger retrieved successfully."));
     }
 
 }
