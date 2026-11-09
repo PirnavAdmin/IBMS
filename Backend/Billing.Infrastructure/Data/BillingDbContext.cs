@@ -102,7 +102,7 @@ public class BillingDbContext : DbContext
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is AuditLog) continue;
+            if (entry.Entity is AuditLog || entry.Entity is UserSession) continue;
 
             var entityName = entry.Entity.GetType().Name;
             var entityId = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "Unknown";
@@ -145,6 +145,10 @@ public class BillingDbContext : DbContext
                 EntityId = entityId,
                 Action = entry.State.ToString().ToUpper(),
                 UserName = userName,
+                ActorUserId = _currentUserService?.UserId,
+                ActorRole = _currentUserService?.Role,
+                CorrelationId = _currentUserService?.CorrelationId,
+                ResultStatus = "Success",
                 Timestamp = DateTime.UtcNow,
                 OldValues = oldValues.Count > 0 ? JsonSerializer.Serialize(oldValues) : null,
                 NewValues = newValues.Count > 0 ? JsonSerializer.Serialize(newValues) : null,

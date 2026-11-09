@@ -35,8 +35,17 @@ namespace Billing.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("ActorRole")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ActorUserId")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Changes")
                         .HasColumnType("text");
+
+                    b.Property<string>("CorrelationId")
+                        .HasColumnType("longtext");
 
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
@@ -55,6 +64,10 @@ namespace Billing.Infrastructure.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("OldValues")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ResultStatus")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<int>("TenantId")
@@ -1125,6 +1138,9 @@ namespace Billing.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowPartialPayments")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<decimal>("BalanceAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -1986,6 +2002,62 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Permissions");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.PlatformSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AccountRecoveryContact")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("AllowSelfRegistration")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("InactivityTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("MaintenanceMode")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("PasswordMinLength")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PlatformName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("RequireDigit")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("RequireSpecialChar")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("SessionTimeoutMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupportedCurrenciesJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Version")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PlatformSettings");
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -2155,8 +2227,15 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("CustomerDecision")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("CustomerRespondedAtUtc")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<decimal>("DiscountAmount")
                         .HasPrecision(18, 2)
@@ -2164,6 +2243,10 @@ namespace Billing.Infrastructure.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
+
+                    b.Property<string>("PublicActionToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
 
                     b.Property<DateTime>("QuotationDate")
                         .HasColumnType("datetime(6)");
@@ -2212,6 +2295,8 @@ namespace Billing.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("TenantId", "PublicActionToken");
 
                     b.HasIndex("TenantId", "QuoteNumber")
                         .IsUnique();
@@ -2643,6 +2728,9 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -2651,6 +2739,9 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<string>("Phone")
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
+
+                    b.Property<string>("RequestPayloadHash")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -158,7 +158,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             Status = t.Status,
             IsActive = t.IsActive,
             CreatedAtUtc = t.CreatedAtUtc,
-            UpdatedAtUtc = t.UpdatedAtUtc,
+            UpdatedAtUtc = t.UpdatedAtUtc ?? t.CreatedAtUtc,
             UserCount = t.Users.Count,
             InvoiceCount = invoiceCounts.TryGetValue(t.Id, out var invCount) ? invCount : 0
         }).ToList();
@@ -187,7 +187,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             Status = tenant.Status,
             IsActive = tenant.IsActive,
             CreatedAtUtc = tenant.CreatedAtUtc,
-            UpdatedAtUtc = tenant.UpdatedAtUtc,
+            UpdatedAtUtc = tenant.UpdatedAtUtc ?? tenant.CreatedAtUtc,
             UserCount = tenant.Users.Count,
             InvoiceCount = invoiceCount,
             CustomerCount = customerCount,
@@ -374,7 +374,8 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         // Reliable Atomic Concurrency Protection: strict match, no tolerance
         if (request.ExpectedUpdatedAtUtc.HasValue)
         {
-            if (tenant.UpdatedAtUtc.HasValue && tenant.UpdatedAtUtc.Value != request.ExpectedUpdatedAtUtc.Value)
+            var currentConcurrencyStamp = tenant.UpdatedAtUtc ?? tenant.CreatedAtUtc;
+            if (currentConcurrencyStamp != request.ExpectedUpdatedAtUtc.Value)
             {
                 return (false, "A concurrency conflict occurred. The tenant was modified by another administrator. Please reload.", null, "CONCURRENCY_CONFLICT");
             }
