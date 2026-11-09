@@ -1,5 +1,5 @@
 import { PlatformUsers } from '../src/pages/Platform/PlatformUsers';
-import { PlatformAudit } from '../src/pages/Platform/PlatformAudit';
+import { PlatformAudit, platformAuditResult } from '../src/pages/Platform/PlatformAudit';
 import { PlatformSettings } from '../src/pages/Platform/PlatformSettings';
 import React, { act } from 'react';
 import test from 'node:test';import assert from 'node:assert/strict';
@@ -31,7 +31,7 @@ test('tenant editor keeps input after 409 and prevents duplicate submission',asy
 test('dashboard omits unsupported metrics rather than inventing zeroes',async()=>{const original=api.dashboard;api.dashboard=async()=>({totalTenants:3,recentTenants:[],recentAdminEvents:[]});const v=await mount(<PlatformDashboard/>);try{assert.match(v.host.textContent,/Total Tenants/);assert.doesNotMatch(v.host.textContent,/Total Platform Users/);assert.equal(v.host.querySelector('.platform-metrics strong').textContent,'3');}finally{await v.close();api.dashboard=original;}});
 
 test('Platform Users defaults to server-side SuperAdmin scope and maps roles/tenant context',async()=>{const originals={users:api.users,roles:api.roles};let params;api.users=async p=>{params=p;return{items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin'],status:'Active',tenantId:null}],totalCount:1,pageNumber:1,pageSize:20};};api.roles=async()=>[{name:'SuperAdmin'},{name:'TenantAdmin'}];const v=await mount(<PlatformUsers/>);try{assert.equal(params.role,'SuperAdmin');assert.match(v.host.textContent,/admin@example.test/);assert.match(v.host.textContent,/Platform Admin/);}finally{await v.close();Object.assign(api,originals);}});
-test('Audit maps sanitized detail data and is read-only',async()=>{const original=api.audit;api.audit=async()=>({items:[{id:1,timestamp:'2026-11-04T08:00:00Z',actorUserName:'Admin',action:'TenantCreated',entityType:'Tenant',entityId:'4',tenantId:4,resultStatus:'Success',correlationId:'corr-1',changes:'Created tenant'}],totalCount:1,pageNumber:1,pageSize:20});const v=await mount(<PlatformAudit/>);try{assert.match(v.host.textContent,/Tenant Created/);await click([...v.host.querySelectorAll('button')].find(b=>b.textContent==='View'));assert.match(document.querySelector('[role="dialog"]').textContent,/corr-1/);assert.match(document.querySelector('[role="dialog"]').textContent,/Created tenant/);assert.equal(document.querySelector('[role="dialog"] form'),null);}finally{await v.close();api.audit=original;}});
+test('Audit maps sanitized detail data and is read-only',async()=>{const original=api.audit;api.audit=async()=>({items:[{id:1,timestamp:'2026-11-04T08:00:00Z',actorUserName:'Admin',action:'TenantCreated',entityType:'Tenant',entityId:'4',tenantId:4,resultStatus:'Success',correlationId:'corr-1',changes:'Created tenant'}],totalCount:1,pageNumber:1,pageSize:20});const v=await mount(<PlatformAudit/>);try{assert.match(v.host.textContent,/Tenant Created/);await click([...v.host.querySelectorAll('button')].find(b=>b.textContent==='View'));assert.match(document.querySelector('[role="dialog"]').textContent,/corr-1/);assert.match(document.querySelector('[role="dialog"]').textContent,/Created tenant/);assert.match(document.querySelector('[role="dialog"]').textContent,/Actor User IDUnknown/);assert.match(document.querySelector('[role="dialog"]').textContent,/Reported ResultSuccess/);assert.match(document.querySelector('[role="dialog"]').textContent,/ResultUnknown/);assert.equal(document.querySelector('[role="dialog"] form'),null);}finally{await v.close();api.audit=original;}});
 test('Platform Settings maps only genuine platform fields and sends the update DTO',async()=>{const originals={settings:api.settings,updateSettings:api.updateSettings};const d={platformName:'IBMS',accountRecoveryContact:'help@example.test',sessionTimeoutMinutes:60,inactivityTimeoutMinutes:30,passwordMinLength:12,maintenanceMode:false,allowSelfRegistration:true,requireDigit:true,requireSpecialChar:true,supportedCurrencies:['INR','USD']};let payload;api.settings=async()=>d;api.updateSettings=async p=>{payload=p;return d;};const v=await mount(<PlatformSettings/>);try{assert.doesNotMatch(v.host.textContent,/Taxes|Invoice Numbering|Charges/);await click([...v.host.querySelectorAll('button')].find(b=>b.textContent==='Edit Platform Settings'));await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));assert.deepEqual(payload,d);}finally{await v.close();Object.assign(api,originals);}});
 test('platform pending queries show loading and do not fabricate records',async()=>{const original=api.dashboard;api.dashboard=()=>new Promise(()=>{});const v=await mount(<PlatformDashboard/>);try{assert.match(v.host.querySelector('[role="status"]').textContent,/Loading/);assert.equal(v.host.querySelector('.platform-metrics'),null);}finally{await v.close();api.dashboard=original;}});
 
@@ -228,4 +228,24 @@ test('tenant creation retry reuses its idempotency key and preserves the origina
     await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
     assert.equal(requests.length,2);assert.ok(requests[0].idempotencyKey);assert.deepEqual(requests[1],requests[0]);
   }finally{await v.close();api.createTenant=original;}
+});
+
+test('audit outcomes remain unknown without complete provenance and retain reported failures',()=>{
+  const traced={actorUserId:90,actorRole:'SuperAdmin',correlationId:'request-1',resultStatus:'Failed'};
+  assert.equal(platformAuditResult(traced),'Failed');
+  assert.equal(platformAuditResult({...traced,resultStatus:'Success'}),'Success');
+  for(const key of ['actorUserId','actorRole','correlationId','resultStatus'])
+    assert.equal(platformAuditResult({...traced,[key]:null}),'Unknown');
+  assert.equal(platformAuditResult({resultStatus:'Success'}),'Unknown');
+});
+
+test('tenant edit forwards the original full precision token and invalidates platform queries',async()=>{
+  const original=api.updateTenant;let payload;
+  api.updateTenant=async(id,value)=>{payload=value;return{id};};
+  const stamp='2026-11-06T10:57:35.4874747Z';let closed=false;
+  const v=await mount(<TenantEditor tenant={{id:4,name:'Acme',updatedAtUtc:stamp}} onClose={()=>{closed=true;}}/>);
+  const invalidations=[];v.client.invalidateQueries=async options=>{invalidations.push(options.queryKey);};
+  try{await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
+    assert.equal(payload.expectedUpdatedAtUtc,stamp);assert.deepEqual(invalidations,[['platform']]);assert.equal(closed,true);
+  }finally{await v.close();api.updateTenant=original;}
 });
