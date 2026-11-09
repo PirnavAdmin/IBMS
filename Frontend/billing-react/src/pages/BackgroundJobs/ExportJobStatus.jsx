@@ -36,32 +36,63 @@ const formatBytes = value => {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export function exportJobAccess(response) {
+function parseRolesAndPerms(response) {
   const user = response?.data ?? response;
   const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
-  const hasAllowedRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+  const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
     .flatMap(value => String(value).split(','))
-    .some(role => ['tenantadmin', 'superadmin', 'admin', 'billingmanager', 'accountant', 'user'].includes(role.trim().toLowerCase()));
-  if (hasAllowedRole) return true;
-
+    .map(role => role.trim().toLowerCase())
+    .filter(Boolean);
   const rawPerms = user?.permissions ?? user?.Permissions ?? [];
-  return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
+  const perms = (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
     .flatMap(value => String(value).split(','))
-    .some(perm => ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view', 'all', '*'].includes(perm.trim().toLowerCase()));
+    .map(perm => perm.trim().toLowerCase())
+    .filter(Boolean);
+  return { roles, perms };
+}
+
+export function exportJobAccess(response) {
+  const { roles, perms } = parseRolesAndPerms(response);
+  if (roles.some(role => ['tenantadmin', 'superadmin', 'admin', 'billingmanager', 'accountant', 'user'].includes(role))) {
+    return true;
+  }
+  if (roles.some(role => ['customer', 'viewer'].includes(role))) {
+    return perms.some(perm => ['exportjobs.view', 'exportjobs.create', 'all', '*'].includes(perm));
+  }
+  return perms.some(perm => ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view', 'all', '*'].includes(perm));
 }
 
 export function canExportAuditLogs(response) {
-  const user = response?.data ?? response;
-  const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
-  const hasAuditRole = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
-    .flatMap(value => String(value).split(','))
-    .some(role => ['tenantadmin', 'superadmin', 'admin', 'accountant'].includes(role.trim().toLowerCase()));
-  if (hasAuditRole) return true;
+  const { roles, perms } = parseRolesAndPerms(response);
+  if (roles.some(role => ['tenantadmin', 'superadmin', 'admin', 'accountant'].includes(role))) {
+    return true;
+  }
+  return perms.some(perm => ['audit.view', 'audit.export', 'all', '*'].includes(perm));
+}
 
-  const rawPerms = user?.permissions ?? user?.Permissions ?? [];
-  return (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
-    .flatMap(value => String(value).split(','))
-    .some(perm => ['audit.view', 'audit.export', 'all', '*'].includes(perm.trim().toLowerCase()));
+export function canExportJobType(response, type) {
+  if (type === 'AuditLog') return canExportAuditLogs(response);
+  const { roles, perms } = parseRolesAndPerms(response);
+  if (roles.some(role => ['tenantadmin', 'superadmin', 'admin'].includes(role)) ||
+      perms.some(perm => ['all', '*'].includes(perm))) {
+    return true;
+  }
+  if (perms.length > 0) {
+    const map = {
+      Invoice: ['invoices.view', 'invoices.manage', 'billing.view', 'reports.view', 'reports.export'],
+      Payment: ['payments.view', 'payments.manage', 'billing.view', 'reports.view', 'reports.export'],
+      Customer: ['customers.view', 'customers.manage'],
+      CreditNote: ['creditnotes.view', 'creditnotes.manage', 'billing.view', 'reports.view', 'reports.export'],
+      Quotation: ['quotations.view', 'quotations.manage', 'billing.view', 'reports.view', 'reports.export'],
+      Product: ['products.view', 'products.manage'],
+    };
+    return (map[type] || []).some(req => perms.includes(req));
+  }
+  if (roles.some(role => ['billingmanager', 'user'].includes(role))) return true;
+  if (roles.includes('accountant')) {
+    return ['Invoice', 'Payment', 'CreditNote', 'Quotation'].includes(type);
+  }
+  return false;
 }
 
 export function ExportJobStatus() {
@@ -80,14 +111,15 @@ export function ExportJobStatus() {
     staleTime: 60000,
   });
   const allowed = exportJobAccess(user.data);
-  const auditAllowed = canExportAuditLogs(user.data);
-  const availableJobTypes = auditAllowed
-    ? jobTypes
-    : jobTypes.filter(option => option.value !== 'AuditLog');
+  const availableJobTypes = jobTypes.filter(option => canExportJobType(user.data, option.value));
   useEffect(() => {
-    if (!auditAllowed && jobType === 'AuditLog') setJobType('Invoice');
-    if (!auditAllowed && filterJobType === 'AuditLog') setFilterJobType('');
-  }, [auditAllowed, jobType, filterJobType]);
+    if (availableJobTypes.length > 0 && !availableJobTypes.some(option => option.value === jobType)) {
+      setJobType(availableJobTypes[0].value);
+    }
+    if (filterJobType && !availableJobTypes.some(option => option.value === filterJobType)) {
+      setFilterJobType('');
+    }
+  }, [availableJobTypes, jobType, filterJobType]);
   const profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
   const query = useQuery({
@@ -131,7 +163,7 @@ export function ExportJobStatus() {
     }
   };
   const result = query.data;
-  const visibleItems = (result?.items || []).filter(job => auditAllowed || job.jobType !== 'AuditLog');
+  const visibleItems = (result?.items || []).filter(job => canExportJobType(user.data, job.jobType));
 
   return <main className="background-jobs-page">
     <header className="background-jobs-heading">
@@ -151,7 +183,7 @@ export function ExportJobStatus() {
               <TextField select label="Format" value={exportFormat} onChange={event => setExportFormat(event.target.value)} size="small">
                 {formats.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
               </TextField>
-              <Button variant="contained" disabled={createJob.isPending} onClick={() => { setFeedback(null); createJob.mutate(); }}>
+              <Button variant="contained" disabled={createJob.isPending || !availableJobTypes.length} onClick={() => { setFeedback(null); createJob.mutate(); }}>
                 {createJob.isPending ? 'Queueing…' : 'Queue export'}
               </Button>
             </section>

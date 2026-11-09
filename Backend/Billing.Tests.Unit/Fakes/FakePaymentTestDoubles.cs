@@ -579,7 +579,7 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
         }
     }
 
-    public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default) { lock (_lock) { return Task.FromResult((_logs.ToList(), _logs.Count)); } }
+
 
     public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
     {

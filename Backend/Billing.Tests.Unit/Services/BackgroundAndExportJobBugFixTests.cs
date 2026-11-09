@@ -21,7 +21,7 @@ public class BackgroundAndExportJobBugFixTests
     private const int TenantId = 1;
 
     [Fact]
-    public async Task BackgroundJobsController_ForbidsTenantSpoofing_AndCrossTenantRun()
+    public async Task BackgroundJobsController_ForbidsTenantSpoofing_CrossTenantRun_AndUnauthorizedRoles()
     {
         var coordinator = new Mock<IBackgroundJobCoordinator>();
         var controller = new BackgroundJobsController(coordinator.Object);
@@ -52,10 +52,21 @@ public class BackgroundAndExportJobBugFixTests
             TenantId = 2
         });
         Assert.IsType<ForbidResult>(crossTenantRun);
+
+        // 3. Standard User / Viewer without backgroundjobs permission -> ForbidResult
+        var standardUserContext = new DefaultHttpContext();
+        standardUserContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.Role, "User"),
+            new Claim("TenantId", "1")
+        }, "TestAuth"));
+        controller.ControllerContext = new ControllerContext { HttpContext = standardUserContext };
+
+        Assert.IsType<ForbidResult>(controller.GetJobStatuses());
     }
 
     [Fact]
-    public async Task ExportJobsController_BlocksAuditLogExportForStandardUser_ExcludesAuditLogsInList_AndAllowsInvoiceExportForBillingManager()
+    public async Task ExportJobsController_EnforcesPerEntityPermissions_BlocksCustomerRole_AndFiltersHistory()
     {
         var exportService = new Mock<IExportJobService>();
         ExportJobFilterRequest? capturedFilter = null;
@@ -102,6 +113,69 @@ public class BackgroundAndExportJobBugFixTests
         var invoiceExportResult = await controller.QueueExportJob(
             new CreateExportJobRequest { JobType = "Invoice", ExportFormat = "CSV" });
         Assert.IsType<AcceptedAtActionResult>(invoiceExportResult);
+
+        // 4. Accountant attempting Customer export without customers.view permission -> ForbidResult
+        var accountantContext = new DefaultHttpContext();
+        accountantContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.Role, "Accountant"),
+            new Claim("TenantId", "1")
+        }, "TestAuth"));
+        controller.ControllerContext = new ControllerContext { HttpContext = accountantContext };
+
+        var customerExportByAccountant = await controller.QueueExportJob(
+            new CreateExportJobRequest { JobType = "Customer", ExportFormat = "CSV" });
+        Assert.IsType<ForbidResult>(customerExportByAccountant);
+
+        // 5. Customer portal role attempting Invoice export -> ForbidResult
+        var customerRoleContext = new DefaultHttpContext();
+        customerRoleContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.Role, "Customer"),
+            new Claim("TenantId", "1"),
+            new Claim("permissions", "invoices.view,billing.view")
+        }, "TestAuth"));
+        controller.ControllerContext = new ControllerContext { HttpContext = customerRoleContext };
+
+        var customerRoleExport = await controller.QueueExportJob(
+            new CreateExportJobRequest { JobType = "Invoice", ExportFormat = "CSV" });
+        Assert.IsType<ForbidResult>(customerRoleExport);
+    }
+
+    [Fact]
+    public async Task BackgroundJobCoordinator_IsolatesTenantJobStatuses()
+    {
+        var overdue = new Mock<IOverdueInvoiceJobService>();
+        overdue.Setup(o => o.ProcessOverdueInvoicesAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new JobExecutionResultDto
+            {
+                JobName = "OverdueInvoiceJob",
+                Success = true,
+                ProcessedCount = 7,
+                Message = "Tenant 1 overdue run"
+            });
+
+        var coordinator = new BackgroundJobCoordinator(
+            overdue.Object,
+            Mock.Of<IReminderJobService>(),
+            Mock.Of<IPdfGenerationJobService>(),
+            Mock.Of<IEmailNotificationJobService>(),
+            Mock.Of<IWebhookDeliveryJobService>(),
+            Mock.Of<IExportJobService>(),
+            Mock.Of<IOperationalCleanupJobService>(),
+            Mock.Of<ILogger<BackgroundJobCoordinator>>());
+
+        await coordinator.RunJobByNameAsync("OverdueInvoiceJob", tenantId: 1);
+
+        var tenant1Statuses = coordinator.GetAllJobStatuses(tenantId: 1);
+        var tenant2Statuses = coordinator.GetAllJobStatuses(tenantId: 2);
+
+        var t1Overdue = tenant1Statuses.First(s => s.JobName == "OverdueInvoiceJob");
+        var t2Overdue = tenant2Statuses.First(s => s.JobName == "OverdueInvoiceJob");
+
+        Assert.Equal(7, t1Overdue.LastProcessedCount);
+        Assert.Equal("Tenant 1 overdue run", t1Overdue.LastRunMessage);
+        Assert.NotEqual("Tenant 1 overdue run", t2Overdue.LastRunMessage);
     }
 
     [Fact]
