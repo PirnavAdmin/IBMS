@@ -39,7 +39,13 @@ public class ExportJobRepository : IExportJobRepository
 
         if (filter.ExcludeAuditLogs)
         {
-            query = query.Where(e => e.JobType != "AuditLog");
+            query = query.Where(e => e.JobType != "AuditLog" && e.JobType != "AuditLogs");
+        }
+
+        if (filter.AllowedJobTypes is { Count: > 0 })
+        {
+            var allowed = filter.AllowedJobTypes;
+            query = query.Where(e => allowed.Contains(e.JobType));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.JobType))

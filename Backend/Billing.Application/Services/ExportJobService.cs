@@ -108,6 +108,7 @@ public class ExportJobService : IExportJobService
         var items = filter.ExcludeAuditLogs
             ? paged.Items.Where(j => !string.Equals(j.JobType, "AuditLog", StringComparison.OrdinalIgnoreCase)).ToList()
             : paged.Items;
+        if (filter.AllowedJobTypes is { Count: > 0 }) items = items.Where(j => filter.AllowedJobTypes.Contains(NormalizeJobType(j.JobType) ?? j.JobType, StringComparer.OrdinalIgnoreCase)).ToList();
         var dtos = items.Select(MapToDto).ToList();
         var removedCount = paged.Items.Count - items.Count;
         var totalCount = Math.Max(0, paged.TotalCount - removedCount);
@@ -326,7 +327,7 @@ public class ExportJobService : IExportJobService
                             quotation.TaxAmount,
                             quotation.ChargesAmount,
                             quotation.TotalAmount,
-                            ItemCount = quotation.Items.Count,
+                            ItemCount = quotation.Items?.Count ?? 0,
                             quotation.ConvertedInvoiceId,
                             CreatedAtUtc = quotation.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
                         });

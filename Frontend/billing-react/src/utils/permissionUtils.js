@@ -43,10 +43,23 @@ export function hasPermission(requiredPermission, userObj = null) {
   if (!requiredPermission) return true;
   if (isSuperOrTenantAdmin(userObj)) return true;
 
+  const roles = getCurrentUserRoles(userObj).map(r => r.toLowerCase());
   const userPerms = getCurrentUserPermissions(userObj);
-  if (Array.isArray(requiredPermission)) {
-    return requiredPermission.some(p => userPerms.includes(String(p).toLowerCase().trim()));
+  const reqList = (Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission])
+    .map(p => String(p).toLowerCase().trim());
+
+  const isRestrictedPortalRole =
+    (roles.includes('customer') || roles.includes('viewer')) &&
+    !roles.some(r => ['superadmin', 'tenantadmin', 'admin', 'billingmanager', 'accountant', 'user'].includes(r));
+
+  if (isRestrictedPortalRole) {
+    if (reqList.includes('backgroundjobs.view') || reqList.includes('backgroundjobs.manage')) {
+      return false;
+    }
+    if (reqList.includes('exportjobs.view') || reqList.includes('exportjobs.create')) {
+      return userPerms.includes('exportjobs.view') || userPerms.includes('exportjobs.create');
+    }
   }
 
-  return userPerms.includes(String(requiredPermission).toLowerCase().trim());
+  return reqList.some(p => userPerms.includes(p));
 }

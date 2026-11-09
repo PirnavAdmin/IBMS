@@ -246,19 +246,19 @@ public class RoleRepository : IRoleRepository
 
         // BillingManager
         await EnsureRoleWithPermissionsAsync("BillingManager", "Manages billing, invoices, quotations, payments, and customers", perms =>
-            perms.Where(p => p.Module is "Billing" or "Invoices" or "Quotations" or "Payments" or "Customers" or "Products" or "CreditNotes" or "Reports").ToList());
+            perms.Where(p => p.Module is "Billing" or "Invoices" or "Quotations" or "Payments" or "Customers" or "Products" or "CreditNotes" or "Reports" or "ExportJobs").ToList());
 
         // Accountant
         await EnsureRoleWithPermissionsAsync("Accountant", "Manages payments, reports, invoices, and credit notes", perms =>
-            perms.Where(p => p.Code is "invoices.view" or "quotations.view" or "payments.view" or "payments.create" or "payments.manage" or "payments.refund" or "creditnotes.view" or "reports.view").ToList());
+            perms.Where(p => p.Code is "invoices.view" or "quotations.view" or "payments.view" or "payments.create" or "payments.manage" or "payments.refund" or "creditnotes.view" or "reports.view" or "exportjobs.view" or "exportjobs.create" or "audit.view" or "audit.export").ToList());
 
         // Standard User
         await EnsureRoleWithPermissionsAsync("User", "Standard portal user with standard view access", perms =>
-            perms.Where(p => p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit").ToList());
+            perms.Where(p => (p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit" and not "BackgroundJobs") || p.Code is "exportjobs.create").ToList());
 
         // Viewer
         await EnsureRoleWithPermissionsAsync("Viewer", "Read-only access across platform", perms =>
-            perms.Where(p => p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit").ToList());
+            perms.Where(p => (p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit" and not "BackgroundJobs") || p.Code is "exportjobs.create").ToList());
 
         // Customer
         await EnsureRoleWithPermissionsAsync("Customer", "Client portal user with view access to their invoices and payments", perms =>

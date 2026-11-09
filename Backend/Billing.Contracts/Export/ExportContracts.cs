@@ -36,4 +36,5 @@ public class ExportJobFilterRequest
     public string? JobType { get; set; }
     public string? Status { get; set; }
     public bool ExcludeAuditLogs { get; set; }
+    public List<string>? AllowedJobTypes { get; set; }
 }

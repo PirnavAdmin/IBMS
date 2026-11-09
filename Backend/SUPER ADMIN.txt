@@ -1,0 +1,28 @@
+                    SUPER ADMIN
+                         │
+              Creates / manages tenants
+                         │
+          ┌──────────────┴──────────────┐
+          ↓                             ↓
+       TENANT A                      TENANT B
+     ABC Pvt Ltd                  XYZ Solutions
+          │                             │
+      ┌───┴────┐                    ┌───┴────┐
+      ↓        ↓                    ↓        ↓
+   Admin     Users                Admin     Users
+      │        │                    │        │
+      └───┬────┘                    └───┬────┘
+          ↓                             ↓
+      Customers                     Customers
+          ↓                             ↓
+      Products                      Products
+          ↓                             ↓
+      INVOICES                      INVOICES
+          ↓
+       DRAFT
+          ↓
+        SENT
+          ↓
+    ┌─────┴─────┐
+    ↓           ↓
+   PAID       OVERDUE

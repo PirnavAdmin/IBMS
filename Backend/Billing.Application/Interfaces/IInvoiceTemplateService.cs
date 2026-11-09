@@ -31,5 +31,7 @@ public interface IInvoiceTemplateService
 
     Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, CancellationToken ct = default);
 
+    Task<(byte[] FileBytes, string FileName, string ContentType)> GetInvoicePdfAsync(int invoiceId, int tenantId, bool forceRegenerate, CancellationToken ct = default);
+
     Task<List<TemplateAuditLogDto>> GetAuditLogsAsync(int? templateId, int tenantId, CancellationToken ct = default);
 }

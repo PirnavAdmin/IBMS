@@ -24,6 +24,7 @@ import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import UndoOutlined from '@mui/icons-material/UndoOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
+import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -114,7 +115,7 @@ export const Payments = () => {
     catch (error) { setPrintError(error.message || 'Unable to prepare the payments report.'); }
     finally { setPrinting(false); }
   };
-  return <PaymentShell title="Payment Management" actions={<>{user.permissions.create && <Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button>}<Button aria-label="Refresh payments" variant="outlined"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label="Print all filtered payments" variant="outlined"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button></>}>
+  return <PaymentShell title="Payment Management" actions={<>{user.permissions.create && <Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button>}<Button aria-label="Refresh payments" variant="outlined"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label="Print all filtered payments" variant="outlined"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button><Button aria-label="Export payments ledger to Excel" variant="outlined" onClick={() => { const u = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || window.location.origin.replace(':3000', ':5271')) + '/api/v1/payments/gateway/export-excel'; window.open(u, '_blank'); }} startIcon={<DownloadOutlined />}>Export Excel</Button></>}>
     <FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity="error" />
     <section className="payment-panel payment-table-card" aria-label="Payment list">
       <header className="payment-card-heading"><div><h2>Payments</h2><p>All recorded customer payments</p></div>{query.data?.totalCount > 0 && <span className="payment-count">{query.data.totalCount} payments{filters.currency ? ` ? ${filters.currency}` : ''}</span>}</header>

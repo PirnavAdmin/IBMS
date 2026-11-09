@@ -16,6 +16,8 @@ public class FakeUserSessionRepository : IUserSessionRepository
         Sessions = sessions;
     }
 
+    public Task CreateSessionAsync(UserSession session) => CreateAsync(session);
+
     public Task<UserSession> CreateAsync(UserSession session)
     {
         if (session.Id == 0)

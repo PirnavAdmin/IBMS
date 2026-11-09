@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin,Admin")]
+[Authorize]
 [ApiController]
 [Route("api/v1/background-jobs")]
 [Route("api/background-jobs")]
@@ -24,12 +24,13 @@ public class BackgroundJobsController : ControllerBase
     public IActionResult GetJobStatuses()
     {
         var tenantId = GetTenantId();
-        if (!tenantId.HasValue && !User.IsInRole("SuperAdmin"))
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        if ((!tenantId.HasValue && !isSuperAdmin) || !CanViewBackgroundJobs())
         {
             return Forbid();
         }
 
-        var statuses = _coordinator.GetAllJobStatuses();
+        var statuses = _coordinator.GetAllJobStatuses(isSuperAdmin && !HasExplicitTenantHeader() ? null : tenantId);
         return Ok(ApiResponse<List<BackgroundJobStatusDto>>.Ok(statuses, "Background job statuses retrieved successfully."));
     }
 
@@ -40,7 +41,7 @@ public class BackgroundJobsController : ControllerBase
     {
         var callerTenantId = GetTenantId();
         var isSuperAdmin = User.IsInRole("SuperAdmin");
-        if (!callerTenantId.HasValue && !isSuperAdmin)
+        if ((!callerTenantId.HasValue && !isSuperAdmin) || !CanManageBackgroundJobs())
         {
             return Forbid();
         }
@@ -62,6 +63,61 @@ public class BackgroundJobsController : ControllerBase
         }
 
         return Ok(ApiResponse<JobExecutionResultDto>.Ok(result, $"Job '{jobName}' executed successfully."));
+    }
+
+    private bool CanViewBackgroundJobs()
+    {
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("TenantAdmin") || User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        if (User.IsInRole("Customer") || User.IsInRole("Viewer"))
+        {
+            return false;
+        }
+
+        var perms = GetUserPermissions();
+        return perms.Any(p =>
+            string.Equals(p, "backgroundjobs.view", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "backgroundjobs.manage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "all", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool CanManageBackgroundJobs()
+    {
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("TenantAdmin") || User.IsInRole("Admin"))
+        {
+            return true;
+        }
+
+        if (User.IsInRole("Customer") || User.IsInRole("Viewer"))
+        {
+            return false;
+        }
+
+        var perms = GetUserPermissions();
+        return perms.Any(p =>
+            string.Equals(p, "backgroundjobs.manage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "all", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private List<string> GetUserPermissions()
+    {
+        return User.FindAll("permissions")
+            .Concat(User.FindAll("permission"))
+            .SelectMany(c => (c.Value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .ToList();
+    }
+
+    private bool HasExplicitTenantHeader()
+    {
+        return Request?.Headers != null &&
+               Request.Headers.TryGetValue("X-Tenant-Id", out var h) &&
+               int.TryParse(h, out var hId) &&
+               hId > 0;
     }
 
     private int? GetTenantId()
