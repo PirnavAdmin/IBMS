@@ -79,7 +79,6 @@ export function InvoiceDetails() {
     enabled: user.permissions.view,
     retry: false,
     staleTime: 0,
-    refetchOnWindowFocus: true,
   });
 
   const row = invoice.data;

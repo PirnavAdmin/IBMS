@@ -129,8 +129,18 @@ export function QuotationManagement() {
           :current||`Quotations could not be refreshed. ${message(e)}`);
       }finally{refreshingQuotes.current=false;}
     };
+    const refreshWhenVisible=()=>{
+      if(document.visibilityState==='visible')void refreshQuotes();
+    };
+    window.addEventListener('focus',refreshWhenVisible);
+    document.addEventListener('visibilitychange',refreshWhenVisible);
     const interval=window.setInterval(refreshQuotes,30000);
-    return()=>{active=false;window.clearInterval(interval);};
+    return()=>{
+      active=false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus',refreshWhenVisible);
+      document.removeEventListener('visibilitychange',refreshWhenVisible);
+    };
   },[screen]);
   const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});
   const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};
