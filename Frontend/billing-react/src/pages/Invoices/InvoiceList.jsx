@@ -218,7 +218,6 @@ export function InvoiceList() {
           You do not have permission to view invoices.
         </Alert>
       )}
-      {user.permissions.view && summary.isError && <Alert severity="error" action={<Button disabled={summary.isFetching} onClick={() => summary.refetch()}>Retry summary</Button>}>Invoice summary could not be loaded. {invoiceError(summary.error)}</Alert>}
       {billingCurrencyGroups(user.permissions.view && !summary.isError ? summary.data || [] : []).map((group) => {
         const totalInvoicedNum = Number(group.totalInvoiced) || 0;
         const totalPaidNum = Number(group.totalPaid) || 0;
@@ -533,7 +532,6 @@ export function InvoiceList() {
             Reset Filters
           </Button>
         </div>
-        {user.permissions.view && customers.isError && <Alert severity="error" action={<Button disabled={customers.isFetching} onClick={() => customers.refetch()}>Retry customers</Button>}>Customer filter options could not be loaded. {invoiceError(customers.error)}</Alert>}
         {invalidDates && (
           <Alert severity="error">
             End date must be on or after start date.
