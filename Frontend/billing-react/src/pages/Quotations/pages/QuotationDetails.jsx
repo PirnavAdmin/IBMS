@@ -95,6 +95,9 @@ function drawSignature(canvas, strokes) {
   });
 }
 export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onAction, onEdit }) {
+  const canManageQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.manage') : true;
+  const canApproveQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.approve') || canManageQuotes : true;
+  const canEditQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.edit') || canManageQuotes : true;
   const [tab, setTab] = useState('Details');
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -322,8 +325,8 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
   };
   const actions = <div className="quote-header-actions">
     <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? <><ArrowBack /> Back to details</> : <><VisibilityOutlined /> View quotation</>}</button>
-    {quotation.status === 'Draft' && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
-    {quotation.status === 'Sent' && (hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
+    {quotation.status === 'Draft' && canEditQuotes && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
+    {quotation.status === 'Sent' && canApproveQuotes && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
     {quotation.status === 'Approved' && <button className="quote-btn primary" onClick={() => onAction('convert', quotation)}>Convert to Invoice</button>}
     {['Draft', 'Sent', 'Approved'].includes(quotation.status) && <button className="quote-btn danger" onClick={() => onAction('cancel', quotation)}>Cancel</button>}
   </div>;

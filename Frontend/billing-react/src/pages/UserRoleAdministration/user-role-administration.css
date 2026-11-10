@@ -1,11 +1,13 @@
 .ura-page { min-height: 100%; padding: clamp(12px, 1.25vw, 20px); color: var(--text-primary, #35271f); background: var(--workspace-surface, #e4dbcf); }
 .ura-page-header,.ura-workspace { width: min(100%, 1600px); min-width: 0; margin-inline: auto; }
-.ura-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.ura-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .ura-page-header > div { min-width: 0; }
 .ura-eyebrow { margin: 0 0 5px; color: var(--secondary, #8a6548); font-size: .7rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 .ura-page-header h1 { margin: 0; color: #4c2e1d; font-size: clamp(1.35rem, 2vw, 1.8rem); font-weight: 750; letter-spacing: -.035em; line-height: 1.2; }
 .ura-page-header > div > p:last-child { margin: 6px 0 0; color: var(--text-secondary, #756354); font-size: .84rem; }
 .ura-page-header > .MuiButton-root { flex: 0 0 auto; min-height: 42px; text-transform: none; }
+.ura-page-header > .ura-back-button.MuiButton-root { min-height: 38px; padding: 6px 10px; border-radius: 8px; color: #765638; font-weight: 600; }
+.ura-page-header > .ura-back-button.MuiButton-root:hover { background: #efe2d3; color: #503421; }
 .ura-workspace { container-name: ura-workspace; container-type: inline-size; width: min(100%, 1480px); overflow: hidden; border: 1px solid var(--border, #d5c6b5); border-radius: 14px; background: var(--surface, #fff); box-shadow: var(--shadow-card, 0 3px 12px #35231c12); }
 .ura-tabs { min-height: 58px; border-bottom: 1px solid #eadfd3; background: #fffdf9; }
 .ura-tabs .MuiTab-root { min-height: 58px; min-width: 130px; color: #776657; font-size: .86rem; font-weight: 650; text-transform: none; }
@@ -152,6 +154,12 @@
 .ura-form-grid .ura-role-description { grid-column: 1 / -1; }
 .ura-form-grid .ura-role-description .MuiInputBase-root { height: auto; min-height: 76px; align-items: flex-start; }
 .ura-form-grid .ura-role-description textarea { padding-block: 12px; }
+.ura-role-create-grid { max-width: none; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ura-role-create-grid > .MuiTextField-root { width: 100%; }
+.ura-role-create-grid .MuiTextField-root:not(.ura-role-description) .MuiInputBase-root { height: 52px; min-height: 52px; }
+.ura-role-create-grid .MuiTextField-root:not(.ura-role-description) .MuiInputBase-input { box-sizing: border-box; height: 100%; padding: 14px 14px; line-height: 1.4; }
+.ura-role-create-grid .ura-role-description .MuiInputBase-root.MuiInputBase-multiline { height: auto; min-height: 92px; align-items: flex-start; }
+.ura-role-create-grid .ura-role-description textarea { box-sizing: border-box; min-height: 68px; padding: 14px; line-height: 1.45; }
 .ura-form-notice { width: 100%; max-width: 1000px; margin-inline: auto; }
 .ura-form-grid .MuiTextField-root .MuiInputBase-root,.ura-form-grid .MuiFormControl-root .MuiInputBase-root { height: 44px; min-height: 44px; border-radius: 7px; background: #fffdf9; }
 .ura-form-grid .MuiOutlinedInput-notchedOutline { border-color: #e5d6c6; border-width: 1px; }
@@ -224,7 +232,7 @@
 .ura-required-note > span { color: #b43b2d; font-weight: 750; }
 .ura-user-form-section, .ura-user-form > .ura-user-permission-assignment { min-width: 0; padding: 20px 22px; border: 1px solid #e7d9ca; border-radius: 12px; background: #fffdf9; box-shadow: 0 2px 8px #67482d06; }
 .ura-user-section-heading { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 23px; border-bottom: 1px solid #eee3d6; }
-.ura-user-section-heading > span { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid #e4d1ba; border-radius: 9px; background: #f4e9d9; color: #855b35; font-size: .72rem; font-weight: 750; }
+.ura-user-section-heading > span { display: grid; place-items: center; width: 58px; height: 32px; flex: 0 0 58px; border: 1px solid #e4d1ba; border-radius: 9px; background: #f4e9d9; color: #855b35; font-size: .68rem; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ura-user-section-heading > div { min-width: 0; }
 .ura-user-section-heading h3 { margin: 0; color: #513721; font-size: .92rem; font-weight: 750; }
 .ura-user-section-heading p { margin: 4px 0 0; color: #89735d; font-size: .74rem; line-height: 1.5; }
@@ -232,9 +240,13 @@
 .ura-user-form .ura-form-grid { max-width: none; gap: 20px 24px; }
 .ura-user-form .ura-form-grid .MuiInputBase-root { height: 48px; min-height: 48px; border-radius: 9px; background: #fff; }
 .ura-user-form .ura-form-grid :is(.MuiInputBase-input, .MuiSelect-select) { font-size: .86rem; }
+.ura-user-form .ura-form-grid .MuiInputBase-input::placeholder { color: #71675d; opacity: 1; }
 .ura-user-form .ura-form-grid .MuiInputLabel-root { color: #715943; font-size: .9rem; font-weight: 550; }
 .ura-user-form .ura-form-grid .MuiInputLabel-root.Mui-error { color: #b3261e; }
 .ura-user-form .ura-form-grid .MuiInputLabel-root.MuiInputLabel-shrink { background: #fffdf9; }
+.ura-user-form .ura-form-grid .ura-readonly-field .MuiInputBase-root { background: #f3eee7; }
+.ura-user-form .ura-form-grid .ura-readonly-field .MuiInputBase-input[readonly] { color: #6e6257; cursor: default; }
+.ura-user-form .ura-form-grid .ura-readonly-field .MuiOutlinedInput-notchedOutline { border-color: #d7c9b9; }
 .ura-user-form .ura-form-grid .MuiFormHelperText-root { margin: 5px 2px 0; font-size: .7rem; line-height: 1.5; }
 .ura-user-form .ura-form-grid .MuiFormLabel-asterisk { color: #b43b2d; }
 .ura-user-form .ura-form-grid .ura-field-error { margin-inline: 2px; }
@@ -242,17 +254,21 @@
 .ura-user-form .ura-subheading { align-items: center; flex-wrap: wrap; gap: 12px; }
 .ura-user-form .ura-subheading > div:first-child { min-width: 0; flex: 1 1 230px; }
 .ura-user-form .ura-subheading p { max-width: 680px; line-height: 1.5; }
+.ura-user-form .ura-subheading .ura-expand-permissions { min-height: 36px; padding-inline: 12px; border-color: #b89573; border-radius: 8px; background: #f5eadc; color: #5c3b22; font-size: .76rem; font-weight: 700; }
+.ura-user-form .ura-subheading .ura-expand-permissions:hover:not(.Mui-disabled) { border-color: #8f6340; background: #ead8c3; }
+.ura-user-form .ura-subheading .ura-expand-permissions.Mui-disabled { border-color: #e2d8ce; background: #f5f1ec; color: #a99b8d; }
 .ura-permission-selection-count { display: inline-flex; align-items: center; gap: 6px; color: #695036; font-size: .76rem; font-weight: 700; }
 .ura-permission-selection-count::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7b8d64; }
 .ura-user-form .ura-permission-groups { gap: 10px; margin-top: 18px; }
 .ura-user-form .ura-permission-dropdown { background: #fff; transition: border-color 160ms, box-shadow 160ms; }
 .ura-user-form .ura-permission-dropdown:hover { border-color: #c5a27d; }
 .ura-user-form .ura-permission-dropdown[open] { border-color: #c3a07a; box-shadow: 0 3px 10px #67482d0a; }
-.ura-user-form .ura-permission-dropdown > summary { min-height: 54px; padding: 12px; gap: 8px; }
+.ura-user-form .ura-permission-dropdown > summary { min-height: 54px; padding: 12px; gap: 8px; transition: background-color 150ms, color 150ms; }
+.ura-user-form .ura-permission-dropdown > summary:hover { background: #faf5ed; color: #54371f; }
 .ura-user-form .ura-permission-dropdown[open] > summary { background: #f7efE3; }
 .ura-user-form .ura-permission-group-heading > svg { flex-shrink: 0; font-size: 18px; color: #9a7c5c; }
 .ura-user-form .ura-permission-group-heading h3 { min-width: 0; flex: 1; font-size: .79rem; line-height: 1.5; overflow-wrap: anywhere; }
-.ura-module-permission-count { flex-shrink: 0; padding: 3px 7px; border: 1px solid #eadccb; border-radius: 6px; background: #faf5ee; color: #8c7359; font-size: .66rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ura-module-permission-count { flex-shrink: 0; padding: 3px 7px; border: 1px solid #eadccb; border-radius: 6px; background: #faf5ee; color: #70583e; font-size: .66rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ura-user-form .ura-permission-dropdown > summary::after { flex-shrink: 0; margin-left: 4px; width: 6px; height: 6px; }
 .ura-user-form .ura-permission-select-group .MuiFormControlLabel-root { padding: 10px 5px; border-radius: 6px; transition: background 150ms; }
 .ura-user-form .ura-permission-select-group .MuiFormControlLabel-root:hover { background: #faf5ed; }

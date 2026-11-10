@@ -97,6 +97,8 @@ export function InvoiceList() {
   useNavbarSearch(search, setSearch, 'Search invoices');
   const [filters, setFilters] = useState(navigationFilters);
   useEffect(() => { setFilters(navigationFilters()); }, [location.search]);
+  const [statusMenuMaxHeight, setStatusMenuMaxHeight] = useState(320);
+  const [paymentMenuMaxHeight, setPaymentMenuMaxHeight] = useState(320);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customer, setCustomer] = useState(null);
   const exportLock = useRef(false);
@@ -117,8 +119,6 @@ export function InvoiceList() {
   const canLoadList = user.permissions.view && !invalidDates && !searchError;
   const list = useQuery({
     queryKey: ["invoices", "list", filters, querySearch],
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
     queryFn: ({ signal }) =>
       invoiceService.list({ ...filters, search: querySearch }, { signal }),
     enabled: Boolean(canLoadList),
@@ -127,8 +127,6 @@ export function InvoiceList() {
   });
   const summary = useQuery({
     queryKey: ["invoices", "summary"],
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
     queryFn: ({ signal }) => invoiceService.summary({ signal }),
     enabled: user.permissions.view,
     retry: false,
@@ -425,6 +423,29 @@ export function InvoiceList() {
             value={filters.status}
             onChange={(event) => change("status", event.target.value)}
             className="invoice-filter-status"
+            SelectProps={{
+              onOpen: (event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                const viewport = window.visualViewport;
+                const viewportTop = viewport?.offsetTop || 0;
+                const viewportHeight = viewport?.height || window.innerHeight;
+                const margin = 8;
+                const availableBelow = Math.max(0, viewportTop + viewportHeight - bounds.bottom - margin);
+                setStatusMenuMaxHeight(Math.max(48, Math.min(availableBelow, viewportHeight - margin * 2)));
+              },
+              MenuProps: {
+                anchorOrigin: { vertical: "bottom", horizontal: "left" },
+                transformOrigin: { vertical: "top", horizontal: "left" },
+                marginThreshold: null,
+                PaperProps: {
+                  sx: {
+                    maxHeight: `${statusMenuMaxHeight}px`,
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                  },
+                },
+              },
+            }}
           >
             <MenuItem value="">All Statuses</MenuItem>
             {INVOICE_STATUSES.map((status) => (
@@ -463,6 +484,29 @@ export function InvoiceList() {
             value={filters.paymentState}
             onChange={(event) => change("paymentState", event.target.value)}
             className="invoice-filter-payment"
+            SelectProps={{
+              onOpen: (event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                const viewport = window.visualViewport;
+                const viewportTop = viewport?.offsetTop || 0;
+                const viewportHeight = viewport?.height || window.innerHeight;
+                const margin = 8;
+                const availableBelow = Math.max(0, viewportTop + viewportHeight - bounds.bottom - margin);
+                setPaymentMenuMaxHeight(Math.max(48, Math.min(availableBelow, viewportHeight - margin * 2)));
+              },
+              MenuProps: {
+                anchorOrigin: { vertical: "bottom", horizontal: "left" },
+                transformOrigin: { vertical: "top", horizontal: "left" },
+                marginThreshold: null,
+                PaperProps: {
+                  sx: {
+                    maxHeight: `${paymentMenuMaxHeight}px`,
+                    overflowY: "auto",
+                    overscrollBehavior: "contain",
+                  },
+                },
+              },
+            }}
           >
             <MenuItem value="">All payment states</MenuItem>
             {["Invoiced", "Paid", "Partially Paid", "Unpaid", "Outstanding", "Overdue"].map(

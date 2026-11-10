@@ -199,6 +199,21 @@
 .premium-records td a:hover { text-decoration: underline; }
 .premium-records td small { display: block; max-width: 155px; margin-top: 4px; color: #816950; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
 .premium-status { display: inline-block; padding: 4px 7px; border: 1px solid #e3d3bc; border-radius: 20px; background: #eee2d2; color: #75563c; font-size: 9px; font-weight: 550; }
+.app-layout .premium-records .premium-recent-table-scroll:has(> table):not(.invoice-document *) { max-height: none; overflow: hidden; margin: 8px 16px 16px; padding: 0; }
+.app-layout .premium-records .premium-recent-table { width: 100%; table-layout: fixed; white-space: normal; font-size: 13px; }
+.app-layout .premium-records .premium-recent-table th,
+.app-layout .premium-records .premium-recent-table td { box-sizing: border-box; padding: 10px 8px; white-space: normal; overflow-wrap: anywhere; font-size: 13px; }
+.app-layout .premium-records .premium-recent-table th { box-sizing: border-box; padding: 10px 8px; white-space: normal; overflow-wrap: anywhere; }
+.app-layout .premium-records .premium-recent-table th { line-height: 1.35; }
+.app-layout .premium-records .premium-recent-table col:nth-child(1) { width: 34%; }
+.app-layout .premium-records .premium-recent-table col:nth-child(2) { width: 22%; }
+.app-layout .premium-records .premium-recent-table col:nth-child(3) { width: 20%; }
+.app-layout .premium-records .premium-recent-table col:nth-child(4) { width: 24%; }
+.app-layout .premium-records .premium-recent-table :is(th, td):nth-child(2) { text-align: center !important; white-space: nowrap; }
+.app-layout .premium-records .premium-recent-table :is(th, td):nth-child(3) { text-align: left; white-space: nowrap; }
+.app-layout .premium-records .premium-recent-table td:first-child a { display: block; font-size: 11px; line-height: 1.35; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-layout .premium-records .premium-recent-table td small { max-width: 100%; min-width: 0; white-space: normal; overflow: hidden; text-overflow: ellipsis; }
+.app-layout .premium-records .premium-recent-table .premium-status { max-width: none; white-space: nowrap; }
 .premium-status:is(.status-paid, .status-completed) { border-color: #d1dec2; background: #e5edd9; color: #506640; }
 .premium-status:is(.status-overdue, .status-failed) { border-color: #e6c6b2; background: #f1dece; color: #925438; }
 .premium-status:is(.status-draft, .status-pending) { border-color: #daceDB; background: #ece3ed; color: #78617a; }
@@ -210,6 +225,8 @@
 @media (max-width: 1250px) {
   .premium-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .premium-analytics { grid-template-columns: 1fr; }
+  .premium-details { grid-template-columns: 1fr; }
+  .app-layout .premium-records .premium-recent-table :is(th, td):nth-child(3) { text-align: left; }
   .premium-filters { grid-template-columns: minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(125px, .8fr) max-content; }
 }
 @media (max-width: 750px) {
@@ -230,10 +247,17 @@
   .premium-ring-visual { width: min(128px, 100%); }
   .premium-ring-value strong { font-size: 18px; }
   .premium-notice { align-items: flex-start; }
+  .app-layout .premium-records .premium-recent-table th,
+  .app-layout .premium-records .premium-recent-table td { padding: 9px 5px; font-size: 12px; }
+  .app-layout .premium-records .premium-recent-table col:nth-child(1) { width: 32%; }
+  .app-layout .premium-records .premium-recent-table col:nth-child(2) { width: 22%; }
+  .app-layout .premium-records .premium-recent-table col:nth-child(3) { width: 21%; }
+  .app-layout .premium-records .premium-recent-table col:nth-child(4) { width: 25%; }
 }
 @media (max-width: 350px) {
   .premium-kpis, .premium-revenue-rings { grid-template-columns: 1fr; }
   .premium-ring-visual { width: 128px; }
+  .app-layout .premium-records .premium-recent-table .premium-status { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { .premium-dashboard * { animation: none !important; transition: none !important; } .premium-stat:hover, .premium-actions a:hover { transform: none; } }
 
