@@ -169,6 +169,7 @@ export function InvoiceTemplates() {
   const [viewTemplate, setViewTemplate] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState('');
+  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const load = async () => {
     setLoading(true); setError(''); setLoadError('');
     try {
@@ -235,7 +236,7 @@ export function InvoiceTemplates() {
       setViewLoading(false);
     }
   };
-  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button>}>
+  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<div className="template-heading-actions"><Button variant="outlined" onClick={() => setTemplateGalleryOpen(true)}>Templates</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button></div>}>
     <TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     <section className="template-list-card" aria-labelledby="template-list-heading">
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
@@ -274,11 +275,44 @@ export function InvoiceTemplates() {
       </DialogContent>
       <DialogActions><Button onClick={() => setViewTemplate(null)} disabled={viewLoading}>Close</Button></DialogActions>
     </Dialog>
+    <Dialog open={templateGalleryOpen} onClose={() => setTemplateGalleryOpen(false)} maxWidth="xl" fullWidth aria-labelledby="template-gallery-title">
+      <DialogTitle id="template-gallery-title">Choose an invoice template</DialogTitle>
+      <DialogContent dividers>
+        <p className="template-gallery-intro">Pick a design to start with. You can customize it before saving it to your organization.</p>
+        <div className="template-gallery-grid">
+          {SAMPLE_TEMPLATE_DESIGNS.map((design) => <article className="template-gallery-card" key={design.id}>
+            <div className="template-gallery-card-heading"><div><h3>{design.name}</h3><p>{design.description}</p></div><Chip label={design.config.style} size="small" /></div>
+            <div className="template-gallery-preview"><SampleInvoicePreview style={design.config.style} config={design.config} /></div>
+            <Button variant="contained" onClick={() => {
+              setTemplateGalleryOpen(false);
+              navigate('/templates-branding/new', { state: { config: design.config, creationFlow: true } });
+            }}>Use this template</Button>
+          </article>)}
+        </div>
+      </DialogContent>
+      <DialogActions><Button onClick={() => setTemplateGalleryOpen(false)}>Close</Button></DialogActions>
+    </Dialog>
   </TemplatePage>;
 }
 
 const DEFAULT_SECTIONS = { invoiceNumber: true, invoiceDate: true, dueDate: true, customer: true, items: true, quantity: true, unitPrice: true, discount: true, tax: true, lineTotals: true, totals: true };
 const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
+const SAMPLE_TEMPLATE_DESIGNS = [
+  { id: 'executive-blue', name: 'Executive Blue', description: 'A crisp, professional layout for client-facing invoices.', config: { ...emptyConfig, name: 'Executive Blue', style: 'Professional', company: 'Northstar Consulting', primary: '#24476B', secondary: '#E8EFF6', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'modern-teal', name: 'Modern Teal', description: 'A clean, contemporary look with a calm teal accent.', config: { ...emptyConfig, name: 'Modern Teal', style: 'Standard', company: 'Evergreen Studio', primary: '#087E8B', secondary: '#E5F4F3', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'classic-burgundy', name: 'Classic Burgundy', description: 'A traditional design with strong headings and warm contrast.', config: { ...emptyConfig, name: 'Classic Burgundy', style: 'Professional', company: 'Cedar & Co.', primary: '#762F43', secondary: '#F5E9EC', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'compact-sage', name: 'Compact Sage', description: 'A compact, easy-to-scan layout for frequent billing.', config: { ...emptyConfig, name: 'Compact Sage', style: 'Compact', company: 'Meadow Services', primary: '#48624B', secondary: '#EAF0E8', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'midnight-gold', name: 'Midnight Gold', description: 'A premium dark-blue identity with restrained gold accents.', config: { ...emptyConfig, name: 'Midnight Gold', style: 'Professional', company: 'Aurelia Partners', primary: '#172A46', secondary: '#F3EBD8', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'terracotta-studio', name: 'Terracotta Studio', description: 'Warm, expressive colors for creative businesses and studios.', config: { ...emptyConfig, name: 'Terracotta Studio', style: 'Standard', company: 'Clay House Creative', primary: '#B65C3A', secondary: '#F8ECE5', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'minimal-charcoal', name: 'Minimal Charcoal', description: 'A quiet monochrome layout with clear invoice hierarchy.', config: { ...emptyConfig, name: 'Minimal Charcoal', style: 'Compact', company: 'Form & Function', primary: '#343A40', secondary: '#ECEFF1', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'ocean-cobalt', name: 'Ocean Cobalt', description: 'Confident cobalt details for technology and consulting invoices.', config: { ...emptyConfig, name: 'Ocean Cobalt', style: 'Professional', company: 'Bluewave Technologies', primary: '#3157A4', secondary: '#E9EEFA', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'orchid-luxe', name: 'Orchid Luxe', description: 'Elegant plum tones for boutique and premium services.', config: { ...emptyConfig, name: 'Orchid Luxe', style: 'Standard', company: 'Orchid House', primary: '#70436E', secondary: '#F3EAF2', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'citrus-fresh', name: 'Citrus Fresh', description: 'Fresh green accents and compact spacing for everyday billing.', config: { ...emptyConfig, name: 'Citrus Fresh', style: 'Compact', company: 'Citrus Supply Co.', primary: '#4D7028', secondary: '#EEF4E5', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'slate-copper', name: 'Slate & Copper', description: 'A polished slate palette warmed with copper-colored details.', config: { ...emptyConfig, name: 'Slate & Copper', style: 'Professional', company: 'Copperline Services', primary: '#46515B', secondary: '#F2E9E1', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'skyline-lilac', name: 'Skyline Lilac', description: 'Airy blue and lilac accents for modern client services.', config: { ...emptyConfig, name: 'Skyline Lilac', style: 'Standard', company: 'Skyline Studio', primary: '#5967A8', secondary: '#EEF0FA', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'espresso-cream', name: 'Espresso Cream', description: 'A warm, understated layout with a refined coffee-toned palette.', config: { ...emptyConfig, name: 'Espresso Cream', style: 'Compact', company: 'Roast & Ritual', primary: '#634331', secondary: '#F4EEE7', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'coral-clean', name: 'Coral Clean', description: 'Bright coral highlights in a clean, approachable invoice design.', config: { ...emptyConfig, name: 'Coral Clean', style: 'Standard', company: 'Coral Coast Studio', primary: '#C6534B', secondary: '#F9ECEA', logoPosition: 'right', usePirnavStandardLayout: false } },
+];
 
 const validateContactField = (key, value) => {
   const text = value.trim();
@@ -698,6 +732,7 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
           <div className="corner-words-terms-card" style={{ backgroundColor: secondary }}>
             <b style={{ color: primary }}>Amount in Words</b>
             <p>{isRealInvoice ? `Rupees ${invoice.totalAmount} Only` : 'Rupees One Thousand Four Hundred Seventy Five Only'}</p>
+            {config.bankDetails && <><b style={{ color: primary }}>Payment details</b><p className="sample-copy">{config.bankDetails}</p></>}
             <b style={{ color: primary }}>Terms &amp; Conditions</b>
             <p className="sample-copy">{config.terms || 'Payment terms apply.'}</p>
           </div>
@@ -722,7 +757,7 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
     <div className="sample-brand"><div className={'sample-identity' + (isPirnavStandardLayout ? '' : ' position-' + (config.logoPosition || 'left'))}>{!isPirnavStandardLayout && config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo sample" style={{ width: config.logoWidth || 96 }} />}<div><strong>{config.company || 'Sample Company Ltd.'}</strong>{config.header && <span>{config.header}</span>}<span className="sample-company-address">{previewCompanyAddress}</span><span>{previewContact || 'billing@example.test · +00 000 000 0000'}</span>{isPirnavStandardLayout && config.website && <span>{config.website}</span>}</div></div>{isPirnavStandardLayout ? <div className="sample-logo-right">{config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo" />}</div> : <div className="sample-title"><span>INVOICE</span>{sections.invoiceNumber && <b>{invoice?.invoiceNumber || 'INV-SAMPLE-001'}</b>}</div>}</div>
     <div className="sample-meta">{sections.customer && <div><small>{isPirnavStandardLayout ? 'Bill To:' : 'BILL TO'}</small><strong>{customer.name || 'Sample Customer Ltd.'}</strong><span>{customer.email || 'accounts@example.test'}</span><span>{customerAddress(customer) || '100 Market Street, Sample City'}</span></div>}<div>{sections.invoiceDate && <span><b>Invoice date</b> {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</span>}{sections.dueDate && <span><b>Due date</b> {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</span>}</div></div>
     {sections.items && <table className="sample-lines"><thead><tr>{columns.map((column) => <th key={column.key}>{column.title}</th>)}</tr></thead><tbody>{renderTableRows()}</tbody></table>}
-    <div className="sample-bottom"><div>{config.bankDetails && <><b>Payment details</b><p>{config.bankDetails}</p></>}<b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div>{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}</div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
+    <div className="sample-bottom">{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}<div className="sample-payment-terms">{config.bankDetails && <div className="sample-payment-details"><b>Payment details</b><p className="sample-copy">{config.bankDetails}</p></div>}<div className="sample-terms"><b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div></div></div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
   </article>;
 }
 
@@ -765,6 +800,11 @@ export function TemplatePreview() {
     return () => { active = false; };
   }, []);
   useEffect(() => {
+    if (!selectedTemplateId && templateOptions.length) {
+      const preferred = templateOptions.find((template) => template.isDefault || template.IsDefault || template.status === 2 || template.status === 'Active') || templateOptions[0];
+      if (preferred) setSelectedTemplateId(String(preferred.id ?? preferred.Id));
+      return undefined;
+    }
     if (!selectedTemplateId) {
       setSelectedTemplate(null);
       setSelectedTemplateError('');
@@ -788,7 +828,7 @@ export function TemplatePreview() {
       if (active) setSelectedTemplateLoading(false);
     });
     return () => { active = false; };
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, templateOptions]);
   useEffect(() => {
     let active = true;
     invoiceApi.getInvoices({ page: 1, pageSize: 100, sortBy: 'InvoiceDate', sortOrder: 'desc' }).then((result) => {

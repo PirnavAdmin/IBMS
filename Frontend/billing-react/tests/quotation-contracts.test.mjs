@@ -204,6 +204,17 @@ test('quotation print matches invoice sample styling and uses quotation customer
  assert.doesNotMatch(html,/Latest sent invoice|No sent invoices found/);
  assert.doesNotMatch(html,/ACMEINV2026\/000245/);
 });
+test('invoice template places terms beneath payment details instead of beside totals',async()=>{
+ const source=await readFile(new URL('../src/pages/InvoiceTemplates/InvoiceTemplates.jsx',import.meta.url),'utf8');
+ const standardLayout=source.slice(source.indexOf('// Standard Invoice Layout'),source.indexOf('export function TemplatePreview'));
+ const totals=standardLayout.indexOf('className="sample-totals"');
+ const paymentDetails=standardLayout.indexOf('className="sample-payment-details"');
+ const terms=standardLayout.indexOf('className="sample-terms"');
+ assert.ok(totals>=0&&paymentDetails>totals&&terms>paymentDetails);
+ const styles=await readFile(new URL('../src/pages/InvoiceTemplates/invoice-templates.css',import.meta.url),'utf8');
+ assert.match(styles,/\.invoice-sample \.sample-bottom \{ display:flex; flex-direction:column; \}/);
+ assert.match(styles,/\.sample-payment-terms \{ width:100%; min-width:0; \}/);
+});
 test('quotation print uses compact A4 styling to fit a single page',async()=>{
  const source=await readFile(new URL('../src/pages/Quotations/styles/quotations.css',import.meta.url),'utf8');
  assert.match(source,/@page \{ size: A4 portrait; margin: 4mm; \}/);
