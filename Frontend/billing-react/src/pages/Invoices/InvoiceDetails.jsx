@@ -75,7 +75,6 @@ export function InvoiceDetails() {
 
   const invoice = useQuery({
     queryKey: ["invoice", id],
-    refetchInterval: 5000,
     queryFn: ({ signal }) => invoiceService.get(id, { signal }),
     enabled: user.permissions.view,
     retry: false,
@@ -98,7 +97,6 @@ export function InvoiceDetails() {
 
   const payments = useQuery({
     queryKey: ["invoice", "payments", id, page, pageSize],
-    refetchInterval: 5000,
     queryFn: () => invoiceService.payments(id, page, pageSize),
     enabled: tab === "Payments" && user.permissions.view,
     retry: false,
@@ -1418,4 +1416,3 @@ export function InvoiceDetails() {
     </InvoiceShell>
   );
 }
-

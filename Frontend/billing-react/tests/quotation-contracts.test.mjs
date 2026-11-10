@@ -215,6 +215,14 @@ test('invoice template places terms beneath payment details instead of beside to
  assert.match(styles,/\.invoice-sample \.sample-bottom \{ display:flex; flex-direction:column; \}/);
  assert.match(styles,/\.sample-payment-terms \{ width:100%; min-width:0; \}/);
 });
+test('quotation list refreshes in the background every 30 seconds only while visible',async()=>{
+ const source=await readFile(new URL('../src/pages/Quotations/QuotationManagement.jsx',import.meta.url),'utf8');
+ assert.match(source,/if\(screen!=='list'\)return undefined;/);
+ assert.match(source,/document\.visibilityState==='hidden'\|\|locked\.current\|\|refreshingQuotes\.current/);
+ assert.match(source,/window\.setInterval\(refreshQuotes,30000\)/);
+ assert.match(source,/window\.clearInterval\(interval\)/);
+ assert.match(source,/setQuotes\(refreshed\.map\(normalizeQuotation\)\)/);
+});
 test('quotation print uses compact A4 styling to fit a single page',async()=>{
  const source=await readFile(new URL('../src/pages/Quotations/styles/quotations.css',import.meta.url),'utf8');
  assert.match(source,/@page \{ size: A4 portrait; margin: 4mm; \}/);
