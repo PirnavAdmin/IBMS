@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MoreVert from '@mui/icons-material/MoreVert';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
-import { IconButton, Menu, CircularProgress, Chip, Alert, AlertTitle, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { IconButton, Menu, CircularProgress, Chip, Alert, AlertTitle, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListItemIcon } from '@mui/material';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { platformError, platformFieldErrors } from './platformService';
@@ -50,7 +50,7 @@ export function PlatformStatus({ value }) {
 export function PlatformRefresh({ query }) { return <Button variant="outlined" startIcon={<RefreshOutlined/>} disabled={query.isFetching} onClick={()=>query.refetch()}>Refresh</Button>; }
 export function RowActions({ label, items }) {
   const [anchor,setAnchor]=useState(null);
-  return <><IconButton className="ibms-row-actions-trigger" aria-label={'Actions for '+label} aria-haspopup="menu" aria-expanded={Boolean(anchor)} onClick={event=>setAnchor(event.currentTarget)}><MoreVert/></IconButton><Menu anchorEl={anchor} open={Boolean(anchor)} onClose={()=>setAnchor(null)} PaperProps={{className:'ibms-row-actions-menu'}}>{items.map(item=><MenuItem key={item.label} disabled={item.disabled} onClick={()=>{setAnchor(null);item.onClick();}}>{item.label}</MenuItem>)}</Menu></>;
+  return <><IconButton className="ibms-row-actions-trigger" aria-label={'Actions for '+label} aria-haspopup="menu" aria-expanded={Boolean(anchor)} onClick={event=>setAnchor(event.currentTarget)}><MoreVert/></IconButton><Menu anchorEl={anchor} open={Boolean(anchor)} onClose={()=>setAnchor(null)} PaperProps={{className:'ibms-row-actions-menu'}}>{items.map(item=><MenuItem key={item.label} disabled={item.disabled} onClick={()=>{setAnchor(null);item.onClick();}}>{item.icon && <ListItemIcon>{item.icon}</ListItemIcon>}{item.label}</MenuItem>)}</Menu></>;
 }
 export function PlatformTable({ rows, columns, label = "Records" }) {
   return <div className="platform-table-wrap ibms-table-frame" role="region" aria-label={label + ' table scroll area'} tabIndex={0}><table aria-label={label}><thead><tr>{columns.map(c => <th key={c[0]}>{c[1]}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, index) => <tr key={row.id ?? index}>{columns.map(c => <td key={c[0]}>{['status','resultStatus'].includes(c[0]) ? <PlatformStatus value={row[c[0]]}/> : c[0]==='roles' && Array.isArray(row.roles) ? <div className="platform-role-tags">{row.roles.map(role=><Chip key={role} size="small" label={readableLabel(role)}/>)}</div> : c[2] ? c[2](row) : ['action','entityType','entityName'].includes(c[0]) ? readableLabel(row[c[0]]) || '—' : row[c[0]] ?? '—'}</td>)}</tr>) : <tr><td colSpan={columns.length}><div className="platform-empty"><strong>No records found.</strong><span>Try adjusting your search or filters.</span></div></td></tr>}</tbody></table></div>;
