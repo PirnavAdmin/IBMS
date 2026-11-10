@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
@@ -21,6 +23,9 @@ public class PlatformAdministrationService : IPlatformAdministrationService
     private readonly IAuditLogRepository _auditLogRepository;
     private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly ILogger<PlatformAdministrationService>? _logger;
+    private readonly ICurrentUserService? _currentUserService;
+
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _tenantLocks = new();
 
     public PlatformAdministrationService(
         BillingDbContext context,
@@ -30,7 +35,8 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         IUserSessionRepository userSessionRepository,
         IAuditLogRepository auditLogRepository,
         ITenantProvisioningService tenantProvisioningService,
-        ILogger<PlatformAdministrationService>? logger = null)
+        ILogger<PlatformAdministrationService>? logger = null,
+        ICurrentUserService? currentUserService = null)
     {
         _context = context;
         _tenantRepository = tenantRepository;
@@ -40,6 +46,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         _auditLogRepository = auditLogRepository;
         _tenantProvisioningService = tenantProvisioningService;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
 
     #region Dashboard (BR-02)
@@ -94,7 +101,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityId = a.EntityId,
             TenantId = a.TenantId,
             TenantCode = a.Tenant?.TenantCode,
-            Status = "Success",
+            Status = string.IsNullOrWhiteSpace(a.ResultStatus) ? "Success" : a.ResultStatus,
             Changes = a.Changes
         }).ToList();
 
@@ -211,10 +218,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "Tenant code must be 2-64 characters and contain only letters, numbers, hyphens, or underscores.", null, "VALIDATION_ERROR");
         }
 
-        if (await _tenantRepository.ExistsByCodeAsync(normalizedCode))
-        {
-            return (false, $"A tenant with code '{normalizedCode}' already exists.", null, "CONFLICT_DUPLICATE_CODE");
-        }
+        var normalizedIdemKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
 
         // Validate admin email if provided
         string? normalizedAdminEmail = null;
@@ -232,76 +236,126 @@ public class PlatformAdministrationService : IPlatformAdministrationService
                 return (false, $"A user with email '{normalizedAdminEmail}' is already registered.", null, "CONFLICT_DUPLICATE_EMAIL");
             }
 
-            if (string.IsNullOrWhiteSpace(request.AdminPassword) || request.AdminPassword.Length < 8)
+            // Enforce password policies from platform settings
+            var currentSettings = await GetPlatformSettingsAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(request.AdminPassword) || request.AdminPassword.Length < currentSettings.PasswordMinLength)
             {
-                return (false, "Administrator password must be at least 8 characters long.", null, "VALIDATION_ERROR");
+                return (false, $"Administrator password must be at least {currentSettings.PasswordMinLength} characters long.", null, "VALIDATION_ERROR");
+            }
+            if (currentSettings.RequireDigit && !request.AdminPassword.Any(char.IsDigit))
+            {
+                return (false, "Administrator password must contain at least one number.", null, "VALIDATION_ERROR");
+            }
+            if (currentSettings.RequireSpecialChar && !request.AdminPassword.Any(ch => !char.IsLetterOrDigit(ch)))
+            {
+                return (false, "Administrator password must contain at least one special character.", null, "VALIDATION_ERROR");
             }
         }
 
-        var tenant = new Tenant
+        var payloadToHash = $"{request.Name.Trim()}|{normalizedCode}|{request.CompanyEmail?.Trim()}|{request.Phone?.Trim()}|{request.TaxId?.Trim()}|{request.Address?.Trim()}|{normalizedAdminEmail}|{request.State?.Trim()}";
+        using var sha = SHA256.Create();
+        var payloadHash = Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(payloadToHash)));
+
+        var lockKey = normalizedIdemKey != null ? $"idem:{normalizedIdemKey}" : $"code:{normalizedCode}";
+        var sem = _tenantLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
+        await sem.WaitAsync(cancellationToken);
+        try
         {
-            Name = request.Name.Trim(),
-            TenantCode = normalizedCode,
-            CompanyEmail = string.IsNullOrWhiteSpace(request.CompanyEmail) ? null : request.CompanyEmail.Trim(),
-            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
-            TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim(),
-            Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
-            Status = "Active",
-            CreatedAtUtc = DateTime.UtcNow,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
-
-        await _tenantRepository.CreateAsync(tenant);
-
-        // Auto-provision master data blueprints transactionally
-        await _tenantProvisioningService.ProvisionTenantDefaultsAsync(tenant.Id, request.State, cancellationToken);
-
-        // Provision initial TenantAdmin if requested
-        User? adminUser = null;
-        if (!string.IsNullOrWhiteSpace(normalizedAdminEmail) && !string.IsNullOrWhiteSpace(request.AdminPassword))
-        {
-            var adminName = !string.IsNullOrWhiteSpace(request.AdminName) ? request.AdminName.Trim() : "Tenant Administrator";
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword);
-
-            // Get permissions for TenantAdmin
-            var allPerms = await _roleRepository.GetAllPermissionsAsync();
-            var allPermCodes = allPerms.Select(p => p.Code).ToList();
-
-            adminUser = new User
+            if (normalizedIdemKey != null)
             {
-                Name = adminName,
-                Username = normalizedAdminEmail,
-                Email = normalizedAdminEmail,
-                PasswordHash = passwordHash,
-                TenantId = tenant.Id,
-                ApplicationId = "IBMS",
-                IdentityType = "Platform",
+                var existingByIdem = await _tenantRepository.GetByIdempotencyKeyAsync(normalizedIdemKey);
+                if (existingByIdem != null)
+                {
+                    if (!string.Equals(existingByIdem.RequestPayloadHash, payloadHash, StringComparison.Ordinal))
+                    {
+                        return (false, "Idempotency key has already been used with a different tenant request payload.", null, "CONFLICT_IDEMPOTENCY_MISMATCH");
+                    }
+
+                    var existingDetail = await GetTenantByIdAsync(existingByIdem.Id, cancellationToken);
+                    return (true, "Tenant created and master blueprint provisioned successfully.", existingDetail, null);
+                }
+            }
+
+            if (await _tenantRepository.ExistsByCodeAsync(normalizedCode))
+            {
+                return (false, $"A tenant with code '{normalizedCode}' already exists.", null, "CONFLICT_DUPLICATE_CODE");
+            }
+
+            var tenant = new Tenant
+            {
+                Name = request.Name.Trim(),
+                TenantCode = normalizedCode,
+                CompanyEmail = string.IsNullOrWhiteSpace(request.CompanyEmail) ? null : request.CompanyEmail.Trim(),
+                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+                TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim(),
+                Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
                 Status = "Active",
-                Roles = new List<string> { "TenantAdmin", "Admin" },
-                Permissions = allPermCodes,
-                CreatedAtUtc = DateTime.UtcNow
+                IdempotencyKey = normalizedIdemKey,
+                RequestPayloadHash = payloadHash,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
             };
 
-            await _context.Users.AddAsync(adminUser, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+            await _tenantRepository.CreateAsync(tenant);
+
+            // Auto-provision master data blueprints transactionally
+            await _tenantProvisioningService.ProvisionTenantDefaultsAsync(tenant.Id, request.State, cancellationToken);
+
+            // Provision initial TenantAdmin if requested
+            User? adminUser = null;
+            if (!string.IsNullOrWhiteSpace(normalizedAdminEmail) && !string.IsNullOrWhiteSpace(request.AdminPassword))
+            {
+                var adminName = !string.IsNullOrWhiteSpace(request.AdminName) ? request.AdminName.Trim() : "Tenant Administrator";
+                var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword);
+
+                // Get permissions for TenantAdmin
+                var allPerms = await _roleRepository.GetAllPermissionsAsync();
+                var allPermCodes = allPerms.Select(p => p.Code).ToList();
+
+                adminUser = new User
+                {
+                    Name = adminName,
+                    Username = normalizedAdminEmail,
+                    Email = normalizedAdminEmail,
+                    PasswordHash = passwordHash,
+                    TenantId = tenant.Id,
+                    ApplicationId = "IBMS",
+                    IdentityType = "Platform",
+                    Status = "Active",
+                    Roles = new List<string> { "TenantAdmin", "Admin" },
+                    Permissions = allPermCodes,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+
+                await _context.Users.AddAsync(adminUser, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            // Record Audit event
+            var audit = new AuditLog
+            {
+                TenantId = tenant.Id,
+                EntityName = "Tenant",
+                EntityId = tenant.Id.ToString(),
+                Action = "TenantCreated",
+                UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+                ActorUserId = _currentUserService?.UserId,
+                ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+                CorrelationId = _currentUserService?.CorrelationId,
+                ResultStatus = "Success",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Tenant '{tenant.Name}' ({tenant.TenantCode}) created and master blueprint auto-provisioned." +
+                          (adminUser != null ? $" Initial admin '{adminUser.Email}' created." : "")
+            };
+            await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+            var detail = await GetTenantByIdAsync(tenant.Id, cancellationToken);
+            return (true, "Tenant created and master blueprint provisioned successfully.", detail, null);
         }
-
-        // Record Audit event
-        var audit = new AuditLog
+        finally
         {
-            TenantId = tenant.Id,
-            EntityName = "Tenant",
-            EntityId = tenant.Id.ToString(),
-            Action = "TenantCreated",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
-            Timestamp = DateTime.UtcNow,
-            Changes = $"Tenant '{tenant.Name}' ({tenant.TenantCode}) created and master blueprint auto-provisioned." +
-                      (adminUser != null ? $" Initial admin '{adminUser.Email}' created." : "")
-        };
-        await _auditLogRepository.AddAsync(audit, cancellationToken);
-
-        var detail = await GetTenantByIdAsync(tenant.Id, cancellationToken);
-        return (true, "Tenant created and master blueprint provisioned successfully.", detail, null);
+            sem.Release();
+        }
     }
 
     public async Task<(bool Success, string Message, PlatformTenantDetailDto? Tenant, string? ErrorCode)> UpdateTenantAsync(int id, UpdateTenantRequest request, string currentUserName, CancellationToken cancellationToken = default)
@@ -317,11 +371,10 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "Tenant name is required (minimum 2 characters).", null, "VALIDATION_ERROR");
         }
 
-        // Concurrency Check
-        if (request.ExpectedUpdatedAtUtc.HasValue && tenant.UpdatedAtUtc.HasValue)
+        // Reliable Atomic Concurrency Protection: strict match, no tolerance
+        if (request.ExpectedUpdatedAtUtc.HasValue)
         {
-            var diff = Math.Abs((tenant.UpdatedAtUtc.Value - request.ExpectedUpdatedAtUtc.Value).TotalSeconds);
-            if (diff > 1.0)
+            if (tenant.UpdatedAtUtc.HasValue && tenant.UpdatedAtUtc.Value != request.ExpectedUpdatedAtUtc.Value)
             {
                 return (false, "A concurrency conflict occurred. The tenant was modified by another administrator. Please reload.", null, "CONCURRENCY_CONFLICT");
             }
@@ -341,9 +394,21 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         tenant.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
         tenant.TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim();
         tenant.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+
+        if (request.ExpectedUpdatedAtUtc.HasValue)
+        {
+            _context.Entry(tenant).Property(t => t.UpdatedAtUtc).OriginalValue = request.ExpectedUpdatedAtUtc.Value;
+        }
         tenant.UpdatedAtUtc = DateTime.UtcNow;
 
-        await _tenantRepository.UpdateAsync(tenant);
+        try
+        {
+            await _tenantRepository.UpdateAsync(tenant);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return (false, "A concurrency conflict occurred. The tenant was modified by another administrator. Please reload.", null, "CONCURRENCY_CONFLICT");
+        }
 
         var newSnapshot = JsonSerializer.Serialize(new
         {
@@ -360,7 +425,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "Tenant",
             EntityId = tenant.Id.ToString(),
             Action = "TenantUpdated",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"Tenant details updated for '{tenant.Name}'.",
             OldValues = oldSnapshot,
@@ -415,7 +484,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "Tenant",
             EntityId = tenant.Id.ToString(),
             Action = $"TenantStatusChanged_{targetStatus}",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"Tenant status changed from '{oldStatus}' to '{targetStatus}'. Reason: {request.Reason.Trim()}"
         };
@@ -516,9 +589,19 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "A user with this email address is already registered.", null, "CONFLICT_DUPLICATE_EMAIL");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        // Validate password against platform policy
+        var settings = await GetPlatformSettingsAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < settings.PasswordMinLength)
         {
-            return (false, "Password must be at least 8 characters long.", null, "VALIDATION_ERROR");
+            return (false, $"Password must be at least {settings.PasswordMinLength} characters long.", null, "VALIDATION_ERROR");
+        }
+        if (settings.RequireDigit && !request.Password.Any(char.IsDigit))
+        {
+            return (false, "Password must contain at least one number.", null, "VALIDATION_ERROR");
+        }
+        if (settings.RequireSpecialChar && !request.Password.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            return (false, "Password must contain at least one special character.", null, "VALIDATION_ERROR");
         }
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -553,7 +636,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "User",
             EntityId = user.Id.ToString(),
             Action = "UserCreated",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"Platform user '{user.Email}' created with roles: {string.Join(", ", roles)}"
         };
@@ -616,7 +703,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "User",
             EntityId = user.Id.ToString(),
             Action = "UserStatusChanged",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"User '{user.Email}' status changed to '{normalizedStatus}'. Reason: {reason}"
         };
@@ -675,7 +766,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "User",
             EntityId = user.Id.ToString(),
             Action = "UserRolesAssigned",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"User '{user.Email}' roles updated from [{oldRoles}] to [{string.Join(", ", cleanRoles)}]."
         };
@@ -737,7 +832,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             EntityName = "User",
             EntityId = user.Id.ToString(),
             Action = "UserTenantReassigned",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
             Timestamp = DateTime.UtcNow,
             Changes = $"User '{user.Email}' reassigned from Tenant {oldTenantId} to Tenant {tenantId} (App: {user.ApplicationId})."
         };
@@ -778,14 +877,17 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         {
             Id = a.Id,
             Timestamp = a.Timestamp,
+            ActorUserId = a.ActorUserId,
             ActorUserName = a.UserName,
+            ActorRole = a.ActorRole,
             Action = a.Action,
             EntityType = a.EntityName,
             EntityId = a.EntityId,
             TenantId = a.TenantId,
             TenantCode = a.Tenant?.TenantCode,
             TenantName = a.Tenant?.Name,
-            ResultStatus = "Success",
+            ResultStatus = string.IsNullOrWhiteSpace(a.ResultStatus) ? "Success" : a.ResultStatus,
+            CorrelationId = a.CorrelationId,
             Changes = a.Changes,
             OldValues = SanitizeSecretPayloads(a.OldValues),
             NewValues = SanitizeSecretPayloads(a.NewValues)
@@ -810,43 +912,67 @@ public class PlatformAdministrationService : IPlatformAdministrationService
 
     #region Platform Settings (BR-06)
 
-    private static readonly object _settingsLock = new();
-    private static PlatformSettingsDto _cachedSettings = new()
+    public async Task<PlatformSettingsDto> GetPlatformSettingsAsync(CancellationToken cancellationToken = default)
     {
-        PlatformName = "IBMS Platform",
-        MaintenanceMode = false,
-        AllowSelfRegistration = true,
-        SessionTimeoutMinutes = 1440,
-        InactivityTimeoutMinutes = 1440,
-        PasswordMinLength = 8,
-        RequireDigit = true,
-        RequireSpecialChar = true,
-        SupportedCurrencies = new List<string> { "INR", "USD", "EUR", "GBP" },
-        AccountRecoveryContact = "support@ibms.com",
-        UpdatedAtUtc = DateTime.UtcNow,
-        UpdatedBy = "System"
-    };
-
-    public Task<PlatformSettingsDto> GetPlatformSettingsAsync(CancellationToken cancellationToken = default)
-    {
-        lock (_settingsLock)
+        var setting = await _context.PlatformSettings.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
+        if (setting == null)
         {
-            return Task.FromResult(new PlatformSettingsDto
+            setting = new PlatformSetting
             {
-                PlatformName = _cachedSettings.PlatformName,
-                MaintenanceMode = _cachedSettings.MaintenanceMode,
-                AllowSelfRegistration = _cachedSettings.AllowSelfRegistration,
-                SessionTimeoutMinutes = _cachedSettings.SessionTimeoutMinutes,
-                InactivityTimeoutMinutes = _cachedSettings.InactivityTimeoutMinutes,
-                PasswordMinLength = _cachedSettings.PasswordMinLength,
-                RequireDigit = _cachedSettings.RequireDigit,
-                RequireSpecialChar = _cachedSettings.RequireSpecialChar,
-                SupportedCurrencies = new List<string>(_cachedSettings.SupportedCurrencies),
-                AccountRecoveryContact = _cachedSettings.AccountRecoveryContact,
-                UpdatedAtUtc = _cachedSettings.UpdatedAtUtc,
-                UpdatedBy = _cachedSettings.UpdatedBy
-            });
+                Id = 1,
+                PlatformName = "IBMS Platform",
+                MaintenanceMode = false,
+                AllowSelfRegistration = true,
+                SessionTimeoutMinutes = 1440,
+                InactivityTimeoutMinutes = 1440,
+                PasswordMinLength = 8,
+                RequireDigit = true,
+                RequireSpecialChar = true,
+                SupportedCurrenciesJson = "[\"INR\",\"USD\",\"EUR\",\"GBP\"]",
+                AccountRecoveryContact = "support@ibms.com",
+                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedBy = "System",
+                Version = Guid.NewGuid().ToString("N")
+            };
+
+            await _context.PlatformSettings.AddAsync(setting, cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch
+            {
+                _context.Entry(setting).State = EntityState.Detached;
+                setting = await _context.PlatformSettings.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken) ?? setting;
+            }
         }
+
+        List<string> currencies;
+        try
+        {
+            currencies = JsonSerializer.Deserialize<List<string>>(setting.SupportedCurrenciesJson) ?? new List<string> { "INR", "USD", "EUR", "GBP" };
+        }
+        catch
+        {
+            currencies = new List<string> { "INR", "USD", "EUR", "GBP" };
+        }
+
+        return new PlatformSettingsDto
+        {
+            PlatformName = setting.PlatformName,
+            MaintenanceMode = setting.MaintenanceMode,
+            AllowSelfRegistration = setting.AllowSelfRegistration,
+            SessionTimeoutMinutes = setting.SessionTimeoutMinutes,
+            InactivityTimeoutMinutes = setting.InactivityTimeoutMinutes,
+            PasswordMinLength = setting.PasswordMinLength,
+            RequireDigit = setting.RequireDigit,
+            RequireSpecialChar = setting.RequireSpecialChar,
+            SupportedCurrencies = currencies,
+            AccountRecoveryContact = setting.AccountRecoveryContact,
+            UpdatedAtUtc = setting.UpdatedAtUtc,
+            UpdatedBy = setting.UpdatedBy,
+            Version = setting.Version
+        };
     }
 
     public async Task<(bool Success, string Message, PlatformSettingsDto? Settings, string? ErrorCode)> UpdatePlatformSettingsAsync(UpdatePlatformSettingsRequest request, string currentUserName, CancellationToken cancellationToken = default)
@@ -861,41 +987,142 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "Minimum password length must be at least 8.", null, "VALIDATION_ERROR");
         }
 
-        lock (_settingsLock)
+        var setting = await _context.PlatformSettings.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
+        if (setting == null)
         {
-            _cachedSettings = new PlatformSettingsDto
+            setting = new PlatformSetting
             {
-                PlatformName = request.PlatformName.Trim(),
-                MaintenanceMode = request.MaintenanceMode,
-                AllowSelfRegistration = request.AllowSelfRegistration,
-                SessionTimeoutMinutes = request.SessionTimeoutMinutes,
-                InactivityTimeoutMinutes = request.InactivityTimeoutMinutes,
-                PasswordMinLength = request.PasswordMinLength,
-                RequireDigit = request.RequireDigit,
-                RequireSpecialChar = request.RequireSpecialChar,
-                SupportedCurrencies = request.SupportedCurrencies != null && request.SupportedCurrencies.Any()
-                    ? request.SupportedCurrencies.Select(c => c.Trim().ToUpperInvariant()).Distinct().ToList()
-                    : new List<string> { "INR", "USD", "EUR", "GBP" },
-                AccountRecoveryContact = request.AccountRecoveryContact.Trim(),
+                Id = 1,
                 UpdatedAtUtc = DateTime.UtcNow,
-                UpdatedBy = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName
+                UpdatedBy = "System"
             };
+            await _context.PlatformSettings.AddAsync(setting, cancellationToken);
         }
 
-        var audit = new AuditLog
+        // Concurrency Check
+        if (request.ExpectedUpdatedAtUtc.HasValue && setting.UpdatedAtUtc != request.ExpectedUpdatedAtUtc.Value)
         {
-            TenantId = 1,
-            EntityName = "PlatformSettings",
-            EntityId = "Global",
-            Action = "PlatformSettingsUpdated",
-            UserName = string.IsNullOrWhiteSpace(currentUserName) ? "SuperAdmin" : currentUserName,
-            Timestamp = DateTime.UtcNow,
-            Changes = $"Platform global settings updated: PlatformName='{_cachedSettings.PlatformName}', MaintenanceMode={_cachedSettings.MaintenanceMode}"
-        };
-        await _auditLogRepository.AddAsync(audit, cancellationToken);
+            return (false, "A concurrency conflict occurred. Platform settings were modified by another administrator. Please reload.", null, "CONCURRENCY_CONFLICT");
+        }
 
-        var copy = await GetPlatformSettingsAsync(cancellationToken);
-        return (true, "Platform settings updated successfully.", copy, null);
+        var executionStrategy = _context.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            var canUseTransactions = _context.Database.IsRelational() && !(_context.Database.ProviderName?.Contains("InMemory") ?? false);
+            Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
+            if (canUseTransactions)
+            {
+                transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            }
+
+            try
+            {
+                var oldSnapshot = JsonSerializer.Serialize(new
+                {
+                    setting.PlatformName,
+                    setting.MaintenanceMode,
+                    setting.AllowSelfRegistration,
+                    setting.SessionTimeoutMinutes,
+                    setting.InactivityTimeoutMinutes,
+                    setting.PasswordMinLength,
+                    setting.RequireDigit,
+                    setting.RequireSpecialChar,
+                    setting.AccountRecoveryContact,
+                    setting.SupportedCurrenciesJson
+                });
+
+                var currencies = request.SupportedCurrencies != null && request.SupportedCurrencies.Any()
+                    ? request.SupportedCurrencies.Select(c => c.Trim().ToUpperInvariant()).Distinct().ToList()
+                    : new List<string> { "INR", "USD", "EUR", "GBP" };
+
+                setting.PlatformName = request.PlatformName.Trim();
+                setting.MaintenanceMode = request.MaintenanceMode;
+                setting.AllowSelfRegistration = request.AllowSelfRegistration;
+                setting.SessionTimeoutMinutes = request.SessionTimeoutMinutes;
+                setting.InactivityTimeoutMinutes = request.InactivityTimeoutMinutes;
+                setting.PasswordMinLength = request.PasswordMinLength;
+                setting.RequireDigit = request.RequireDigit;
+                setting.RequireSpecialChar = request.RequireSpecialChar;
+                setting.SupportedCurrenciesJson = JsonSerializer.Serialize(currencies);
+                setting.AccountRecoveryContact = request.AccountRecoveryContact.Trim();
+                setting.UpdatedAtUtc = DateTime.UtcNow;
+                setting.UpdatedBy = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName;
+                setting.Version = Guid.NewGuid().ToString("N");
+
+                var newSnapshot = JsonSerializer.Serialize(new
+                {
+                    setting.PlatformName,
+                    setting.MaintenanceMode,
+                    setting.AllowSelfRegistration,
+                    setting.SessionTimeoutMinutes,
+                    setting.InactivityTimeoutMinutes,
+                    setting.PasswordMinLength,
+                    setting.RequireDigit,
+                    setting.RequireSpecialChar,
+                    setting.AccountRecoveryContact,
+                    setting.SupportedCurrenciesJson
+                });
+
+                var audit = new AuditLog
+                {
+                    TenantId = 1,
+                    EntityName = "PlatformSettings",
+                    EntityId = "Global",
+                    Action = "PlatformSettingsUpdated",
+                    UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+                    ActorUserId = _currentUserService?.UserId,
+                    ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+                    CorrelationId = _currentUserService?.CorrelationId,
+                    ResultStatus = "Success",
+                    Timestamp = DateTime.UtcNow,
+                    Changes = $"Platform global settings updated: PlatformName='{setting.PlatformName}', MaintenanceMode={setting.MaintenanceMode}",
+                    OldValues = oldSnapshot,
+                    NewValues = newSnapshot
+                };
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+                if (transaction != null)
+                {
+                    await transaction.CommitAsync(cancellationToken);
+                }
+
+                var copy = new PlatformSettingsDto
+                {
+                    PlatformName = setting.PlatformName,
+                    MaintenanceMode = setting.MaintenanceMode,
+                    AllowSelfRegistration = setting.AllowSelfRegistration,
+                    SessionTimeoutMinutes = setting.SessionTimeoutMinutes,
+                    InactivityTimeoutMinutes = setting.InactivityTimeoutMinutes,
+                    PasswordMinLength = setting.PasswordMinLength,
+                    RequireDigit = setting.RequireDigit,
+                    RequireSpecialChar = setting.RequireSpecialChar,
+                    SupportedCurrencies = currencies,
+                    AccountRecoveryContact = setting.AccountRecoveryContact,
+                    UpdatedAtUtc = setting.UpdatedAtUtc,
+                    UpdatedBy = setting.UpdatedBy,
+                    Version = setting.Version
+                };
+
+                return (true, "Platform settings updated successfully.", copy, (string?)null);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                return (false, "A concurrency conflict occurred. Platform settings were modified by another administrator.", null, "CONCURRENCY_CONFLICT");
+            }
+            catch (Exception ex)
+            {
+                if (transaction != null) await transaction.RollbackAsync(cancellationToken);
+                _logger?.LogError(ex, "Failed to update platform settings: {Message}", ex.Message);
+                return (false, "Failed to update platform settings. Changes were rolled back.", null, "SETTINGS_UPDATE_FAILED");
+            }
+            finally
+            {
+                if (transaction != null) await transaction.DisposeAsync();
+            }
+        });
     }
 
     #endregion

@@ -95,12 +95,14 @@ public class ReminderJobService : IReminderJobService
                         EntityType = "Invoice",
                         EntityId = invoice.Id,
                         EventType = eventType,
+                        Status = "Sent",
                         StartDate = logCheckStartDate,
                         EndDate = today.AddDays(1).AddTicks(-1),
                         PageSize = 1
                     });
 
-                    if (existingLogs.Items.Count > 0)
+                    if (existingLogs?.Items != null &&
+                        existingLogs.Items.Any(l => string.Equals(l.Status, "Sent", StringComparison.OrdinalIgnoreCase)))
                     {
                         // Already sent recently; skip to prevent customer spam
                         continue;

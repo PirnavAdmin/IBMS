@@ -9,7 +9,7 @@
 .ura-workspace { container-name: ura-workspace; container-type: inline-size; width: min(100%, 1480px); overflow: hidden; border: 1px solid var(--border, #d5c6b5); border-radius: 14px; background: var(--surface, #fff); box-shadow: var(--shadow-card, 0 3px 12px #35231c12); }
 .ura-tabs { min-height: 58px; border-bottom: 1px solid #eadfd3; background: #fffdf9; }
 .ura-tabs .MuiTab-root { min-height: 58px; min-width: 130px; color: #776657; font-size: .86rem; font-weight: 650; text-transform: none; }
-.ura-tabs .MuiTab-root.Mui-selected { color: #5b321a; }
+.ura-tabs .MuiTab-root.Mui-selected { border-radius: 8px 8px 0 0; background: #f6ebde; color: #5b321a; font-weight: 750; }
 .ura-tabs .MuiTab-iconWrapper { margin-right: 7px; }
 .ura-tabs .MuiTabs-indicator { height: 3px; border-radius: 3px 3px 0 0; background: #815636; }
 .ura-panel-content { padding: clamp(15px, 1.7vw, 22px); }
@@ -52,6 +52,8 @@
 .ura-filter-field { min-width: 0; }
 .ura-reset-filters.MuiButton-root { min-width: 106px; min-height: 40px; padding: 6px 8px; border-radius: 8px; background: transparent; color: #897e76; box-shadow: none; font-size: .85rem; font-weight: 500; text-transform: none; white-space: nowrap; }
 .ura-reset-filters.MuiButton-root:hover { background: #f5efea; color: #5d4037; box-shadow: none; }
+.ura-reset-filters.MuiButton-root.ura-has-filters { color: #68472d; font-weight: 650; }
+.ura-reset-filters.MuiButton-root.ura-has-filters:hover { background: #f1e5d8; color: #503421; }
 .ura-reset-filters.MuiButton-root.Mui-disabled { background: transparent; color: #b7aaa0; }
 .ura-assignment-field > label { color: #62503f; font-size: .76rem; font-weight: 650; line-height: 1.2; }
 .ura-filter-field .MuiFormControl-root { min-width: 0; }
@@ -73,22 +75,29 @@
 .ura-table tbody tr:hover { background: #fffaf4; }
 .ura-table tbody tr:last-child td { border-bottom: 0; }
 .ura-table td strong { color: #513822; font-weight: 700; }
-.ura-user-table { min-width: 1380px; table-layout: fixed; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(1),.ura-user-table:not(.ura-assignment-table) td:nth-child(1) { width: 160px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(2),.ura-user-table:not(.ura-assignment-table) td:nth-child(2) { width: 280px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(3),.ura-user-table:not(.ura-assignment-table) td:nth-child(3) { width: 280px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(4),.ura-user-table:not(.ura-assignment-table) td:nth-child(4) { width: 130px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(5),.ura-user-table:not(.ura-assignment-table) td:nth-child(5) { width: 120px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(6),.ura-user-table:not(.ura-assignment-table) td:nth-child(6) { width: 120px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(7),.ura-user-table:not(.ura-assignment-table) td:nth-child(7) { width: 110px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(8),.ura-user-table:not(.ura-assignment-table) td:nth-child(8) { width: 110px; }
-.ura-user-table:not(.ura-assignment-table) th:nth-child(9),.ura-user-table:not(.ura-assignment-table) td:nth-child(9) { width: 80px; text-align: center; }
+.ura-status-badge { display: inline-flex; min-height: 24px; align-items: center; justify-content: center; padding: 2px 9px; border: 1px solid transparent; border-radius: 999px; font-size: .72rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.ura-status-badge.is-active { border-color: #b8d9c0; background: #edf7ef; color: #28633a; }
+.ura-status-badge.is-inactive { border-color: #e5c4bb; background: #fbefec; color: #8a4032; }
+.ura-status-badge.is-other { border-color: #dfd0bf; background: #f6f0e9; color: #694f37; }
+.ura-user-table { width: 100%; min-width: 700px; table-layout: fixed; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(1),.ura-user-table:not(.ura-assignment-table) td:nth-child(1) { width: 12%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(2),.ura-user-table:not(.ura-assignment-table) td:nth-child(2) { width: 13%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(3),.ura-user-table:not(.ura-assignment-table) td:nth-child(3) { width: 16%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(4),.ura-user-table:not(.ura-assignment-table) td:nth-child(4) { width: 12%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(5),.ura-user-table:not(.ura-assignment-table) td:nth-child(5) { width: 10%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(6),.ura-user-table:not(.ura-assignment-table) td:nth-child(6) { width: 12%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(7),.ura-user-table:not(.ura-assignment-table) td:nth-child(7) { width: 11%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(8),.ura-user-table:not(.ura-assignment-table) td:nth-child(8) { width: 8%; }
+.ura-user-table:not(.ura-assignment-table) th:nth-child(9),.ura-user-table:not(.ura-assignment-table) td:nth-child(9) { width: 6%; min-width: 64px; text-align: center; }
+.ura-assignment-table { min-width: 760px; }
 .ura-assignment-table th:nth-child(1),.ura-assignment-table td:nth-child(1) { width: 18%; }
-.ura-assignment-table th:nth-child(2),.ura-assignment-table td:nth-child(2) { width: 19%; }
-.ura-assignment-table th:nth-child(3),.ura-assignment-table td:nth-child(3) { width: 17%; }
-.ura-assignment-table th:nth-child(4),.ura-assignment-table td:nth-child(4) { width: 17%; }
-.ura-assignment-table th:nth-child(5),.ura-assignment-table td:nth-child(5) { width: 11%; }
-.ura-assignment-table th:nth-child(6),.ura-assignment-table td:nth-child(6) { width: 64px; text-align: center; }
+.ura-assignment-table th:nth-child(2),.ura-assignment-table td:nth-child(2) { width: 18%; }
+.ura-assignment-table th:nth-child(3),.ura-assignment-table td:nth-child(3) { width: 14%; }
+.ura-assignment-table th:nth-child(4),.ura-assignment-table td:nth-child(4) { width: 15%; }
+.ura-assignment-table th:nth-child(5),.ura-assignment-table td:nth-child(5) { width: 13%; }
+.ura-assignment-table th:nth-child(6),.ura-assignment-table td:nth-child(6) { width: 12%; }
+.ura-assignment-table th:nth-child(7),.ura-assignment-table td:nth-child(7) { width: 70px; text-align: center; }
+.ura-assignment-table td { padding-block: 9px; }
 .ura-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .ura-row-actions .MuiButton-root { min-width: 0; text-transform: none; }
 .ura-role-table th:last-child,.ura-role-table td:last-child { width: 64px; text-align: center; }
@@ -319,9 +328,10 @@
   .ura-tabs .MuiTab-root { min-width: 112px; padding-inline: 12px; font-size: .78rem; }
 }
 
-/* U13: keep identities atomic; full values are available on keyboard focus/hover. */
-.ura-user-table:not(.ura-assignment-table) { min-width: 1390px; }
+/* Keep long identity and tenant values readable without forcing a desktop-width overflow. */
+.ura-user-table:not(.ura-assignment-table) { min-width: 1080px; }
 .ura-user-identity-text { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.ura-tenant-text { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 .ura-user-identity-text:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }
 .ura-page .ura-table-wrap { min-width: 0; max-width: 100%; }
 .ura-page .ura-table-wrap:focus-visible { outline: 2px solid #96704e; outline-offset: 2px; }

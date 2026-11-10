@@ -66,6 +66,8 @@ public class CustomerBackendTests
             return Task.FromResult((filtered.Skip((page - 1) * pageSize).Take(pageSize).ToList(), filtered.Count));
         }
 
+
+
         public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
         {
             var tenantLogs = Logs.Where(l => l.TenantId == tenantId).ToList();
@@ -79,6 +81,12 @@ public class CustomerBackendTests
                 Actions = actions,
                 UserNames = userNames
             });
+        }
+    
+        public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+        {
+            var filtered = Logs.Where(l => !filter.TenantId.HasValue || l.TenantId == filter.TenantId.Value).ToList();
+            return Task.FromResult((filtered, filtered.Count));
         }
     }
 

@@ -111,7 +111,7 @@ export function CreditNoteDetails() {
   };
 
   if (query.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading credit note…</div></main>;
-  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes">Back to Credit Notes</Button></main>;
+  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes" variant="outlined" className="workspace-back-button">Back to Credit Notes</Button></main>;
 
   const canSubmit = note.status === 'Draft';
   const canReview = note.status === 'Pending Approval';
@@ -122,7 +122,7 @@ export function CreditNoteDetails() {
   return (
     <main className={`cn-page cn-details-page ${isPreview ? 'cn-preview-page' : ''}`}>
       {!isPreview && <><div className="cn-detail-toolbar"><Button component={Link} to="/credit-notes" startIcon={<ArrowBack />}>Credit Notes</Button><div><Button component={Link} to={`/credit-notes/${id}/export`} variant="outlined" startIcon={<PictureAsPdfOutlined />}>Export PDF</Button><Button variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => navigate(`/credit-notes/${id}/preview`)}>Preview / Print</Button>{canSubmit && <Button component={Link} to={`/credit-notes/${id}/edit`} variant="outlined" startIcon={<EditOutlined />}>Edit draft</Button>}</div></div></>}
-      {isPreview && <div className="cn-preview-toolbar"><Button onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
+      {isPreview && <div className="cn-preview-toolbar"><Button variant="outlined" className="workspace-back-button" onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
       <header className="cn-document-header">
         <div className="cn-document-brand"><InvoiceBillingLogo size={28} /><div><BrandName /><strong>Credit note</strong></div></div>

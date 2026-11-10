@@ -508,7 +508,7 @@ function EditorScreen({ mode }) {
   };
 
   const guidedFlow = !edit || editDraft;
-  return <TemplatePage title={edit ? 'Edit template' : 'Create template'} description={edit ? `Template ${templateId} configuration` : 'Complete template details, then continue to branding settings.'} actions={<Button component={Link} to="/templates-branding" startIcon={<ArrowBack />}>Back to list</Button>} hideNavigation={guidedFlow}>
+  return <TemplatePage title={edit ? 'Edit template' : 'Create template'} description={edit ? `Template ${templateId} configuration` : 'Complete template details, then continue to branding settings.'} actions={<Button component={Link} to="/templates-branding" variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />}>Back to list</Button>} hideNavigation={guidedFlow}>
     {apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}<FeedbackSnackbar message={saveNotice} onClose={() => setSaveNotice('')} />{loading && <div className="template-empty"><CircularProgress size={24} />Loading template…</div>}
     {loadError ? <DashboardErrorState title="Unable to load template" message={loadError} onRetry={() => setLoadAttempt(attempt => attempt + 1)} /> : <form className="template-form-card" onSubmit={(event) => { event.preventDefault(); validate(); }} noValidate>
       {guidedFlow && <TemplateCreationSteps step={1} />}

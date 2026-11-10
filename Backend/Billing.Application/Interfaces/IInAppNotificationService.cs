@@ -28,6 +28,10 @@ public interface IInAppNotificationService
         DateTime throughCreatedAtUtc,
         CancellationToken cancellationToken = default);
 
+    Task<ApiResponse<int>> PublishTenantNotificationAsync(
+        PublishTenantNotificationCommand command,
+        CancellationToken cancellationToken = default);
+
     Task<ApiResponse<bool>> CreateInAppNotificationAsync(
         CreateInAppNotificationCommand command,
         CancellationToken cancellationToken = default);

@@ -25,6 +25,10 @@ public class Tenant
         set => Status = value ? "Active" : "Inactive";
     }
 
+    public string? IdempotencyKey { get; set; }
+
+    public string? RequestPayloadHash { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAtUtc { get; set; }

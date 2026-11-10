@@ -1,6 +1,7 @@
+import { loginDestination } from '../Platform/platformAccess';
 import { BrandName } from '../../components/BrandName';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Link as RouterLink,
   useNavigate,
@@ -83,7 +84,11 @@ export const Login = () => {
   // ==========================================================
 
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem('billing_remembered_email')));
+  const loginLock = useRef(false);
+  const recoveryLock = useRef(false);
+  const redirectTimer = useRef(null);
+  useEffect(() => () => clearTimeout(redirectTimer.current), []);
   const [apiError, setApiError] = useState(() => new URLSearchParams(location.search).get('reason') === 'session-expired' ? 'Your session has timed out. Please log in again.' : null);
 
   // ==========================================================
@@ -142,7 +147,7 @@ export const Login = () => {
       email:
         location.state?.prefillEmail ||
         location.state?.registeredEmail ||
-        '',
+        localStorage.getItem('billing_remembered_email') || '',
 
       password: '',
     },
@@ -193,6 +198,8 @@ export const Login = () => {
   // ==========================================================
 
   const onSubmitLogin = async (data) => {
+    if (loginLock.current) return;
+    loginLock.current = true;
     try {
       setApiError(null);
 
@@ -259,7 +266,9 @@ export const Login = () => {
       // LOGIN SUCCESS
       // ------------------------------------------------------
 
-      navigate('/dashboard');
+      if (rememberMe) localStorage.setItem('billing_remembered_email', data.email.trim());
+      else localStorage.removeItem('billing_remembered_email');
+      navigate(loginDestination(user));
 
     } catch (error) {
       console.error('Login failed:', error);
@@ -342,7 +351,7 @@ export const Login = () => {
         'Login failed. Please check your credentials.'
       );
 
-    }
+    } finally { loginLock.current = false; }
   };
 
   // ==========================================================
@@ -374,13 +383,14 @@ export const Login = () => {
   const handleForgotSubmit = async (event) => {
     event.preventDefault();
 
+    if (recoveryLock.current) return;
     const cleanEmail = forgotEmail.trim();
 
     // --------------------------------------------------------
     // VALIDATE EMAIL
     // --------------------------------------------------------
 
-    if (!cleanEmail || !cleanEmail.includes('@')) {
+    if (!workEmailSchema().isValidSync(cleanEmail)) {
       setRecoveryError(
         'Please enter a valid work email address.'
       );
@@ -388,6 +398,7 @@ export const Login = () => {
       return;
     }
 
+    recoveryLock.current = true;
     try {
       setRecoveryLoading(true);
       setRecoveryError(null);
@@ -435,6 +446,7 @@ export const Login = () => {
       );
 
     } finally {
+      recoveryLock.current = false;
       setRecoveryLoading(false);
     }
   };
@@ -444,10 +456,11 @@ export const Login = () => {
   // ==========================================================
 
   const handleResendOtp = async () => {
-    if (timer > 0 || recoveryLoading) {
+    if (timer > 0 || recoveryLock.current) {
       return;
     }
 
+    recoveryLock.current = true;
     try {
       setRecoveryLoading(true);
       setRecoveryError(null);
@@ -493,6 +506,7 @@ export const Login = () => {
       );
 
     } finally {
+      recoveryLock.current = false;
       setRecoveryLoading(false);
     }
   };
@@ -503,6 +517,7 @@ export const Login = () => {
 
   const handleOtpSubmit = async (event) => {
     event.preventDefault();
+    if (recoveryLock.current) return;
 
     const enteredCode = otp.join('').trim();
 
@@ -510,7 +525,7 @@ export const Login = () => {
     // VALIDATE OTP
     // --------------------------------------------------------
 
-    if (enteredCode.length < 6) {
+    if (!/^\d{6}$/.test(enteredCode)) {
       setRecoveryError(
         'Please enter all 6 digits of the authentication code.'
       );
@@ -518,6 +533,7 @@ export const Login = () => {
       return;
     }
 
+    recoveryLock.current = true;
     try {
       setRecoveryLoading(true);
       setRecoveryError(null);
@@ -555,6 +571,7 @@ export const Login = () => {
       );
 
     } finally {
+      recoveryLock.current = false;
       setRecoveryLoading(false);
     }
   };
@@ -565,6 +582,8 @@ export const Login = () => {
 
   const handleResetSubmit = async (event) => {
     event.preventDefault();
+    if (recoveryLock.current) return;
+    let resetSucceeded = false;
 
     // --------------------------------------------------------
     // PASSWORD VALIDATION
@@ -586,6 +605,7 @@ export const Login = () => {
       return;
     }
 
+    recoveryLock.current = true;
     try {
       setRecoveryLoading(true);
       setRecoveryError(null);
@@ -613,7 +633,10 @@ export const Login = () => {
       // RETURN TO LOGIN
       // ------------------------------------------------------
 
-      setTimeout(() => {
+      resetSucceeded = true;
+      redirectTimer.current = setTimeout(() => {
+        recoveryLock.current = false;
+        setRecoveryLoading(false);
         setValue('email', forgotEmail);
         setValue('password', '');
 
@@ -640,7 +663,10 @@ export const Login = () => {
       );
 
     } finally {
-      setRecoveryLoading(false);
+      if (!resetSucceeded) {
+        recoveryLock.current = false;
+        setRecoveryLoading(false);
+      }
     }
   };
 
@@ -790,11 +816,15 @@ export const Login = () => {
                 if (authStep === 'otp') {
                   setAuthStep('forgot');
                 } else if (authStep === 'reset') {
-                  setAuthStep('otp');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                  setOtp(['', '', '', '', '', '']);
+                  setAuthStep('login');
                 } else {
                   setAuthStep('login');
                 }
               }}
+              disabled={recoveryLoading}
               className="billing-auth-back-link recovery-back-link"
             >
               &larr;{' '}
@@ -1065,7 +1095,7 @@ export const Login = () => {
                     }
                     label={
                       <span className="billing-auth-remember-label">
-                        Remember me
+                        Remember email
                       </span>
                     }
                     sx={{
@@ -1075,7 +1105,7 @@ export const Login = () => {
 
                   <button
                     type="button"
-                    onPointerDown={handleOpenForgot}
+                    disabled={isSubmitting}
                     onClick={handleOpenForgot}
                     className="billing-auth-forgot-link"
                   >
@@ -1112,7 +1142,7 @@ export const Login = () => {
               <button
                 type="button"
                 className="billing-auth-create-link billing-auth-route-button"
-                onPointerDown={openRegister}
+                disabled={isSubmitting}
                 onClick={openRegister}
               >
                 Create an account
@@ -1147,6 +1177,8 @@ export const Login = () => {
                     fullWidth
                     size="small"
                     id="forgot-email"
+                    required
+                    autoComplete="email"
                     type="email"
                     placeholder="name@company.com"
                     autoFocus
@@ -1174,7 +1206,7 @@ export const Login = () => {
 
                 </Box>
 
-                <div className="billing-auth-recovery-nav"><RouterLink to="/login" onClick={event => { event.preventDefault(); setRecoveryError(null); setRecoverySuccess(null); setAuthStep('login'); }}>Back to Login</RouterLink></div>
+                <div className="billing-auth-recovery-nav"><RouterLink to="/login" onClick={event => { event.preventDefault(); if (recoveryLock.current) return; setRecoveryError(null); setRecoverySuccess(null); setAuthStep('login'); }}>Back to Login</RouterLink></div>
 
                 <Button
                   type="submit"
@@ -1229,7 +1261,7 @@ export const Login = () => {
 
                 <span>
                   {timer > 0
-                    ? `Code expires in: ${timer}s`
+                    ? `Resend available in ${timer}s`
                     : "Didn't get the code?"}
                 </span>
 

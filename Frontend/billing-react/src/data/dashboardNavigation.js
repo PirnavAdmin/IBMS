@@ -17,8 +17,8 @@ export const dashboardNavigation = [
   {
     label: 'Operations',
     items: [
-      { id: 'background-jobs', label: 'Background Jobs', icon: 'jobs', route: '/background-jobs', permission: ['settings.view', 'settings.manage', 'integrations.manage'] },
-      { id: 'export-jobs', label: 'Export Jobs', icon: 'exports', route: '/export-jobs', permission: ['billing.view', 'invoices.view', 'reports.view'] },
+      { id: 'background-jobs', label: 'Background Jobs', icon: 'jobs', route: '/background-jobs', permission: ['backgroundjobs.view', 'backgroundjobs.manage', 'settings.manage', 'integrations.manage'] },
+      { id: 'export-jobs', label: 'Export Jobs', icon: 'exports', route: '/export-jobs', permission: ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view'] },
     ],
   },
   {

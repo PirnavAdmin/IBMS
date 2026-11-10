@@ -14,14 +14,13 @@ import { StatCard } from '../../components/dashboard/StatCard';
 import { RevenueChart, OutstandingAging } from '../../components/dashboard/DashboardCharts';
 import { DashboardSkeleton } from '../../components/dashboard/DashboardStates';
 import { useDashboard } from '../../hooks/useDashboard';
-import { invoicePermissions } from '../Invoices/services/invoiceService';
-import { paymentPermissions } from '../Payments/paymentService';
+import { hasPermission } from '../../utils/permissionUtils';
 import { billingInsights, defaultDashboardFilters, filterDashboardRecords, money, selectDashboardCurrency } from './dashboardModel';
 import { searchInputError } from '../../utils/search';
 import { billingCurrencies } from '../../utils/currencies';
 import '../../styles/Dashboard.css';
 import '../../styles/DashboardPremium.css';
-const Notice = ({ children, retry }) => <div className="premium-notice" role="alert"><span>{children}</span>{retry && <button onClick={retry}>Retry</button>}</div>;
+const Notice = ({ children, retry, retryLabel = 'Retry' }) => <div className="premium-notice" role="alert"><span>{children}</span>{retry && <button type="button" onClick={retry}>{retryLabel}</button>}</div>;
 export const DashboardRecords = ({ title, query, allowed, rows, type, searchQuery = '', recent = true }) => {
   const term = searchQuery.trim().toLocaleLowerCase();
   const error = searchInputError(searchQuery);
@@ -49,7 +48,7 @@ export const Dashboard = () => {
   const mainRef = useRef(null);
   const updateRecordsSearch = value => { setRecordsSearch(value); mainRef.current?.scrollTo({ top: 0 }); };
   const [filters, setFilters] = useState(defaultDashboardFilters);
-  const { invoices, payments, invoicesAllowed, paymentsAllowed, refresh } = useDashboard(filters);
+  const { invoices, payments, invoicesAllowed, paymentsAllowed, isDateRangeInverted, refresh } = useDashboard(filters);
   const user = authApi.getCurrentUser();
   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);
   const currency = selectDashboardCurrency(currencies, filters.currency || '');
@@ -62,14 +61,16 @@ export const Dashboard = () => {
   const invoiceReady = invoicesAllowed && invoices.isSuccess;
   const paymentReady = paymentsAllowed && payments.isSuccess;
   const actions = [
-    ...(invoicePermissions(user).manage ? [{ title: 'Create Invoice', route: '/invoices/new', icon: Add, tone: 'invoice' }] : []),
-    ...(paymentPermissions(user).create ? [{ title: 'Record Payment', route: '/payments/new', icon: PaymentsOutlined, tone: 'payment' }] : []),
-    ...(invoicePermissions(user).manage ? [{ title: 'Add Customer', route: '/customers/create', icon: PersonAddAlt, tone: 'customer' }, { title: 'Add Product / Service', route: '/products/new', icon: Inventory2Outlined, tone: 'product' }, { title: 'Create Credit Note', route: '/credit-notes/new', icon: AssignmentReturnOutlined, tone: 'credit' }] : []),
-  ];
+    { title: 'Create Invoice', route: '/invoices/new', icon: Add, tone: 'invoice', permission: 'invoices.create' },
+    { title: 'Record Payment', route: '/payments/new', icon: PaymentsOutlined, tone: 'payment', permission: 'payments.create' },
+    { title: 'Add Customer', route: '/customers/create', icon: PersonAddAlt, tone: 'customer', permission: 'customers.create' },
+    { title: 'Add Product / Service', route: '/products/new', icon: Inventory2Outlined, tone: 'product', permission: 'products.create' },
+    { title: 'Create Credit Note', route: '/credit-notes/new', icon: AssignmentReturnOutlined, tone: 'credit', permission: 'creditnotes.create' },
+  ].filter(action => hasPermission(action.permission, user));
   return <div className="bd-shell premium-dashboard"><DashboardHeader searchQuery={recordsSearch} onSearch={updateRecordsSearch} searchPlaceholder="Search billing records..." searchLabel="Search invoices, payments or customers" searchResultsId="dashboard-search-results" onSignOut={() => { authApi.logout(); navigate('/login'); }} /><main ref={mainRef} className="premium-main">
     <div className="premium-title"><div><span className="premium-eyebrow">BILLING OVERVIEW</span><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div><span className="premium-tag">Tenant-scoped data</span></div>
     <DashboardFilters currencies={currencies} currency={currency} values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} />
-    {recordsSearch.trim() ? <DashboardSearchResults invoices={invoices} payments={payments} invoicesAllowed={invoicesAllowed} paymentsAllowed={paymentsAllowed} currency={currency} searchQuery={recordsSearch} onClear={() => updateRecordsSearch('')} /> : <>
+    {isDateRangeInverted ? <Notice retry={() => setFilters(defaultDashboardFilters())} retryLabel="Reset dates">The selected date range is invalid: From Date ({filters.start}) cannot be later than To Date ({filters.end}). Please adjust your dates or reset the filter.</Notice> : recordsSearch.trim() ? <DashboardSearchResults invoices={invoices} payments={payments} invoicesAllowed={invoicesAllowed} paymentsAllowed={paymentsAllowed} currency={currency} searchQuery={recordsSearch} onClear={() => updateRecordsSearch('')} /> : <>
     {loading ? <DashboardSkeleton /> : <>
       {!invoicesAllowed ? <Notice>Invoice analytics are unavailable for your role.</Notice> : invoices.isError && <Notice retry={invoices.refetch}>Invoice data could not be loaded. {invoices.error.message}</Notice>}
       {!paymentsAllowed ? <Notice>Payment analytics are unavailable for your role.</Notice> : payments.isError && <Notice retry={payments.refetch}>Payment data could not be loaded. {payments.error.message}</Notice>}
@@ -77,7 +78,7 @@ export const Dashboard = () => {
       {result.data && !result.error && <section className="premium-kpis" aria-label="Billing summary">{result.data.summary.map(stat => <StatCard key={stat.id} filters={filters} data={(stat.id === 'paid' ? paymentReady : invoiceReady) ? stat : { ...stat, value: null, meta: 'Source unavailable - retry above' }} />)}</section>}
       {!currency && (invoiceReady || paymentReady) && <div className="premium-empty premium-panel">No billing activity in this date range. Choose another range or create your first record.</div>}
     </>}
-    <section className="premium-actions"><header><h2>Quick Actions</h2></header><div>{actions.map(action => { const Icon = action.icon; return <Link key={action.route} className={`dashboard-clickable-card premium-action-${action.tone}`} to={action.route}><i aria-hidden="true"><Icon /></i><strong>{action.title}</strong></Link>; })}</div></section>
+    {actions.length > 0 && <section className="premium-actions"><header><h2>Quick Actions</h2></header><div>{actions.map(action => { const Icon = action.icon; return <Link key={action.route} className={`dashboard-clickable-card premium-action-${action.tone}`} to={action.route}><i aria-hidden="true"><Icon /></i><strong>{action.title}</strong></Link>; })}</div></section>}
     {!loading && result.data && !result.error && <><section className="premium-analytics">{invoiceReady && paymentReady ? <RevenueChart data={result.data.revenue} currency={currency} summary={result.data.summary} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Revenue Trend</h2></header><div className="premium-empty">Both invoice and payment sources are required for this comparison. Retry the unavailable source above.</div></article>}{invoiceReady ? <OutstandingAging key={`${currency}:${filters.start}:${filters.end}`} data={result.data.aging} currency={currency} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Outstanding Aging</h2></header><div className="premium-empty">Invoice balances are unavailable. Retry the invoice source above.</div></article>}</section></>}
     {!loading && <section className="premium-details"><DashboardRecords title="Recent Payments" query={payments} allowed={paymentsAllowed} rows={result.data?.payments || []} type="payments" searchQuery={recordsSearch} /><DashboardRecords title="Recent Invoices" query={invoices} allowed={invoicesAllowed} rows={result.data?.invoices || []} type="invoices" searchQuery={recordsSearch} /></section>}
     </>}

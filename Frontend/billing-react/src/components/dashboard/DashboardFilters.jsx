@@ -1,48 +1,21 @@
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { DateRangeFilter } from '../DateRangeFilter';
-import { useState, useRef, useEffect, useId } from 'react';
+import { useId } from 'react';
 import Refresh from '@mui/icons-material/Refresh';
 import RestartAlt from '@mui/icons-material/RestartAlt';
 import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import { defaultDashboardFilters } from '../../pages/Dashboard/dashboardModel';
 import { dashboardPeriods } from '../../pages/Dashboard/dashboardPeriods';
-import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 
 export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, currencies = [], currency = '' }) => {
   const currencyLabelId = useId();
-  const [isOpen, setIsOpen] = useState(false);
-  useExclusiveDropdown(isOpen, setIsOpen);
-  const dropdownRef = useRef(null);
+  const periodLabelId = useId();
   const periods = dashboardPeriods();
   const selectedPeriod = periods.find(period => period.start === values.start && period.end === values.end)?.id || 'custom';
-  const currentLabel = periods.find(p => p.id === selectedPeriod)?.label || (selectedPeriod === 'custom' ? 'Custom dates' : 'Select period');
-
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    const handleKeyDown = event => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
   const selectPeriod = id => {
     const period = periods.find(option => option.id === id);
     if (period) onChange({ ...values, start: period.start, end: period.end });
-    setIsOpen(false);
   };
 
   const reset = () => { onChange(defaultDashboardFilters()); };
@@ -50,40 +23,22 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, cu
   return <section className="premium-filters" aria-label="Dashboard filters">
     <div className="premium-filter-field"><span>Date Range</span><DateRangeFilter startDate={values.start} endDate={values.end} onApply={({ startDate, endDate }) => onChange({ ...values, start: startDate, end: endDate })} dropdownIcon={<KeyboardArrowDown fontSize="small" />} /></div>
 
-    <div className="premium-filter-field premium-period-field" ref={dropdownRef}>
-      <span className="premium-filter-label">Period</span>
-      <div className="premium-select-wrapper">
-        <button
-          type="button"
-          className="premium-select-trigger"
-          onClick={() => setIsOpen(prev => !prev)}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-        >
-          <span>{currentLabel}</span>
-          <KeyboardArrowDown className={`premium-select-arrow ${isOpen ? 'open' : ''}`} fontSize="small" />
-        </button>
-        {isOpen && (
-          <ul className="premium-select-menu" role="listbox">
-            {periods.map(period => (
-              <li
-                key={period.id}
-                role="option"
-                aria-selected={selectedPeriod === period.id}
-                className={`premium-select-option ${selectedPeriod === period.id ? 'selected' : ''}`}
-                onClick={() => selectPeriod(period.id)}
-              >
-                {period.label}
-              </li>
-            ))}
-            {selectedPeriod === 'custom' && (
-              <li className="premium-select-option selected" role="option" aria-selected="true">
-                Custom dates
-              </li>
-            )}
-          </ul>
-        )}
-      </div>
+    <div className="premium-filter-field premium-period-field">
+      <span id={periodLabelId}>Period</span>
+      <Select
+        className="premium-currency-select"
+        labelId={periodLabelId}
+        inputProps={{ 'aria-label': 'Period' }}
+        value={selectedPeriod}
+        fullWidth
+        size="small"
+        IconComponent={KeyboardArrowDown}
+        onChange={event => selectPeriod(event.target.value)}
+        MenuProps={{ PaperProps: { className: 'premium-currency-menu' }, MenuListProps: { 'aria-label': 'Period options' }, marginThreshold: 8 }}
+      >
+        {periods.map(period => <MenuItem key={period.id} value={period.id}>{period.label}</MenuItem>)}
+        {selectedPeriod === 'custom' && <MenuItem value="custom" disabled>Custom dates</MenuItem>}
+      </Select>
     </div>
 
     <div className="premium-filter-field premium-currency-field">

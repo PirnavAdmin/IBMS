@@ -579,6 +579,8 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
         }
     }
 
+
+
     public Task<Billing.Contracts.AuditFilterOptionsResponse> GetFilterOptionsAsync(int tenantId, CancellationToken cancellationToken = default)
     {
         lock (_lock)
@@ -595,6 +597,14 @@ public class SnapshotAuditLogRepository : IAuditLogRepository
                 UserNames = userNames
             });
         }
+        }
+    public Task<(List<AuditLog> Items, int TotalCount)> GetPlatformAuditLogsPagedAsync(Billing.Contracts.Platform.PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            var filtered = _logs.Where(l => !filter.TenantId.HasValue || l.TenantId == filter.TenantId.Value).ToList();
+            return Task.FromResult((filtered, filtered.Count));
+        }
     }
 }
 
@@ -603,10 +613,12 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
     private readonly FakeInvoiceRepository _invoiceRepository;
     private readonly FakePaymentRepository _paymentRepository;
     private readonly SnapshotAuditLogRepository _auditLogRepository;
+    private readonly FakeCreditNoteRepository? _creditNoteRepository;
 
     private List<Invoice>? _invoiceSnapshot;
     private List<Payment>? _paymentSnapshot;
     private List<AuditLog>? _auditSnapshot;
+    private (List<CreditNote> CreditNotes, List<CreditNoteRefund> Refunds)? _creditNoteSnapshot;
 
     public int BeginCount { get; private set; }
     public int CommitCount { get; private set; }
@@ -615,11 +627,13 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
     public FakeTransactionalUnitOfWork(
         FakeInvoiceRepository invoiceRepository,
         FakePaymentRepository paymentRepository,
-        SnapshotAuditLogRepository auditLogRepository)
+        SnapshotAuditLogRepository auditLogRepository,
+        FakeCreditNoteRepository? creditNoteRepository = null)
     {
         _invoiceRepository = invoiceRepository;
         _paymentRepository = paymentRepository;
         _auditLogRepository = auditLogRepository;
+        _creditNoteRepository = creditNoteRepository;
     }
 
     public Task BeginTransactionAsync()
@@ -628,6 +642,7 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
         _invoiceSnapshot = _invoiceRepository.CreateSnapshot();
         _paymentSnapshot = _paymentRepository.CreateSnapshot();
         _auditSnapshot = _auditLogRepository.CreateSnapshot();
+        _creditNoteSnapshot = _creditNoteRepository?.CreateSnapshot();
         return Task.CompletedTask;
     }
 
@@ -637,6 +652,7 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
         _invoiceSnapshot = null;
         _paymentSnapshot = null;
         _auditSnapshot = null;
+        _creditNoteSnapshot = null;
         return Task.CompletedTask;
     }
 
@@ -654,6 +670,10 @@ public class FakeTransactionalUnitOfWork : IUnitOfWork
         if (_auditSnapshot != null)
         {
             _auditLogRepository.RestoreSnapshot(_auditSnapshot);
+        }
+        if (_creditNoteSnapshot.HasValue && _creditNoteRepository != null)
+        {
+            _creditNoteRepository.RestoreSnapshot(_creditNoteSnapshot.Value);
         }
         return Task.CompletedTask;
     }

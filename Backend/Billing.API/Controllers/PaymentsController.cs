@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Payment;
@@ -14,11 +15,16 @@ public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
     private readonly IPaymentGatewayService? _gatewayService;
+    private readonly IPaymentLedgerService? _ledgerService;
 
-    public PaymentsController(IPaymentService paymentService, IPaymentGatewayService? gatewayService = null)
+    public PaymentsController(
+        IPaymentService paymentService,
+        IPaymentGatewayService? gatewayService = null,
+        IPaymentLedgerService? ledgerService = null)
     {
         _paymentService = paymentService;
         _gatewayService = gatewayService;
+        _ledgerService = ledgerService;
     }
 
     private int? GetTenantId()
@@ -32,11 +38,18 @@ public class PaymentsController : ControllerBase
                     return headerTenantId;
                 }
             }
+
+            var superAdminClaim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
+            if (int.TryParse(superAdminClaim, out var tid) && tid > 0)
+            {
+                return tid;
+            }
+
             return 1;
         }
 
-        var claim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
-        if (int.TryParse(claim, out var tenantId) && tenantId > 0)
+        var tenantClaim = User.FindFirst("tenant_id")?.Value ?? User.FindFirst("TenantId")?.Value;
+        if (int.TryParse(tenantClaim, out var tenantId) && tenantId > 0)
         {
             return tenantId;
         }
@@ -385,6 +398,119 @@ public class PaymentsController : ControllerBase
             isPaid = string.Equals(data.Status, "Paid", StringComparison.OrdinalIgnoreCase) || data.BalanceAmount <= 0,
             isPartiallyPaid = string.Equals(data.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase)
         }));
+    }
+
+    [HttpPost("gateway/simulate-qr-payment/{invoiceId:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SimulateQrPayment(int invoiceId, [FromQuery] int? tenantId, [FromBody] SimulateQrPaymentRequest? request)
+    {
+        var targetTenant = tenantId ?? request?.TenantId ?? GetTenantId() ?? 2;
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment gateway service not configured."));
+
+        var utrRef = !string.IsNullOrWhiteSpace(request?.UtrReference)
+            ? request.UtrReference.Trim()
+            : $"UPI{DateTime.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(1000, 9999)}";
+
+        var verifyReq = new VerifyGatewayPaymentRequest
+        {
+            InvoiceId = invoiceId,
+            TenantId = targetTenant,
+            OrderId = $"order_qr_{invoiceId}_{DateTime.UtcNow.Ticks}",
+            PaymentId = utrRef,
+            Amount = request?.Amount ?? 0,
+            Gateway = "UPI_Simulated"
+        };
+
+        var performedBy = GetUserDisplayName() ?? "UPI App Simulation";
+        var result = await _gatewayService.VerifyAndProcessPaymentAsync(targetTenant, verifyReq, performedBy);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("gateway/webhook")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GatewayWebhook([FromBody] JsonElement payload, [FromQuery] int? tenantId)
+    {
+        try
+        {
+            var targetTenant = tenantId ?? GetTenantId() ?? 2;
+
+            string? paymentId = null;
+            string? orderId = null;
+            decimal amount = 0m;
+            int invoiceId = 0;
+
+            if (payload.TryGetProperty("payload", out var payloadObj) && payloadObj.TryGetProperty("payment", out var paymentObj) && paymentObj.TryGetProperty("entity", out var entityObj))
+            {
+                if (entityObj.TryGetProperty("id", out var pId)) paymentId = pId.GetString();
+                if (entityObj.TryGetProperty("order_id", out var oId)) orderId = oId.GetString();
+                if (entityObj.TryGetProperty("amount", out var amt)) amount = amt.GetDecimal() / 100m;
+
+                if (entityObj.TryGetProperty("notes", out var notesObj))
+                {
+                    if (notesObj.TryGetProperty("invoiceId", out var invProp))
+                    {
+                        if (invProp.ValueKind == JsonValueKind.Number) invoiceId = invProp.GetInt32();
+                        else if (int.TryParse(invProp.GetString(), out var parsedId)) invoiceId = parsedId;
+                    }
+                    if (notesObj.TryGetProperty("tenantId", out var tProp))
+                    {
+                        if (tProp.ValueKind == JsonValueKind.Number) targetTenant = tProp.GetInt32();
+                        else if (int.TryParse(tProp.GetString(), out var parsedT)) targetTenant = parsedT;
+                    }
+                }
+            }
+            else if (payload.TryGetProperty("invoiceId", out var directInv))
+            {
+                invoiceId = directInv.GetInt32();
+                if (payload.TryGetProperty("paymentId", out var directPid)) paymentId = directPid.GetString();
+                if (payload.TryGetProperty("amount", out var directAmt)) amount = directAmt.GetDecimal();
+                if (payload.TryGetProperty("orderId", out var directOid)) orderId = directOid.GetString();
+            }
+
+            if (invoiceId <= 0)
+            {
+                return Ok(new { status = "ignored", reason = "No invoice identifier in webhook payload" });
+            }
+
+            if (_gatewayService == null) return BadRequest("Payment gateway not configured.");
+
+            var verifyReq = new VerifyGatewayPaymentRequest
+            {
+                InvoiceId = invoiceId,
+                TenantId = targetTenant,
+                OrderId = orderId ?? $"wh_{Guid.NewGuid():N}"[..20],
+                PaymentId = paymentId ?? $"pay_wh_{DateTime.UtcNow.Ticks}",
+                Amount = amount,
+                Gateway = "Razorpay_Webhook"
+            };
+
+            var performedBy = "Gateway Webhook";
+            var result = await _gatewayService.VerifyAndProcessPaymentAsync(targetTenant, verifyReq, performedBy);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("gateway/export-excel")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExportPaymentLedger([FromQuery] int? tenantId)
+    {
+        if (_ledgerService == null) return NotFound("Ledger service not configured.");
+        var bytes = await _ledgerService.GetExcelBytesAsync(tenantId);
+        var fileName = $"Payments_Ledger_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
+
+    [HttpGet("gateway/live-ledger")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLiveLedger([FromQuery] int? tenantId, [FromQuery] int limit = 50)
+    {
+        if (_ledgerService == null) return NotFound("Ledger service not configured.");
+        var entries = await _ledgerService.GetRecentEntriesAsync(tenantId, limit);
+        return Ok(ApiResponse<List<PaymentLedgerEntry>>.Ok(entries, "Live payment ledger retrieved successfully."));
     }
 
 }

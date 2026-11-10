@@ -5,18 +5,27 @@ namespace Billing.Tests.Unit.Fakes;
 
 public class FakeUserSessionRepository : IUserSessionRepository
 {
-    public List<UserSession> Sessions { get; } = new();
+    public List<UserSession> Sessions { get; set; } = new();
 
-    private int _nextId = 1;
+    public FakeUserSessionRepository()
+    {
+    }
 
-    public Task CreateSessionAsync(UserSession session)
+    public FakeUserSessionRepository(List<UserSession> sessions)
+    {
+        Sessions = sessions;
+    }
+
+    public Task CreateSessionAsync(UserSession session) => CreateAsync(session);
+
+    public Task<UserSession> CreateAsync(UserSession session)
     {
         if (session.Id == 0)
         {
-            session.Id = _nextId++;
+            session.Id = Sessions.Any() ? Sessions.Max(s => s.Id) + 1 : 1;
         }
         Sessions.Add(session);
-        return Task.CompletedTask;
+        return Task.FromResult(session);
     }
 
     public Task<UserSession?> GetByIdAsync(int id)
@@ -73,6 +82,20 @@ public class FakeUserSessionRepository : IUserSessionRepository
     public Task RevokeAllUserSessionsAsync(int userId, string reason)
     {
         var active = Sessions.Where(s => s.UserId == userId && !s.IsRevoked).ToList();
+        var now = DateTime.UtcNow;
+        foreach (var s in active)
+        {
+            s.IsRevoked = true;
+            s.RevokedAtUtc = now;
+            s.LogoutAtUtc ??= now;
+            s.RevocationReason = reason;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task RevokeAllSessionsForTenantAsync(int tenantId, string reason)
+    {
+        var active = Sessions.Where(s => (s.User == null || s.User.TenantId == tenantId) && !s.IsRevoked).ToList();
         var now = DateTime.UtcNow;
         foreach (var s in active)
         {

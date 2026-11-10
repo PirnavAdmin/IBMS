@@ -24,7 +24,7 @@ public class ExportJobDto
 
 public class CreateExportJobRequest
 {
-    public string JobType { get; set; } = "Invoice"; // Invoice, Payment, Customer, AuditLog
+    public string JobType { get; set; } = "Invoice"; // Invoice, Payment, Customer, AuditLog, CreditNote, Quotation, Product
     public string ExportFormat { get; set; } = "CSV"; // CSV, JSON
     public string? FilterParametersJson { get; set; }
 }
@@ -35,4 +35,6 @@ public class ExportJobFilterRequest
     public int PageSize { get; set; } = 20;
     public string? JobType { get; set; }
     public string? Status { get; set; }
+    public bool ExcludeAuditLogs { get; set; }
+    public List<string>? AllowedJobTypes { get; set; }
 }

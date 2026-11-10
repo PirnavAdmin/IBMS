@@ -48,6 +48,7 @@ public class PlatformSettingsController : ControllerBase
     [HttpPut]
     [ProducesResponseType(typeof(ApiResponse<PlatformSettingsDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdatePlatformSettings(
@@ -60,6 +61,10 @@ public class PlatformSettingsController : ControllerBase
 
         if (!success)
         {
+            if (errorCode == "CONCURRENCY_CONFLICT" || errorCode?.Contains("CONFLICT") == true)
+            {
+                return Conflict(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode));
+            }
             return BadRequest(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode ?? "SETTINGS_UPDATE_FAILED"));
         }
 
@@ -68,9 +73,9 @@ public class PlatformSettingsController : ControllerBase
 
     private string GetCurrentUserName()
     {
-        return User.FindFirst(ClaimTypes.Name)?.Value
-               ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-               ?? User.Identity?.Name
+        return User?.FindFirst(ClaimTypes.Name)?.Value
+               ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? User?.Identity?.Name
                ?? "SuperAdmin";
     }
 }

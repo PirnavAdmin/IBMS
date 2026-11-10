@@ -1,3 +1,4 @@
+using Billing.API.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
@@ -99,12 +100,12 @@ public class InvoicesController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceRepository.GetSummaryAsync(tenantId.Value);
-        return Ok(result);
+        var summary = await _invoiceRepository.GetSummaryAsync(tenantId.Value);
+        return Ok(summary);
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType(typeof(Invoice), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetInvoice(int id)
     {
@@ -112,13 +113,15 @@ public class InvoicesController : ControllerBase
         if (!tenantId.HasValue) return Forbid();
 
         var invoice = await _invoiceRepository.GetByIdAsync(id, tenantId.Value);
-        if (invoice == null) return NotFound(new { message = "Invoice not found." });
+        if (invoice == null)
+            return NotFound(ApiResponse<Invoice>.Fail("Invoice not found."));
 
-        return Ok(invoice);
+        return Ok(ApiResponse<Invoice>.Ok(invoice));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateDraft([FromBody] Invoice request)
     {
         var tenantId = GetTenantId();
@@ -131,8 +134,12 @@ public class InvoicesController : ControllerBase
             return Forbid();
 
         request.TenantId = tenantId.Value;
+
         var result = await _invoiceService.CreateDraftAsync(request, tenantId.Value, User.Identity?.Name);
-        return result.Success ? Ok(result) : BadRequest(result);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return CreatedAtAction(nameof(GetInvoice), new { id = result.Data!.Id }, result);
     }
 
     [HttpPut("{id:int}")]
@@ -160,7 +167,6 @@ public class InvoicesController : ControllerBase
     [HttpPost("{id:int}/issue")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
-
     public async Task<IActionResult> IssueInvoice(int id)
     {
         var tenantId = GetTenantId();
@@ -175,7 +181,6 @@ public class InvoicesController : ControllerBase
     [HttpPost("{id:int}/deliver")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
-
     public async Task<IActionResult> SendInvoice(int id, [FromBody] Billing.Contracts.SendInvoiceRequest? request = null)
     {
         var tenantId = GetTenantId();
@@ -210,7 +215,6 @@ public class InvoicesController : ControllerBase
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
-
     public async Task<IActionResult> CancelInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
@@ -223,7 +227,6 @@ public class InvoicesController : ControllerBase
     [HttpPost("{id:int}/void")]
     [ProducesResponseType(typeof(ApiResponse<Invoice>), StatusCodes.Status200OK)]
     [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,Accountant,User,Viewer,Customer")]
-
     public async Task<IActionResult> VoidInvoice(int id, [FromBody] ReasonRequest request)
     {
         var tenantId = GetTenantId();
@@ -233,23 +236,5 @@ public class InvoicesController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
-        private int? GetTenantId()
-    {
-        if (User.IsInRole("SuperAdmin"))
-        {
-            if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
-                return hId;
-
-            return 1;
-        }
-
-        var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
-        if (int.TryParse(claim, out var tid) && tid > 0) return tid;
-
-        return null;
-    }
+    private int? GetTenantId() => this.ResolveTenantId();
 }
-
-
-
-

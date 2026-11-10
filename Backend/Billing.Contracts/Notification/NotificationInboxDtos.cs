@@ -57,3 +57,16 @@ public class CreateInAppNotificationCommand
     public string? ActionEntityId { get; set; }
     public DateTime? ExpiresAtUtc { get; set; }
 }
+public class PublishTenantNotificationCommand
+{
+    public int TenantId { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string EventDeduplicationId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? ActionModule { get; set; }
+    public string? ActionEntityId { get; set; }
+    public DateTime? ExpiresAtUtc { get; set; }
+    public List<string>? TargetRoles { get; set; }
+}
+

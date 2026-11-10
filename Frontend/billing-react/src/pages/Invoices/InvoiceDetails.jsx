@@ -1,3 +1,4 @@
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { hasPermission } from "../../utils/permissionUtils";
 import { useState } from "react";
@@ -74,6 +75,7 @@ export function InvoiceDetails() {
 
   const invoice = useQuery({
     queryKey: ["invoice", id],
+    refetchInterval: 5000,
     queryFn: ({ signal }) => invoiceService.get(id, { signal }),
     enabled: user.permissions.view,
     retry: false,
@@ -96,6 +98,7 @@ export function InvoiceDetails() {
 
   const payments = useQuery({
     queryKey: ["invoice", "payments", id, page, pageSize],
+    refetchInterval: 5000,
     queryFn: () => invoiceService.payments(id, page, pageSize),
     enabled: tab === "Payments" && user.permissions.view,
     retry: false,
@@ -170,10 +173,11 @@ export function InvoiceDetails() {
       }
       actions={
         <>
-          <Button component={Link} to="/invoices">
+          <Button component={Link} to="/invoices" variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />}>
             Back to invoices
           </Button>
           <Button
+            variant="outlined"
             startIcon={<Refresh />}
            disabled={invoice.isFetching || !user.permissions.view}
             onClick={() => {

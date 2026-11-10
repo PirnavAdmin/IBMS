@@ -14,18 +14,21 @@ public class PaymentGatewayService : IPaymentGatewayService
     private readonly IInvoiceRepository _invoiceRepository;
     private readonly IPaymentService _paymentService;
     private readonly IInvoiceTemplateRepository _templateRepository;
+    private readonly IPaymentLedgerService? _ledgerService;
     private readonly ILogger<PaymentGatewayService> _logger;
 
     public PaymentGatewayService(
         IInvoiceRepository invoiceRepository,
         IPaymentService paymentService,
         IInvoiceTemplateRepository templateRepository,
-        ILogger<PaymentGatewayService> logger)
+        ILogger<PaymentGatewayService> logger,
+        IPaymentLedgerService? ledgerService = null)
     {
         _invoiceRepository = invoiceRepository;
         _paymentService = paymentService;
         _templateRepository = templateRepository;
         _logger = logger;
+        _ledgerService = ledgerService;
     }
 
     public async Task<ApiResponse<PaymentOrderDto>> CreateOrderAsync(int tenantId, CreatePaymentOrderRequest request)
@@ -131,7 +134,7 @@ public class PaymentGatewayService : IPaymentGatewayService
             CustomerName = invoice.Customer?.Name,
             CustomerEmail = invoice.Customer?.Email,
             CustomerPhone = invoice.Customer?.Phone,
-            PaymentLink = $"http://localhost:3000/pay/{invoice.Id}?tenantId={invoice.TenantId}",
+            PaymentLink = $"{Billing.Application.Common.AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={invoice.TenantId}",
             UpiUri = upiUri,
             QrCodeBase64 = qrBase64,
             IsSandbox = true,
@@ -155,6 +158,15 @@ public class PaymentGatewayService : IPaymentGatewayService
         var paymentId = string.IsNullOrWhiteSpace(request.PaymentId) ? $"pay_{Guid.NewGuid():N}"[..20] : request.PaymentId.Trim();
         var amount = request.Amount > 0 ? request.Amount : invoice.BalanceAmount;
 
+        var isBankTransfer = string.Equals(request.Gateway, "BankTransfer", StringComparison.OrdinalIgnoreCase);
+        var isUpi = request.Gateway?.Contains("UPI", StringComparison.OrdinalIgnoreCase) == true;
+        var isCard = string.Equals(request.Gateway, "Card", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(request.Gateway, "CreditCard", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(request.Gateway, "DebitCard", StringComparison.OrdinalIgnoreCase);
+        var method = isBankTransfer ? "BankTransfer" : (isUpi ? "UPI" : (isCard ? "Card" : "Gateway"));
+        var provider = isBankTransfer ? "Bank Transfer" : (isUpi ? "UPI Payment" : (isCard ? "Credit / Debit Card" : (request.Gateway ?? "Razorpay")));
+        var reference = isBankTransfer || isUpi || isCard ? paymentId : $"{request.OrderId}|{paymentId}";
+
         // Record the payment cleanly through the existing PaymentService
         var createRequest = new CreatePaymentRequest
         {
@@ -162,11 +174,11 @@ public class PaymentGatewayService : IPaymentGatewayService
             CustomerId = invoice.CustomerId,
             Amount = amount,
             Currency = invoice.Currency ?? "INR",
-            Method = "Gateway",
-            ProviderName = request.Gateway ?? "Razorpay",
+            Method = method,
+            ProviderName = provider,
             ProviderTransactionId = paymentId,
-            CustomMethodName = request.Gateway ?? "Razorpay",
-            Reference = $"{request.OrderId}|{paymentId}",
+            CustomMethodName = provider,
+            Reference = reference,
             PaymentDate = DateTime.UtcNow,
             Allocations = new List<CreatePaymentAllocationRequest>
             {
@@ -186,6 +198,39 @@ public class PaymentGatewayService : IPaymentGatewayService
         if (!result.IsSuccess)
         {
             return ApiResponse<PaymentDetailDto>.Fail(result.ErrorMessage ?? "Payment allocation failed.");
+        }
+
+        // Real-time automatic logging to Excel / CSV Ledger for tracking and webhooks
+        if (_ledgerService != null)
+        {
+            try
+            {
+                var updatedInv = await _invoiceRepository.GetByIdAsync(invoice.Id, tenantId);
+                var remBal = updatedInv?.BalanceAmount ?? Math.Max(0, invoice.BalanceAmount - amount);
+                var statusStr = remBal <= 0 ? "Fully Paid" : "Partially Paid";
+                var payViaLabel = isUpi ? "UPI (GPay/PhonePe)" : (isCard ? "Credit/Debit Card" : (isBankTransfer ? "Bank Transfer" : (request.Gateway ?? "Online Gateway")));
+
+                _ = _ledgerService.LogPaymentAsync(new PaymentLedgerEntry
+                {
+                    TenantId = tenantId,
+                    InvoiceId = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    CustomerName = invoice.Customer?.Name ?? "Valued Customer",
+                    CustomerPhone = invoice.Customer?.Phone ?? string.Empty,
+                    CustomerEmail = invoice.Customer?.Email ?? string.Empty,
+                    TotalAmount = invoice.TotalAmount,
+                    AmountPaid = amount,
+                    BalanceDue = remBal,
+                    PayVia = payViaLabel,
+                    TransactionReference = reference,
+                    PaymentStatus = statusStr,
+                    Source = performedBy
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not append payment to Excel ledger for Invoice {InvoiceId}", invoice.Id);
+            }
         }
 
         _logger.LogInformation("Gateway payment {PaymentId} recorded for Invoice {InvoiceId} ({Amount} {Currency})",

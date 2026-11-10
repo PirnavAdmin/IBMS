@@ -17,6 +17,7 @@ export function WorkspacePagination({
   itemLabel = 'records',
   disabled = false,
   disabledPageHint,
+  hideSinglePageControls = false,
   className = '',
 }) {
   const pageSizeLabelId = useId();
@@ -33,7 +34,7 @@ export function WorkspacePagination({
         Showing {first}–{last} of {safeTotal} {itemLabel}
       </span>
       {pageCount <= 1 && disabledPageHint && <span className="workspace-pagination-hint">{disabledPageHint}</span>}
-      <div className="workspace-pagination-controls">
+      {!(hideSinglePageControls && pageCount <= 1) && <div className="workspace-pagination-controls">
         <div className="workspace-pagination-size-field">
           <span id={pageSizeLabelId}>Rows per page</span>
           <TextField
@@ -78,7 +79,7 @@ export function WorkspacePagination({
             />
           )}
         />
-      </div>
+      </div>}
     </footer>
   );
 }
