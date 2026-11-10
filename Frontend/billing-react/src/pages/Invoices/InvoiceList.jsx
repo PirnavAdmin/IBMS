@@ -119,8 +119,6 @@ export function InvoiceList() {
   const canLoadList = user.permissions.view && !invalidDates && !searchError;
   const list = useQuery({
     queryKey: ["invoices", "list", filters, querySearch],
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
     queryFn: ({ signal }) =>
       invoiceService.list({ ...filters, search: querySearch }, { signal }),
     enabled: Boolean(canLoadList),
@@ -129,8 +127,6 @@ export function InvoiceList() {
   });
   const summary = useQuery({
     queryKey: ["invoices", "summary"],
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
     queryFn: ({ signal }) => invoiceService.summary({ signal }),
     enabled: user.permissions.view,
     retry: false,
