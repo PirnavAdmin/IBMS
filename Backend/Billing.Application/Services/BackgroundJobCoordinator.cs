@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Billing.Application.Interfaces;
 using Billing.Contracts.BackgroundJobs;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
     private readonly ILogger<BackgroundJobCoordinator> _logger;
 
     private static readonly ConcurrentDictionary<string, BackgroundJobStatusDto> _jobStatuses = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, BackgroundJobStatusDto> _systemJobStatuses = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, BackgroundJobStatusDto> _tenantJobStatuses = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _jobLocks = new(StringComparer.OrdinalIgnoreCase);
 
     public BackgroundJobCoordinator(
@@ -56,16 +59,40 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
 
         foreach (var def in definitions)
         {
-            _jobStatuses.TryAdd(def.Name, new BackgroundJobStatusDto
-            {
-                JobName = def.Name,
-                Description = def.Description,
-                Status = "Idle",
-                LastRunSuccess = true,
-                NextScheduledRunUtc = DateTime.UtcNow.Add(GetJobInterval(def.Name))
-            });
+            var initial = CreateDefaultStatus(def.Name, def.Description);
+            _jobStatuses.TryAdd(def.Name, initial);
+            _systemJobStatuses.TryAdd(def.Name, CloneStatus(initial));
         }
     }
+
+    private static BackgroundJobStatusDto CreateDefaultStatus(string name, string description) => new()
+    {
+        JobName = name,
+        Description = description,
+        Status = "Idle",
+        LastRunSuccess = true,
+        NextScheduledRunUtc = DateTime.UtcNow.Add(GetJobInterval(name))
+    };
+
+    private static BackgroundJobStatusDto CloneStatus(BackgroundJobStatusDto j) => new()
+    {
+        JobName = j.JobName,
+        Description = j.Description,
+        Status = j.Status,
+        LastRunAtUtc = j.LastRunAtUtc,
+        NextScheduledRunUtc = j.NextScheduledRunUtc,
+        LastRunSuccess = j.LastRunSuccess,
+        LastRunMessage = j.LastRunMessage,
+        LastProcessedCount = j.LastProcessedCount,
+        LastExecutionDurationMs = j.LastExecutionDurationMs
+    };
+
+    private static bool IsTenantScopedJob(string jobName) =>
+        (jobName ?? "").Trim().ToLowerInvariant() is
+            "overdueinvoicejob" or "overdue" or
+            "reminderjob" or "reminder" or "reminders" or
+            "pdfgenerationjob" or "pdf" or "pdfgeneration" or
+            "emailnotificationjob" or "email" or "notifications";
 
     private static TimeSpan GetJobInterval(string jobName)
     {
@@ -79,9 +106,31 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
         };
     }
 
-    public List<BackgroundJobStatusDto> GetAllJobStatuses()
+    public List<BackgroundJobStatusDto> GetAllJobStatuses(int? tenantId = null)
     {
-        return _jobStatuses.Values.OrderBy(j => j.JobName).ToList();
+        if (!tenantId.HasValue)
+        {
+            return _jobStatuses.Values
+                .OrderBy(j => j.JobName)
+                .Select(CloneStatus)
+                .ToList();
+        }
+
+        return _systemJobStatuses.Values
+            .OrderBy(j => j.JobName)
+            .Select(sys =>
+            {
+                var tenantKey = $"{tenantId.Value}:{sys.JobName}";
+                if (_tenantJobStatuses.TryGetValue(tenantKey, out var tenantStatus))
+                {
+                    if (!sys.LastRunAtUtc.HasValue || (tenantStatus.LastRunAtUtc.HasValue && tenantStatus.LastRunAtUtc >= sys.LastRunAtUtc))
+                    {
+                        return CloneStatus(tenantStatus);
+                    }
+                }
+                return CloneStatus(sys);
+            })
+            .ToList();
     }
 
     public async Task<JobExecutionResultDto> RunJobByNameAsync(string jobName, int? tenantId = null, CancellationToken cancellationToken = default)
@@ -97,7 +146,11 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
             };
         }
 
-        var jobLock = _jobLocks.GetOrAdd(statusDto.JobName, _ => new SemaphoreSlim(1, 1));
+        var lockKey = tenantId.HasValue && IsTenantScopedJob(statusDto.JobName)
+            ? $"{statusDto.JobName}:tenant:{tenantId.Value}"
+            : statusDto.JobName;
+
+        var jobLock = _jobLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
         if (!await jobLock.WaitAsync(0, cancellationToken))
         {
             return new JobExecutionResultDto
@@ -109,7 +162,22 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
             };
         }
 
+        var targetTenantStatus = tenantId.HasValue
+            ? _tenantJobStatuses.GetOrAdd($"{tenantId.Value}:{statusDto.JobName}", _ => CreateDefaultStatus(statusDto.JobName, statusDto.Description))
+            : null;
+        var targetSystemStatus = _systemJobStatuses.GetOrAdd(statusDto.JobName, _ => CreateDefaultStatus(statusDto.JobName, statusDto.Description));
+
+        var sw = Stopwatch.StartNew();
         statusDto.Status = "Running";
+        if (targetTenantStatus != null)
+        {
+            targetTenantStatus.Status = "Running";
+        }
+        else
+        {
+            targetSystemStatus.Status = "Running";
+        }
+
         JobExecutionResultDto result;
 
         try
@@ -175,31 +243,47 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
                     break;
             }
 
+            sw.Stop();
             var completedAt = DateTime.UtcNow;
-            statusDto.LastRunAtUtc = completedAt;
-            statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
-            statusDto.LastRunSuccess = result.Success;
-            statusDto.LastRunMessage = result.Message;
-            statusDto.LastProcessedCount = result.ProcessedCount;
-            statusDto.LastExecutionDurationMs = result.Duration.TotalMilliseconds;
-            statusDto.Status = result.Success ? "Succeeded" : "Failed";
+            var durationMs = result.Duration.TotalMilliseconds > 0
+                ? result.Duration.TotalMilliseconds
+                : sw.Elapsed.TotalMilliseconds;
+
+            ApplyExecutionOutcome(statusDto, completedAt, result.Success, result.Message, result.ProcessedCount, durationMs);
+            if (targetTenantStatus != null)
+            {
+                ApplyExecutionOutcome(targetTenantStatus, completedAt, result.Success, result.Message, result.ProcessedCount, durationMs);
+            }
+            else
+            {
+                ApplyExecutionOutcome(targetSystemStatus, completedAt, result.Success, result.Message, result.ProcessedCount, durationMs);
+            }
 
             return result;
         }
         catch (Exception ex)
         {
+            sw.Stop();
             _logger.LogError(ex, "Failed running background job {JobName}", jobName);
             var completedAt = DateTime.UtcNow;
-            statusDto.LastRunAtUtc = completedAt;
-            statusDto.NextScheduledRunUtc = completedAt.Add(GetJobInterval(statusDto.JobName));
-            statusDto.LastRunSuccess = false;
-            statusDto.LastRunMessage = ex.Message;
-            statusDto.Status = "Failed";
+            var durationMs = sw.Elapsed.TotalMilliseconds;
+
+            ApplyExecutionOutcome(statusDto, completedAt, false, ex.Message, 0, durationMs);
+            if (targetTenantStatus != null)
+            {
+                ApplyExecutionOutcome(targetTenantStatus, completedAt, false, ex.Message, 0, durationMs);
+            }
+            else
+            {
+                ApplyExecutionOutcome(targetSystemStatus, completedAt, false, ex.Message, 0, durationMs);
+            }
 
             return new JobExecutionResultDto
             {
                 JobName = jobName ?? "Unknown",
                 Success = false,
+                ProcessedCount = 0,
+                Duration = sw.Elapsed,
                 Message = $"Job failed with exception: {ex.Message}",
                 ExecutedAtUtc = completedAt
             };
@@ -208,6 +292,23 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
         {
             jobLock.Release();
         }
+    }
+
+    private static void ApplyExecutionOutcome(
+        BackgroundJobStatusDto target,
+        DateTime completedAt,
+        bool success,
+        string? message,
+        int processedCount,
+        double durationMs)
+    {
+        target.LastRunAtUtc = completedAt;
+        target.NextScheduledRunUtc = completedAt.Add(GetJobInterval(target.JobName));
+        target.LastRunSuccess = success;
+        target.LastRunMessage = message;
+        target.LastProcessedCount = processedCount;
+        target.LastExecutionDurationMs = durationMs;
+        target.Status = success ? "Succeeded" : "Failed";
     }
 
     private static string ResolveCanonicalJobName(string? jobName) => (jobName ?? "").Trim().Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant() switch

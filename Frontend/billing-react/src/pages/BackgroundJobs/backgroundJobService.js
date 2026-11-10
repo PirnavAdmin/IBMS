@@ -13,7 +13,12 @@ function unwrap(response, label) {
 export function backgroundJobError(error) {
   const status = error?.response?.status ?? error?.status;
   if (status === 401) return 'Your session has expired. Please sign in again.';
-  if (status === 403) return 'You do not have permission to view or manage background jobs.';
+  const data = error?.response?.data;
+  const serverMessage = typeof data === 'object' && data !== null && !(typeof Blob !== 'undefined' && data instanceof Blob)
+    ? (data.message || data.detail || data.title)
+    : null;
+  if (serverMessage) return serverMessage;
+  if (status === 403) return 'You do not have permission to view or manage background jobs or exports.';
   if (status >= 500) return 'The background job service could not complete the request. Please try again.';
   return error?.userMessage || error?.message || 'Unable to reach the background job service.';
 }
@@ -83,7 +88,24 @@ export const backgroundJobService = {
     return mapExportJob(unwrap(await apiClient.post(exportsBase, { jobType, exportFormat }), 'export'));
   },
   async downloadExport(id) {
-    const response = await apiClient.get(`${exportsBase}/${id}/download`, { responseType: 'blob' });
-    return response?.data ?? response;
+    try {
+      const response = await apiClient.get(`${exportsBase}/${id}/download`, { responseType: 'blob' });
+      return response?.data ?? response;
+    } catch (error) {
+      const blobData = error?.response?.data;
+      if (blobData && typeof blobData.text === 'function') {
+        try {
+          const text = await blobData.text();
+          const parsed = JSON.parse(text);
+          const msg = parsed?.message || parsed?.detail || parsed?.title ||
+            (Array.isArray(parsed?.errors) ? parsed.errors.filter(Boolean).join(' ') : null);
+          if (msg) {
+            error.message = msg;
+            error.userMessage = msg;
+          }
+        } catch {}
+      }
+      throw error;
+    }
   },
 };

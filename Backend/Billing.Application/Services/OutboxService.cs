@@ -66,10 +66,7 @@ public class OutboxService : IOutboxService
             {
                 message.RetryCount++;
                 message.Error = ex.Message;
-                if (message.RetryCount >= 5)
-                {
-                    message.Status = "Failed";
-                }
+                message.Status = message.RetryCount >= 5 ? "Failed" : "Pending";
                 await _outboxRepository.UpdateAsync(message);
                 _logger.LogError(ex, "Failed to process Outbox message {MessageId}", message.Id);
             }
@@ -136,7 +133,7 @@ public class OutboxService : IOutboxService
                 EventId = message.EventId,
                 EventType = message.EventType,
                 PayloadJson = message.PayloadJson,
-                Status = "Success",
+                Status = "Pending",
                 AttemptNumber = 1,
                 MaxAttempts = 5,
                 CreatedAtUtc = DateTime.UtcNow

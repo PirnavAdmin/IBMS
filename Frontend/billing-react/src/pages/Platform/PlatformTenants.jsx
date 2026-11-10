@@ -1,3 +1,4 @@
+import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { useRef, useState } from 'react';
 import { Button, TextField } from '@mui/material';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -16,15 +17,16 @@ export function PlatformTenants() {
   const [params,setParams]=useSearchParams(); const navigate=useNavigate(); const [creating,setCreating]=useState(params.get('create')==='1');
   const search=useSearchDebounce(filters.search); const query=usePlatformQuery('tenants',{...filters,search},signal=>api.tenants({...filters,search},signal));
   const change=(key,value)=>setFilters(f=>({...f,[key]:value,page:1}));
+  useNavbarSearch(filters.search,value=>change('search',value),'Search tenants');
   return <PlatformShell title="Tenant Management" actions={<><PlatformRefresh query={query}/><Button variant="contained" disabled={query.isPending || query.isError} onClick={()=>setCreating(true)}>Create Tenant</Button></>}>
     <div className="platform-filters"><TextField size="small" label="Search tenants" value={filters.search} onChange={e=>change('search',e.target.value)} /><SelectFilter label="Status" value={filters.status} options={['Active','Suspended','Inactive']} onChange={v=>change('status',v)} /></div>
-    <QueryState query={query}>{query.data && <><PlatformTable label="Tenant directory" rows={query.data.items} columns={[[ 'id','ID'],['tenantCode','Tenant Code'],['name','Company'],['companyEmail','Contact Email'],['status','Status'],['createdAtUtc','Created',r=>dateText(r.createdAtUtc)],['actions','Actions',r=><Button component={Link} to={'/platform/tenants/'+r.id}>View details</Button>]]} /><Pager itemLabel="tenants" data={query.data} filters={filters} setFilters={setFilters}/></>}</QueryState>
+    <QueryState query={query} resource="tenants">{query.data && <><PlatformTable label="Tenant directory" rows={query.data.items} columns={[[ 'id','ID'],['tenantCode','Tenant Code'],['name','Company'],['companyEmail','Contact Email'],['status','Status'],['createdAtUtc','Created',r=>dateText(r.createdAtUtc)],['actions','Actions',r=><Button component={Link} to={'/platform/tenants/'+r.id}>View details</Button>]]} /><Pager itemLabel="tenants" data={query.data} filters={filters} setFilters={setFilters}/></>}</QueryState>
     {creating && <TenantEditor onClose={()=>{setCreating(false);params.delete('create');setParams(params,{replace:true});}} onDone={r=>navigate('/platform/tenants/'+r.id)} />}
   </PlatformShell>;
 }
 export function PlatformTenantDetails() {
   const {id}=useParams(); const query=usePlatformQuery('tenant',id,signal=>api.tenant(id,signal)); const [editor,setEditor]=useState(null); const t=query.data;
-  return <PlatformShell title={t ? t.name : 'Tenant Details'} actions={<Button component={Link} to="/platform/tenants">Back to Tenants</Button>}><QueryState query={query}>{t && <>
+  return <PlatformShell title={t ? t.name : 'Tenant Details'} actions={<Button component={Link} to="/platform/tenants" variant="outlined" className="workspace-back-button">Back to Tenants</Button>}><QueryState query={query} resource="tenant details">{t && <>
     <section className="platform-panel"><dl>{[['tenantCode','Code'],['companyEmail','Email'],['phone','Phone'],['taxId','Tax ID'],['address','Address'],['status','Status'],['userCount','Users'],['createdAtUtc','Created']].map(([key,label])=><div key={key}><dt>{label}</dt><dd>{key==='createdAtUtc'?dateText(t[key]):key==='status'?<PlatformStatus value={t[key]}/>:t[key]??'—'}</dd></div>)}</dl><div className="platform-actions"><Button onClick={()=>setEditor('edit')}>Edit Tenant</Button><Button onClick={()=>setEditor('status')}>Change Status</Button><Button component={Link} to={'/platform/audit?tenantId='+t.id}>Administration Activity</Button></div></section>
     <section className="platform-panel"><h2>Assigned Administrators</h2><PlatformTable rows={t.assignedAdmins || []} columns={[[ 'name','Name'],['email','Email'],['status','Status'],['roles','Roles',r=>r.roles?.join(', ')]]}/></section>
     {editor==='edit' && <TenantEditor tenant={t} onClose={()=>setEditor(null)}/>}

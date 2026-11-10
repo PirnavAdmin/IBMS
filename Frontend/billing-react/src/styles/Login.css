@@ -762,3 +762,17 @@
 .billing-auth-card-brand > span { max-width: 180px; white-space: normal; line-height: 1.3; font-size: .62rem; }
 .login-brand-header > div { min-width: 0; }
 .login-brand-header .login-brand-text { max-width: 300px; white-space: normal; font-size: 1rem !important; line-height: 1.3 !important; }
+
+/* The standalone recovery route uses the same readable card sizing as sign-in. */
+.billing-forgot-page { position: relative; min-height: 100dvh; background: #FDFAF6; }
+.billing-forgot-page .login-page-wrapper { position: relative; z-index: 1; display: flex; align-items: center; min-height: 100dvh; padding: 32px 16px; }
+.billing-forgot-page .login-page-wrapper > .MuiContainer-root { width: 100%; padding: 0; }
+.billing-forgot-page .login-hoverboard-card { width: 100%; max-width: 440px; margin-inline: auto; padding: 28px; }
+.billing-forgot-page .glass-card-header { display: flex; margin-bottom: 16px; }
+.billing-forgot-page .card-mode-desc { margin: 0 0 24px; color: #7D6E66; line-height: 1.6; }
+.billing-forgot-page .auth-footer-notice { margin-top: 24px; text-align: center; }
+@media (max-width: 480px) {
+  .billing-forgot-page .login-hoverboard-card { padding: 24px 20px; }
+}
+.billing-forgot-page > .auth-bg-system { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.billing-forgot-page .auth-bg-waves { width: 100%; height: 100%; }

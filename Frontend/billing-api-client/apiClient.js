@@ -2,9 +2,17 @@ import axios from 'axios';
 import { connectionFailureMessage, transportErrorMessage } from './transportError.js';
     import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
 
-export const BACKEND_URL = 'https://pediatric-astrology-outrank.ngrok-free.dev';
-const configuredBaseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || BACKEND_URL;
-export const API_BASE_URL = String(configuredBaseUrl).replace(/\/+$/, '');
+const resolveBaseUrl = () => {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  const configured = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL;
+  return configured || 'http://127.0.0.1:5271';
+};
+
+export const BACKEND_URL = String(resolveBaseUrl()).replace(/\/+$/, '');
+// dynamically resolved base url
+export const API_BASE_URL = BACKEND_URL;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

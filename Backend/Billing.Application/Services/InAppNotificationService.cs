@@ -12,13 +12,16 @@ public class InAppNotificationService : IInAppNotificationService
     private static readonly Regex HtmlTagRegex = new("<.*?>", RegexOptions.Compiled);
     private readonly IInAppNotificationRepository _repository;
     private readonly ILogger<InAppNotificationService> _logger;
+    private readonly IUserRepository? _userRepository;
 
     public InAppNotificationService(
         IInAppNotificationRepository repository,
-        ILogger<InAppNotificationService> logger)
+        ILogger<InAppNotificationService> logger,
+        IUserRepository? userRepository = null)
     {
         _repository = repository;
         _logger = logger;
+        _userRepository = userRepository;
     }
 
     public async Task<ApiResponse<NotificationInboxPageDto>> GetInboxAsync(
@@ -134,6 +137,111 @@ public class InAppNotificationService : IInAppNotificationService
             cancellationToken);
 
         return ApiResponse<bool>.Ok(updated, "Notifications marked as read.");
+    }
+
+
+    public async Task<ApiResponse<int>> PublishTenantNotificationAsync(
+        PublishTenantNotificationCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (command.TenantId <= 0)
+        {
+            return ApiResponse<int>.Fail("Tenant ID must be greater than zero.", errorCode: "INVALID_TENANT");
+        }
+
+        if (string.IsNullOrWhiteSpace(command.Title))
+        {
+            return ApiResponse<int>.Fail("Notification title is required.", errorCode: "INVALID_TITLE");
+        }
+
+        if (_userRepository == null)
+        {
+            _logger.LogWarning("IUserRepository is not available to resolve tenant recipients.");
+            return ApiResponse<int>.Fail("User repository is not configured for tenant recipient resolution.", errorCode: "SERVICE_UNAVAILABLE");
+        }
+
+        var activeUsers = await _userRepository.GetActiveUsersByTenantAsync(command.TenantId);
+        if (activeUsers == null || activeUsers.Count == 0)
+        {
+            _logger.LogInformation("No active users found for Tenant {TenantId} to receive notification {EventType}", command.TenantId, command.EventType);
+            return ApiResponse<int>.Ok(0, "No active recipients found for tenant.");
+        }
+
+        // Intended recipients: TenantAdmin, Admin, BillingManager, Accountant, or users with module/billing permissions
+        var defaultAdminRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "TenantAdmin", "Admin", "BillingManager", "Accountant"
+        };
+
+        var targetRoles = command.TargetRoles != null && command.TargetRoles.Count > 0
+            ? new HashSet<string>(command.TargetRoles, StringComparer.OrdinalIgnoreCase)
+            : defaultAdminRoles;
+
+        var actionModule = command.ActionModule?.Trim().ToLowerInvariant();
+
+        var eligibleUsers = activeUsers.Where(u =>
+        {
+            if (u.TenantId != command.TenantId) return false;
+
+            // Administrative roles always eligible
+            if (u.Roles != null && u.Roles.Any(r => targetRoles.Contains(r))) return true;
+
+            // Broad billing or administrative permissions
+            if (u.Permissions != null && u.Permissions.Any(p =>
+                p.StartsWith("billing.", StringComparison.OrdinalIgnoreCase) ||
+                p.StartsWith("admin.", StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            // Module-specific permissions (e.g. quotations, invoices, payments, creditnotes, exports, jobs)
+            if (!string.IsNullOrWhiteSpace(actionModule) && u.Permissions != null)
+            {
+                var singular = actionModule.EndsWith("s") ? actionModule.Substring(0, actionModule.Length - 1) : actionModule;
+                var singularAlt = actionModule.Replace("-", "");
+                var singularAlt2 = singularAlt.EndsWith("s") ? singularAlt.Substring(0, singularAlt.Length - 1) : singularAlt;
+
+                if (u.Permissions.Any(p =>
+                    p.StartsWith(actionModule, StringComparison.OrdinalIgnoreCase) ||
+                    p.StartsWith(singular, StringComparison.OrdinalIgnoreCase) ||
+                    p.StartsWith(singularAlt, StringComparison.OrdinalIgnoreCase) ||
+                    p.StartsWith(singularAlt2, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }).ToList();
+
+        // Fallback: If no users matched administrative/billing roles, notify all active tenant users
+        if (eligibleUsers.Count == 0)
+        {
+            eligibleUsers = activeUsers.Where(u => u.TenantId == command.TenantId).ToList();
+        }
+
+        int createdCount = 0;
+        foreach (var user in eligibleUsers)
+        {
+            var userDedupId = string.IsNullOrWhiteSpace(command.EventDeduplicationId)
+                ? $"{command.EventType}_{Guid.NewGuid():N}"
+                : $"{command.EventDeduplicationId}-u{user.Id}";
+
+            var res = await CreateInAppNotificationAsync(new CreateInAppNotificationCommand
+            {
+                TenantId = command.TenantId,
+                RecipientUserId = user.Id,
+                EventType = command.EventType,
+                EventDeduplicationId = userDedupId,
+                Title = command.Title,
+                Message = command.Message,
+                ActionModule = command.ActionModule,
+                ActionEntityId = command.ActionEntityId,
+                ExpiresAtUtc = command.ExpiresAtUtc
+            }, cancellationToken);
+
+            if (res.Success) createdCount++;
+        }
+
+        return ApiResponse<int>.Ok(createdCount, $"Notification published to {createdCount} tenant recipients.");
     }
 
     public async Task<ApiResponse<bool>> CreateInAppNotificationAsync(

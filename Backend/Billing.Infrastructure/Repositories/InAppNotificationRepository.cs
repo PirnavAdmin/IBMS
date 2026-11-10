@@ -15,7 +15,11 @@ public class InAppNotificationRepository : IInAppNotificationRepository
         "invoices",
         "payments",
         "customers",
-        "credit-notes"
+        "credit-notes",
+        "quotations",
+        "notifications",
+        "exports",
+        "jobs"
     };
 
     private readonly BillingDbContext _dbContext;

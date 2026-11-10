@@ -73,3 +73,7 @@
 .platform-setting-toggle.is-enabled {background:#D8F5DE;color:#22653B;}
 .app-layout.platform-layout .astra-active-pill {background:#F2C78A;}
 .app-layout.platform-layout .astra-sidebar .bd-nav-item:not(.active):hover {background:#684938;color:#FFF9F1;}
+
+.platform-query-error { margin-bottom:16px; overflow-wrap:anywhere; }.platform-query-error .MuiAlert-message {min-width:0;}.platform-query-error .MuiAlert-action {align-items:center;}.platform-query-error .MuiAlertTitle-root {font-size:15px;font-weight:650;}
+
+.platform-filters > .date-range-control {flex:1 1 240px;max-width:320px;min-width:0;}.platform-filters .date-range-filter {width:100%;min-height:40px;}.platform-filters .date-range-feedback {font-size:12px;}@media(max-width:800px){.platform-filters > .date-range-control {max-width:none;}}

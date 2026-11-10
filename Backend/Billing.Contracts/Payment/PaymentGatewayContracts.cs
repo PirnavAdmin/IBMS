@@ -50,3 +50,10 @@ public class VerifyGatewayPaymentRequest
     public string Gateway { get; set; } = "Razorpay";
     public decimal Amount { get; set; }
 }
+
+public class SimulateQrPaymentRequest
+{
+    public int? TenantId { get; set; }
+    public decimal? Amount { get; set; }
+    public string? UtrReference { get; set; }
+}

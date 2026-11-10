@@ -37,6 +37,17 @@ public class ExportJobRepository : IExportJobRepository
         var query = _context.ExportJobs
             .Where(e => e.TenantId == tenantId);
 
+        if (filter.ExcludeAuditLogs)
+        {
+            query = query.Where(e => e.JobType != "AuditLog" && e.JobType != "AuditLogs");
+        }
+
+        if (filter.AllowedJobTypes is { Count: > 0 })
+        {
+            var allowed = filter.AllowedJobTypes;
+            query = query.Where(e => allowed.Contains(e.JobType));
+        }
+
         if (!string.IsNullOrWhiteSpace(filter.JobType))
         {
             query = query.Where(e => e.JobType == filter.JobType);

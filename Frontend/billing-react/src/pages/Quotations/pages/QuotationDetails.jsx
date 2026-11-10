@@ -1,6 +1,17 @@
+import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
+import EventAvailableOutlined from '@mui/icons-material/EventAvailableOutlined';
+import LinkOutlined from '@mui/icons-material/LinkOutlined';
+import NotesOutlined from '@mui/icons-material/NotesOutlined';
+import GavelOutlined from '@mui/icons-material/GavelOutlined';
+import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import PercentOutlined from '@mui/icons-material/PercentOutlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
+import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 import ArrowBack from '@mui/icons-material/ArrowBack';
 import DeleteOutline from '@mui/icons-material/DeleteOutline';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import PersonOutline from '@mui/icons-material/PersonOutline';
@@ -9,6 +20,7 @@ import SaveOutlined from '@mui/icons-material/SaveOutlined';
 import UndoOutlined from '@mui/icons-material/UndoOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { displayDate } from '../../../utils/localDate';
 import { formatQuotationTimestamp } from '../utils/quotationDates';
 import { apiClient } from 'billing-api-client/apiClient.js';
@@ -83,6 +95,9 @@ function drawSignature(canvas, strokes) {
   });
 }
 export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onAction, onEdit }) {
+  const canManageQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.manage') : true;
+  const canApproveQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.approve') || canManageQuotes : true;
+  const canEditQuotes = typeof hasPermission === 'function' ? hasPermission('quotations.edit') || canManageQuotes : true;
   const [tab, setTab] = useState('Details');
   const [preview, setPreview] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -310,27 +325,41 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
   };
   const actions = <div className="quote-header-actions">
     <button className="quote-btn secondary" aria-pressed={preview} onClick={() => setPreview(value => !value)}>{preview ? <><ArrowBack /> Back to details</> : <><VisibilityOutlined /> View quotation</>}</button>
-    {quotation.status === 'Draft' && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
-    {quotation.status === 'Sent' && (hasPermission('quotations.approve') || hasPermission('quotations.manage')) && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
+    {quotation.status === 'Draft' && canEditQuotes && <><button className="quote-btn secondary" onClick={() => onEdit(quotation)}>Edit</button><button className="quote-btn primary" onClick={() => onAction('send', quotation)}>Send</button></>}
+    {quotation.status === 'Sent' && canApproveQuotes && <button className="quote-btn primary" onClick={() => onAction('approve', quotation)}>Approve</button>}
     {quotation.status === 'Approved' && <button className="quote-btn primary" onClick={() => onAction('convert', quotation)}>Convert to Invoice</button>}
     {['Draft', 'Sent', 'Approved'].includes(quotation.status) && <button className="quote-btn danger" onClick={() => onAction('cancel', quotation)}>Cancel</button>}
   </div>;
 
   return <main className={`quotation-page quotation-details-page${preview ? ' is-preview' : ''}`}>
-    <button className="quote-back" onClick={onBack}><ArrowBack /> Back to quotations</button>
+    <button className="quote-back workspace-back-button" onClick={onBack}><ArrowBack /> Back to quotations</button>
     <header className="quotation-header">
       <div><span className="quote-eyebrow">QUOTATION</span><h1>{quotation.quoteNumber} <QuotationStatusBadge status={quotation.status} /></h1></div>
       {actions}
     </header>
     <div className="quote-tabs">{['Details', 'Items', 'Communication'].map(name => <button className={tab === name ? 'active' : ''} key={name} onClick={() => setTab(name)}>{name}</button>)}</div>
-    {tab === 'Details' && <section className="quote-card quote-details-combined">
-      <div className="quote-details-content"><h2>Quotation details</h2><dl className="quote-detail-list">
-        <div><dt>Quote number</dt><dd>{quotation.quoteNumber}</dd></div><div><dt>Customer</dt><dd>{quotation.customer.name} ({quotation.customer.code})</dd></div>
-        <div><dt>Quote date</dt><dd>{displayDate(quotation.quotationDate)}</dd></div><div><dt>Valid until</dt><dd>{displayDate(quotation.validUntil)}</dd></div>
-        <div><dt>Reference</dt><dd>{quotation.reference || '—'}</dd></div><div><dt>Status</dt><dd><QuotationStatusBadge status={quotation.status} /></dd></div>
-        {quotation.status === 'Converted' && quotation.convertedInvoiceId != null && <div><dt>Invoice reference</dt><dd>{quotation.convertedInvoiceId}</dd></div>}
-      </dl><h3>Notes</h3><p>{quotation.notes || '—'}</p><h3>Terms & Conditions</h3><p>{quotation.termsAndConditions || '—'}</p></div>
-      <section className="quotation-financial-summary"><h2>Financial summary</h2>{[['Subtotal', totals.subtotal], ['Discount', -totals.discountAmount], ['Taxable Amount', totals.taxableAmount], ['Tax', totals.taxAmount], ['Charges', totals.chargesAmount]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{currency(value)}</strong></div>)}<div className="quote-grand-total"><span>Grand Total</span><strong>{currency(totals.totalAmount)}</strong></div></section>
+    {tab === 'Details' && <section className="quote-card quote-details-combined" aria-label="Quotation overview">
+      <section className="quote-card quote-details-content quote-overview-card" aria-label="Quotation details">
+        <header className="quote-overview-heading"><span className="quote-overview-icon" aria-hidden="true"><DescriptionOutlined /></span><h2>Quotation details</h2></header>
+        <dl className="quote-detail-list">
+          <div><dt><DescriptionOutlined aria-hidden="true" />Quote number</dt><dd className="quote-detail-number">{quotation.quoteNumber || '\u2014'}</dd></div>
+          <div><dt><VerifiedOutlined aria-hidden="true" />Status</dt><dd><QuotationStatusBadge status={quotation.status} /></dd></div>
+          <div><dt><PersonOutline aria-hidden="true" />Customer</dt><dd>{customerName}{customer.code && <small>{customer.code}</small>}</dd></div>
+          <div><dt><LinkOutlined aria-hidden="true" />Reference</dt><dd>{quotation.reference || 'Not provided'}</dd></div>
+          <div><dt><CalendarTodayOutlined aria-hidden="true" />Quote date</dt><dd>{displayDate(quotation.quotationDate)}</dd></div>
+          <div><dt><EventAvailableOutlined aria-hidden="true" />Valid until</dt><dd>{displayDate(quotation.validUntil)}</dd></div>
+          {quotation.status === 'Converted' && quotation.convertedInvoiceId != null && <div className="quote-converted-reference"><dt><ReceiptLongOutlined aria-hidden="true" />Invoice reference</dt><dd>{hasPermission('invoices.view') ? <Link to={`/invoices/${quotation.convertedInvoiceId}`}>Invoice #{quotation.convertedInvoiceId} <span aria-hidden="true">&#8599;</span></Link> : `Invoice #${quotation.convertedInvoiceId}`}</dd></div>}
+        </dl>
+      </section>
+      <section className="quote-card quotation-financial-summary" aria-label="Financial summary">
+        <header className="quote-overview-heading"><span className="quote-overview-icon" aria-hidden="true"><ReceiptLongOutlined /></span><h2>Financial summary</h2></header>
+        <dl className="quote-financial-rows">{[['Subtotal', totals.subtotal], ['Discount', -totals.discountAmount], ['Taxable Amount', totals.taxableAmount], ['Tax', totals.taxAmount], ['Charges', totals.chargesAmount]].map(([label, value]) => { const Icon = { Subtotal: ReceiptLongOutlined, Discount: LocalOfferOutlined, 'Taxable Amount': DescriptionOutlined, Tax: PercentOutlined, Charges: PaymentsOutlined }[label]; return <div key={label}><dt><Icon aria-hidden="true" />{label}</dt><dd>{currency(value)}</dd></div>; })}</dl>
+        <div className="quote-grand-total"><span><AccountBalanceWalletOutlined aria-hidden="true" />Grand Total</span><strong>{currency(totals.totalAmount)}</strong></div>
+      </section>
+      <div className="quote-details-notes">
+        <section className="quote-card quote-note-card"><h2><span className="quote-overview-icon" aria-hidden="true"><NotesOutlined /></span>Notes</h2><p>{quotation.notes || 'No notes added.'}</p></section>
+        <section className="quote-card quote-note-card"><h2><span className="quote-overview-icon" aria-hidden="true"><GavelOutlined /></span>Terms &amp; Conditions</h2><p>{quotation.termsAndConditions || 'No terms added.'}</p></section>
+      </div>
     </section>}
     {tab === 'Items' && <section className="quote-card"><div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Product</th><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Discount</th><th>Tax</th><th>Total</th></tr></thead><tbody>{quotation.items.map(item => <tr key={item.id}><td>{item.productName}</td><td>{item.description}</td><td>{item.quantity}</td><td>{currency(item.unitPrice)}</td><td>{currency(item.discountAmount)}</td><td>{item.taxType} {item.taxRate}% ({currency(item.taxAmount)})</td><td>{currency(item.totalAmount)}</td></tr>)}</tbody></table></div>{quotation.charges?.length > 0 && <div className="quote-item-charges"><h2>Additional charges</h2><div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Charge</th><th>Type</th><th>Amount</th></tr></thead><tbody>{quotation.charges.map((charge, index) => { const amount = Number(charge.amount || 0); const total = charge.type === 'percentage' ? quotationTotals(quotation.items, quotation.invoiceDiscount, [charge]).chargesAmount : amount; return <tr key={charge.id || `${charge.name}-${index}`}><td>{charge.name || 'Additional charge'}</td><td>{charge.type === 'percentage' ? 'Percentage' : 'Fixed'}</td><td>{charge.type === 'percentage' ? `${amount}% (${currency(total)})` : currency(total)}</td></tr>; })}</tbody></table></div></div>}</section>}
     {tab === 'Communication' && <section className="quote-card"><h2>Communication history</h2>{quotation.communications?.length ? <div className="quote-table-wrap ibms-table-frame"><table className="quote-list-table"><thead><tr><th>Date</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Sent By</th><th>Message</th></tr></thead><tbody>{quotation.communications.map((entry, index) => <tr key={index}><td style={{ whiteSpace: 'nowrap' }}>{formatCommunicationDate(entry.date)}</td><td>{entry.type}</td><td>{entry.recipient}</td><td>{entry.subject}</td><td><QuotationStatusBadge status={entry.status} /></td><td>{entry.sentBy}</td><td>{entry.message}</td></tr>)}</tbody></table></div> : <p className="quote-state">No communication has been sent yet.</p>}</section>}
