@@ -12,6 +12,7 @@ import {
   LockOutlined, FlashOn, PersonOutline, Visibility, VisibilityOff
 } from '@mui/icons-material';
 import axios from 'axios';
+import { InvoiceBillingLogo } from '../../../components/InvoiceBillingLogo';
 // Comprehensive list of RBI-scheduled Indian banks (Public Sector, Private Sector,
 // Small Finance, Payments, Major Foreign Banks in India, Co-operative & Grameena Banks)
 const INDIAN_NETBANKING_BANKS = [
@@ -188,7 +189,7 @@ export function PublicInvoicePayment() {
   const tenantId = searchParams.get('tenantId') || '2';
   const allowPartialParam = searchParams.get('allowPartial');
   const payNowOnlyParam = searchParams.get('payNowOnly') === '1';
-  const isPayNowOnly = payNowOnlyParam || allowPartialParam === '0';
+  const isForcedFullOnly = !payNowOnlyParam && allowPartialParam === '0';
 
   const [loading, setLoading] = useState(true);
   const [qrLoading, setQrLoading] = useState(false);
@@ -243,8 +244,13 @@ export function PublicInvoicePayment() {
 
   const initialPaidRef = useRef(null);
   const initialBalanceRef = useRef(null);
+  const statusPollInFlightRef = useRef(false);
+  const latestOrderRef = useRef(null);
+  const latestPayAmountRef = useRef('');
+  latestOrderRef.current = order;
+  latestPayAmountRef.current = payAmount;
 
-  const isPartialAllowed = isPayNowOnly ? false : (order?.allowPartialPayments ?? true) !== false;
+  const isPartialAllowed = isForcedFullOnly ? false : (order?.allowPartialPayments ?? true) !== false;
   const isSandboxMode = order?.isSandbox !== false;
   const showTestTools = isSandboxMode && order?.allowTestSimulationTools !== false;
   const hasRealRazorpay = Boolean(order?.hasRazorpayOrder && order?.keyId && !String(order.keyId).includes('ibms_sandbox'));
@@ -273,7 +279,7 @@ export function PublicInvoicePayment() {
       const payload = {
         invoiceId: parseInt(id, 10),
         tenantId: parseInt(tenantId, 10),
-        amount: (!isPayNowOnly && customAmount !== null) ? Number(customAmount) : undefined,
+        amount: (!isForcedFullOnly && customAmount !== null) ? Number(customAmount) : undefined,
         currency: 'INR',
         gateway: 'Razorpay'
       };
@@ -337,37 +343,75 @@ export function PublicInvoicePayment() {
     return () => clearTimeout(timer);
   }, [payAmount, order?.balanceAmount, order?.amount]);
 
-  // Automatic Polling: Auto-detect when QR payment or bank transfer completes without clicking any button
-  useEffect(() => {
-    if (!order || paymentSuccess) return;
+  const pollInvoiceStatus = async () => {
+    const activeOrder = latestOrderRef.current;
+    if (!activeOrder || statusPollInFlightRef.current) return;
+    statusPollInFlightRef.current = true;
+    try {
+      const res = await gatewayClient.get(`${API_URL}/api/v1/payments/gateway/invoice-status/${activeOrder.invoiceId}?tenantId=${tenantId}`);
+      const inv = res?.data?.data;
+      if (inv) {
+        const initPaid = initialPaidRef.current ?? activeOrder.paidAmount ?? 0;
+        const initBal = initialBalanceRef.current ?? activeOrder.balanceAmount ?? 0;
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await gatewayClient.get(`${API_URL}/api/v1/payments/gateway/invoice-status/${order.invoiceId}?tenantId=${tenantId}`);
-        const inv = res?.data?.data;
-        if (inv) {
-          const initPaid = initialPaidRef.current ?? order.paidAmount ?? 0;
-          const initBal = initialBalanceRef.current ?? order.balanceAmount ?? 0;
-
-          if (inv.paidAmount > initPaid || inv.balanceAmount < initBal || inv.isPaid) {
-            const newlyPaid = inv.paidAmount - initPaid;
-            setPaymentSuccess({
-              isFull: inv.isPaid || inv.balanceAmount <= 0,
-              paidAmount: newlyPaid > 0 ? newlyPaid : (Number(payAmount) || order.amount),
-              remainingBalance: inv.balanceAmount,
-              reference: 'UPI_AUTO_VERIFIED',
-              invoiceNumber: inv.invoiceNumber,
-              customerName: order.customerName
-            });
-          }
+        if (inv.paidAmount > initPaid || inv.balanceAmount < initBal || inv.isPaid) {
+          const newlyPaid = inv.paidAmount - initPaid;
+          setPaymentSuccess({
+            isFull: inv.isPaid || inv.balanceAmount <= 0,
+            paidAmount: newlyPaid > 0 ? newlyPaid : (Number(latestPayAmountRef.current) || activeOrder.amount),
+            remainingBalance: inv.balanceAmount,
+            reference: 'UPI_AUTO_VERIFIED',
+            invoiceNumber: inv.invoiceNumber,
+            customerName: activeOrder.customerName
+          });
         }
-      } catch (err) {
-        // Silently retry on next poll interval
       }
-    }, 1200);
+    } catch {
+      // Silently retry on next scheduled check
+    } finally {
+      statusPollInFlightRef.current = false;
+    }
+  };
 
-    return () => clearInterval(interval);
-  }, [order, paymentSuccess, tenantId, payAmount]);
+  // Visibility-aware QR payment polling: polls only on active Scan UPI QR tab while visible (4s -> 15s backoff, max 15m)
+  useEffect(() => {
+    if (!order?.invoiceId || paymentSuccess || tab !== 0) return;
+
+    let cancelled = false;
+    let timerId = null;
+    const startedAt = Date.now();
+
+    const scheduleNext = () => {
+      if (cancelled || document.hidden) return;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > 15 * 60 * 1000) return;
+      const delay = elapsed > 3 * 60 * 1000 ? 15000 : 4000;
+      timerId = setTimeout(async () => {
+        if (cancelled || document.hidden) return;
+        await pollInvoiceStatus();
+        scheduleNext();
+      }, delay);
+    };
+
+    const handleVisibilityChange = () => {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      if (!document.hidden && !cancelled) {
+        void pollInvoiceStatus().then(() => scheduleNext());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    scheduleNext();
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [order?.invoiceId, paymentSuccess, tenantId, tab]);
 
   // Handle Real Razorpay Checkout Modal (Card / NetBanking / UPI)
   const handleRazorpayCardCheckout = async (preferredMethod = null) => {
@@ -390,7 +434,7 @@ export function PublicInvoicePayment() {
       currency: order.currency || 'INR',
       name: 'IBMS Invoicing',
       description: `Payment for Invoice #${order.invoiceNumber}`,
-      image: '/branding/ibms-crest.png',
+      image: '/branding/ibms-brand.png',
       order_id: order.hasRazorpayOrder ? order.orderId : undefined,
       prefill: {
         name: order.customerName || '',
@@ -674,8 +718,9 @@ export function PublicInvoicePayment() {
 
       if (res?.data?.success === false) {
         setError(res?.data?.message || 'UPI Simulation failed.');
+      } else {
+        await pollInvoiceStatus();
       }
-      // The auto-polling loop running every 2.5s detects the recorded payment and switches to success screen!
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || 'Failed to simulate UPI payment.');
     } finally {
@@ -755,24 +800,14 @@ export function PublicInvoicePayment() {
       px: { xs: 2, sm: 3 }
     }}>
       <Container maxWidth="sm">
-        {/* Header Branding matching INVOICE.BILLING design */}
+        {/* Header Branding using official IBMS logo */}
         <Box sx={{ mb: 3.5, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, mb: 0.8 }}>
-            <Box
-              component="img"
-              src="/branding/ibms-crest.png"
-              alt="IBMS Crest"
-              sx={{ width: 44, height: 44, objectFit: 'contain' }}
-            />
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, color: '#3E2C24', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                INVOICE<span style={{ color: '#92634C' }}>.</span>BILLING
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', fontWeight: 750, color: '#8A6850', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Secure Payment Portal
-              </Typography>
-            </Box>
+          <Box sx={{ width: { xs: 150, sm: 175 }, mx: 'auto', mb: 0.75 }}>
+            <InvoiceBillingLogo variant="full" />
           </Box>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 750, color: '#8A6850', letterSpacing: '0.14em', textTransform: 'uppercase', mb: 0.25 }}>
+            Secure Payment Portal
+          </Typography>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.5, py: 0.4, bgcolor: '#EFE4D6', borderRadius: 99, mt: 0.5 }}>
             <SecurityOutlined sx={{ fontSize: 13, color: '#65442E' }} />
             <Typography variant="caption" sx={{ color: '#6A4838', fontWeight: 600, fontSize: '0.72rem' }}>
@@ -984,7 +1019,7 @@ export function PublicInvoicePayment() {
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Already Paid</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Paid</Typography>
                     <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#16A34A' }}>
                       ₹{Number(order.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </Typography>
@@ -1014,7 +1049,7 @@ export function PublicInvoicePayment() {
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Already Paid</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Paid</Typography>
                     <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#16A34A' }}>
                       ₹{order.paidAmount?.toLocaleString('en-IN')}
                     </Typography>
@@ -1054,7 +1089,7 @@ export function PublicInvoicePayment() {
                   InputProps={{
                     readOnly: !isPartialAllowed,
                   }}
-                  helperText={!isPartialAllowed ? (isPayNowOnly ? "Pay Now Only: Full remaining balance payment is required." : "Full payment required. Partial payment is disabled for this invoice.") : undefined}
+                  helperText={!isPartialAllowed ? "Full payment required. Partial payment is disabled for this invoice." : undefined}
                   inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
                   sx={checkoutInputSx(!isPartialAllowed)}
                 />

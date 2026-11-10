@@ -91,7 +91,7 @@ public class NotificationService : INotificationService
         }
 
         var payLink = string.Equals(eventType, "PartialPaymentReminder", StringComparison.OrdinalIgnoreCase)
-            ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial=0&payNowOnly=1"
+            ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}&source=reminder"
             : $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
 
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -139,14 +139,14 @@ public class NotificationService : INotificationService
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Number</td><td style='padding:10px 14px;text-align:right;font-weight:700;border-bottom:1px solid #e2e8f0;'>{invoice.InvoiceNumber}</td></tr>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Total</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.TotalAmount:N2}</td></tr>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Recently Paid{recentDateNote}</td><td style='padding:10px 14px;text-align:right;font-weight:700;color:#16a34a;border-bottom:1px solid #e2e8f0;'>{currency} {lastPaidAmount:N2}</td></tr>
-                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Total Paid So Far</td><td style='padding:10px 14px;text-align:right;font-weight:600;color:#15803d;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.PaidAmount:N2}</td></tr>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Total Paid</td><td style='padding:10px 14px;text-align:right;font-weight:600;color:#15803d;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.PaidAmount:N2}</td></tr>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Due Date</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{dueDateText}</td></tr>
                         <tr style='background:#fef2f2;'><td style='padding:12px 14px;color:#991b1b;font-weight:700;'>Remaining Balance Due</td><td style='padding:12px 14px;text-align:right;font-weight:800;font-size:16px;color:#b91c1c;'>{currency} {invoice.BalanceAmount:N2}</td></tr>
                     </table>
                     <div style='margin:24px 0;text-align:center;'>
                         <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Pay Now ({currency} {invoice.BalanceAmount:N2})</a>
                     </div>
-                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. Full payment of the remaining balance is required via this Pay Now link.</p>
+                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. {(invoice.AllowPartialPayments ? "You can pay the remaining balance in full or enter another partial amount via the Pay Now button." : "Full payment of the remaining balance is required via this Pay Now link.")}</p>
                     <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                     <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
                 </div>";
@@ -793,13 +793,19 @@ public class NotificationService : INotificationService
                 SortBy = "createdatutc",
                 SortOrder = "desc",
                 PageNumber = 1,
-                PageSize = 1
+                PageSize = 5
             });
-            var latestPayment = paymentsPage?.Items?.FirstOrDefault();
+            var latestMatched = paymentsPage?.Items?
+                .Select(p => new
+                {
+                    Payment = p,
+                    Allocation = p.Allocations?.FirstOrDefault(a => a.InvoiceId == invoice.Id && !a.IsReversed)
+                })
+                .FirstOrDefault(x => x.Allocation != null);
+            var latestPayment = latestMatched?.Payment ?? paymentsPage?.Items?.FirstOrDefault();
             if (latestPayment != null)
             {
-                var latestAllocation = latestPayment.Allocations?.FirstOrDefault(a => a.InvoiceId == invoice.Id && !a.IsReversed);
-                lastPaidAmount = latestAllocation?.AllocatedAmount ?? latestPayment.Amount;
+                lastPaidAmount = latestMatched?.Allocation?.AllocatedAmount ?? latestPayment.Amount;
                 lastPaymentDate = latestPayment.PaymentDate;
             }
         }
