@@ -48,6 +48,7 @@ const root = '/user-role-administration';
 const tabs = [
   { id: 'users', label: 'Users', icon: GroupOutlined },
   { id: 'assignments', label: 'Assignments', icon: AccountTreeOutlined },
+  { id: 'roles', label: 'Roles', icon: ShieldOutlined },
 ];
 const emptyUser = { name: '', username: '', email: '', password: '', roles: [], permissions: [], tenantId: '', applicationId: '', status: 'Active', identityType: 'Platform', externalProvider: '', externalSubjectId: '', externalScopes: '' };
 const emptyRole = { name: '', description: '', tenantId: '', permissions: [] };
@@ -68,6 +69,8 @@ const getError = (error) => error?.userMessage || error?.message || 'The request
 const getMessage = (result, fallback) => result?.message || fallback;
 const statusValue = (item) => item?.status ?? item?.Status ?? (item?.isActive ?? item?.IsActive ? 'Active' : 'Inactive');
 const recordValue = (item, key, pascalKey) => item?.[key] ?? item?.[pascalKey];
+const protectedAssignmentRoles = new Set(['superadmin', 'tenantadmin']);
+const isAssignableRole = (roleName) => !protectedAssignmentRoles.has(String(roleName ?? '').trim().replace(/[\s_-]/g, '').toLowerCase());
 const isValidEmail = (value) => /^[^\s@]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(value.trim());
 const permissionModuleOrder = [
   'Dashboard', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
@@ -356,6 +359,10 @@ function UserForm({ userId, onCancel, onSaved }) {
     onError: (error) => setServerError(getError(error)),
   });
   const roles = rolesQuery.data ?? [];
+  const assignableRoles = roles.filter((item) => isAssignableRole(recordValue(item, 'name', 'Name')));
+  const assignedRole = values.roles[0] ?? '';
+  const displayedRole = assignableRoles.some((item) => recordValue(item, 'name', 'Name') === assignedRole) ? assignedRole : '';
+  const currentRoleIsProtected = Boolean(assignedRole) && !displayedRole;
   const permissions = permissionsQuery.data ?? [];
   const permissionGroups = useMemo(() => groupPermissionDefinitions(permissions), [permissions]);
   const allPermissionGroupsOpen = permissionGroups.length > 0 && permissionGroups.every(([module]) => openPermissionGroups.has(module));
@@ -472,11 +479,11 @@ const selectRole = (event) => {
       <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
       <FormControl fullWidth size="small" required error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
-<Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={values.roles[0] ?? ''} onChange={selectRole} displayEmpty aria-required="true" aria-describedby="ura-user-roles-helper">
+<Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={displayedRole} onChange={selectRole} displayEmpty aria-required="true" aria-describedby="ura-user-roles-helper">
           <MenuItem value="" disabled>Select one role</MenuItem>
-          {roles.map((item) => { const name = recordValue(item, 'name', 'Name'); return <MenuItem key={name} value={name}><span>{name}</span></MenuItem>; })}
+          {assignableRoles.map((item) => { const name = recordValue(item, 'name', 'Name'); return <MenuItem key={name} value={name}><span>{name}</span></MenuItem>; })}
         </Select>
-        <FormHelperText id="ura-user-roles-helper" error={attempted && !!errors.roles}>{attempted && errors.roles ? errors.roles : !values.roles.length ? 'Required. Select one role to continue.' : 'Role permissions can be reviewed below.'}</FormHelperText>
+        <FormHelperText id="ura-user-roles-helper" error={attempted && !!errors.roles}>{attempted && errors.roles ? errors.roles : currentRoleIsProtected ? `Current role ${assignedRole} is protected. Select an available role to replace it.` : !values.roles.length ? 'Required. Select one role to continue.' : 'Role permissions can be reviewed below.'}</FormHelperText>
       </FormControl>
       {(editing || values.identityType === 'Platform') && <FormControl fullWidth size="small"><InputLabel id="ura-user-status-label" shrink>Account status</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-user-status-label" label="Account status" value={values.status} onChange={update('status')}><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl>}
       </div>
@@ -525,14 +532,14 @@ function RoleList({ onCreate, onView, onEdit, onDelete }) {
   useNavbarSearch(search, setSearch, 'Search roles');
   const tenantId = currentTenantId();
   const rolesQuery = useQuery({ queryKey: ['ura', 'roles', tenantId], queryFn: ({ signal }) => service.listRoles({ tenantId, signal }), retry: false });
-  const roles = useMemo(() => (rolesQuery.data ?? []).filter((role) => {
+  const roles = useMemo(() => (rolesQuery.data ?? []).filter((role) => isAssignableRole(recordValue(role, 'name', 'Name'))).filter((role) => {
     const query = search.trim().toLowerCase();
     return !query || `${recordValue(role, 'name', 'Name')} ${recordValue(role, 'description', 'Description')}`.toLowerCase().includes(query);
   }), [rolesQuery.data, search]);
   return <>
     <SectionHeading icon={ShieldOutlined} title="Roles" description="Review role details and assigned permissions." action={<Button variant="contained" startIcon={<AdminPanelSettingsOutlined />} onClick={onCreate}>Create role</Button>} />
     <div className="ura-filter-bar ura-role-search"><TextField label="Search roles" InputLabelProps={{ shrink: true }} size="small" fullWidth value={search} onChange={(event) => setSearch(event.target.value)} InputProps={{ startAdornment: <SearchOutlined className="ura-search-icon" /> }} /></div>
-    <QueryState query={rolesQuery} label="roles" empty={rolesQuery.data && roles.length === 0 ? (search ? 'No roles match this search.' : 'No roles were returned by the Roles API.') : null}>
+    <QueryState query={rolesQuery} label="roles" empty={rolesQuery.data && roles.length === 0 ? (search ? 'No roles match this search.' : 'No available roles to display.') : null}>
       <div className="ura-table-wrap"><table className="ura-table ura-role-table"><thead><tr><th>Role name</th><th>Description</th><th>Permission summary</th><th>Type</th><th>Actions</th></tr></thead><tbody>{roles.map((role) => {
         const id = recordValue(role, 'id', 'Id');
         const permissions = recordValue(role, 'permissions', 'Permissions') ?? [];
@@ -597,24 +604,23 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   const save = () => {
     const next = {};
     if (!values.name.trim()) next.name = 'Role name is required.';
-    if (values.tenantId && (!/^\d+$/.test(String(values.tenantId)) || Number(values.tenantId) < 1)) next.tenantId = 'Enter a valid tenant ID.';
+    if (editing && values.tenantId && (!/^\d+$/.test(String(values.tenantId)) || Number(values.tenantId) < 1)) next.tenantId = 'Enter a valid tenant ID.';
     setErrors(next);
     setAttempted(true);
     setServerError('');
-    if (Object.keys(next).length || permissionsQuery.isPending || permissionsQuery.isError) return;
-    const payload = { Name: values.name.trim(), Description: values.description.trim(), Permissions: values.permissions.filter((code) => !excludedPermissionCodes.has(code)) };
-    if (!editing && values.tenantId) payload.TenantId = Number(values.tenantId);
+    if (Object.keys(next).length || (editing && (permissionsQuery.isPending || permissionsQuery.isError))) return;
+    const payload = { Name: values.name.trim(), Description: values.description.trim() };
+    if (editing) payload.Permissions = values.permissions.filter((code) => !excludedPermissionCodes.has(code));
     mutation.mutate(payload);
   };
   if (editing && roleQuery.isPending) return <QueryState query={roleQuery} label="role" />;
   if (editing && roleQuery.isError) return <QueryState query={roleQuery} label="role" retry={() => roleQuery.refetch()} />;
   return <>
-    {permissionsQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load permission definitions: {getError(permissionsQuery.error)}</Alert>}
-    <div className="ura-form-grid">
+    {editing && permissionsQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load permission definitions: {getError(permissionsQuery.error)}</Alert>}
+    <div className={`ura-form-grid ura-role-form-grid ${editing ? 'ura-role-edit-grid' : 'ura-role-create-grid'}`}>
       <TextField label="Role Name" InputLabelProps={{ shrink: true }} required value={values.name} disabled={systemRole} onChange={change('name')} error={attempted && !!errors.name} helperText={systemRole ? 'System roles cannot be renamed by this API.' : attempted ? errors.name : ' '} fullWidth />
-      {!editing && <TextField label="Tenant ID (optional)" InputLabelProps={{ shrink: true }} type="number" value={values.tenantId} onChange={change('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : 'Enter an existing tenant ID to scope this role.'} inputProps={{ min: 1, step: 1 }} fullWidth />}
       <TextField className="ura-role-description" label="Description" InputLabelProps={{ shrink: true }} value={values.description} onChange={change('description')} helperText=" " multiline minRows={2} fullWidth />
-      <section className="ura-permission-assignment">
+      {editing && <section className="ura-permission-assignment">
         <div className="ura-subheading">
           <VpnKeyOutlined />
           <div>
@@ -627,7 +633,7 @@ function RoleForm({ roleId, onCancel, onSaved }) {
           </div>
         </div>
         {permissionsQuery.isPending ? <div className="ura-resource-state"><CircularProgress size={20} /><span>Loading permissions…</span></div> : permissionsQuery.isError ? <Alert severity="error">{getError(permissionsQuery.error)}</Alert> : <div className="ura-permission-groups">{modules.map(([module, entries]) => <details className="ura-permission-group ura-permission-dropdown ura-permission-select-group" key={module} open={openPermissionGroups.has(module)}><summary className="ura-permission-group-heading" onClick={(event) => { event.preventDefault(); togglePermissionGroup(module); }}><VpnKeyOutlined /><h3>{module}</h3></summary><div className="ura-permission-dropdown-content"><FormGroup>{entries.map((permission) => { const code = recordValue(permission, 'code', 'Code'); const name = recordValue(permission, 'name', 'Name'); const description = recordValue(permission, 'description', 'Description'); return <FormControlLabel key={code} control={<Checkbox checked={values.permissions.includes(code)} onChange={() => togglePermission(code)} />} label={<span className="ura-permission-option"><strong>{name}</strong><code>{code}</code>{description && <small>{description}</small>}</span>} />; })}{!entries.length && <small className="ura-permission-empty">No permission definitions returned by the API for this module.</small>}</FormGroup></div></details>)}</div>}
-      </section>
+      </section>}
     </div>
     {serverError && <Alert severity="error" className="ura-inline-alert">{serverError}</Alert>}
     <FormActions busy={mutation.isPending} onCancel={onCancel} onSubmit={save} />

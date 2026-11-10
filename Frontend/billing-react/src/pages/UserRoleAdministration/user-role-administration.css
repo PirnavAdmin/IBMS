@@ -154,6 +154,12 @@
 .ura-form-grid .ura-role-description { grid-column: 1 / -1; }
 .ura-form-grid .ura-role-description .MuiInputBase-root { height: auto; min-height: 76px; align-items: flex-start; }
 .ura-form-grid .ura-role-description textarea { padding-block: 12px; }
+.ura-role-create-grid { max-width: none; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.ura-role-create-grid > .MuiTextField-root { width: 100%; }
+.ura-role-create-grid .MuiTextField-root:not(.ura-role-description) .MuiInputBase-root { height: 52px; min-height: 52px; }
+.ura-role-create-grid .MuiTextField-root:not(.ura-role-description) .MuiInputBase-input { box-sizing: border-box; height: 100%; padding: 14px 14px; line-height: 1.4; }
+.ura-role-create-grid .ura-role-description .MuiInputBase-root.MuiInputBase-multiline { height: auto; min-height: 92px; align-items: flex-start; }
+.ura-role-create-grid .ura-role-description textarea { box-sizing: border-box; min-height: 68px; padding: 14px; line-height: 1.45; }
 .ura-form-notice { width: 100%; max-width: 1000px; margin-inline: auto; }
 .ura-form-grid .MuiTextField-root .MuiInputBase-root,.ura-form-grid .MuiFormControl-root .MuiInputBase-root { height: 44px; min-height: 44px; border-radius: 7px; background: #fffdf9; }
 .ura-form-grid .MuiOutlinedInput-notchedOutline { border-color: #e5d6c6; border-width: 1px; }
