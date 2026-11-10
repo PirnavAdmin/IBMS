@@ -8,5 +8,6 @@ public enum PaymentMethod
     Card = 4,
     Cheque = 5,
     Gateway = 6,
-    Custom = 7
+    Custom = 7,
+    InternetBanking = 8
 }

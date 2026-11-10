@@ -868,6 +868,48 @@ public class PaymentManagementTests
     }
 
     [Fact]
+    public async Task InternetBanking_RequiresReference_AndPersistsMethodAndBankDetails()
+    {
+        var ctx = new TestContext();
+        var invoice = await ctx.SeedInvoiceAsync(totalAmount: 1500m);
+
+        var missingRefRes = await ctx.PaymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 500m,
+                Method = "InternetBanking",
+                BankName = "HDFC Bank",
+                PaymentDate = DateTime.UtcNow.Date
+            },
+            "admin@ibms.com");
+
+        Assert.False(missingRefRes.IsSuccess);
+        Assert.Equal("METHOD_REFERENCE_REQUIRED", missingRefRes.ErrorCode);
+
+        var validRes = await ctx.PaymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 1500m,
+                Method = "InternetBanking",
+                BankName = "HDFC Bank",
+                AccountLabel = "Retail Banking",
+                Reference = "NB_HDFC_99001122",
+                PaymentDate = DateTime.UtcNow.Date
+            },
+            "customer@ibms.com");
+
+        Assert.True(validRes.IsSuccess);
+        Assert.Equal("Internet Banking", validRes.Data!.Method);
+        Assert.Equal("HDFC Bank", validRes.Data.BankName);
+        Assert.Equal("Retail Banking", validRes.Data.AccountLabel);
+        Assert.Equal("NB_HDFC_99001122", validRes.Data.Reference);
+    }
+
+    [Fact]
     public async Task CreatePayment_WhenNotificationServiceProvided_DispatchesPaymentReceivedNotification()
     {
         var context = new TestContext();
@@ -904,5 +946,40 @@ public class PaymentManagementTests
         notificationServiceMock.Verify(
             s => s.SendPaymentNotificationAsync(Moq.It.IsAny<int>(), Tenant1, "PaymentReceived", "Admin"),
             Moq.Times.Once);
+    }
+
+    [Fact]
+    public async Task PaymentsController_BlocksSimulateQrAndWebhookSpoofWhenDisallowed()
+    {
+        var paymentServiceMock = new Moq.Mock<IPaymentService>();
+        var gatewayMock = new Moq.Mock<IPaymentGatewayService>();
+        gatewayMock.Setup(g => g.IsTestSimulationAllowedAsync(Tenant1)).ReturnsAsync(false);
+
+        var controller = new PaymentsController(paymentServiceMock.Object, gatewayMock.Object)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+                    {
+                        new Claim("TenantId", Tenant1.ToString()),
+                        new Claim(ClaimTypes.Role, "TenantAdmin")
+                    }, "Test"))
+                }
+            }
+        };
+
+        var simResult = await controller.SimulateQrPayment(32, Tenant1, new SimulateQrPaymentRequest());
+        var simBad = Assert.IsType<BadRequestObjectResult>(simResult);
+        var simResp = Assert.IsType<ApiResponse<PaymentDetailDto>>(simBad.Value);
+        Assert.False(simResp.Success);
+
+        var spoofResult = await controller.VerifyGatewayPayment(
+            new VerifyGatewayPaymentRequest { InvoiceId = 32, Gateway = "Razorpay_Webhook", PaymentId = "fake_1" },
+            Tenant1);
+        var spoofBad = Assert.IsType<BadRequestObjectResult>(spoofResult);
+        var spoofResp = Assert.IsType<ApiResponse<PaymentDetailDto>>(spoofBad.Value);
+        Assert.False(spoofResp.Success);
     }
 }

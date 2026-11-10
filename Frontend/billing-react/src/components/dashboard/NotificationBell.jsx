@@ -23,7 +23,7 @@ export function NotificationBell({ user }) {
   const tenant = user?.tenantId ?? user?.TenantId ?? user?.tenant_id ?? 'host';
   const userId = user?.userId ?? user?.UserId ?? user?.id;
   const scope = ['notification-inbox', tenant, userId];
-  const enabled = userId != null;
+  const enabled = userId != null && tenant !== 'host';
   useExclusiveDropdown(open, setOpen);
   useEffect(() => { setOpen(false); setPageNumber(1); setError(''); setNotice(''); }, [tenant, userId]);
   const count = useQuery({ queryKey: [...scope, 'count'], queryFn: ({ signal }) => inbox.unreadCount(signal), enabled,

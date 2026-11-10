@@ -77,7 +77,7 @@ public class TemplateEngineService : ITemplateEngineService
             {
                 new() { Name = "Payment Number", Token = "{{PaymentNumber}}", Description = "Payment transaction receipt reference", ExampleValue = "PAY-2026-0001" },
                 new() { Name = "Payment Date", Token = "{{PaymentDate}}", Description = "Timestamp when payment was recorded", ExampleValue = "14 Oct 2026" },
-                new() { Name = "Payment Method", Token = "{{PaymentMethod}}", Description = "Card, Bank Transfer, UPI, or Cash", ExampleValue = "Bank Transfer" },
+                new() { Name = "Payment Method", Token = "{{PaymentMethod}}", Description = "Card, Internet Banking, Bank Transfer, UPI, or Cash", ExampleValue = "Internet Banking" },
                 new() { Name = "Amount Paid", Token = "{{AmountPaid}}", Description = "Processed payment amount", ExampleValue = "15,000.00" },
                 new() { Name = "Invoice Number", Token = "{{InvoiceNumber}}", Description = "Associated invoice reference", ExampleValue = "INV-2026-0001" },
                 new() { Name = "Remaining Balance", Token = "{{RemainingBalance}}", Description = "Balance remaining on the invoice", ExampleValue = "0.00" }

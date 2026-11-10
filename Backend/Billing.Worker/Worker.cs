@@ -52,7 +52,8 @@ public class Worker : BackgroundService
                 }
 
                 // 6. Payment reminders (every hour)
-                if (now - _lastReminderCheckUtc > TimeSpan.FromHours(1))
+                // 6. Payment reminders scan (every 5 minutes; per-invoice timer enforced in ReminderJobService)
+                if (now - _lastReminderCheckUtc > TimeSpan.FromMinutes(5))
                 {
                     _lastReminderCheckUtc = now;
                     await RunJobInIsolatedScopeAsync("ReminderJob", stoppingToken);

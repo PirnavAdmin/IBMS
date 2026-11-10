@@ -7,7 +7,7 @@ function subscribe(listener) {
   return () => { window.removeEventListener('storage', listener); window.removeEventListener(eventName, listener); };
 }
 export function useCurrentUser() {
-  const raw = useSyncExternalStore(subscribe, () => localStorage.getItem(key), () => null);
+  const raw = useSyncExternalStore(subscribe, () => typeof localStorage === 'undefined' ? null : localStorage.getItem(key), () => null);
   return useMemo(() => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } }, [raw]);
 }
 export function publishProfile(user) {

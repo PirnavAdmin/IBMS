@@ -745,6 +745,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         return new InvoiceSnapshotDto
         {
             InvoiceId = invoice.Id,
+            TenantId = invoice.TenantId,
             InvoiceNumber = invoice.InvoiceNumber,
             IssueDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30),

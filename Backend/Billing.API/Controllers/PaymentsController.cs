@@ -360,6 +360,10 @@ public class PaymentsController : ControllerBase
 
         var performedBy = GetUserDisplayName() ?? "Customer (Online)";
         if (_gatewayService == null) return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment gateway service not configured."));
+        if (string.Equals(request.Gateway, "Razorpay_Webhook", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Webhook gateway source is restricted to signed webhook requests."));
+        }
         var result = await _gatewayService.VerifyAndProcessPaymentAsync(targetTenant, request, performedBy);
         return result.Success ? Ok(result) : BadRequest(result);
     }
@@ -406,6 +410,10 @@ public class PaymentsController : ControllerBase
     {
         var targetTenant = tenantId ?? request?.TenantId ?? GetTenantId() ?? 2;
         if (_gatewayService == null) return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Payment gateway service not configured."));
+        if (!await _gatewayService.IsTestSimulationAllowedAsync(targetTenant))
+        {
+            return BadRequest(ApiResponse<PaymentDetailDto>.Fail("Test payment simulation is disabled because Live Mode or hidden checkout test tools is active."));
+        }
 
         var utrRef = !string.IsNullOrWhiteSpace(request?.UtrReference)
             ? request.UtrReference.Trim()
@@ -426,13 +434,78 @@ public class PaymentsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpGet("gateway/settings")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin,BillingManager,User")]
+    public async Task<IActionResult> GetGatewaySettings()
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentGatewaySettingsDto>.Fail("Payment gateway service not configured."));
+        var result = await _gatewayService.GetGatewaySettingsAsync(tenantId.Value);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPut("gateway/settings")]
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,Admin")]
+    [Consumes("application/json")]
+    public async Task<IActionResult> UpdateGatewaySettings([FromBody] UpdatePaymentGatewaySettingsRequest request)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+        if (_gatewayService == null) return BadRequest(ApiResponse<PaymentGatewaySettingsDto>.Fail("Payment gateway service not configured."));
+        if (request == null) return BadRequest(ApiResponse<PaymentGatewaySettingsDto>.Fail("Request body cannot be null."));
+        var result = await _gatewayService.UpdateGatewaySettingsAsync(tenantId.Value, request, GetUserDisplayName());
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("gateway/webhook")]
     [AllowAnonymous]
-    public async Task<IActionResult> GatewayWebhook([FromBody] JsonElement payload, [FromQuery] int? tenantId)
+    public async Task<IActionResult> GatewayWebhook([FromQuery] int? tenantId)
     {
         try
         {
+            if (_gatewayService == null) return BadRequest("Payment gateway not configured.");
+
+            string rawBody;
+            using (var reader = new StreamReader(Request.Body))
+            {
+                rawBody = await reader.ReadToEndAsync();
+            }
+
+            if (string.IsNullOrWhiteSpace(rawBody))
+            {
+                return BadRequest(new { error = "Empty webhook payload." });
+            }
+
+            using var doc = JsonDocument.Parse(rawBody);
+            var payload = doc.RootElement;
             var targetTenant = tenantId ?? GetTenantId() ?? 2;
+
+            if (payload.TryGetProperty("payload", out var rzpPayload) &&
+                rzpPayload.TryGetProperty("payment", out var rzpPayObj) &&
+                rzpPayObj.TryGetProperty("entity", out var rzpEntity) &&
+                rzpEntity.TryGetProperty("notes", out var rzpNotes) &&
+                rzpNotes.TryGetProperty("tenantId", out var rzpTid))
+            {
+                if (rzpTid.ValueKind == JsonValueKind.Number) targetTenant = rzpTid.GetInt32();
+                else if (int.TryParse(rzpTid.GetString(), out var parsedTenant)) targetTenant = parsedTenant;
+            }
+
+            var sigHeader = Request.Headers["X-Razorpay-Signature"].FirstOrDefault();
+            if (!await _gatewayService.VerifyWebhookSignatureAsync(targetTenant, rawBody, sigHeader))
+            {
+                return Unauthorized(new { error = "Invalid webhook signature." });
+            }
+
+            if (payload.TryGetProperty("event", out var eventProp))
+            {
+                var eventName = eventProp.GetString();
+                if (!string.Equals(eventName, "payment.captured", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(eventName, "order.paid", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Ok(new { status = "ignored", reason = $"Ignored non-capture event '{eventName}'." });
+                }
+            }
 
             string? paymentId = null;
             string? orderId = null;
@@ -471,8 +544,6 @@ public class PaymentsController : ControllerBase
             {
                 return Ok(new { status = "ignored", reason = "No invoice identifier in webhook payload" });
             }
-
-            if (_gatewayService == null) return BadRequest("Payment gateway not configured.");
 
             var verifyReq = new VerifyGatewayPaymentRequest
             {

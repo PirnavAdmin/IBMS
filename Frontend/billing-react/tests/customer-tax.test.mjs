@@ -50,6 +50,8 @@ test('explicit registration takes precedence over conflicting legacy tax identif
 test('blank and unknown registration follow existing editor defaults without modifying source data', () => {
   assert.equal(customerTaxRegistrationLabel({ id: 8, taxId: null }), 'Non-GST / Unregistered');
   assert.equal(customerTaxRegistrationType({}), '');
+  assert.equal(customerTaxRegistrationType(null), '');
+  assert.equal(customerTaxRegistrationLabel(null), '—');
   assert.equal(customerTaxRegistrationLabel({}), '—');
   assert.equal(customerTaxRegistrationLabel({ taxId: 'unknown' }), '—');
   assert.equal(customerTaxRegistrationType({ taxRegistrationType: 'Other', taxId: gstin }), 'other');

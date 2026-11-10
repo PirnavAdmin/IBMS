@@ -3,11 +3,11 @@ import { apiClient } from 'billing-api-client';
 
 // Contracts: PaymentsController, PaymentContracts, PaymentMethod/PaymentStatus.
 const base = '/api/v1/payments';
-export const PAYMENT_METHODS = ['Cash', 'BankTransfer', 'UPI', 'Card', 'Cheque', 'Gateway', 'Custom'];
+export const PAYMENT_METHODS = ['Cash', 'BankTransfer', 'InternetBanking', 'UPI', 'Card', 'Cheque', 'Gateway', 'Custom'];
 export const PAYMENT_STATUSES = ['Pending', 'Completed', 'Failed', 'Reversed'];
-export const methodLabel = method => method === 'BankTransfer' ? 'Bank Transfer' : method;
+export const methodLabel = method => method === 'InternetBanking' ? 'Internet Banking' : method === 'BankTransfer' ? 'Bank Transfer' : method;
 export const methodFields = {
-  Cash: [], BankTransfer: ['reference', 'bankName', 'accountLabel', 'transferDate'],
+  Cash: [], BankTransfer: ['reference', 'bankName', 'accountLabel', 'transferDate'], InternetBanking: ['reference', 'bankName', 'accountLabel', 'transferDate'],
   UPI: ['reference', 'providerTransactionId', 'upiPayerMetadata'],
   Card: ['reference', 'providerName', 'providerTransactionId'],
   Cheque: ['chequeNumber', 'bankName', 'chequeDate', 'clearingStatus'],
@@ -62,6 +62,8 @@ export const paymentService = {
   async reversePayment(id, reason, idempotencyKey) { return mapPayment(unwrapPayment(await apiClient.post(`${base}/${encodeURIComponent(id)}/reverse`, { reason: reason.trim(), idempotencyKey }))); },
   async getEligibleInvoices({ signal } = {}) { const data = unwrapPayment(await apiClient.get(`${base}/eligible-invoices`, { signal })); if (!Array.isArray(data)) throw new Error('Invalid payment response.'); return data.map(mapBalance).filter(invoice => invoice.isEligibleForPayment); },
   async getInvoiceBalance(id, { signal } = {}) { return mapBalance(unwrapPayment(await apiClient.get(`${base}/invoices/${encodeURIComponent(id)}/balance`, { signal }))); },
+  async getGatewaySettings({ signal } = {}) { return unwrapPayment(await apiClient.get(`${base}/gateway/settings`, { signal })); },
+  async updateGatewaySettings(payload) { return unwrapPayment(await apiClient.put(`${base}/gateway/settings`, payload)); },
 };
 export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers'].map(key => client.invalidateQueries({ queryKey: [key] })));
 export const money = (amount, currency) => {

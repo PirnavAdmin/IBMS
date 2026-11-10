@@ -1,7 +1,7 @@
 import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { displayDateTime as formatDateTime } from '../../utils/localDate';
+import { displayDate as formatPreviewDate, displayDateTime as formatDateTime } from '../../utils/localDate';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -40,7 +40,14 @@ const STYLES = ['Standard', 'Professional', 'Compact'];
 const STATUS_LABELS = { 1: 'Draft', 2: 'Active', 3: 'Inactive', 4: 'Archived', Draft: 'Draft', Active: 'Active', Inactive: 'Inactive', Archived: 'Archived' };
 const rowsFrom = (value) => Array.isArray(value) ? value : value?.items || value?.Items || value?.data?.items || [];
 const asError = (error) => error?.userMessage || error?.message || 'The request failed. Please try again.';
-const customerAddress = (customer = {}) => [customer.address, customer.city, customer.state, customer.postalCode, customer.country].filter(Boolean).join(', ');
+const customerAddress = (customer) => { const c = customer && typeof customer === 'object' ? customer : {}; return [c.address, c.city, c.state, c.postalCode, c.country].filter(Boolean).join(', '); };
+const previewMoney = (amount, currency = 'INR') => {
+  const numeric = Number(amount);
+  if (amount == null || !Number.isFinite(numeric)) return '—';
+  const code = String(currency || 'INR').trim().toUpperCase() || 'INR';
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: code, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(numeric); }
+  catch { return `${currencySymbol(code)}${numeric.toFixed(2)}`; }
+};
 const currencySymbol = (currency = 'INR') => {
   try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((part) => part.type === 'currency')?.value || currency; }
   catch { return currency; }
@@ -79,12 +86,17 @@ const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const paymentProvider = ['Razorpay', 'Stripe'].includes(storedProvider) ? storedProvider : storedProvider ? 'Other' : '';
   const providerName = paymentProvider === 'Other' ? storedProvider : '';
   const securePaymentLink = storedDetails.find((line) => line.startsWith('Secure payment link: '))?.replace('Secure payment link: ', '') || '';
-  const cardPaymentInstructions = storedDetails.find((line) => line.startsWith('Card payment instructions: '))?.replace('Card payment instructions: ', '') || '';
+  const cardPaymentInstructions = payment.cardPaymentInstructions || payment.CardPaymentInstructions || storedDetails.find((line) => line.startsWith('Card payment instructions: '))?.replace('Card payment instructions: ', '') || '';
+  const netBankingEnabled = (payment.netBankingEnabled ?? payment.NetBankingEnabled) !== false;
+  const netBankingProvider = payment.netBankingProvider || payment.NetBankingProvider || 'Razorpay NetBanking';
+  const rawNetBankingBanks = payment.netBankingBanks || payment.NetBankingBanks || '';
+  const netBankingBanks = rawNetBankingBanks.trim() === 'HDFC Bank, ICICI Bank, State Bank of India, Axis Bank, Kotak Mahindra Bank, Union Bank of India' ? '' : rawNetBankingBanks;
+  const netBankingInstructions = payment.netBankingInstructions || payment.NetBankingInstructions || 'Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP.';
   const paymentMethod = storedMethod || (payment.upiId && !payment.bankName && !payment.accountNumber ? 'UPI' : payment.bankName || payment.accountNumber ? 'Bank Transfer' : '');
-  const paymentDetails = storedDetails.filter((line) => !line.startsWith('Payment method: ') && !line.startsWith('Branch: ') && !line.startsWith('Payment provider: ') && !line.startsWith('Secure payment link: ') && !line.startsWith('Card payment instructions: ')).join('\n');
+  const paymentDetails = storedDetails.filter((line) => !['Payment method: ', 'Branch: ', 'Payment provider: ', 'Secure payment link: ', 'Card payment instructions: ', 'Internet Banking: ', 'Supported Banks: ', 'NetBanking Banks: ', 'NetBanking instructions: ', 'Card Gateway: ', 'Card instructions: '].some((prefix) => line.startsWith(prefix))).join('\n');
   const templateName = template.name || template.Name || '';
   const detectedDesign = layout.templateDesign || layout.TemplateDesign || (templateName.includes('Template 4') ? 'Corner' : 'Standard');
-  return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || company.contact || company.Contact || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
+  return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', netBankingEnabled, netBankingProvider, netBankingBanks, netBankingInstructions, paymentProvider: payment.paymentProvider || payment.PaymentProvider || paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
 };
 const paymentDetailsText = (config) => [
   config.bankName && `Bank: ${config.bankName}`,
@@ -93,11 +105,14 @@ const paymentDetailsText = (config) => [
   config.ifscCode && `IFSC: ${config.ifscCode}`,
   config.branch && `Branch: ${config.branch}`,
   config.upiId && `UPI ID: ${config.upiId}`,
+  config.netBankingEnabled !== false && config.netBankingProvider && `Internet Banking: ${config.netBankingProvider}`,
+  config.netBankingEnabled !== false && `NetBanking Banks: ${config.netBankingBanks || 'All Indian Banks'}`,
+  config.netBankingEnabled !== false && config.netBankingInstructions && `NetBanking instructions: ${config.netBankingInstructions}`,
   config.paymentProvider && `Card Gateway: ${config.paymentProvider === 'Other' ? config.providerName : config.paymentProvider}`,
   config.cardPaymentInstructions && `Card instructions: ${config.cardPaymentInstructions}`,
   config.paymentDetails
 ].filter(Boolean).join('\n');
-const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
+const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, netBankingEnabled: config.netBankingEnabled !== false, netBankingProvider: config.netBankingProvider || 'Razorpay NetBanking', netBankingBanks: config.netBankingBanks || null, netBankingInstructions: config.netBankingInstructions || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
 
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
@@ -278,7 +293,7 @@ export function InvoiceTemplates() {
 }
 
 const DEFAULT_SECTIONS = { invoiceNumber: true, invoiceDate: true, dueDate: true, customer: true, items: true, quantity: true, unitPrice: true, discount: true, tax: true, lineTotals: true, totals: true };
-const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
+const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', netBankingEnabled: true, netBankingProvider: 'Razorpay NetBanking', netBankingBanks: '', netBankingInstructions: 'Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP.', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
 
 const validateContactField = (key, value) => {
   const text = value.trim();
@@ -383,7 +398,7 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
     <div style={{ marginTop: 24, marginBottom: 24, padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#ffffff' }}>
       <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#1e293b' }}>Payment Methods & Instructions</h3>
       <p style={{ margin: '0 0 16px 0', fontSize: '0.875rem', color: '#64748b' }}>
-        Add your UPI ID, Bank Transfer details, and Card Payment instructions. All details will be available for customer checkout and invoice presentation.
+        Add your UPI ID, Internet Banking options, settlement bank details, and Card Payment instructions. All details will be available for customer checkout and invoice presentation.
       </p>
 
       {/* 1. UPI ID Section */}
@@ -395,8 +410,26 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
 
       {/* 2. Bank Details Section */}
       <div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>🏦 Bank Transfer Details (NEFT / IMPS / RTGS)</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Account information for direct bank wire transfers.</p>
+        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>🌐 Internet Banking (NetBanking) Configuration</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Configure banks list, gateway, and instructions for the Internet Banking checkout tab.</p>
+        <div style={{ marginBottom: 12 }}>
+          <FormControlLabel
+            control={<Checkbox checked={value.netBankingEnabled !== false} onChange={(event) => onChange('netBankingEnabled', event.target.checked)} />}
+            label="Enable Internet Banking on customer invoice checkout portal"
+          />
+        </div>
+        <div className="template-fields" style={{ marginBottom: 16 }}>
+          <TextField label="Internet Banking Gateway" select value={value.netBankingProvider || 'Razorpay NetBanking'} onChange={(event) => onChange('netBankingProvider', event.target.value)} fullWidth>
+            <MenuItem value="Razorpay NetBanking">Razorpay NetBanking</MenuItem>
+            <MenuItem value="Cashfree NetBanking">Cashfree NetBanking</MenuItem>
+            <MenuItem value="PayU NetBanking">PayU NetBanking</MenuItem>
+            <MenuItem value="Direct Bank Corporate Portal">Direct Bank Corporate Portal</MenuItem>
+          </TextField>
+          <TextField label="NetBanking Banks (Optional — leave blank for All Indian Banks)" placeholder="Leave blank for all banks in India, or enter comma-separated bank names" helperText="All RBI-licensed Indian banks are listed in the checkout dropdown when left blank." {...text('netBankingBanks')} fullWidth />
+          <TextField label="Internet Banking Instructions" placeholder="Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP." {...text('netBankingInstructions')} multiline minRows={2} fullWidth />
+        </div>
+        <h5 style={{ margin: '12px 0 6px 0', color: '#334155' }}>🏦 Settlement / Receiving Bank Account (Optional for PDF &amp; Receipts)</h5>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Account information printed on invoice PDFs and settlement receipts.</p>
         <div className="template-fields">
           <TextField label="Account Holder Name" {...text('accountHolderName')} fullWidth />
           <TextField label="Bank Name" {...text('bankName')} fullWidth />
@@ -409,7 +442,7 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
       {/* 3. Card & Gateway Section */}
       <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>💳 Credit / Debit Cards & Razorpay</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Online gateway settings for card checkout.</p>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Online gateway settings for card checkout. Toggle Sandbox (Test Mode) vs Live Working Mode or configure Razorpay keys in <Link to="/payments?gateway=settings" style={{ color: '#65442E', fontWeight: 700 }}>Payments → Gateway Mode</Link>.</p>
         <div className="template-fields">
           <TextField label="Payment Gateway" select value={value.paymentProvider || 'Razorpay'} onChange={(event) => onChange('paymentProvider', event.target.value)} fullWidth>
             <MenuItem value="Razorpay">Razorpay</MenuItem>

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router-dom';
+import { ScreenErrorBoundary } from './components/PageLoading';
 import { QueryClientProvider } from '@tanstack/react-query';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
@@ -140,6 +141,11 @@ const getAppTheme = (mode = 'light') => {
   });
 };
 
+const RoutedApp = () => {
+  const { pathname } = useLocation();
+  return <ScreenErrorBoundary resetKey={pathname}><AppRoutes /></ScreenErrorBoundary>;
+};
+
 const ThemedAppContent = () => {
   const { mode } = useThemeMode();
   const theme = useMemo(() => getAppTheme(mode), [mode]);
@@ -149,7 +155,7 @@ const ThemedAppContent = () => {
       <CssBaseline />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="app-container">
-          <AppRoutes />
+          <RoutedApp />
         </div>
       </BrowserRouter>
     </MuiThemeProvider>

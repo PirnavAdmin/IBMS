@@ -114,6 +114,6 @@ public static class AppUrlResolver
         }
         catch { }
 
-        return "192.168.0.100";
+        return "localhost";
     }
 }

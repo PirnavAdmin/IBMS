@@ -99,7 +99,7 @@ public class BackgroundJobCoordinator : IBackgroundJobCoordinator
         return (jobName ?? "").Trim().ToLowerInvariant() switch
         {
             "overdueinvoicejob" or "overdue" => TimeSpan.FromHours(1),
-            "reminderjob" or "reminder" or "reminders" => TimeSpan.FromHours(1),
+            "reminderjob" or "reminder" or "reminders" => TimeSpan.FromMinutes(5),
             "pdfgenerationjob" or "pdf" or "pdfgeneration" => TimeSpan.FromMinutes(5),
             "operationalcleanupjob" or "cleanup" => TimeSpan.FromHours(6),
             _ => TimeSpan.FromSeconds(5)

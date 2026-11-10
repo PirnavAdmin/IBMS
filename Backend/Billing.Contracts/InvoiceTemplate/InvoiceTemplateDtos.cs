@@ -108,6 +108,12 @@ public class PaymentInstructionsConfigDto
     public string? Iban { get; set; }
     public string? SwiftCode { get; set; }
     public string? UpiId { get; set; }
+    public bool NetBankingEnabled { get; set; } = true;
+    public string? NetBankingProvider { get; set; }
+    public string? NetBankingBanks { get; set; }
+    public string? NetBankingInstructions { get; set; }
+    public string? PaymentProvider { get; set; }
+    public string? CardPaymentInstructions { get; set; }
     public string? PaymentNotes { get; set; }
     public string? Payment { get => PaymentNotes; set => PaymentNotes = value; }
     public string? BankDetails { get; set; }
@@ -342,6 +348,7 @@ public class InvoiceSnapshotDto
 {
     public int InvoiceId { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
+    public int? TenantId { get; set; }
     public DateTime IssueDate { get; set; }
     public DateTime DueDate { get; set; }
     public string Status { get; set; } = "Issued";

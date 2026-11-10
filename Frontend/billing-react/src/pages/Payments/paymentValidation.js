@@ -12,7 +12,7 @@ export const paymentSchema = yup.object({
     .min(0.01, 'Payment Amount must be greater than zero.').max(1000000000, 'Payment Amount must not exceed 1000000000.').test('finite', 'Enter a finite payment amount.', value => value == null || Number.isFinite(value))
     .test('precision', 'Payment Amount must have at most two decimal places.', value => value == null || Number(value.toFixed(2)) === value),
   method: yup.string().oneOf(PAYMENT_METHODS, 'Select a supported payment method.').required('Payment Method is required.'),
-  reference: yup.string().trim().max(128).test('reference', 'Transaction reference is required.', function(value) { return !['BankTransfer','UPI','Card','Gateway'].includes(this.parent.method) || Boolean(value || (this.parent.method !== 'BankTransfer' && this.parent.providerTransactionId?.trim())); }),
+  reference: yup.string().trim().max(128).test('reference', 'Transaction reference is required.', function(value) { return !['BankTransfer','InternetBanking','UPI','Card','Gateway'].includes(this.parent.method) || Boolean(value || (!['BankTransfer','InternetBanking'].includes(this.parent.method) && this.parent.providerTransactionId?.trim())); }),
   bankName: yup.string().trim().max(128), accountLabel: yup.string().trim().max(128), upiPayerMetadata: yup.string().trim().max(256),
   providerTransactionId: yup.string().trim().max(128),
   providerName: yup.string().trim().max(64).when('method', { is: 'Gateway', then: s => s.required('Provider is required.') }),

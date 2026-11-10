@@ -22,10 +22,16 @@ export default defineConfig(({ mode }) => {
         '@styles': path.resolve(__dirname, './src/styles'),
       },
     },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-dom/client', 'react-router-dom', '@tanstack/react-query', 'axios', 'react-hook-form', '@hookform/resolvers/yup', 'yup', 'dayjs', '@mui/material'],
+    },
     server: {
       port: 3000,
       host: '0.0.0.0',
-      open: false,
+      open: true,
+      warmup: {
+        clientFiles: ['./src/main.jsx', './src/App.jsx', './src/routes/AppRoutes.jsx', './src/layouts/AppLayout.jsx', './src/routes/ProtectedRoute.jsx'],
+      },
       allowedHosts: true,
       proxy: {
         '/api/pincode': {

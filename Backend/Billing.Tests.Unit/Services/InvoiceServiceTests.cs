@@ -305,7 +305,7 @@ public class InvoiceServiceTests
         _numberGenMock.Verify(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId), Times.Never);
     }
     [Fact]
-    public async Task IssueInvoiceAsync_WhenNotificationServiceProvided_DispatchesInvoiceIssuedNotification()
+    public async Task IssueInvoiceAsync_DoesNotDispatchEmailNotification_WhenNotificationServiceProvided()
     {
         // Arrange
         int invoiceId = 20;
@@ -357,6 +357,7 @@ public class InvoiceServiceTests
         // Assert
         Assert.True(result.Success);
         Assert.Equal("Issued", result.Data!.Status);
-        notifMock.Verify(n => n.SendInvoiceNotificationAsync(invoiceId, tenantId, "InvoiceIssued", "Admin", null, null), Times.Once);
+        notifMock.Verify(n => n.SendInvoiceNotificationAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<byte[]?>(), It.IsAny<string?>()), Times.Never);
+        _emailMock.Verify(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]?>(), It.IsAny<string?>()), Times.Never);
     }
 }

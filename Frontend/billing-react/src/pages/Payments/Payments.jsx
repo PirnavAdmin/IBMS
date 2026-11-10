@@ -25,11 +25,12 @@ import UndoOutlined from '@mui/icons-material/UndoOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
+import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchCommit } from '../../hooks/useSearchDebounce';
-import { PaymentShell, PaymentState, PaymentStatus, usePaymentUser } from './PaymentShared';
+import { PaymentShell, PaymentState, PaymentStatus, PaymentGatewaySettingsDialog, usePaymentUser } from './PaymentShared';
 import { paymentService, PAYMENT_METHODS, PAYMENT_STATUSES, methodLabel, money, displayDate, paymentError } from './paymentService';
 import { PaymentReversal } from './PaymentReversal';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
@@ -100,8 +101,27 @@ export const Payments = () => {
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState('');
   const [search, setSearch] = useState(''); const [reverse, setReverse] = useState(null);
+  const [gatewayOpen, setGatewayOpen] = useState(() => new URLSearchParams(location.search).get('gateway') === 'settings');
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('gateway') === 'settings') setGatewayOpen(true);
+  }, [location.search]);
   useNavbarSearch(search, setSearch, 'Search payments');
   const user = usePaymentUser();
+  const gatewayQuery = useQuery({
+    queryKey: ['payments', 'gateway-settings'],
+    queryFn: ({ signal }) => paymentService.getGatewaySettings({ signal }),
+    enabled: Boolean(user.data && user.permissions.create),
+    retry: false,
+    staleTime: 60000,
+  });
+  const gatewayModeLabel = gatewayQuery.data
+    ? (!gatewayQuery.data.isSandbox
+        ? 'Gateway: Live Mode'
+        : gatewayQuery.data.allowTestSimulationTools
+          ? 'Gateway: Test Mode'
+          : 'Gateway: Test Off')
+    : 'Gateway Mode';
+  const [gatewayNotice, setGatewayNotice] = useState('');
   useSearchCommit(search, value => setFilters(previous => ({ ...previous, search: value, pageNumber: 1 })));
   const change = patch => setFilters(previous => ({ ...previous, ...patch, pageNumber: 1 }));
   const dateError = Boolean(filters.from && filters.to && filters.from > filters.to);
@@ -115,8 +135,8 @@ export const Payments = () => {
     catch (error) { setPrintError(error.message || 'Unable to prepare the payments report.'); }
     finally { setPrinting(false); }
   };
-  return <PaymentShell title="Payment Management" actions={<>{user.permissions.create && <Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button>}<Button aria-label="Refresh payments" variant="outlined"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label="Print all filtered payments" variant="outlined"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button><Button aria-label="Export payments ledger to Excel" variant="outlined" onClick={() => { const u = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || window.location.origin.replace(':3000', ':5271')) + '/api/v1/payments/gateway/export-excel'; window.open(u, '_blank'); }} startIcon={<DownloadOutlined />}>Export Excel</Button></>}>
-    <FeedbackSnackbar message={printError} onClose={() => setPrintError('')} severity="error" />
+  return <PaymentShell title="Payment Management" actions={<>{user.permissions.create && <Button component={Link} to="/payments/new" variant="contained" startIcon={<Add />}>Record Payment</Button>}{user.permissions.create && <Button variant="outlined" onClick={() => setGatewayOpen(true)} startIcon={<TuneOutlined />}>{gatewayModeLabel}</Button>}<Button aria-label="Refresh payments" variant="outlined"  onClick={() => query.refetch()} disabled={query.isFetching || dateError} startIcon={<Refresh />}>Refresh</Button><Button aria-label="Print all filtered payments" variant="outlined"  onClick={printList} disabled={printing || query.isFetching || Boolean(query.error) || !items.length || search.trim() !== filters.search} startIcon={<LocalPrintshopOutlined />}>{printing ? 'Preparing Print...' : 'Print'}</Button><Button aria-label="Export payments ledger to Excel" variant="outlined" onClick={() => { const u = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || window.location.origin.replace(':3000', ':5271')) + '/api/v1/payments/gateway/export-excel'; window.open(u, '_blank'); }} startIcon={<DownloadOutlined />}>Export Excel</Button></>}>
+    <FeedbackSnackbar message={printError || gatewayNotice} onClose={() => { setPrintError(''); setGatewayNotice(''); }} severity={printError ? 'error' : 'success'} />
     <section className="payment-panel payment-table-card" aria-label="Payment list">
       <header className="payment-card-heading"><div><h2>Payments</h2><p>All recorded customer payments</p></div>{query.data?.totalCount > 0 && <span className="payment-count">{query.data.totalCount} payments{filters.currency ? ` ? ${filters.currency}` : ''}</span>}</header>
     <div className="payment-filters" role="search" aria-label="Payment filters">
@@ -133,7 +153,7 @@ export const Payments = () => {
       {items.map(p => <TableRow key={p.id} hover><TableCell className="payment-number">{p.paymentNumber || p.id}</TableCell><TableCell>{displayDate(p.paymentDate)}</TableCell><TableCell>{p.customerName}</TableCell><TableCell>{p.invoiceDisplay}</TableCell><TableCell>{p.methodDisplay}</TableCell><TableCell className="payment-amount" align="left">{money(p.amount,p.currency)}</TableCell><TableCell align="left"><PaymentStatus status={p.status} /></TableCell><TableCell align="left"><PaymentRowActions payment={p} user={user} onReverse={setReverse} /></TableCell></TableRow>)}
       {!items.length && (dateError || !loadError) && <TableRow><TableCell colSpan={columns.length}><div className="payments-state">{dateError ? 'Choose a valid date range.' : query.isFetching ? 'Loading payments...' : <><ReceiptLongOutlined className="payment-empty-icon" /><strong>No payments found</strong><p>Recorded payments will appear here.</p></>}</div></TableCell></TableRow>}</TableBody></Table></TableContainer>
       {query.data && <WorkspacePagination page={query.data.pageNumber} pageSize={query.data.pageSize} totalCount={query.data.totalCount} itemLabel="payments" disabled={query.isFetching || Boolean(dateError)} onPageChange={pageNumber => setFilters(previous => ({ ...previous, pageNumber }))} onPageSizeChange={pageSize => change({ pageSize })} />}
-    </section><PaymentReversal open={Boolean(reverse)} onClose={() => setReverse(null)} paymentId={reverse?.id} />
+    </section><PaymentReversal open={Boolean(reverse)} onClose={() => setReverse(null)} paymentId={reverse?.id} /><PaymentGatewaySettingsDialog open={gatewayOpen} onClose={() => setGatewayOpen(false)} onSaved={(msg) => setGatewayNotice(msg)} />
   </PaymentShell>;
 };
 export default Payments;

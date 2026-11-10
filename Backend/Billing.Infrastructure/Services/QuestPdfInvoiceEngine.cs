@@ -416,7 +416,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 row.RelativeItem(3).Column(c =>
                 {
                     var pay = template.PaymentInstructions;
-                    if (template.Layout.ShowPaymentInstructions && (!string.IsNullOrWhiteSpace(pay.BankName) || !string.IsNullOrWhiteSpace(pay.AccountNumber) || !string.IsNullOrWhiteSpace(pay.UpiId) || !string.IsNullOrWhiteSpace(pay.BankDetails) || !string.IsNullOrWhiteSpace(pay.PaymentNotes)))
+                    if (template.Layout.ShowPaymentInstructions && (!string.IsNullOrWhiteSpace(pay.BankName) || !string.IsNullOrWhiteSpace(pay.AccountNumber) || !string.IsNullOrWhiteSpace(pay.UpiId) || !string.IsNullOrWhiteSpace(pay.BankDetails) || !string.IsNullOrWhiteSpace(pay.PaymentNotes) || !string.IsNullOrWhiteSpace(pay.NetBankingProvider) || !string.IsNullOrWhiteSpace(pay.NetBankingBanks) || !string.IsNullOrWhiteSpace(pay.NetBankingInstructions)))
                     {
                         c.Item().PaddingBottom(4).Text("PAYMENT INSTRUCTIONS").FontSize(8.5f).Bold().FontColor(secondaryColor);
                         c.Item().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Background(Colors.Grey.Lighten5).Padding(6).Row(payRow =>
@@ -428,9 +428,15 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                                 if (!string.IsNullOrWhiteSpace(pay.AccountNumber)) b.Item().Text($"Account #: {pay.AccountNumber}").FontSize(8f).Bold();
                                 if (!string.IsNullOrWhiteSpace(pay.IfscCode)) b.Item().Text($"IFSC Code: {pay.IfscCode}").FontSize(8f);
                                 if (!string.IsNullOrWhiteSpace(pay.UpiId)) b.Item().Text($"UPI ID: {pay.UpiId}").FontSize(8f);
+                                if (pay.NetBankingEnabled && (!string.IsNullOrWhiteSpace(pay.NetBankingProvider) || !string.IsNullOrWhiteSpace(pay.NetBankingBanks))) b.Item().Text($"Internet Banking: {pay.NetBankingProvider ?? "NetBanking"}{(!string.IsNullOrWhiteSpace(pay.NetBankingBanks) ? $" ({pay.NetBankingBanks})" : "")}").FontSize(7.5f);
+                                if (pay.NetBankingEnabled && !string.IsNullOrWhiteSpace(pay.NetBankingInstructions)) b.Item().PaddingTop(1).Text(pay.NetBankingInstructions).FontSize(7.5f).Italic();
                                 if (!string.IsNullOrWhiteSpace(pay.BankDetails)) b.Item().PaddingTop(2).Text(pay.BankDetails).FontSize(7.5f);
                                 if (!string.IsNullOrWhiteSpace(pay.PaymentNotes)) b.Item().PaddingTop(2).Text(pay.PaymentNotes).FontSize(7.5f).Italic();
-                                b.Item().PaddingTop(3).Hyperlink($"https://checkout.ibms.local/pay/inv-{snapshot.InvoiceId}").Text("💳 Click Here to Pay Online").FontSize(7.5f).Bold().FontColor(Colors.Blue.Darken2).Underline();
+                                var baseUrl = Billing.Application.Common.AppUrlResolver.GetFrontendBaseUrl();
+                                var payOnlineUrl = snapshot.TenantId.HasValue
+                                    ? $"{baseUrl}/pay/{snapshot.InvoiceId}?tenantId={snapshot.TenantId.Value}"
+                                    : $"{baseUrl}/pay/{snapshot.InvoiceId}";
+                                b.Item().PaddingTop(3).Hyperlink(payOnlineUrl).Text("💳 Click Here to Pay Online").FontSize(7.5f).Bold().FontColor(Colors.Blue.Darken2).Underline();
                             });
 
                             try

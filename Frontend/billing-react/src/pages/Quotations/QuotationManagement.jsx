@@ -46,8 +46,12 @@ const tenantProfileFromTemplate = template => {
   };
 };
 const loadTenantProfile = async () => {
+  const cachedUser = typeof authApi?.getCurrentUser === 'function' ? authApi.getCurrentUser() : null;
+  const userPromise = (cachedUser && typeof cachedUser === 'object' && (cachedUser.userId || cachedUser.UserId))
+    ? Promise.resolve(cachedUser)
+    : apiClient.get('/api/Auth/me');
   const [userResponse,templatesResponse]=await Promise.all([
-    apiClient.get('/api/Auth/me'),
+    userPromise,
     templateApi.list({Status:'Active',PageNumber:1,PageSize:20}),
   ]);
   const userProfile=tenantProfileFrom(unwrap(userResponse));

@@ -1967,6 +1967,76 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.PaymentGatewaySetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllowTestSimulationTools")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsSandbox")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasDefaultValue("Razorpay");
+
+                    b.Property<string>("RazorpayLiveKeyId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("RazorpayLiveKeySecretProtected")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<string>("RazorpayLiveWebhookSecretProtected")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<string>("RazorpayTestKeyId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("RazorpayTestKeySecretProtected")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<string>("RazorpayTestWebhookSecretProtected")
+                        .HasMaxLength(1024)
+                        .HasColumnType("varchar(1024)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("paymentgatewaysettings", (string)null);
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -3436,6 +3506,17 @@ namespace Billing.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.PaymentGatewaySetting", b =>
+                {
+                    b.HasOne("Billing.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });

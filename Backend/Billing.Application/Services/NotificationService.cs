@@ -2,6 +2,7 @@ using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Notification;
+using Billing.Contracts.Payment;
 using Billing.Domain.Entities;
 using Billing.Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -73,6 +74,25 @@ public class NotificationService : INotificationService
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
         var currency = invoice.GetCurrency();
+        var (lastPaidAmount, lastPaymentDate) = await ResolveLatestPaymentAsync(tenantId, invoice);
+
+        if (pdfBytes == null && string.Equals(eventType, "PartialPaymentReminder", StringComparison.OrdinalIgnoreCase) && _invoiceTemplateService != null)
+        {
+            try
+            {
+                var (bytes, fileName, _) = await _invoiceTemplateService.GetInvoicePdfAsync(invoice.Id, tenantId, forceRegenerate: true);
+                pdfBytes = bytes;
+                pdfFileName ??= fileName ?? $"{invoice.InvoiceNumber}.pdf";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not attach updated invoice PDF for partial payment reminder on Invoice {InvoiceId}", invoice.Id);
+            }
+        }
+
+        var payLink = string.Equals(eventType, "PartialPaymentReminder", StringComparison.OrdinalIgnoreCase)
+            ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial=0&payNowOnly=1"
+            : $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
 
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -86,14 +106,17 @@ public class NotificationService : INotificationService
             ["DueDate"] = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt",
             ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
             ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
-            ["PaymentLink"] = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}"
+            ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
+            ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
+            ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
+            ["PaymentLink"] = payLink
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
         string subject;
         string body;
 
-        var payLink = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
+
 
         if (template != null)
         {
@@ -102,8 +125,36 @@ public class NotificationService : INotificationService
         }
         else
         {
-            subject = $"Invoice {invoice.InvoiceNumber} from {companyName}";
-            body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+            if (string.Equals(eventType, "PartialPaymentReminder", StringComparison.OrdinalIgnoreCase))
+            {
+                var recentDateNote = lastPaymentDate.HasValue ? $" ({lastPaymentDate.Value:dd MMM yyyy})" : "";
+                var dueDateText = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt";
+                subject = $"Payment Reminder: Remaining Balance {currency} {invoice.BalanceAmount:N2} for Invoice {invoice.InvoiceNumber} - {companyName}";
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;color:#334155;'>
+                    <div style='font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
+                    <h2 style='color:#0f172a;margin:6px 0 14px;'>Remaining Balance Payment Reminder</h2>
+                    <p style='color:#475569;'>Dear <strong>{invoice.Customer.Name}</strong>,</p>
+                    <p style='color:#475569;'>Thank you for your previous payment towards Invoice <strong>{invoice.InvoiceNumber}</strong>. This is a friendly reminder to complete the remaining balance payment.</p>
+                    <table style='width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:16px 0;'>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Number</td><td style='padding:10px 14px;text-align:right;font-weight:700;border-bottom:1px solid #e2e8f0;'>{invoice.InvoiceNumber}</td></tr>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Total</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.TotalAmount:N2}</td></tr>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Recently Paid{recentDateNote}</td><td style='padding:10px 14px;text-align:right;font-weight:700;color:#16a34a;border-bottom:1px solid #e2e8f0;'>{currency} {lastPaidAmount:N2}</td></tr>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Total Paid So Far</td><td style='padding:10px 14px;text-align:right;font-weight:600;color:#15803d;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.PaidAmount:N2}</td></tr>
+                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Due Date</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{dueDateText}</td></tr>
+                        <tr style='background:#fef2f2;'><td style='padding:12px 14px;color:#991b1b;font-weight:700;'>Remaining Balance Due</td><td style='padding:12px 14px;text-align:right;font-weight:800;font-size:16px;color:#b91c1c;'>{currency} {invoice.BalanceAmount:N2}</td></tr>
+                    </table>
+                    <div style='margin:24px 0;text-align:center;'>
+                        <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Pay Now ({currency} {invoice.BalanceAmount:N2})</a>
+                    </div>
+                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. Full payment of the remaining balance is required via this Pay Now link.</p>
+                    <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                    <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+                </div>";
+            }
+            else
+            {
+                subject = $"Invoice {invoice.InvoiceNumber} from {companyName}";
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
                 <h2 style='color:#0f172a;margin-top:0;'>Tax Invoice {invoice.InvoiceNumber}</h2>
                 <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
                 <p style='color:#475569;'>Please find attached tax invoice <strong>{invoice.InvoiceNumber}</strong> for <strong>{currency} {invoice.TotalAmount:N2}</strong>.</p>
@@ -111,11 +162,13 @@ public class NotificationService : INotificationService
                 <div style='margin:30px 0;'>
                     <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
                 </div>
-                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or Bank Transfer." : "Please note: Full payment is required for this invoice via UPI, Credit/Debit Card, or Bank Transfer.")}</p>
+                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice via UPI, Credit/Debit Card, or Internet Banking.")}</p>
 
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
+            }
+
         }
 
         var log = new NotificationLog
@@ -235,7 +288,7 @@ public class NotificationService : INotificationService
             ["Currency"] = currency,
             ["PaymentNumber"] = payment.PaymentNumber,
             ["PaymentDate"] = payment.PaymentDate.ToString("dd MMM yyyy"),
-            ["PaymentMethod"] = payment.Method.ToString(),
+            ["PaymentMethod"] = PaymentValidator.FormatPaymentMethod(payment.Method, payment.CustomMethodName),
             ["AmountPaid"] = payment.Amount.ToString("N2"),
             ["InvoiceNumber"] = invoiceNumber,
             ["RemainingBalance"] = remainingBalance,
@@ -617,6 +670,8 @@ public class NotificationService : INotificationService
 
             var daysOverdue = (int)(today - invoice.DueDate!.Value.Date).TotalDays;
             var currency = invoice.GetCurrency();
+            var (lastPaidAmount, _) = await ResolveLatestPaymentAsync(tenantId, invoice);
+            var payLink = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
 
             var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -631,7 +686,10 @@ public class NotificationService : INotificationService
                 ["DaysOverdue"] = daysOverdue.ToString(),
                 ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
                 ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
-                ["PaymentLink"] = $"/portal/invoices/{invoice.InvoiceNumber}/pay"
+            ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
+            ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
+            ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
+                ["PaymentLink"] = payLink
             };
 
             string subject = template != null
@@ -715,6 +773,42 @@ public class NotificationService : INotificationService
         var dtos = pagedLogs.Items.Select(MapToDto).ToList();
         var result = new PagedResult<NotificationLogDto>(dtos, pagedLogs.TotalCount, pagedLogs.PageNumber, pagedLogs.PageSize);
         return ApiResponse<PagedResult<NotificationLogDto>>.Ok(result);
+    }
+
+    private async Task<(decimal LastPaidAmount, DateTime? LastPaymentDate)> ResolveLatestPaymentAsync(int tenantId, Invoice invoice)
+    {
+        decimal lastPaidAmount = invoice.PaidAmount > 0 ? invoice.PaidAmount : 0m;
+        DateTime? lastPaymentDate = null;
+        if (invoice.PaidAmount <= 0 || _paymentRepository == null)
+        {
+            return (lastPaidAmount, lastPaymentDate);
+        }
+
+        try
+        {
+            var paymentsPage = await _paymentRepository.GetPagedListAsync(tenantId, new PaymentListFilterRequest
+            {
+                InvoiceId = invoice.Id,
+                Status = "Completed",
+                SortBy = "createdatutc",
+                SortOrder = "desc",
+                PageNumber = 1,
+                PageSize = 1
+            });
+            var latestPayment = paymentsPage?.Items?.FirstOrDefault();
+            if (latestPayment != null)
+            {
+                var latestAllocation = latestPayment.Allocations?.FirstOrDefault(a => a.InvoiceId == invoice.Id && !a.IsReversed);
+                lastPaidAmount = latestAllocation?.AllocatedAmount ?? latestPayment.Amount;
+                lastPaymentDate = latestPayment.PaymentDate;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not resolve latest payment amount for Invoice {InvoiceId}", invoice.Id);
+        }
+
+        return (lastPaidAmount, lastPaymentDate);
     }
 
     private static NotificationLogDto MapToDto(NotificationLog l) => new()

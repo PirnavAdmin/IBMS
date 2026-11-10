@@ -298,18 +298,7 @@ public class InvoiceService : IInvoiceService
             
             await _unitOfWork.CommitTransactionAsync();
 
-            if (_notificationService != null)
-            {
-                try
-                {
-                    await _notificationService.SendInvoiceNotificationAsync(invoice.Id, tenantId, "InvoiceIssued", userName);
-                }
-                catch
-                {
-                    // Notification dispatch failure should not rollback invoice issuance
-                }
-            }
-
+            // Customer emails are sent explicitly via SendInvoiceAsync rather than during issuance.
             return ApiResponse<Invoice>.Ok(invoice, "Invoice issued successfully.");
         }
         catch
