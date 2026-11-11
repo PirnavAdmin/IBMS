@@ -52,6 +52,17 @@ public class NotificationsController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPost("send-partial-reminder/{invoiceId:int}")]
+    [ProducesResponseType(typeof(ApiResponse<NotificationLogDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SendPartialPaymentReminder(int invoiceId)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var result = await _notificationService.SendInvoiceNotificationAsync(invoiceId, tenantId.Value, "PartialPaymentReminder", User.Identity?.Name);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("send-payment/{paymentId:int}")]
     [ProducesResponseType(typeof(ApiResponse<NotificationLogDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SendPaymentReceipt(int paymentId)

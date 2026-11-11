@@ -147,7 +147,7 @@ public class PaymentRepository : IPaymentRepository
             "amount" => isAsc ? query.OrderBy(p => p.Amount) : query.OrderByDescending(p => p.Amount),
             "status" => isAsc ? query.OrderBy(p => p.Status) : query.OrderByDescending(p => p.Status),
             "method" => isAsc ? query.OrderBy(p => p.Method) : query.OrderByDescending(p => p.Method),
-            "createdat" or "createdatutc" => isAsc ? query.OrderBy(p => p.CreatedAtUtc) : query.OrderByDescending(p => p.CreatedAtUtc),
+            "createdat" or "createdatutc" => isAsc ? query.OrderBy(p => p.CreatedAtUtc).ThenBy(p => p.Id) : query.OrderByDescending(p => p.CreatedAtUtc).ThenByDescending(p => p.Id),
             _ => isAsc
                 ? query.OrderBy(p => p.PaymentDate).ThenBy(p => p.Id)
                 : query.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.Id)
