@@ -432,11 +432,14 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                                 if (pay.NetBankingEnabled && !string.IsNullOrWhiteSpace(pay.NetBankingInstructions)) b.Item().PaddingTop(1).Text(pay.NetBankingInstructions).FontSize(7.5f).Italic();
                                 if (!string.IsNullOrWhiteSpace(pay.BankDetails)) b.Item().PaddingTop(2).Text(pay.BankDetails).FontSize(7.5f);
                                 if (!string.IsNullOrWhiteSpace(pay.PaymentNotes)) b.Item().PaddingTop(2).Text(pay.PaymentNotes).FontSize(7.5f).Italic();
-                                var baseUrl = Billing.Application.Common.AppUrlResolver.GetFrontendBaseUrl();
-                                var payOnlineUrl = snapshot.TenantId.HasValue
-                                    ? $"{baseUrl}/pay/{snapshot.InvoiceId}?tenantId={snapshot.TenantId.Value}"
-                                    : $"{baseUrl}/pay/{snapshot.InvoiceId}";
-                                b.Item().PaddingTop(3).Hyperlink(payOnlineUrl).Text("💳 Click Here to Pay Online").FontSize(7.5f).Bold().FontColor(Colors.Blue.Darken2).Underline();
+                                if (snapshot.IncludePayOnlineLink)
+                                {
+                                    var baseUrl = Billing.Application.Common.AppUrlResolver.GetFrontendBaseUrl();
+                                    var payOnlineUrl = snapshot.TenantId.HasValue
+                                        ? $"{baseUrl}/pay/{snapshot.InvoiceId}?tenantId={snapshot.TenantId.Value}"
+                                        : $"{baseUrl}/pay/{snapshot.InvoiceId}";
+                                    b.Item().PaddingTop(3).Hyperlink(payOnlineUrl).Text("💳 Click Here to Pay Online").FontSize(7.5f).Bold().FontColor(Colors.Blue.Darken2).Underline();
+                                }
                             });
 
                             try

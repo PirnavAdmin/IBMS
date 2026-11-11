@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
+using Billing.Contracts.Notification;
 using Billing.Contracts.Numbering;
 using Billing.Contracts.Payment;
 using Billing.Domain.Entities;
@@ -40,6 +41,7 @@ public class PaymentService : IPaymentService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOutboxService? _outboxService;
     private readonly INotificationService? _notificationService;
+    private readonly IInAppNotificationService? _inAppNotificationService;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -49,7 +51,8 @@ public class PaymentService : IPaymentService
         IAuditLogRepository auditLogRepository,
         IUnitOfWork unitOfWork,
         IOutboxService? outboxService = null,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IInAppNotificationService? inAppNotificationService = null)
     {
         _paymentRepository = paymentRepository;
         _invoiceRepository = invoiceRepository;
@@ -59,6 +62,7 @@ public class PaymentService : IPaymentService
         _unitOfWork = unitOfWork;
         _outboxService = outboxService;
         _notificationService = notificationService;
+        _inAppNotificationService = inAppNotificationService;
     }
 
     public async Task<PaymentOperationResult<PaymentDetailDto>> CreatePaymentAsync(
@@ -444,6 +448,8 @@ public class PaymentService : IPaymentService
                     }
                 }
 
+                await PublishCreatedPaymentInAppNotificationAsync(tenantId, savedPayment, customer);
+
                 savedPayment.Customer = customer;
                 var detailDto = await BuildPaymentDetailDtoAsync(tenantId, savedPayment);
                 return PaymentOperationResult<PaymentDetailDto>.Success(detailDto, 201, isIdempotentReplay: false);
@@ -758,6 +764,16 @@ public class PaymentService : IPaymentService
 
                     await _unitOfWork.CommitTransactionAsync();
 
+                    var customerForNotif = payment.Customer ?? await _customerRepository.GetByIdAsync(payment.CustomerId, tenantId);
+                    await PublishPaymentInAppNotificationAsync(
+                        tenantId,
+                        payment,
+                        customerForNotif,
+                        "PaymentReversed",
+                        "reversed",
+                        $"Payment {payment.PaymentNumber} Reversed",
+                        $"{GetCustomerDisplayName(customerForNotif)} payment {payment.PaymentNumber} ({payment.Currency} {payment.Amount:N2}) was reversed by {actor}. Reason: {trimmedReason}.");
+
                     var detailDto = await BuildPaymentDetailDtoAsync(tenantId, payment);
                     return PaymentOperationResult<PaymentDetailDto>.Success(detailDto, 200);
                 }
@@ -1011,6 +1027,34 @@ public class PaymentService : IPaymentService
                         catch
                         {
                             // Notification failure must not affect the committed status change
+                        }
+                    }
+
+                    if (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed)
+                    {
+                        var customerForNotif = payment.Customer ?? await _customerRepository.GetByIdAsync(payment.CustomerId, tenantId);
+                        var methodLabel = PaymentValidator.FormatPaymentMethod(payment.Method, payment.CustomMethodName);
+                        if (targetStatus == PaymentStatus.Completed)
+                        {
+                            await PublishPaymentInAppNotificationAsync(
+                                tenantId,
+                                payment,
+                                customerForNotif,
+                                "PaymentReceived",
+                                "received",
+                                $"Payment {payment.PaymentNumber} Completed",
+                                $"{GetCustomerDisplayName(customerForNotif)} {methodLabel} payment {payment.PaymentNumber} ({payment.Currency} {payment.Amount:N2}) was marked Completed.");
+                        }
+                        else
+                        {
+                            await PublishPaymentInAppNotificationAsync(
+                                tenantId,
+                                payment,
+                                customerForNotif,
+                                "PaymentFailed",
+                                "failed",
+                                $"Payment {payment.PaymentNumber} Failed",
+                                $"{GetCustomerDisplayName(customerForNotif)} {methodLabel} payment {payment.PaymentNumber} ({payment.Currency} {payment.Amount:N2}) failed.");
                         }
                     }
 
@@ -1346,5 +1390,81 @@ public class PaymentService : IPaymentService
             IsEligibleForPayment = isEligible,
             IneligibilityReason = reason
         };
+    }
+
+    private async Task PublishCreatedPaymentInAppNotificationAsync(int tenantId, Payment payment, Customer? customer)
+    {
+        var customerName = GetCustomerDisplayName(customer);
+        var methodLabel = PaymentValidator.FormatPaymentMethod(payment.Method, payment.CustomMethodName);
+        var linkedInvoices = payment.Allocations?
+            .Where(a => a.Invoice != null && !string.IsNullOrWhiteSpace(a.Invoice.InvoiceNumber))
+            .Select(a => a.Invoice!)
+            .DistinctBy(i => i.Id)
+            .ToList() ?? new List<Invoice>();
+
+        var invoiceSummary = linkedInvoices.Count switch
+        {
+            1 => payment.Status == PaymentStatus.Completed
+                ? $" for invoice {linkedInvoices[0].InvoiceNumber}.{(linkedInvoices[0].BalanceAmount > 0m ? $" Remaining balance: {payment.Currency} {linkedInvoices[0].BalanceAmount:N2}." : " Invoice paid in full.")}"
+                : $" for invoice {linkedInvoices[0].InvoiceNumber}.",
+            > 1 => $" across {linkedInvoices.Count} invoices ({string.Join(", ", linkedInvoices.Take(3).Select(i => i.InvoiceNumber))}).",
+            _ => "."
+        };
+
+        if (payment.Status == PaymentStatus.Completed)
+        {
+            await PublishPaymentInAppNotificationAsync(
+                tenantId,
+                payment,
+                customer,
+                "PaymentReceived",
+                "received",
+                $"Payment {payment.PaymentNumber} Received",
+                $"{customerName} paid {payment.Currency} {payment.Amount:N2} via {methodLabel}{invoiceSummary}");
+        }
+        else
+        {
+            await PublishPaymentInAppNotificationAsync(
+                tenantId,
+                payment,
+                customer,
+                "PaymentCreated",
+                "created",
+                $"Payment {payment.PaymentNumber} Recorded ({payment.Status})",
+                $"{customerName} recorded a {payment.Status.ToString().ToLowerInvariant()} {methodLabel} payment of {payment.Currency} {payment.Amount:N2}{invoiceSummary}");
+        }
+    }
+
+    private async Task PublishPaymentInAppNotificationAsync(
+        int tenantId,
+        Payment payment,
+        Customer? customer,
+        string eventType,
+        string dedupSuffix,
+        string title,
+        string message)
+    {
+        if (_inAppNotificationService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _inAppNotificationService.PublishTenantNotificationAsync(new PublishTenantNotificationCommand
+            {
+                TenantId = tenantId,
+                EventType = eventType,
+                EventDeduplicationId = $"payment-{payment.Id}-{dedupSuffix}",
+                Title = title,
+                Message = message,
+                ActionModule = "payments",
+                ActionEntityId = payment.Id.ToString()
+            });
+        }
+        catch
+        {
+            // Notification delivery failures must never break committed payment flows
+        }
     }
 }

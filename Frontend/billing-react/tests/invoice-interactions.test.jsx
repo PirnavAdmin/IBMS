@@ -1505,3 +1505,80 @@ test('Invoice List recovers to the last real page after the result count shrinks
 test('Invoice summary does not mark Total Invoiced active for an unfiltered currency directory',async()=>{
   await defaults({list:async()=>page([invoice]),summary:async()=>[{currency:'INR',totalInvoiced:100,totalPaid:0,totalOutstanding:100,overdueAmount:0,draftCount:1,draftAmount:100}]},async()=>{const mounted=await mount(<InvoiceList/>,'/invoices?currency=INR');try{const card=mounted.host.querySelector('[aria-label="Filter invoices by Total Invoiced (INR)"]');assert.equal(card.classList.contains('is-active'),false);await click(card);await flush();assert.equal(card.classList.contains('is-active'),true);assert.match(mounted.host.textContent,/1 invoice/);}finally{await mounted.close();}});
 });
+test('Send Invoice dialog toggle disables payment policy selection when OFF while Send Email remains enabled', async () => {
+  const sentPayloads = [];
+  const issuedInvoice = {
+    ...invoice,
+    status: 'Issued',
+    invoiceNumber: 'INV-2026-11-000032',
+    customer: { ...customer, email: 'cust@example.com' },
+  };
+  await defaults(
+    {
+      get: async () => issuedInvoice,
+      customer: async () => ({ ...customer, email: 'cust@example.com' }),
+      payments: async () => [],
+      creditNotes: async () => [],
+      communication: async () => [],
+      audit: async () => [],
+      send: async (id, payload) => {
+        sentPayloads.push({ id, payload });
+        return true;
+      },
+    },
+    async () => {
+      const mounted = await mount(<InvoiceDetails />, '/invoices/7', '/invoices/:id');
+      try {
+        await click(button('Send Invoice'));
+        const toggle = document.querySelector('input[aria-label="Include Pay Now Online button"]');
+        assert.ok(toggle);
+        assert.equal(toggle.checked, true);
+
+        const fullRadio = () => document.querySelector('input[type="radio"][value="full"]');
+        const partialRadio = () => document.querySelector('input[type="radio"][value="partial"]');
+        assert.equal(fullRadio().disabled, false);
+        assert.equal(fullRadio().checked, true);
+        assert.equal(partialRadio().disabled, false);
+        assert.equal(partialRadio().checked, false);
+
+        // Disable toggle -> radio options unselected & disabled, Send Email stays enabled
+        await click(toggle);
+        assert.equal(toggle.checked, false);
+        assert.equal(fullRadio().disabled, true);
+        assert.equal(fullRadio().checked, false);
+        assert.equal(partialRadio().disabled, true);
+        assert.equal(partialRadio().checked, false);
+        assert.equal(button('Send Email').disabled, false);
+
+        // Toggling back ON restores previous radio selection before sending OFF
+        await click(toggle);
+        assert.equal(toggle.checked, true);
+        assert.equal(fullRadio().disabled, false);
+        assert.equal(fullRadio().checked, true);
+        await click(toggle);
+        assert.equal(toggle.checked, false);
+        assert.equal(fullRadio().checked, false);
+
+        await click(button('Send Email'));
+        assert.deepEqual(sentPayloads.at(-1), { id: 7, payload: { includePayOnlineButton: false } });
+      } finally {
+        await mounted.close();
+      }
+
+      // Fresh mount to verify default ON state sends includePayOnlineButton: true & allowPartialPayments: true when Partial is selected
+      const mountedSecond = await mount(<InvoiceDetails />, '/invoices/7', '/invoices/:id');
+      try {
+        await click(button('Send Invoice'));
+        const reopenedToggle = document.querySelector('input[aria-label="Include Pay Now Online button"]');
+        assert.equal(reopenedToggle.checked, true);
+        const partialRadio = document.querySelector('input[type="radio"][value="partial"]');
+        await click(partialRadio);
+        assert.equal(partialRadio.checked, true);
+        await click(button('Send Email'));
+        assert.deepEqual(sentPayloads.at(-1), { id: 7, payload: { includePayOnlineButton: true, allowPartialPayments: true } });
+      } finally {
+        await mountedSecond.close();
+      }
+    },
+  );
+});

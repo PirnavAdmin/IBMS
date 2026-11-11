@@ -982,4 +982,194 @@ public class PaymentManagementTests
         var spoofResp = Assert.IsType<ApiResponse<PaymentDetailDto>>(spoofBad.Value);
         Assert.False(spoofResp.Success);
     }
+
+    [Fact]
+    public async Task PaymentService_PublishesInAppNotifications_ForCreatedCompletedStatusUpdatedAndReversedPayments()
+    {
+        var ctx = new TestContext();
+        var invoice = await ctx.SeedInvoiceAsync(totalAmount: 1000.00m);
+
+        var published = new List<Billing.Contracts.Notification.PublishTenantNotificationCommand>();
+        var inAppMock = new Moq.Mock<IInAppNotificationService>();
+        inAppMock
+            .Setup(s => s.PublishTenantNotificationAsync(
+                Moq.It.IsAny<Billing.Contracts.Notification.PublishTenantNotificationCommand>(),
+                Moq.It.IsAny<CancellationToken>()))
+            .Callback<Billing.Contracts.Notification.PublishTenantNotificationCommand, CancellationToken>((cmd, _) => published.Add(cmd))
+            .ReturnsAsync(ApiResponse<int>.Ok(1));
+
+        var paymentService = new PaymentService(
+            ctx.PaymentRepo,
+            ctx.InvoiceRepo,
+            ctx.CustomerRepo,
+            ctx.NumberGenService,
+            ctx.AuditRepo,
+            ctx.UnitOfWork,
+            inAppNotificationService: inAppMock.Object);
+
+        // 1. Completed partial payment -> PaymentReceived
+        var paidRes = await paymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 400.00m,
+                Currency = "INR",
+                PaymentDate = DateTime.UtcNow.Date,
+                Method = "BankTransfer",
+                Reference = "IMPS-NOTIFY-01"
+            },
+            "finance@ibms.com");
+
+        Assert.True(paidRes.IsSuccess);
+        Assert.Single(published);
+        var receivedNotif = published[0];
+        Assert.Equal(Tenant1, receivedNotif.TenantId);
+        Assert.Equal("PaymentReceived", receivedNotif.EventType);
+        Assert.Equal($"payment-{paidRes.Data!.Id}-received", receivedNotif.EventDeduplicationId);
+        Assert.Equal("payments", receivedNotif.ActionModule);
+        Assert.Equal(paidRes.Data.Id.ToString(), receivedNotif.ActionEntityId);
+        Assert.Contains(paidRes.Data.PaymentNumber, receivedNotif.Title);
+        Assert.Contains("400.00", receivedNotif.Message);
+
+        // 2. Uncleared Cheque (Pending) -> PaymentCreated
+        var chequeRes = await paymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 200.00m,
+                Currency = "INR",
+                PaymentDate = DateTime.UtcNow.Date,
+                Method = "Cheque",
+                ChequeNumber = "045999",
+                ChequeDate = DateTime.UtcNow.Date,
+                BankName = "HDFC Bank",
+                ClearingStatus = "Uncleared"
+            },
+            "finance@ibms.com");
+
+        Assert.True(chequeRes.IsSuccess);
+        Assert.Equal(2, published.Count);
+        var createdNotif = published[1];
+        Assert.Equal("PaymentCreated", createdNotif.EventType);
+        Assert.Equal($"payment-{chequeRes.Data!.Id}-created", createdNotif.EventDeduplicationId);
+        Assert.Equal("payments", createdNotif.ActionModule);
+        Assert.Equal(chequeRes.Data.Id.ToString(), createdNotif.ActionEntityId);
+
+        // 3. Clearing the cheque -> PaymentReceived
+        var clearRes = await paymentService.UpdatePaymentStatusAsync(
+            Tenant1,
+            chequeRes.Data.Id,
+            new UpdatePaymentStatusRequest
+            {
+                Status = "Completed",
+                ClearingStatus = "Cleared",
+                Notes = "Cleared in batch"
+            },
+            "finance@ibms.com");
+
+        Assert.True(clearRes.IsSuccess);
+        Assert.Equal(3, published.Count);
+        var clearedNotif = published[2];
+        Assert.Equal("PaymentReceived", clearedNotif.EventType);
+        Assert.Equal($"payment-{chequeRes.Data.Id}-received", clearedNotif.EventDeduplicationId);
+        Assert.Equal("payments", clearedNotif.ActionModule);
+        Assert.Equal(chequeRes.Data.Id.ToString(), clearedNotif.ActionEntityId);
+
+        // 4. Pending gateway payment + Failed callback -> PaymentCreated then PaymentFailed
+        var gatewayRes = await paymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 200.00m,
+                Currency = "INR",
+                PaymentDate = DateTime.UtcNow.Date,
+                Method = "Gateway",
+                ProviderName = "Razorpay",
+                ProviderTransactionId = "pay_RzpNotify99",
+                CallbackStatus = "Pending"
+            },
+            "system@ibms.com");
+
+        Assert.True(gatewayRes.IsSuccess);
+        Assert.Equal(4, published.Count);
+        Assert.Equal("PaymentCreated", published[3].EventType);
+
+        var failedRes = await paymentService.UpdatePaymentStatusAsync(
+            Tenant1,
+            gatewayRes.Data!.Id,
+            new UpdatePaymentStatusRequest
+            {
+                Status = "Failed",
+                CallbackStatus = "Failed"
+            },
+            "webhook@ibms.com");
+
+        Assert.True(failedRes.IsSuccess);
+        Assert.Equal(5, published.Count);
+        var failedNotif = published[4];
+        Assert.Equal("PaymentFailed", failedNotif.EventType);
+        Assert.Equal($"payment-{gatewayRes.Data.Id}-failed", failedNotif.EventDeduplicationId);
+        Assert.Equal("payments", failedNotif.ActionModule);
+        Assert.Equal(gatewayRes.Data.Id.ToString(), failedNotif.ActionEntityId);
+
+        // 5. Reversing the completed payment -> PaymentReversed
+        var reverseRes = await paymentService.ReversePaymentAsync(
+            Tenant1,
+            paidRes.Data.Id,
+            new ReversePaymentRequest { Reason = "Customer requested refund" },
+            "admin@ibms.com",
+            new[] { "TenantAdmin" });
+
+        Assert.True(reverseRes.IsSuccess);
+        Assert.Equal(6, published.Count);
+        var reversedNotif = published[5];
+        Assert.Equal("PaymentReversed", reversedNotif.EventType);
+        Assert.Equal($"payment-{paidRes.Data.Id}-reversed", reversedNotif.EventDeduplicationId);
+        Assert.Equal("payments", reversedNotif.ActionModule);
+        Assert.Equal(paidRes.Data.Id.ToString(), reversedNotif.ActionEntityId);
+        Assert.Contains("Customer requested refund", reversedNotif.Message);
+    }
+
+    [Fact]
+    public async Task PaymentService_CreatePaymentSucceeds_WhenInAppNotificationServiceThrows()
+    {
+        var ctx = new TestContext();
+        var invoice = await ctx.SeedInvoiceAsync(totalAmount: 1000.00m);
+
+        var inAppMock = new Moq.Mock<IInAppNotificationService>();
+        inAppMock
+            .Setup(s => s.PublishTenantNotificationAsync(
+                Moq.It.IsAny<Billing.Contracts.Notification.PublishTenantNotificationCommand>(),
+                Moq.It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Notification inbox unavailable"));
+
+        var paymentService = new PaymentService(
+            ctx.PaymentRepo,
+            ctx.InvoiceRepo,
+            ctx.CustomerRepo,
+            ctx.NumberGenService,
+            ctx.AuditRepo,
+            ctx.UnitOfWork,
+            inAppNotificationService: inAppMock.Object);
+
+        var result = await paymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 500.00m,
+                Currency = "INR",
+                PaymentDate = DateTime.UtcNow.Date,
+                Method = "BankTransfer",
+                Reference = "NEFT-FAILSAFE-01"
+            },
+            "finance@ibms.com");
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("Completed", result.Data!.Status);
+    }
 }

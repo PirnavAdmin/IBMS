@@ -186,7 +186,13 @@ public class InvoicesController : ControllerBase
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
 
-        var result = await _invoiceService.DeliverInvoiceAsync(id, tenantId.Value, User.Identity?.Name, request?.AllowPartialPayments);
+        var includePayOnline = request?.IncludePayOnlineButton ?? true;
+        var result = await _invoiceService.DeliverInvoiceAsync(
+            id,
+            tenantId.Value,
+            User.Identity?.Name,
+            includePayOnline ? request?.AllowPartialPayments : null,
+            includePayOnline);
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

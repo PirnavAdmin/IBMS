@@ -1170,6 +1170,11 @@ namespace Billing.Infrastructure.Migrations
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<bool>("IncludePayOnlineButton")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("datetime(6)");
 
@@ -2492,6 +2497,67 @@ namespace Billing.Infrastructure.Migrations
                     b.ToTable("QuotationItems");
                 });
 
+            modelBuilder.Entity("Billing.Domain.Entities.ReminderSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("OverdueReminderEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("OverdueReminderIntervalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("PartialPaymentIntervalUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .HasDefaultValue("Days");
+
+                    b.Property<int>("PartialPaymentIntervalValue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(7);
+
+                    b.Property<bool>("PartialPaymentReminderEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("UpcomingDueReminderEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("remindersettings", (string)null);
+                });
+
             modelBuilder.Entity("Billing.Domain.Entities.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -3596,6 +3662,17 @@ namespace Billing.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Quotation");
+                });
+
+            modelBuilder.Entity("Billing.Domain.Entities.ReminderSetting", b =>
+                {
+                    b.HasOne("Billing.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Billing.Domain.Entities.Role", b =>

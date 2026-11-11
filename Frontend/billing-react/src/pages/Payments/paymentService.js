@@ -65,7 +65,7 @@ export const paymentService = {
   async getGatewaySettings({ signal } = {}) { return unwrapPayment(await apiClient.get(`${base}/gateway/settings`, { signal })); },
   async updateGatewaySettings(payload) { return unwrapPayment(await apiClient.put(`${base}/gateway/settings`, payload)); },
 };
-export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers'].map(key => client.invalidateQueries({ queryKey: [key] })));
+export const invalidatePaymentData = client => Promise.all(['payments', 'payment-invoices', 'payment-balance', 'invoices', 'invoice', 'dashboard', 'finance', 'financial', 'customers', 'notification-inbox'].map(key => client.invalidateQueries({ queryKey: [key] })));
 export const money = (amount, currency) => {
   if (amount == null) return '\u2014';
   const val = Number(amount);

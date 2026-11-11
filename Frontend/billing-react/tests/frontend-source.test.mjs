@@ -32,6 +32,7 @@ test('Tracked source plus required runtime additions resolves clean-checkout rel
     'Frontend/billing-react/src/pages/Invoices/services/invoiceExport.js',
     'Frontend/billing-react/src/pages/NumberingSettings/validation/numberingTokens.js',
     'Frontend/billing-react/src/pages/CreditNotes/utils/creditNoteInvoicePages.js',
+    'Frontend/billing-react/src/pages/Settings/ReminderSettings.jsx',
   ];
   const tracked = execFileSync('git', ['ls-files', '-z', '--cached'], { cwd: repository, encoding: 'utf8' }).split('\0').filter(Boolean);
   const checkout = new Set([...tracked, ...required].map(path => resolve(repository, path)));

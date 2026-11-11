@@ -207,7 +207,7 @@ test('Distinct payment failures preserve safe backend messages',()=>{
 });
 test('Reversal authorization and financial cache invalidation',async()=>{
  assert.equal(paymentPermissions(null).reverse,false);assert.equal(paymentPermissions({roles:['Customer']}).reverse,false);assert.equal(paymentPermissions({roles:['TenantAdmin']}).reverse,true);assert.equal(paymentPermissions({permissions:['payments.reverse']}).reverse,true);
- const keys=[];await invalidatePaymentData({invalidateQueries:async({queryKey})=>keys.push(queryKey[0])});for(const key of ['payments','payment-invoices','payment-balance','invoices','dashboard','finance'])assert.ok(keys.includes(key));
+ const keys=[];await invalidatePaymentData({invalidateQueries:async({queryKey})=>keys.push(queryKey[0])});for(const key of ['payments','payment-invoices','payment-balance','invoices','dashboard','finance','notification-inbox'])assert.ok(keys.includes(key));
 });
 test('Reversal content uses actual payment amounts and warning',()=>{
  const html=renderToStaticMarkup(<PaymentReversalContent payment={mapPayment(payment)} reason="" onChange={()=>{}} error="Reason required"/>);assert.match(html,/QA-PAY-9/);assert.match(html,/Reversing this payment will update/);assert.match(html,/Reason required/);

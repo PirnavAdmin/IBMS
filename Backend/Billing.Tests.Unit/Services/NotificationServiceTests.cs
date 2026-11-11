@@ -265,4 +265,226 @@ public class NotificationServiceTests
             l.Status == "Sent" &&
             l.Recipient == "bob@example.com")), Times.Once);
     }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_WithActiveTemplateAndPayOnlineDisabled_StripsPaymentLinkCtaBlock()
+    {
+        var invoice = new Invoice
+        {
+            Id = 42,
+            TenantId = 2,
+            InvoiceNumber = "INV-042",
+            Currency = "INR",
+            TotalAmount = 500m,
+            BalanceAmount = 500m,
+            AllowPartialPayments = false,
+            Customer = new Customer { Id = 1, Name = "Raj", Email = "raj@example.com" }
+        };
+        const string dbBodyTemplate = "<p>Hi {{CustomerName}},</p><p><a href=\"{{PaymentLink}}\" style=\"display:inline-block;padding:10px 18px;background:#5A2508;color:#ffffff;\">Pay Online Now</a></p><p>Thanks</p>";
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(42, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "InvoiceSent", "Email"))
+            .ReturnsAsync(new NotificationTemplate { SubjectTemplate = "Invoice {{InvoiceNumber}}", BodyTemplate = dbBodyTemplate });
+
+        string? renderedTemplateInput = null;
+        string? capturedPaymentLinkVar = null;
+        _templateEngineMock.Setup(t => t.Render("Invoice {{InvoiceNumber}}", It.IsAny<IDictionary<string, string>>()))
+            .Returns("Invoice INV-042");
+        _templateEngineMock.Setup(t => t.Render(It.IsAny<string>(), It.IsAny<IDictionary<string, string>>()))
+            .Callback<string, IDictionary<string, string>>((tpl, vars) =>
+            {
+                if (tpl != "Invoice {{InvoiceNumber}}")
+                {
+                    renderedTemplateInput = tpl;
+                    vars.TryGetValue("PaymentLink", out capturedPaymentLinkVar);
+                }
+            })
+            .Returns("<p>Hi Raj,</p><p>Thanks</p>");
+
+        var result = await _sut.SendInvoiceNotificationAsync(42, 2, "InvoiceSent", "Admin", null, null, includePayOnlineButton: false);
+
+        Assert.True(result.Success);
+        Assert.NotNull(renderedTemplateInput);
+        Assert.DoesNotContain("Pay Online Now", renderedTemplateInput);
+        Assert.DoesNotContain("{{PaymentLink}}", renderedTemplateInput);
+        Assert.Contains("<p>Hi {{CustomerName}},</p>", renderedTemplateInput);
+        Assert.Contains("<p>Thanks</p>", renderedTemplateInput);
+        Assert.Equal(string.Empty, capturedPaymentLinkVar);
+    }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_WithActiveTemplateAndPayOnlineEnabled_PreservesPaymentLinkCtaBlock()
+    {
+        var invoice = new Invoice
+        {
+            Id = 42,
+            TenantId = 2,
+            InvoiceNumber = "INV-042",
+            Currency = "INR",
+            TotalAmount = 500m,
+            BalanceAmount = 500m,
+            AllowPartialPayments = true,
+            Customer = new Customer { Id = 1, Name = "Raj", Email = "raj@example.com" }
+        };
+        const string dbBodyTemplate = "<p>Hi {{CustomerName}},</p><p><a href=\"{{PaymentLink}}\" style=\"display:inline-block;\">Pay Online Now</a></p>";
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(42, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "InvoiceSent", "Email"))
+            .ReturnsAsync(new NotificationTemplate { SubjectTemplate = "Invoice {{InvoiceNumber}}", BodyTemplate = dbBodyTemplate });
+
+        string? renderedTemplateInput = null;
+        string? capturedPaymentLinkVar = null;
+        _templateEngineMock.Setup(t => t.Render(It.IsAny<string>(), It.IsAny<IDictionary<string, string>>()))
+            .Callback<string, IDictionary<string, string>>((tpl, vars) =>
+            {
+                if (tpl != "Invoice {{InvoiceNumber}}")
+                {
+                    renderedTemplateInput = tpl;
+                    vars.TryGetValue("PaymentLink", out capturedPaymentLinkVar);
+                }
+            })
+            .Returns((string tpl, IDictionary<string, string> _) => tpl);
+
+        var result = await _sut.SendInvoiceNotificationAsync(42, 2, "InvoiceSent", "Admin", null, null, includePayOnlineButton: true);
+
+        Assert.True(result.Success);
+        Assert.Equal(dbBodyTemplate, renderedTemplateInput);
+        Assert.Contains("/pay/42?tenantId=2&allowPartial=1", capturedPaymentLinkVar);
+    }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_FallbackHtmlWhenPayOnlineDisabled_OmitsPayNowOnlineButton()
+    {
+        var invoice = new Invoice
+        {
+            Id = 43,
+            TenantId = 2,
+            InvoiceNumber = "INV-043",
+            Currency = "INR",
+            TotalAmount = 800m,
+            BalanceAmount = 800m,
+            Customer = new Customer { Id = 1, Name = "Raj", Email = "raj@example.com" }
+        };
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(43, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "InvoiceSent", "Email")).ReturnsAsync((NotificationTemplate?)null);
+
+        var result = await _sut.SendInvoiceNotificationAsync(43, 2, "InvoiceSent", "Admin", null, null, includePayOnlineButton: false);
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync(
+            "raj@example.com",
+            "Invoice INV-043 from Pirnav",
+            It.Is<string>(body => body.Contains("INV-043") && !body.Contains("Pay Now Online") && !body.Contains("/pay/43")),
+            null,
+            "INV-043.pdf"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_FallbackHtmlWhenPayOnlineEnabled_IncludesPayNowOnlineButton()
+    {
+        var invoice = new Invoice
+        {
+            Id = 43,
+            TenantId = 2,
+            InvoiceNumber = "INV-043",
+            Currency = "INR",
+            TotalAmount = 800m,
+            BalanceAmount = 800m,
+            Customer = new Customer { Id = 1, Name = "Raj", Email = "raj@example.com" }
+        };
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(43, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "InvoiceSent", "Email")).ReturnsAsync((NotificationTemplate?)null);
+
+        var result = await _sut.SendInvoiceNotificationAsync(43, 2, "InvoiceSent", "Admin", null, null, includePayOnlineButton: true);
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync(
+            "raj@example.com",
+            "Invoice INV-043 from Pirnav",
+            It.Is<string>(body => body.Contains("Pay Now Online") && body.Contains("/pay/43?tenantId=2")),
+            null,
+            "INV-043.pdf"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_PartialPaymentReminderWhenPayOnlineDisabled_OmitsPayNowButtonAndHandlesZeroPaidOptionA()
+    {
+        var invoice = new Invoice
+        {
+            Id = 58,
+            TenantId = 2,
+            InvoiceNumber = "INV-058",
+            Currency = "INR",
+            TotalAmount = 1200m,
+            PaidAmount = 0m,
+            BalanceAmount = 1200m,
+            AllowPartialPayments = true,
+            IncludePayOnlineButton = false,
+            Customer = new Customer { Id = 9, Name = "Kavya", Email = "kavya@example.com" }
+        };
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(58, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "PartialPaymentReminder", "Email")).ReturnsAsync((NotificationTemplate?)null);
+
+        var result = await _sut.SendInvoiceNotificationAsync(58, 2, "PartialPaymentReminder", "SystemReminderJob");
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync(
+            "kavya@example.com",
+            It.Is<string>(s => s.Contains("1,200.00") && s.Contains("INV-058")),
+            It.Is<string>(body =>
+                body.Contains("Partial payments are accepted") &&
+                !body.Contains("Pay Now") &&
+                !body.Contains("/pay/58") &&
+                !body.Contains("Recently Paid")),
+            null,
+            "INV-058.pdf"), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendInvoiceNotificationAsync_OverdueTemplateWhenPayOnlineDisabled_StripsPaymentPromptLineAndLink()
+    {
+        var invoice = new Invoice
+        {
+            Id = 59,
+            TenantId = 2,
+            InvoiceNumber = "INV-059",
+            Currency = "INR",
+            TotalAmount = 900m,
+            BalanceAmount = 900m,
+            DueDate = DateTime.UtcNow.Date.AddDays(-4),
+            IncludePayOnlineButton = false,
+            Customer = new Customer { Id = 10, Name = "Arjun", Email = "arjun@example.com" }
+        };
+        const string overdueTemplate = "<p>Dear {{CustomerName}},</p><p>Invoice {{InvoiceNumber}} is {{DaysOverdue}} days overdue.</p><p>Please arrange payment at your earliest convenience: <a href=\"{{PaymentLink}}\">Pay Outstanding Balance</a></p><p>Regards</p>";
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(59, 2)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Pirnav" });
+        _templateRepoMock.Setup(r => r.GetActiveTemplateAsync(2, "InvoiceOverdue", "Email"))
+            .ReturnsAsync(new NotificationTemplate { SubjectTemplate = "Overdue {{InvoiceNumber}}", BodyTemplate = overdueTemplate });
+
+        string? renderedTemplate = null;
+        string? capturedDaysOverdue = null;
+        _templateEngineMock.Setup(t => t.Render(It.IsAny<string>(), It.IsAny<IDictionary<string, string>>()))
+            .Callback<string, IDictionary<string, string>>((tpl, vars) =>
+            {
+                if (tpl != "Overdue {{InvoiceNumber}}")
+                {
+                    renderedTemplate = tpl;
+                    vars.TryGetValue("DaysOverdue", out capturedDaysOverdue);
+                }
+            })
+            .Returns((string tpl, IDictionary<string, string> _) => tpl);
+
+        var result = await _sut.SendInvoiceNotificationAsync(59, 2, "InvoiceOverdue", "SystemReminderJob");
+
+        Assert.True(result.Success);
+        Assert.NotNull(renderedTemplate);
+        Assert.DoesNotContain("Pay Outstanding Balance", renderedTemplate);
+        Assert.DoesNotContain("{{PaymentLink}}", renderedTemplate);
+        Assert.DoesNotContain("at your earliest convenience:", renderedTemplate);
+        Assert.Contains("<p>Regards</p>", renderedTemplate);
+        Assert.Equal("4", capturedDaysOverdue);
+    }
 }
