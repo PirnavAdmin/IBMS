@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateCredit, creditLineAmounts, eligibleCredit, reconcileFullCredit, refundableBalance, splitTaxAmount, validateCreditQuantity, validateRefundAmount } from '../src/pages/CreditNotes/utils/creditNoteCalculations.js';
+import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, reconcileFullCredit, refundableBalance, splitTaxAmount, validateCreditQuantity, validateInvoiceTaxAmount, validateRefundAmount } from '../src/pages/CreditNotes/utils/creditNoteCalculations.js';
 import { fetchAllInvoicePages } from '../src/pages/CreditNotes/utils/creditNoteInvoicePages.js';
 
 const line = {
@@ -62,6 +62,58 @@ test('supported exclusive tax rates calculate from discounted taxable subtotal',
 
 test('inclusive tax extracts included tax from the entered total', () => {
   assert.deepEqual(creditLineAmounts({ quantity: 1, unitPrice: 112, originalQuantity: 1, discountAmount: 0, taxRate: 12, taxType: 'GST Inclusive' }), { subtotal: 100, tax: 12, total: 112 });
+});
+
+test('invoice line tax is prorated by quantity and tax-inclusive/exclusive tax agrees with its rate', () => {
+  const exclusive = { quantity: 2, originalQuantity: 2, unitPrice: 100, discountAmount: 10, taxRate: 10, taxType: 'GST Exclusive', taxAmount: 19 };
+  assert.equal(validateInvoiceTaxAmount(exclusive), null);
+  assert.deepEqual(creditLineAmounts(exclusive, 1), { subtotal: 95, tax: 9.5, total: 104.5 });
+
+  const inclusive = { quantity: 2, originalQuantity: 2, unitPrice: 112, discountAmount: 0, taxRate: 12, taxType: 'GST Inclusive', taxAmount: 24 };
+  assert.equal(validateInvoiceTaxAmount(inclusive), null);
+  assert.deepEqual(creditLineAmounts(inclusive, 1), { subtotal: 100, tax: 12, total: 112 });
+});
+
+test('tax amount inconsistency raises a warning and calculation preserves invoice tax amount', () => {
+  const inconsistent = { quantity: 2, originalQuantity: 2, unitPrice: 100, discountAmount: 0, taxRate: 10, taxType: 'GST Exclusive', taxAmount: 10 };
+  assert.match(validateInvoiceTaxAmount(inconsistent), /does not match 10% tax/);
+  assert.deepEqual(creditLineAmounts(inconsistent), { subtotal: 200, tax: 10, total: 210 });
+});
+
+test('missing prior credit discount allocation is surfaced when remaining discounted quantities exist', () => {
+  const lineWithPreviousCredit = { previouslyCreditedQuantity: 1, discountAmount: 20, taxAmount: 21.86, taxRate: 12, originalQuantity: 2, unitPrice: 112, taxType: 'GST Inclusive' };
+  assert.ok(invoiceLineWarnings(lineWithPreviousCredit).some((warning) => /earlier credits/.test(warning)));
+  assert.deepEqual(invoiceLineWarnings({ ...lineWithPreviousCredit, previouslyCreditedQuantity: 0 }), []);
+});
+
+test('available, selected, and remaining credit update for full and partial selections', () => {
+  const items = [
+    { id: 1, quantity: 3, originalQuantity: 3, previouslyCreditedQuantity: 1, remainingQuantity: 2, unitPrice: 50, discountAmount: 0, taxRate: 0 },
+    { id: 2, quantity: 2, originalQuantity: 2, previouslyCreditedQuantity: 0, remainingQuantity: 2, unitPrice: 25, discountAmount: 0, taxRate: 0 },
+  ];
+  const fullQuantities = creditQuantitiesForScope(items, 'Full');
+  assert.deepEqual(fullQuantities, { 1: 2, 2: 2 });
+  const fullTotals = calculateCredit(items.map((item) => ({ ...item, quantity: fullQuantities[item.id] })));
+  assert.deepEqual(creditBalance(150, fullTotals.total), { availableCredit: 150, selectedCredit: 150, remainingCredit: 0 });
+
+  const partialQuantities = creditQuantitiesForScope(items, 'Partial');
+  assert.deepEqual(partialQuantities, {});
+  const partialLine = { ...items[0], quantity: 1 };
+  const partialTotals = calculateCredit([partialLine]);
+  assert.deepEqual(creditBalance(150, partialTotals.total), { availableCredit: 150, selectedCredit: 50, remainingCredit: 100 });
+  assert.equal(creditBalance(40, 50).remainingCredit, 0);
+});
+
+test('credit subtotal and total stay consistent with selected item amounts', () => {
+  const selected = [
+    { id: 1, quantity: 2, originalQuantity: 2, unitPrice: 100, discountAmount: 10, taxRate: 10, taxMode: 'intra-state' },
+    { id: 2, quantity: 1, originalQuantity: 1, unitPrice: 50, discountAmount: 0, taxRate: 12, taxMode: 'IGST' },
+  ];
+  const totals = calculateCredit(selected);
+  const lineTotals = selected.reduce((sum, item) => sum + creditLineAmounts(item).total, 0);
+  assert.equal(totals.subtotal, 240);
+  assert.equal(totals.total, lineTotals);
+  assert.equal(totals.total, 265);
 });
 
 test('IGST and intra-state GST split are rounded to currency precision', () => {
