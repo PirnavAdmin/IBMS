@@ -925,7 +925,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
                 MaintenanceMode = false,
                 AllowSelfRegistration = true,
                 SessionTimeoutMinutes = 1440,
-                InactivityTimeoutMinutes = 1440,
+                InactivityTimeoutMinutes = 60,
                 PasswordMinLength = 8,
                 RequireDigit = true,
                 RequireSpecialChar = true,

@@ -7,6 +7,7 @@ using Billing.Application;
 using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
+using Billing.Contracts.Platform;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
 using Billing.Infrastructure.Services;
@@ -337,65 +338,54 @@ builder.Services.AddAuthentication(options =>
             var session =
                 await userSessionRepo.GetByIdAsync(sessionId);
 
-            if (session == null)
-            {
-                context.Fail("Session not found.");
-                return;
-            }
-
-            // Check revoked session
-            if (session.IsRevoked)
-            {
-                context.Fail("Session has been revoked.");
-                return;
-            }
-
-            // Check session expiration
-            if (session.SessionExpiresAtUtc <= DateTime.UtcNow)
-            {
-                context.Fail("Session has expired.");
-                return;
-            }
-
             // =================================================
-            // Inactivity timeout (dynamically bound to Platform Settings)
+            // Session & inactivity policy (dynamically bound to Platform Settings)
             // =================================================
-            int effectiveInactivityMinutes = jwtSettings.InactivityTimeoutMinutes;
+            PlatformSettingsDto? settings = null;
             try
             {
                 var platformService = context.HttpContext.RequestServices.GetService<IPlatformAdministrationService>();
                 if (platformService != null)
                 {
-                    var settings = await platformService.GetPlatformSettingsAsync();
-                    if (settings.InactivityTimeoutMinutes > 0)
-                    {
-                        effectiveInactivityMinutes = settings.InactivityTimeoutMinutes;
-                    }
+                    settings = await platformService.GetPlatformSettingsAsync();
                 }
             }
             catch { }
 
-            if (effectiveInactivityMinutes > 0 &&
-                (DateTime.UtcNow - session.LastActivityAtUtc)
-                    .TotalMinutes >
-                effectiveInactivityMinutes)
+            var bgHeader = context.Request.Headers["X-Background-Poll"].ToString();
+            var isBackgroundPoll = string.Equals(bgHeader, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(bgHeader, "1", StringComparison.OrdinalIgnoreCase);
+
+            var evaluation = SessionPolicy.EvaluateSession(
+                session,
+                settings,
+                jwtSettings,
+                DateTime.UtcNow,
+                isBackgroundPoll);
+
+            switch (evaluation.Status)
             {
-                await userSessionRepo.RevokeSessionAsync(
-                    sessionId,
-                    "Session expired due to inactivity"
-                );
+                case SessionValidationStatus.NotFound:
+                case SessionValidationStatus.Revoked:
+                case SessionValidationStatus.Expired:
+                    context.Fail(evaluation.FailureReason ?? "Session is invalid.");
+                    return;
 
-                context.Fail(
-                    "Session has expired due to inactivity."
-                );
+                case SessionValidationStatus.InactivityExpired:
+                    await userSessionRepo.RevokeSessionAsync(
+                        sessionId,
+                        "Session expired due to inactivity"
+                    );
+                    context.Fail(evaluation.FailureReason ?? "Session has expired due to inactivity.");
+                    return;
 
-                return;
+                case SessionValidationStatus.Valid:
+                    if (evaluation.ShouldUpdateActivity)
+                    {
+                        await userSessionRepo.UpdateActivityAsync(sessionId, evaluation.SlidingExpiryUtc);
+                    }
+                    return;
             }
-
-            // =================================================
-            // Update last activity
-            // =================================================
-            await userSessionRepo.UpdateActivityAsync(sessionId);
         }
     };
 });

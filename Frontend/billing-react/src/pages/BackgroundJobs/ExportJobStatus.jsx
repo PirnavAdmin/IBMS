@@ -1,6 +1,6 @@
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -122,9 +122,18 @@ export function ExportJobStatus() {
   }, [availableJobTypes, jobType, filterJobType]);
   const profile = user.data?.data ?? user.data;
   const tenantKey = profile?.tenantId ?? profile?.tenant_id ?? 'current';
+  const manualRefresh = useRef(true);
   const query = useQuery({
     queryKey: ['export-jobs', tenantKey, page, pageSize, filterJobType, status],
-    queryFn: ({ signal }) => backgroundJobService.getExports({ page, pageSize, jobType: filterJobType, status }, signal),
+    queryFn: ({ signal }) => {
+      const manual = manualRefresh.current;
+      manualRefresh.current = false;
+      return backgroundJobService.getExports(
+        { page, pageSize, jobType: filterJobType, status },
+        signal,
+        manual ? undefined : { backgroundPoll: true }
+      );
+    },
     enabled: allowed,
     retry: false,
     refetchInterval: current => current.state.data?.items.some(job => ['Pending', 'Processing'].includes(job.status)) ? 5000 : false,
@@ -132,6 +141,7 @@ export function ExportJobStatus() {
   const createJob = useMutation({
     mutationFn: () => backgroundJobService.createExport({ jobType, exportFormat }),
     onSuccess: () => {
+      manualRefresh.current = true;
       setPage(1);
       setFilterJobType('');
       setStatus('');
@@ -140,7 +150,7 @@ export function ExportJobStatus() {
     },
     onError: error => setFeedback({ severity: 'error', message: backgroundJobError(error) }),
   });
-  const refresh = () => { void query.refetch(); };
+  const refresh = () => { manualRefresh.current = true; void query.refetch(); };
   const download = async job => {
     try {
       const blob = await backgroundJobService.downloadExport(job.id);

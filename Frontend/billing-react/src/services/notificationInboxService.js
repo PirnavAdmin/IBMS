@@ -39,13 +39,17 @@ export function notificationDestination(action, user) {
 }
 
 export const notificationInboxService = {
-  async unreadCount(signal) {
-    const data = unwrap(await apiClient.get(endpoints.UNREAD_COUNT, { signal }));
+  async unreadCount(signal, options = {}) {
+    const config = options?.backgroundPoll ? { signal, backgroundPoll: true } : { signal };
+    const data = unwrap(await apiClient.get(endpoints.UNREAD_COUNT, config));
     if (!count(data?.unreadCount)) throw invalid();
     return data.unreadCount;
   },
-  async list({ unreadOnly, pageNumber }, signal) {
-    const page = parseInboxPage(await apiClient.get(endpoints.BASE, { signal, params: { unreadOnly, pageNumber, pageSize: 20 } }));
+  async list({ unreadOnly, pageNumber }, signal, options = {}) {
+    const config = options?.backgroundPoll
+      ? { signal, backgroundPoll: true, params: { unreadOnly, pageNumber, pageSize: 20 } }
+      : { signal, params: { unreadOnly, pageNumber, pageSize: 20 } };
+    const page = parseInboxPage(await apiClient.get(endpoints.BASE, config));
     if (page.pageNumber !== pageNumber) throw invalid();
     return page;
   },

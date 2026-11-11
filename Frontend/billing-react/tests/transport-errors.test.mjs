@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OFFLINE_MESSAGE, SERVER_UNREACHABLE_MESSAGE, SERVER_UNAVAILABLE_MESSAGE, TIMEOUT_MESSAGE, transportErrorMessage } from '../../billing-api-client/transportError.js';
-import { apiClient, getUserFriendlyError } from '../../billing-api-client/apiClient.js';
+import { apiClient, clearAuthStorage, getUserFriendlyError, saveAuthSession } from '../../billing-api-client/apiClient.js';
 import { authApi } from '../../billing-api-client/authApi.js';
 import { productRequestError } from '../../billing-api-client/productError.js';
 import { errorPresentation } from '../src/utils/errorPresentation.js';
@@ -69,5 +69,68 @@ test('login preserves offline and server messages instead of collapsing them int
   } finally {
     apiClient.post = post;
     if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator); else delete globalThis.navigator;
+  }
+});
+
+test('apiClient marks backgroundPoll requests and performs single-flight token refresh on 401', async () => {
+  const store = new Map();
+  const originalStorage = globalThis.localStorage;
+  const originalAdapter = apiClient.defaults.adapter;
+  globalThis.localStorage = {
+    getItem: k => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: k => store.delete(k),
+  };
+
+  let refreshCalls = 0;
+  let invoicesAttempts = 0;
+  let backgroundHeaderSeen = null;
+
+  saveAuthSession({ token: 'expired-token', refreshToken: 'refresh-1', user: { userId: 2, tenantId: 1 } });
+
+  apiClient.defaults.adapter = async config => {
+    if (config.url === '/api/Auth/refresh-token') {
+      refreshCalls++;
+      await new Promise(resolve => setTimeout(resolve, 15));
+      return {
+        data: { success: true, accessToken: 'fresh-token', refreshToken: 'refresh-2', user: { userId: 2, tenantId: 1 } },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
+    }
+    if (config.url === '/api/v1/notifications/inbox/unread-count') {
+      backgroundHeaderSeen = config.headers.get('X-Background-Poll');
+      return { data: { success: true, data: { unreadCount: 0 } }, status: 200, statusText: 'OK', headers: {}, config };
+    }
+    if (config.url === '/api/v1/invoices') {
+      invoicesAttempts++;
+      if (config.headers.get('Authorization') === 'Bearer expired-token') {
+        throw { response: { status: 401, data: { message: 'Session expired' } }, config };
+      }
+      return { data: { success: true, data: { items: [] } }, status: 200, statusText: 'OK', headers: {}, config };
+    }
+    throw new Error(`Unexpected URL ${config.url}`);
+  };
+
+  try {
+    await apiClient.get('/api/v1/notifications/inbox/unread-count', { backgroundPoll: true });
+    assert.equal(backgroundHeaderSeen, 'true');
+
+    const [a, b] = await Promise.all([
+      apiClient.get('/api/v1/invoices'),
+      apiClient.get('/api/v1/invoices'),
+    ]);
+    assert.equal(refreshCalls, 1);
+    assert.equal(invoicesAttempts, 4);
+    assert.deepEqual(a.data.items, []);
+    assert.deepEqual(b.data.items, []);
+    assert.equal(localStorage.getItem('billing_auth_token'), 'fresh-token');
+    assert.equal(localStorage.getItem('billing_refresh_token'), 'refresh-2');
+  } finally {
+    clearAuthStorage();
+    apiClient.defaults.adapter = originalAdapter;
+    globalThis.localStorage = originalStorage;
   }
 });

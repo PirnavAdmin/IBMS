@@ -35,7 +35,7 @@ import SendOutlined from '@mui/icons-material/SendOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import VerifiedUserOutlined from '@mui/icons-material/VerifiedUserOutlined';
 
-import { authApi } from 'billing-api-client';
+import { authApi, recordUserActivity } from 'billing-api-client';
 import { errorPresentation } from '../../utils/errorPresentation';
 import { OtpInputGroup } from '../../components/OtpInputGroup';
 import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
@@ -242,6 +242,11 @@ export const Login = () => {
         'billing_auth_token',
         token.replace(/^(?:Bearer\s+)+/i, '').trim()
       );
+      const refreshToken = response?.refreshToken || response?.data?.refreshToken;
+      if (refreshToken) {
+        localStorage.setItem('billing_refresh_token', String(refreshToken).trim());
+      }
+      recordUserActivity();
 
       // ------------------------------------------------------
       // GET USER FROM BACKEND RESPONSE

@@ -12,7 +12,7 @@ public class PlatformSetting
 
     public int SessionTimeoutMinutes { get; set; } = 1440;
 
-    public int InactivityTimeoutMinutes { get; set; } = 1440;
+    public int InactivityTimeoutMinutes { get; set; } = 60;
 
     public int PasswordMinLength { get; set; } = 8;
 

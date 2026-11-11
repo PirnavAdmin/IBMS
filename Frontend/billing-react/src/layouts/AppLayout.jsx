@@ -2,7 +2,16 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 import { dashboardNavigation } from '../data/dashboardNavigation';
 import { hasPermission } from '../utils/permissionUtils';
 import { isPlatformAdmin, platformNavigation } from '../pages/Platform/platformAccess';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  apiClient,
+  authApi,
+  getAccessTokenExpirationMs,
+  getLastUserActivity,
+  INACTIVITY_TIMEOUT_MS,
+  recordUserActivity,
+  refreshAuthSession,
+} from 'billing-api-client';
 import Menu from '@mui/icons-material/Menu';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -86,11 +95,63 @@ export const AppLayout = () => {
   };
   const hasPageHeader = pathname === '/dashboard' || pathname === '/taxes' || pathname.startsWith('/taxes/');
   const signOut = () => {
-    localStorage.removeItem('billing_auth_token');
-    localStorage.removeItem('billing_auth_user');
+    authApi.logout();
     queryClient.clear();
     navigate('/login');
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return undefined;
+    if (!localStorage.getItem('billing_auth_token')) return undefined;
+
+    const nowInit = Date.now();
+    let lastDomActivity = Math.max(nowInit, getLastUserActivity());
+    let lastServerSync = nowInit;
+    recordUserActivity(lastDomActivity);
+
+    let lastRecordedInteraction = 0;
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastRecordedInteraction < 15000) return;
+      lastRecordedInteraction = now;
+      lastDomActivity = now;
+      recordUserActivity(now);
+    };
+
+    const events = ['pointerdown', 'keydown', 'mousedown', 'touchstart', 'wheel'];
+    for (const eventName of events) {
+      window.addEventListener(eventName, handleActivity, { passive: true });
+    }
+
+    const heartbeatId = window.setInterval(() => {
+      const activeToken = localStorage.getItem('billing_auth_token');
+      if (!activeToken) return;
+
+      const now = Date.now();
+      const latestActivity = Math.max(lastDomActivity, getLastUserActivity());
+      const idleDuration = now - latestActivity;
+
+      const expMs = getAccessTokenExpirationMs(activeToken);
+      if (expMs && expMs - now <= 5 * 60 * 1000 && idleDuration < INACTIVITY_TIMEOUT_MS) {
+        void refreshAuthSession({ backgroundPoll: false });
+      }
+
+      if (latestActivity > lastServerSync && now - lastServerSync >= 4 * 60 * 1000 && idleDuration < INACTIVITY_TIMEOUT_MS) {
+        lastServerSync = now;
+        void apiClient.get('/api/Auth/me', { skipAuthRedirect: false }).catch(() => {});
+      } else if (idleDuration >= INACTIVITY_TIMEOUT_MS) {
+        // Validate against backend inactivity policy without extending LastActivityAtUtc.
+        void apiClient.get('/api/Auth/me', { backgroundPoll: true }).catch(() => {});
+      }
+    }, 60000);
+
+    return () => {
+      window.clearInterval(heartbeatId);
+      for (const eventName of events) {
+        window.removeEventListener(eventName, handleActivity);
+      }
+    };
+  }, []);
 
   return <div ref={tableScrollRoot} className={`app-layout astra-layout${platform ? ' platform-layout' : ''}${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
     <button ref={menuRef} type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'}  aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
