@@ -172,14 +172,32 @@ public class AuthService
             };
         }
 
-        if (user.Tenant != null && !user.Tenant.IsActive)
-        {
-            return new LoginResponse
-            {
-                Success = false,
-                Message = "Company account is inactive or suspended"
-            };
-        }
+        var isTenantAccountInactive = false;
+        if (user.TenantId.HasValue)
+        {
+            var tenantObj = user.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(user.TenantId.Value) : null);
+            if (tenantObj != null)
+            {
+                isTenantAccountInactive = !tenantObj.IsActive ||
+                    string.Equals(tenantObj.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tenantObj.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        else if (user.Tenant != null)
+        {
+            isTenantAccountInactive = !user.Tenant.IsActive ||
+                string.Equals(user.Tenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(user.Tenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (isTenantAccountInactive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
+            };
+        }
 
         var passwordCorrect =
             BCrypt.Net.BCrypt.Verify(
@@ -219,14 +237,13 @@ public class AuthService
             }
         }
 
-        var sessionTimeoutMinutes = settings?.SessionTimeoutMinutes ?? _jwtSettings.SessionTimeoutMinutes;
-        if (sessionTimeoutMinutes <= 0) sessionTimeoutMinutes = 60;
+        var utcNow = DateTime.UtcNow;
 
         // 1. Generate Refresh Token & hash it
         var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
         var refreshTokenHash = _jwtTokenService.HashRefreshToken(rawRefreshToken);
-        var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-        var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(sessionTimeoutMinutes);
+        var refreshExpiresAtUtc = utcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+        var sessionExpiresAtUtc = SessionPolicy.ComputeSessionExpiryUtc(settings, _jwtSettings, utcNow);
 
         // 2. Persist session in DB
         var session = new UserSession
@@ -286,7 +303,8 @@ public class AuthService
         string refreshToken,
         string? ipAddress = null,
         string? userAgent = null,
-        string? deviceInfo = null)
+        string? deviceInfo = null,
+        bool preserveLastActivity = false)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
@@ -358,12 +376,11 @@ public class AuthService
             catch { }
         }
 
-        var inactivityTimeoutMinutes = settings?.InactivityTimeoutMinutes ?? _jwtSettings.InactivityTimeoutMinutes;
-        var sessionTimeoutMinutes = settings?.SessionTimeoutMinutes ?? _jwtSettings.SessionTimeoutMinutes;
-        if (sessionTimeoutMinutes <= 0) sessionTimeoutMinutes = 60;
+        var inactivityTimeoutMinutes = SessionPolicy.ResolveInactivityTimeoutMinutes(settings, _jwtSettings);
 
         // Check inactivity timeout
-        var minutesSinceLastActivity = (DateTime.UtcNow - session.LastActivityAtUtc).TotalMinutes;
+        var utcNow = DateTime.UtcNow;
+        var minutesSinceLastActivity = (utcNow - session.LastActivityAtUtc).TotalMinutes;
         if (inactivityTimeoutMinutes > 0 && minutesSinceLastActivity > inactivityTimeoutMinutes)
         {
             await _userSessionRepository.RevokeSessionAsync(session.Id, "Inactivity timeout exceeded");
@@ -387,16 +404,34 @@ public class AuthService
             };
         }
 
-        if (user.Tenant != null && !user.Tenant.IsActive)
-        {
-            await _userSessionRepository.RevokeSessionAsync(session.Id, "Company account is suspended or inactive");
-
-            return new LoginResponse
-            {
-                Success = false,
-                Message = "Company account is inactive or suspended"
-            };
-        }
+        var isTenantAccountInactive = false;
+        if (user.TenantId.HasValue)
+        {
+            var tenantObj = user.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(user.TenantId.Value) : null);
+            if (tenantObj != null)
+            {
+                isTenantAccountInactive = !tenantObj.IsActive ||
+                    string.Equals(tenantObj.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tenantObj.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        else if (user.Tenant != null)
+        {
+            isTenantAccountInactive = !user.Tenant.IsActive ||
+                string.Equals(user.Tenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(user.Tenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (isTenantAccountInactive)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Company account is suspended or inactive");
+
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
+            };
+        }
 
         // Token Rotation: Generate new Refresh Token and revoke old one
         var newRawRefreshToken = _jwtTokenService.GenerateRefreshToken();
@@ -410,8 +445,9 @@ public class AuthService
         );
 
         // Create new session entry for rotation
-        var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-        var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(sessionTimeoutMinutes);
+        var refreshUtcNow = DateTime.UtcNow;
+        var refreshExpiresAtUtc = refreshUtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+        var sessionExpiresAtUtc = SessionPolicy.ComputeSessionExpiryUtc(settings, _jwtSettings, refreshUtcNow);
 
         var newSession = new UserSession
         {
@@ -420,8 +456,8 @@ public class AuthService
             RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
             SessionExpiresAtUtc = sessionExpiresAtUtc,
             IsRevoked = false,
-            CreatedAtUtc = DateTime.UtcNow,
-            LastActivityAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = refreshUtcNow,
+            LastActivityAtUtc = preserveLastActivity ? session.LastActivityAtUtc : refreshUtcNow,
             UserAgent = userAgent ?? session.UserAgent,
             DeviceInfo = deviceInfo ?? session.DeviceInfo
         };

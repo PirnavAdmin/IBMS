@@ -19,7 +19,9 @@ public static class PaymentValidator
 {
     private static readonly HashSet<string> SupportedCurrencies = new(StringComparer.OrdinalIgnoreCase)
     {
-        "INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD"
+        "INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD",
+        "JPY", "CHF", "CNY", "NZD", "SAR", "QAR", "KWD", "ZAR",
+        "BRL", "HKD", "SEK", "NOK", "MXN"
     };
 
     private static readonly HashSet<string> PermittedClearingStatuses = new(StringComparer.OrdinalIgnoreCase)

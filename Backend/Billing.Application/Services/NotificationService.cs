@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
@@ -55,13 +56,47 @@ public class NotificationService : INotificationService
         _invoiceTemplateService = invoiceTemplateService;
     }
 
-    public async Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(
+    public Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(
         int invoiceId,
         int tenantId,
         string eventType = "InvoiceSent",
         string? userName = null,
         byte[]? pdfBytes = null,
         string? pdfFileName = null)
+        => SendInvoiceNotificationInternalAsync(
+            invoiceId,
+            tenantId,
+            eventType,
+            userName,
+            pdfBytes,
+            pdfFileName,
+            includePayOnlineOverride: null);
+
+    public Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(
+        int invoiceId,
+        int tenantId,
+        string eventType,
+        string? userName,
+        byte[]? pdfBytes,
+        string? pdfFileName,
+        bool includePayOnlineButton)
+        => SendInvoiceNotificationInternalAsync(
+            invoiceId,
+            tenantId,
+            eventType,
+            userName,
+            pdfBytes,
+            pdfFileName,
+            includePayOnlineOverride: includePayOnlineButton);
+
+    private async Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationInternalAsync(
+        int invoiceId,
+        int tenantId,
+        string eventType,
+        string? userName,
+        byte[]? pdfBytes,
+        string? pdfFileName,
+        bool? includePayOnlineOverride)
     {
         var invoice = await _invoiceRepository.GetByIdAsync(invoiceId, tenantId);
         if (invoice == null)
@@ -69,6 +104,8 @@ public class NotificationService : INotificationService
 
         if (invoice.Customer == null || string.IsNullOrWhiteSpace(invoice.Customer.Email))
             return ApiResponse<NotificationLogDto>.Fail("Customer does not have a valid email address.");
+
+        var includePayOnlineButton = includePayOnlineOverride ?? invoice.IncludePayOnlineButton;
 
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
@@ -90,6 +127,10 @@ public class NotificationService : INotificationService
             }
         }
 
+        var daysOverdue = invoice.DueDate.HasValue
+            ? Math.Max(0, (int)(DateTime.UtcNow.Date - invoice.DueDate.Value.Date).TotalDays)
+            : 0;
+
         var payLink = string.Equals(eventType, "PartialPaymentReminder", StringComparison.OrdinalIgnoreCase)
             ? $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}&source=reminder"
             : $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
@@ -104,12 +145,13 @@ public class NotificationService : INotificationService
             ["InvoiceNumber"] = invoice.InvoiceNumber,
             ["InvoiceDate"] = invoice.InvoiceDate.ToString("dd MMM yyyy"),
             ["DueDate"] = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt",
+            ["DaysOverdue"] = daysOverdue.ToString(),
             ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
             ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
             ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
             ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
             ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
-            ["PaymentLink"] = payLink
+            ["PaymentLink"] = includePayOnlineButton ? payLink : string.Empty
         };
 
         var template = await _templateRepository.GetActiveTemplateAsync(tenantId, eventType, "Email");
@@ -120,8 +162,11 @@ public class NotificationService : INotificationService
 
         if (template != null)
         {
+            var bodyTemplate = includePayOnlineButton
+                ? template.BodyTemplate
+                : StripPaymentLinkCta(template.BodyTemplate);
             subject = _templateEngine.Render(template.SubjectTemplate, variables);
-            body = _templateEngine.Render(template.BodyTemplate, variables);
+            body = _templateEngine.Render(bodyTemplate, variables);
         }
         else
         {
@@ -129,40 +174,96 @@ public class NotificationService : INotificationService
             {
                 var recentDateNote = lastPaymentDate.HasValue ? $" ({lastPaymentDate.Value:dd MMM yyyy})" : "";
                 var dueDateText = invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt";
+                var hasPreviousPayment = invoice.PaidAmount > 0m || lastPaidAmount > 0m;
+                var introParagraph = hasPreviousPayment
+                    ? $"Thank you for your previous payment towards Invoice <strong>{invoice.InvoiceNumber}</strong>. This is a friendly reminder to complete the remaining balance payment."
+                    : $"This is a friendly reminder regarding the pending balance on Invoice <strong>{invoice.InvoiceNumber}</strong>. Partial payments are accepted towards this invoice until the balance is settled.";
+                var recentlyPaidRow = hasPreviousPayment
+                    ? $"<tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Recently Paid{recentDateNote}</td><td style='padding:10px 14px;text-align:right;font-weight:700;color:#16a34a;border-bottom:1px solid #e2e8f0;'>{currency} {lastPaidAmount:N2}</td></tr>"
+                    : string.Empty;
+                var partialPayButtonBlock = includePayOnlineButton
+                    ? $@"
+                    <div style='margin:24px 0;text-align:center;'>
+                        <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Pay Now ({currency} {invoice.BalanceAmount:N2})</a>
+                    </div>
+                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. {(invoice.AllowPartialPayments ? "You can pay the remaining balance in full or enter another partial amount via the Pay Now button." : "Full payment of the remaining balance is required via this Pay Now link.")}</p>"
+                    : @"
+                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the current paid and remaining balance is attached for your records.</p>";
+
                 subject = $"Payment Reminder: Remaining Balance {currency} {invoice.BalanceAmount:N2} for Invoice {invoice.InvoiceNumber} - {companyName}";
                 body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;color:#334155;'>
                     <div style='font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
                     <h2 style='color:#0f172a;margin:6px 0 14px;'>Remaining Balance Payment Reminder</h2>
                     <p style='color:#475569;'>Dear <strong>{invoice.Customer.Name}</strong>,</p>
-                    <p style='color:#475569;'>Thank you for your previous payment towards Invoice <strong>{invoice.InvoiceNumber}</strong>. This is a friendly reminder to complete the remaining balance payment.</p>
+                    <p style='color:#475569;'>{introParagraph}</p>
                     <table style='width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:16px 0;'>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Number</td><td style='padding:10px 14px;text-align:right;font-weight:700;border-bottom:1px solid #e2e8f0;'>{invoice.InvoiceNumber}</td></tr>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Invoice Total</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.TotalAmount:N2}</td></tr>
-                        <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Recently Paid{recentDateNote}</td><td style='padding:10px 14px;text-align:right;font-weight:700;color:#16a34a;border-bottom:1px solid #e2e8f0;'>{currency} {lastPaidAmount:N2}</td></tr>
+                        {recentlyPaidRow}
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Total Paid</td><td style='padding:10px 14px;text-align:right;font-weight:600;color:#15803d;border-bottom:1px solid #e2e8f0;'>{currency} {invoice.PaidAmount:N2}</td></tr>
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Due Date</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{dueDateText}</td></tr>
                         <tr style='background:#fef2f2;'><td style='padding:12px 14px;color:#991b1b;font-weight:700;'>Remaining Balance Due</td><td style='padding:12px 14px;text-align:right;font-weight:800;font-size:16px;color:#b91c1c;'>{currency} {invoice.BalanceAmount:N2}</td></tr>
-                    </table>
-                    <div style='margin:24px 0;text-align:center;'>
-                        <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Pay Now ({currency} {invoice.BalanceAmount:N2})</a>
-                    </div>
-                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. {(invoice.AllowPartialPayments ? "You can pay the remaining balance in full or enter another partial amount via the Pay Now button." : "Full payment of the remaining balance is required via this Pay Now link.")}</p>
+                    </table>{partialPayButtonBlock}
                     <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                     <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
                 </div>";
             }
+            else if (string.Equals(eventType, "InvoiceOverdue", StringComparison.OrdinalIgnoreCase))
+            {
+                var payOnlineSection = includePayOnlineButton
+                    ? $@"
+                <div style='margin:24px 0;'>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Pay Now Online</a>
+                </div>
+                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment online." : "Full payment of the remaining balance is required.")}</p>"
+                    : string.Empty;
+
+                subject = $"URGENT: Invoice {invoice.InvoiceNumber} is {daysOverdue} {(daysOverdue == 1 ? "day" : "days")} overdue - {companyName}";
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+                <h2 style='color:#b91c1c;margin-top:0;'>Overdue Payment Reminder: {invoice.InvoiceNumber}</h2>
+                <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
+                <p style='color:#475569;'>This is a reminder that invoice <strong>{invoice.InvoiceNumber}</strong> was due on <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> and is now <strong>{daysOverdue} {(daysOverdue == 1 ? "day" : "days")} overdue</strong>.</p>
+                <p style='color:#0f172a;font-size:15px;'>Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
+            }
+            else if (string.Equals(eventType, "PaymentReminder", StringComparison.OrdinalIgnoreCase))
+            {
+                var payOnlineSection = includePayOnlineButton
+                    ? $@"
+                <div style='margin:24px 0;'>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Pay Now Online</a>
+                </div>
+                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a partial amount via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice.")}</p>"
+                    : string.Empty;
+
+                subject = $"Payment Reminder: Invoice {invoice.InvoiceNumber} due {invoice.DueDate?.ToString("dd MMM yyyy") ?? "Soon"} - {companyName}";
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+                <h2 style='color:#0f172a;margin-top:0;'>Upcoming Payment Reminder: {invoice.InvoiceNumber}</h2>
+                <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
+                <p style='color:#475569;'>This is a friendly reminder regarding invoice <strong>{invoice.InvoiceNumber}</strong> with due date <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong>.</p>
+                <p style='color:#0f172a;font-size:15px;'>Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
+            }
             else
             {
+                var payOnlineSection = includePayOnlineButton
+                    ? $@"
+                <div style='margin:30px 0;'>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
+                </div>
+                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice via UPI, Credit/Debit Card, or Internet Banking.")}</p>"
+                    : string.Empty;
+
                 subject = $"Invoice {invoice.InvoiceNumber} from {companyName}";
                 body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
                 <h2 style='color:#0f172a;margin-top:0;'>Tax Invoice {invoice.InvoiceNumber}</h2>
                 <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
                 <p style='color:#475569;'>Please find attached tax invoice <strong>{invoice.InvoiceNumber}</strong> for <strong>{currency} {invoice.TotalAmount:N2}</strong>.</p>
-                <p style='color:#64748b;font-size:14px;'>Due Date: <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> &bull; Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>
-                <div style='margin:30px 0;'>
-                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
-                </div>
-                <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice via UPI, Credit/Debit Card, or Internet Banking.")}</p>
+                <p style='color:#64748b;font-size:14px;'>Due Date: <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> &bull; Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
 
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
@@ -671,6 +772,7 @@ public class NotificationService : INotificationService
             var daysOverdue = (int)(today - invoice.DueDate!.Value.Date).TotalDays;
             var currency = invoice.GetCurrency();
             var (lastPaidAmount, _) = await ResolveLatestPaymentAsync(tenantId, invoice);
+            var includePayOnline = invoice.IncludePayOnlineButton;
             var payLink = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
 
             var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -689,14 +791,14 @@ public class NotificationService : INotificationService
             ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
             ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
             ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
-                ["PaymentLink"] = payLink
+                ["PaymentLink"] = includePayOnline ? payLink : string.Empty
             };
 
             string subject = template != null
                 ? _templateEngine.Render(template.SubjectTemplate, variables)
                 : $"URGENT: Invoice {invoice.InvoiceNumber} is {daysOverdue} days overdue - {companyName}";
             string body = template != null
-                ? _templateEngine.Render(template.BodyTemplate, variables)
+                ? _templateEngine.Render(includePayOnline ? template.BodyTemplate : StripPaymentLinkCta(template.BodyTemplate), variables)
                 : $"<p>Dear {invoice.Customer.Name},</p><p>Invoice {invoice.InvoiceNumber} is overdue by {daysOverdue} days. Outstanding: {currency} {invoice.BalanceAmount:N2}.</p><p>Regards,<br>{companyName}</p>";
 
             var log = new NotificationLog
@@ -815,6 +917,33 @@ public class NotificationService : INotificationService
         }
 
         return (lastPaidAmount, lastPaymentDate);
+    }
+
+    private static string StripPaymentLinkCta(string htmlTemplate)
+    {
+        if (string.IsNullOrEmpty(htmlTemplate))
+            return string.Empty;
+
+        // Remove standalone <p> or <div> wrappers whose sole element is an anchor targeting {{PaymentLink}}
+        var withoutWrappedButton = Regex.Replace(
+            htmlTemplate,
+            @"<\s*(?<tag>p|div)\b[^>]*>\s*<a\b[^>]*href\s*=\s*([""'])[^""']*\{\{\s*PaymentLink\s*\}\}[^""']*\1[^>]*>[\s\S]*?</a>\s*</\s*\k<tag>\s*>",
+            string.Empty,
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove single-line CTA paragraphs like "<p>Please arrange payment...: <a href='{{PaymentLink}}'>Pay</a></p>"
+        var withoutPromptLine = Regex.Replace(
+            withoutWrappedButton,
+            @"<\s*(?<tag>p|div)\b[^>]*>[^<]*:\s*<a\b[^>]*href\s*=\s*([""'])[^""']*\{\{\s*PaymentLink\s*\}\}[^""']*\1[^>]*>[\s\S]*?</a>\s*\.?\s*</\s*\k<tag>\s*>",
+            string.Empty,
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        // Remove any remaining inline anchor tags targeting {{PaymentLink}}
+        return Regex.Replace(
+            withoutPromptLine,
+            @"<a\b[^>]*href\s*=\s*([""'])[^""']*\{\{\s*PaymentLink\s*\}\}[^""']*\1[^>]*>[\s\S]*?</a>",
+            string.Empty,
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
     }
 
     private static NotificationLogDto MapToDto(NotificationLog l) => new()

@@ -47,7 +47,7 @@
 .audit-event .MuiChip-label { white-space:nowrap; overflow:visible; text-overflow:clip; padding:5px 9px; }
 .audit-date { min-width:180px; }
 .audit-entity-id { display:block; color:var(--text-secondary,#756354); font-size:12px; margin-top:4px; overflow-wrap:anywhere; }
-.audit-changes { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; min-width:180px; overflow-wrap:anywhere; white-space:normal; line-height:1.45; }
+.audit-changes { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; min-width:180px; overflow-wrap:anywhere; white-space:normal; line-height:1.45; }
 .audit-empty { padding:40px 16px; text-align:center; color:var(--text-secondary,#756354); }
 .audit-empty > svg { font-size:40px; color:#8a6548; }
 .audit-empty h3 { color:var(--text-primary,#35271f); margin:12px 0 8px; }

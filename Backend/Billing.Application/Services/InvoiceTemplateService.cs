@@ -545,6 +545,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 snapshotDto.AmountPaid = invoice.PaidAmount;
                 snapshotDto.BalanceDue = invoice.BalanceAmount;
                 snapshotDto.Status = invoice.Status.ToString();
+                snapshotDto.IncludePayOnlineLink = request.IncludePayOnlineLink ?? invoice.IncludePayOnlineButton;
                 snapshot.SnapshotDataJson = JsonSerializer.Serialize(snapshotDto, JsonOpts);
                 refreshSnapshotTemplate = true;
             }
@@ -552,6 +553,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         else
         {
             snapshotDto = BuildSnapshotDto(invoice);
+            snapshotDto.IncludePayOnlineLink = request.IncludePayOnlineLink ?? invoice.IncludePayOnlineButton;
             versionDto = version != null ? MapVersionToDto(version) : BuildDefaultVersionDto();
 
             snapshot = new InvoiceSnapshot

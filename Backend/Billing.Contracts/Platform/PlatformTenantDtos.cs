@@ -83,6 +83,8 @@ public class CreateTenantRequest
     [MinLength(8, ErrorMessage = "Administrator password must be at least 8 characters long.")]
     public string? AdminPassword { get; set; }
 
+    public string? Status { get; set; } = "Active";
+
     public string? IdempotencyKey { get; set; }
 }
 
@@ -103,6 +105,8 @@ public class UpdateTenantRequest
     public string? TaxId { get; set; }
 
     public string? Address { get; set; }
+
+    public string? Status { get; set; }
 
     /// <summary>
     /// Concurrency token: If provided, the update will verify against the existing UpdatedAtUtc to prevent concurrent overrides.

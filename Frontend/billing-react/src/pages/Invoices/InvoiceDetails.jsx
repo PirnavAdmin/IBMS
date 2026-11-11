@@ -16,6 +16,7 @@ import Typography from '@mui/material/Typography';
 import RadioGroup from '@mui/material/RadioGroup';
 import Radio from '@mui/material/Radio';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
@@ -64,6 +65,7 @@ export function InvoiceDetails() {
   const [issueError, setIssueError] = useState("");
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [paymentPolicy, setPaymentPolicy] = useState("full");
+  const [includePayOnlineButton, setIncludePayOnlineButton] = useState(true);
   const [sendSuccessOpen, setSendSuccessOpen] = useState(false);
   const [invoiceEmailSent, setInvoiceEmailSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -558,6 +560,7 @@ export function InvoiceDetails() {
                          disabled={sending || !customerData?.email}
                           onClick={() => {
                             setSendError("");
+                            setIncludePayOnlineButton(true);
                             setSendDialogOpen(true);
                           }}
                         >
@@ -1034,6 +1037,7 @@ export function InvoiceDetails() {
                        disabled={sending || !customerData?.email}
                         onClick={() => {
                           setSendError("");
+                          setIncludePayOnlineButton(true);
                           setSendDialogOpen(true);
                         }}
                       >
@@ -1254,8 +1258,43 @@ export function InvoiceDetails() {
             <strong> {customerData?.email || "the customer"}</strong>?
           </p>
           <p style={{ margin: "0 0 14px", color: "var(--text-secondary)", fontSize: "14px" }}>
-            The generated invoice PDF and online payment link will be sent to the customer.
+            {includePayOnlineButton
+              ? "The generated invoice PDF and online payment link will be sent to the customer."
+              : "The generated invoice PDF will be sent to the customer without an online payment link or button."}
           </p>
+
+          <Box sx={{
+            p: 1.75,
+            borderRadius: 2,
+            bgcolor: "#FAF4EC",
+            border: "1px solid #E8DCCE",
+            mt: 1,
+            mb: 1.5,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2
+          }}>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#35271F" }}>
+                Include Pay Now Online button
+              </Typography>
+              <Typography variant="caption" sx={{ color: "#7E6B5C", display: "block" }}>
+                {includePayOnlineButton
+                  ? "Email and PDF will include the online payment link and policy options."
+                  : "Online payment link and payment policy options are disabled for this send."}
+              </Typography>
+            </Box>
+            <Switch
+              checked={includePayOnlineButton}
+              onChange={(e) => setIncludePayOnlineButton(e.target.checked)}
+              inputProps={{ "aria-label": "Include Pay Now Online button" }}
+              sx={{
+                "& .MuiSwitch-switchBase.Mui-checked": { color: "#65442E" },
+                "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#65442E" },
+              }}
+            />
+          </Box>
 
           <Box sx={{
             p: 2,
@@ -1263,17 +1302,22 @@ export function InvoiceDetails() {
             bgcolor: "#FAF4EC",
             border: "1px solid #E8DCCE",
             mt: 1.5,
-            mb: 1
+            mb: 1,
+            opacity: includePayOnlineButton ? 1 : 0.55,
+            transition: "opacity 0.15s ease"
           }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "#35271F" }}>
               Payment Policy for Customer:
             </Typography>
             <RadioGroup
-              value={paymentPolicy}
-              onChange={(e) => setPaymentPolicy(e.target.value)}
+              value={includePayOnlineButton ? paymentPolicy : ""}
+              onChange={(e) => {
+                if (includePayOnlineButton) setPaymentPolicy(e.target.value);
+              }}
             >
               <FormControlLabel
                 value="full"
+                disabled={!includePayOnlineButton}
                 control={<Radio size="small" sx={{ color: '#65442E', '&.Mui-checked': { color: '#65442E' } }} />}
                 label={
                   <Box sx={{ py: 0.5 }}>
@@ -1289,6 +1333,7 @@ export function InvoiceDetails() {
               />
               <FormControlLabel
                 value="partial"
+                disabled={!includePayOnlineButton}
                 control={<Radio size="small" sx={{ color: '#65442E', '&.Mui-checked': { color: '#65442E' } }} />}
                 label={
                   <Box sx={{ py: 0.5 }}>
@@ -1324,7 +1369,8 @@ export function InvoiceDetails() {
               setSendError("");
               try {
                 await invoiceService.send(row.id, {
-                  allowPartialPayments: paymentPolicy === 'partial'
+                  includePayOnlineButton,
+                  ...(includePayOnlineButton ? { allowPartialPayments: paymentPolicy === 'partial' } : {}),
                 });
                 setInvoiceEmailSent(true);
                 setSendDialogOpen(false);

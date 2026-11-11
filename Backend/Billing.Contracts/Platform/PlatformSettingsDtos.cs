@@ -8,11 +8,15 @@ public class PlatformSettingsDto
     public bool MaintenanceMode { get; set; }
     public bool AllowSelfRegistration { get; set; } = true;
     public int SessionTimeoutMinutes { get; set; } = 1440;
-    public int InactivityTimeoutMinutes { get; set; } = 1440;
+    public int InactivityTimeoutMinutes { get; set; } = 60;
     public int PasswordMinLength { get; set; } = 8;
     public bool RequireDigit { get; set; } = true;
     public bool RequireSpecialChar { get; set; } = true;
-    public List<string> SupportedCurrencies { get; set; } = new() { "INR", "USD", "EUR", "GBP" };
+    public List<string> SupportedCurrencies { get; set; } = new()
+    {
+        "INR", "USD", "EUR", "GBP", "AED", "AUD", "CAD", "SGD",
+        "JPY", "CHF", "CNY", "NZD", "SAR", "QAR", "KWD", "ZAR"
+    };
     public string AccountRecoveryContact { get; set; } = "support@ibms.com";
     public DateTime UpdatedAtUtc { get; set; }
     public string UpdatedBy { get; set; } = "System";
@@ -33,7 +37,7 @@ public class UpdatePlatformSettingsRequest
     public int SessionTimeoutMinutes { get; set; } = 1440;
 
     [Range(5, 43200, ErrorMessage = "Inactivity timeout must be between 5 minutes and 30 days.")]
-    public int InactivityTimeoutMinutes { get; set; } = 1440;
+    public int InactivityTimeoutMinutes { get; set; } = 60;
 
     [Range(8, 128, ErrorMessage = "Password minimum length must be at least 8 characters.")]
     public int PasswordMinLength { get; set; } = 8;

@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient.js';
+import { apiClient, clearAuthStorage, saveAuthSession } from './apiClient.js';
 import { transportErrorMessage } from './transportError.js';
 import { API_ENDPOINTS } from './endpoints.js';
 import {
@@ -25,11 +25,14 @@ export const authApi = {
     try {
       const payload = createLoginRequest(data);
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, payload);
-      const { token, user } = parseLoginResponse(response);
+      const { token, user, refreshToken } = parseLoginResponse(response);
       if (token && typeof localStorage !== 'undefined') {
-        localStorage.setItem('billing_auth_token', token.replace(/^(?:Bearer\s+)+/i, '').trim());
-        // Preserve the existing profile and use the submitted email when no profile is returned.
-        localStorage.setItem('billing_auth_user', JSON.stringify({ email: data.email?.trim(), ...user }));
+        saveAuthSession({
+          token,
+          // Preserve the existing profile and use the submitted email when no profile is returned.
+          user: { email: data.email?.trim(), ...user },
+          refreshToken,
+        });
       }
       return response;
     } catch (err) {
@@ -67,8 +70,24 @@ export const authApi = {
 
   logout: () => {
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('billing_auth_token');
-      localStorage.removeItem('billing_auth_user');
+      const token = localStorage.getItem('billing_auth_token');
+      const refreshToken = localStorage.getItem('billing_refresh_token');
+      if (token) {
+        try {
+          Promise.resolve(
+            apiClient.post(
+              API_ENDPOINTS.AUTH.LOGOUT,
+              refreshToken ? { refreshToken } : {},
+              {
+                skipAuthRedirect: true,
+                _skipRefresh: true,
+                headers: { Authorization: `Bearer ${token.replace(/^(?:Bearer\s+)+/i, '').trim()}` },
+              }
+            )
+          ).catch(() => {});
+        } catch {}
+      }
+      clearAuthStorage();
     }
   },
 

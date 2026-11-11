@@ -12,7 +12,7 @@ public class PlatformSetting
 
     public int SessionTimeoutMinutes { get; set; } = 1440;
 
-    public int InactivityTimeoutMinutes { get; set; } = 1440;
+    public int InactivityTimeoutMinutes { get; set; } = 60;
 
     public int PasswordMinLength { get; set; } = 8;
 
@@ -20,7 +20,7 @@ public class PlatformSetting
 
     public bool RequireSpecialChar { get; set; } = true;
 
-    public string SupportedCurrenciesJson { get; set; } = "[\"INR\",\"USD\",\"EUR\",\"GBP\"]";
+    public string SupportedCurrenciesJson { get; set; } = "[\"INR\",\"USD\",\"EUR\",\"GBP\",\"AED\",\"AUD\",\"CAD\",\"SGD\",\"JPY\",\"CHF\",\"CNY\",\"NZD\",\"SAR\",\"QAR\",\"KWD\",\"ZAR\"]";
 
     public string AccountRecoveryContact { get; set; } = "support@ibms.com";
 

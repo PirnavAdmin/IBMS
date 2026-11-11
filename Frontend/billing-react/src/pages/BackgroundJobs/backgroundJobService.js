@@ -63,16 +63,19 @@ export function mapExportJob(job) {
 }
 
 export const backgroundJobService = {
-  async getStatuses(signal) {
-    const data = unwrap(await apiClient.get(`${jobsBase}/status`, { signal }), 'background job');
+  async getStatuses(signal, options = {}) {
+    const config = options?.backgroundPoll ? { signal, backgroundPoll: true } : { signal };
+    const data = unwrap(await apiClient.get(`${jobsBase}/status`, config), 'background job');
     if (!Array.isArray(data)) throw new Error('The background job service returned an invalid status list.');
     return data.map(mapBackgroundJob);
   },
-  async getExports({ page = 1, pageSize = 20, jobType = '', status = '' }, signal) {
-    const data = unwrap(await apiClient.get(exportsBase, {
+  async getExports({ page = 1, pageSize = 20, jobType = '', status = '' }, signal, options = {}) {
+    const config = {
       signal,
+      ...(options?.backgroundPoll ? { backgroundPoll: true } : {}),
       params: { page, pageSize, ...(jobType ? { jobType } : {}), ...(status ? { status } : {}) },
-    }), 'export');
+    };
+    const data = unwrap(await apiClient.get(exportsBase, config), 'export');
     if (!Array.isArray(data?.items) || !Number.isInteger(data.totalCount) ||
         !Number.isInteger(data.pageNumber) || !Number.isInteger(data.pageSize)) {
       throw new Error('The export service returned an invalid export job list.');

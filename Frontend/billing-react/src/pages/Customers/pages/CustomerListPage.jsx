@@ -595,7 +595,7 @@ export function CustomerListPage() {
                             ? params.sortOrder || "asc"
                             : false
                         }
-                        align="center"
+                        align={label === "Actions" ? "center" : "left"}
                       >
                         <div className={key === 'name' ? 'customer-name-heading' : label === 'Contact' ? 'customer-contact-heading' : undefined}>
                         {["customerCode", "name"].includes(key) ? (
@@ -691,7 +691,7 @@ export function CustomerListPage() {
                           <small>{(customer.mobile || "").trim() || "NA"}</small>
                         </div>
                       </TableCell>
-                      <TableCell data-label="Outstanding" align="center">
+                      <TableCell data-label="Outstanding" align="left">
                         <strong
                           className={
                             (customer.outstandingBalance ?? 0) > 0
@@ -731,7 +731,7 @@ export function CustomerListPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell data-label="Actions">
+                      <TableCell data-label="Actions" align="center">
                         <CustomerRowActions
                           customer={customer}
                           onDeactivate={(c) => {

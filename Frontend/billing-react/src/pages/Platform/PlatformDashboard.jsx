@@ -5,13 +5,14 @@ import { Link } from 'react-router-dom';
 import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import PauseCircleOutline from '@mui/icons-material/PauseCircleOutline';
+import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import PeopleOutline from '@mui/icons-material/PeopleOutline';
 import AddBusinessOutlined from '@mui/icons-material/AddBusinessOutlined';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import HistoryOutlined from '@mui/icons-material/HistoryOutlined';
 import { platformService as api } from './platformService';
 import { PlatformShell, QueryState, PlatformTable, PlatformStatus, PlatformRefresh, usePlatformQuery, dateText, platformMatches } from './PlatformShared';
-const metrics=[['totalTenants','Total Tenants',BusinessOutlined,'espresso'],['activeTenants','Active Tenants',CheckCircleOutline,'green'],['suspendedTenants','Suspended Tenants',PauseCircleOutline,'amber'],['inactiveTenants','Inactive Tenants',PauseCircleOutline,'muted'],['totalPlatformUsers','Total Platform Users',PeopleOutline,'cocoa']];
+const metrics=[['totalTenants','Total Tenants',BusinessOutlined,'espresso'],['activeTenants','Active Tenants',CheckCircleOutline,'green'],['suspendedTenants','Suspended Tenants',PauseCircleOutline,'amber'],['inactiveTenants','Inactive Tenants',RemoveCircleOutline,'muted'],['totalPlatformUsers','Total Platform Users',PeopleOutline,'cocoa']];
 export function PlatformDashboard() {
   const [search,setSearch]=useState('');useNavbarSearch(search,setSearch,'Search recent tenants and activities');
   const query=usePlatformQuery('dashboard',null,api.dashboard);const d=query.data;

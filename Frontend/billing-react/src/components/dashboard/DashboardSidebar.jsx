@@ -107,10 +107,13 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
   return <>
     <button type="button" className={`bd-sidebar-backdrop ${open ? 'is-open' : ''}`} onClick={onClose} aria-label="Close navigation" />
     <aside ref={asideRef} id="app-primary-navigation" className={`bd-sidebar astra-sidebar ${open ? 'is-open' : ''}`} style={{ '--astra-menu-count': count || 1 }} aria-label="Primary navigation" aria-hidden={mobile && !open ? true : undefined} inert={mobile && !open ? '' : undefined} onKeyDown={keyboard}>
-      <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
-      <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate(isPlatformAdmin(user) ? '/platform/dashboard' : '/dashboard')} aria-label="Go to dashboard">
-        <InvoiceBillingLogo size={36} tone={isPlatformAdmin(user) ? 'on-dark' : undefined} /><BrandName />
-      </button>
+      <div className="astra-sidebar-header">
+  
+        <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate(isPlatformAdmin(user) ? '/platform/dashboard' : '/dashboard')} aria-label="Go to dashboard">
+          <InvoiceBillingLogo size={36} tone={isPlatformAdmin(user) ? 'on-dark' : undefined} /><BrandName />
+        </button>
+        <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
+      </div>
       <nav id="astra-menu-content" className="astra-menu-content" aria-label="Module navigation">
         {sections.map(renderSection)}
       </nav>

@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MoreVert from '@mui/icons-material/MoreVert';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
-import { IconButton, Menu, CircularProgress, Chip, Alert, AlertTitle, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListItemIcon } from '@mui/material';
+import { IconButton, Menu, CircularProgress, Chip, Alert, AlertTitle, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, ListItemIcon, Autocomplete } from '@mui/material';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { platformError, platformFieldErrors } from './platformService';
@@ -73,5 +73,77 @@ export function MutationDialog({ title, initial, fields, submit, onDone, onClose
     try { const result = await submit(values); if (session !== localStorage.getItem('billing_auth_token')) return; await client.invalidateQueries({ queryKey: ['platform'] }); onDone?.(result); onClose(); }
     catch (e) { if (session === localStorage.getItem('billing_auth_token')) { setError(platformError(e)); setFieldErrors(platformFieldErrors(e, fields)); } } finally { lock.current = false; setBusy(false); }
   };
-  return <Dialog open fullWidth maxWidth="sm" onClose={() => !lock.current && onClose()} aria-labelledby="platform-editor-title"><form onSubmit={save}><DialogTitle id="platform-editor-title">{title}</DialogTitle><DialogContent>{description && <p className="platform-dialog-description">{description}</p>}{error && <Alert severity="error"><AlertTitle>Unable to save changes</AlertTitle>{error}</Alert>}<div className="platform-form">{fields.map(field => <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name]} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>)}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
+  return <Dialog open fullWidth maxWidth="sm" onClose={() => !lock.current && onClose()} aria-labelledby="platform-editor-title"><form onSubmit={save}><DialogTitle id="platform-editor-title">{title}</DialogTitle><DialogContent>{description && <p className="platform-dialog-description">{description}</p>}{error && <Alert severity="error"><AlertTitle>Unable to save changes</AlertTitle>{error}</Alert>}<div className="platform-form">{fields.map(field => {
+    if (field.type === 'autocomplete' || field.autocomplete) {
+      const rawVal = values[field.name];
+      const val = Array.isArray(rawVal) ? rawVal : (rawVal ? String(rawVal).split(',').map(s => s.trim()).filter(Boolean) : []);
+      return (
+        <div key={field.name} style={field.colSpan === 2 || field.fullWidth ? { gridColumn: '1 / -1' } : undefined}>
+          <Autocomplete
+            multiple={Boolean(field.multiple)}
+            size="small"
+            id={`platform-field-${field.name}`}
+            options={field.options || []}
+            value={field.multiple ? val : (val[0] ?? '')}
+            disabled={busy || field.disabled}
+            getOptionLabel={option => {
+              if (!option) return '';
+              if (typeof option === 'object') return option.label || option.value || '';
+              const match = field.options?.find(o => typeof o === 'object' ? o.value === option : o === option);
+              return match ? (typeof match === 'object' ? match.label : match) : String(option);
+            }}
+            isOptionEqualToValue={(option, selectedVal) => {
+              const optVal = typeof option === 'object' ? option.value : option;
+              const selVal = typeof selectedVal === 'object' ? selectedVal.value : selectedVal;
+              return optVal === selVal;
+            }}
+            filterOptions={(options, params) => {
+              const query = (params.inputValue || '').trim().toLowerCase();
+              if (!query) return options;
+              return options.filter(option => {
+                if (field.filterOption) return field.filterOption(query, option);
+                if (typeof option === 'object') {
+                  const searchStr = `${option.value || ''} ${option.label || ''} ${option.searchText || ''}`.toLowerCase();
+                  return searchStr.includes(query);
+                }
+                return String(option).toLowerCase().includes(query);
+              });
+            }}
+            onChange={(_, nextVal) => {
+              const normalized = field.multiple
+                ? (nextVal || []).map(item => (typeof item === 'object' ? item.value : item))
+                : (typeof nextVal === 'object' ? nextVal?.value : nextVal) || '';
+              setValues(v => ({ ...v, [field.name]: normalized }));
+              setFieldErrors(errors => ({ ...errors, [field.name]: undefined }));
+            }}
+            renderTags={(tagValue, getTagProps) =>
+              tagValue.map((option, index) => {
+                const code = typeof option === 'object' ? option.value : option;
+                return (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={code}
+                    label={code}
+                    size="small"
+                    className="platform-currency-tag"
+                  />
+                );
+              })
+            }
+            renderInput={params => (
+              <TextField
+                {...params}
+                label={field.label}
+                required={field.required && (!val || val.length === 0)}
+                error={Boolean(fieldErrors[field.name])}
+                helperText={fieldErrors[field.name] || field.helperText}
+                placeholder={val.length ? '' : (field.placeholder || 'Search and select...')}
+              />
+            )}
+          />
+        </div>
+      );
+    }
+    return <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name] || field.helperText} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>;
+  })}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
 }

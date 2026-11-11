@@ -188,10 +188,10 @@
 .premium-aging-legend strong { color: #3d2e21; font-weight: 650; }
 .premium-table-scroll { overflow-x: auto; padding: 0 16px 13px; }
 .premium-records table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
-.premium-records th { padding: 9px 6px; border-bottom: 1px solid #dfcfbb; background: #f7f0e6; color: #7b5e44; font-size: 9px; font-weight: 650; }
+.premium-records th { padding: 6px 10px; border-bottom: 1px solid #dfcfbb; background: #f7f0e6; color: #7b5e44; font-size: 11px; font-weight: 650; }
 .premium-records th:first-child { border-radius: 5px 0 0 5px; }
 .premium-records th:last-child { border-radius: 0 5px 5px 0; }
-.premium-records td { padding: 10px 6px; border-bottom: 1px solid #eee1cf; color: #624831; font-size: 10px; font-variant-numeric: tabular-nums; transition: background 180ms; }
+.premium-records td { padding: 5px 10px; border-bottom: 1px solid #eee1cf; color: #624831; font-size: 12.5px; line-height: 1.25; font-variant-numeric: tabular-nums; transition: background 180ms; }
 .premium-records tbody tr:hover td { background: #faf4eb; }
 .premium-records tr:last-child td { border-bottom: 0; }
 .premium-records :is(th, td):nth-child(3) { text-align: right; }
@@ -312,7 +312,8 @@
 .premium-details-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0; color: #65442e; }
 .premium-outstanding-details .premium-table-scroll { padding: 0; max-height: 230px; overflow: auto; }
 .premium-outstanding-details table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
-.premium-outstanding-details :is(th, td) { padding: 8px 5px; border-bottom: 1px solid #ece0d0; }
+.premium-outstanding-details :is(th, td) { padding: 5px 10px; border-bottom: 1px solid #ece0d0; font-size: 12.5px; line-height: 1.25; }
+.premium-outstanding-details th { padding: 6px 10px; font-size: 11px; }
 .premium-outstanding-details th { position: sticky; top: 0; background: #faf2e7; color: #7c5a3c; font-weight: 650; }
 .premium-outstanding-details :is(th, td):last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .premium-outstanding-details a { color: #754e2f; font-weight: 650; text-decoration: none; }

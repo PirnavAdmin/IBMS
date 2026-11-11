@@ -47,6 +47,7 @@ builder.Services.AddScoped<IChargeCalculationService, ChargeCalculationService>(
 builder.Services.AddScoped<INumberingSettingService, NumberingSettingService>();
 builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
 builder.Services.AddScoped<ICountrySettingService, CountrySettingService>();
+builder.Services.AddScoped<IReminderSettingService, ReminderSettingService>();
 builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<IQuotationService, QuotationService>();
 builder.Services.AddScoped<IQuotationActionService, QuotationActionService>();
@@ -91,6 +92,7 @@ builder.Services.AddScoped<ITaxRepository, TaxRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<ICountrySettingRepository, CountrySettingRepository>();
+builder.Services.AddScoped<IReminderSettingRepository, ReminderSettingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IInvoiceCommunicationRepository, InvoiceCommunicationRepository>();

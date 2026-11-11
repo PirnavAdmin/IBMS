@@ -87,6 +87,7 @@ public class BillingDbContext : DbContext
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<ExportJob> ExportJobs { get; set; }
     public DbSet<CountrySetting> CountrySettings { get; set; }
+    public DbSet<ReminderSetting> ReminderSettings { get; set; }
     public DbSet<PlatformSetting> PlatformSettings { get; set; }
     public DbSet<PaymentGatewaySetting> PaymentGatewaySettings { get; set; }
 
@@ -674,6 +675,7 @@ public class BillingDbContext : DbContext
             entity.HasIndex(inv => new { inv.TenantId, inv.InvoiceNumber }).IsUnique();
             entity.Property(inv => inv.Status).HasMaxLength(32).HasDefaultValue("Draft").IsRequired();
             entity.Property(inv => inv.Reference).HasMaxLength(128);
+            entity.Property(inv => inv.IncludePayOnlineButton).HasDefaultValue(true);
             entity.Property(inv => inv.Subtotal).HasPrecision(18, 2);
             entity.Property(inv => inv.DiscountAmount).HasPrecision(18, 2);
             entity.Property(inv => inv.TaxAmount).HasPrecision(18, 2);
@@ -1096,6 +1098,21 @@ public class BillingDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.TenantId).IsUnique();
             entity.Property(e => e.CountriesJson).HasColumnType("longtext").IsRequired();
+        });
+
+        modelBuilder.Entity<ReminderSetting>(entity =>
+        {
+            entity.ToTable("remindersettings");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.Property(e => e.PartialPaymentReminderEnabled).HasDefaultValue(true);
+            entity.Property(e => e.PartialPaymentIntervalValue).HasDefaultValue(7);
+            entity.Property(e => e.PartialPaymentIntervalUnit).HasMaxLength(16).HasDefaultValue("Days").IsRequired();
+            entity.Property(e => e.OverdueReminderEnabled).HasDefaultValue(true);
+            entity.Property(e => e.OverdueReminderIntervalDays).HasDefaultValue(1);
+            entity.Property(e => e.UpcomingDueReminderEnabled).HasDefaultValue(true);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(128);
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PaymentGatewaySetting>(entity =>

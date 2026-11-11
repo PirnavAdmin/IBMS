@@ -751,4 +751,224 @@ public class BackgroundWorkerJobTests
         Assert.Equal(4, overdueStatus.LastProcessedCount);
         Assert.NotNull(overdueStatus.LastRunAtUtc);
     }
+
+    // =========================================================================
+    // 9. Tenant Reminder Settings & Pay Online Mirroring Tests
+    // =========================================================================
+    [Fact]
+    public async Task ReminderJob_PartialPaymentAccepted_OptionA_SendsAfter7Days_AndSkipsWithin7DaysOrFullPayment()
+    {
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var tenantRepo = new Mock<ITenantRepository>();
+        var notificationService = new Mock<INotificationService>();
+        var logRepo = new Mock<INotificationLogRepository>();
+        var commRepo = new Mock<IInvoiceCommunicationRepository>();
+        var paymentRepo = new Mock<IPaymentRepository>();
+        var settingRepo = new Mock<IReminderSettingRepository>();
+        var logger = new Mock<ILogger<ReminderJobService>>();
+
+        settingRepo.Setup(r => r.GetOrCreateAsync(TenantId, default)).ReturnsAsync(new ReminderSetting
+        {
+            TenantId = TenantId,
+            PartialPaymentReminderEnabled = true,
+            PartialPaymentIntervalValue = 7,
+            PartialPaymentIntervalUnit = "Days",
+            OverdueReminderEnabled = true,
+            OverdueReminderIntervalDays = 1,
+            UpcomingDueReminderEnabled = true
+        });
+
+        var sentPartialDueForReminder = new Invoice
+        {
+            Id = 51,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-PART-OPT-A",
+            Status = "Sent",
+            AllowPartialPayments = true,
+            IncludePayOnlineButton = true,
+            TotalAmount = 1000m,
+            PaidAmount = 0m,
+            BalanceAmount = 1000m,
+            DueDate = DateTime.UtcNow.Date.AddDays(10),
+            Customer = new Customer { Id = 5, Name = "Alice", Email = "alice@example.com" }
+        };
+        var sentPartialTooRecent = new Invoice
+        {
+            Id = 52,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-PART-RECENT",
+            Status = "Sent",
+            AllowPartialPayments = true,
+            IncludePayOnlineButton = true,
+            TotalAmount = 1000m,
+            PaidAmount = 0m,
+            BalanceAmount = 1000m,
+            DueDate = DateTime.UtcNow.Date.AddDays(10),
+            UpdatedAtUtc = DateTime.UtcNow.AddDays(-3),
+            Customer = new Customer { Id = 6, Name = "Bob", Email = "bob@example.com" }
+        };
+        var fullPaymentOnly = new Invoice
+        {
+            Id = 53,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-FULL-ONLY",
+            Status = "Sent",
+            AllowPartialPayments = false,
+            IncludePayOnlineButton = true,
+            TotalAmount = 1000m,
+            PaidAmount = 200m,
+            BalanceAmount = 800m,
+            DueDate = DateTime.UtcNow.Date.AddDays(10),
+            Customer = new Customer { Id = 7, Name = "Charlie", Email = "charlie@example.com" }
+        };
+
+        invoiceRepo.Setup(r => r.GetAllAsync(TenantId)).ReturnsAsync(new List<Invoice> { sentPartialDueForReminder, sentPartialTooRecent, fullPaymentOnly });
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.Is<NotificationLogQueryParameters>(q => q.EntityId == 51 && q.EventType == "PartialPaymentReminder")))
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>(), 0, 1, 1));
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.Is<NotificationLogQueryParameters>(q => q.EntityId == 51 && q.EventType == "InvoiceSent")))
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>
+            {
+                new() { Id = 1, EntityId = 51, EventType = "InvoiceSent", Status = "Sent", SentAtUtc = DateTime.UtcNow.AddDays(-8) }
+            }, 1, 1, 1));
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.Is<NotificationLogQueryParameters>(q => q.EntityId == 52 && q.EventType == "PartialPaymentReminder")))
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>(), 0, 1, 1));
+
+        notificationService.Setup(s => s.SendInvoiceNotificationAsync(51, TenantId, "PartialPaymentReminder", "SystemReminderJob", null, null))
+            .ReturnsAsync(ApiResponse<NotificationLogDto>.Ok(new NotificationLogDto { Id = 10, Status = "Sent" }));
+
+        var job = new ReminderJobService(
+            invoiceRepo.Object,
+            tenantRepo.Object,
+            notificationService.Object,
+            logRepo.Object,
+            commRepo.Object,
+            logger.Object,
+            paymentRepo.Object,
+            null,
+            settingRepo.Object);
+
+        var result = await job.ProcessPaymentRemindersAsync(TenantId);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ProcessedCount);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(51, TenantId, "PartialPaymentReminder", "SystemReminderJob", null, null), Times.Once);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(52, TenantId, "PartialPaymentReminder", It.IsAny<string>(), null, null), Times.Never);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(53, TenantId, "PartialPaymentReminder", It.IsAny<string>(), null, null), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReminderJob_OverdueDailySetting_AndPayOnlineChoiceDisabled_ForwardsPayOnlineFlag()
+    {
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var tenantRepo = new Mock<ITenantRepository>();
+        var notificationService = new Mock<INotificationService>();
+        var logRepo = new Mock<INotificationLogRepository>();
+        var commRepo = new Mock<IInvoiceCommunicationRepository>();
+        var settingRepo = new Mock<IReminderSettingRepository>();
+        var logger = new Mock<ILogger<ReminderJobService>>();
+
+        settingRepo.Setup(r => r.GetOrCreateAsync(TenantId, default)).ReturnsAsync(new ReminderSetting
+        {
+            TenantId = TenantId,
+            PartialPaymentReminderEnabled = true,
+            PartialPaymentIntervalValue = 7,
+            PartialPaymentIntervalUnit = "Days",
+            OverdueReminderEnabled = true,
+            OverdueReminderIntervalDays = 1,
+            UpcomingDueReminderEnabled = true
+        });
+
+        var overdueNoPayOnline = new Invoice
+        {
+            Id = 61,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-OVERDUE-NO-PAY",
+            Status = "Overdue",
+            AllowPartialPayments = false,
+            IncludePayOnlineButton = false,
+            TotalAmount = 500m,
+            BalanceAmount = 500m,
+            DueDate = DateTime.UtcNow.Date.AddDays(-2),
+            Customer = new Customer { Id = 8, Name = "Dana", Email = "dana@example.com" }
+        };
+
+        invoiceRepo.Setup(r => r.GetAllAsync(TenantId)).ReturnsAsync(new List<Invoice> { overdueNoPayOnline });
+
+        NotificationLogQueryParameters? capturedQuery = null;
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.IsAny<NotificationLogQueryParameters>()))
+            .Callback<int, NotificationLogQueryParameters>((_, q) => capturedQuery = q)
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>(), 0, 1, 1));
+
+        notificationService.Setup(s => s.SendInvoiceNotificationAsync(61, TenantId, "InvoiceOverdue", "SystemReminderJob", null, null, false))
+            .ReturnsAsync(ApiResponse<NotificationLogDto>.Ok(new NotificationLogDto { Id = 11, Status = "Sent" }));
+
+        var job = new ReminderJobService(
+            invoiceRepo.Object,
+            tenantRepo.Object,
+            notificationService.Object,
+            logRepo.Object,
+            commRepo.Object,
+            logger.Object,
+            settingRepository: settingRepo.Object);
+
+        var result = await job.ProcessPaymentRemindersAsync(TenantId);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ProcessedCount);
+        Assert.NotNull(capturedQuery);
+        Assert.Equal(DateTime.UtcNow.Date, capturedQuery!.StartDate);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(61, TenantId, "InvoiceOverdue", "SystemReminderJob", null, null, false), Times.Once);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(61, TenantId, "InvoiceOverdue", "SystemReminderJob", null, null), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReminderSettingService_GetAndUpdate_ValidatesAndPersists()
+    {
+        var repo = new Mock<IReminderSettingRepository>();
+        var entity = new ReminderSetting
+        {
+            Id = 1,
+            TenantId = TenantId,
+            PartialPaymentReminderEnabled = true,
+            PartialPaymentIntervalValue = 7,
+            PartialPaymentIntervalUnit = "Days",
+            OverdueReminderEnabled = true,
+            OverdueReminderIntervalDays = 1,
+            UpcomingDueReminderEnabled = true
+        };
+        repo.Setup(r => r.GetOrCreateAsync(TenantId, default)).ReturnsAsync(entity);
+        repo.Setup(r => r.GetByTenantIdAsync(TenantId, default)).ReturnsAsync(entity);
+        repo.Setup(r => r.SaveAsync(It.IsAny<ReminderSetting>(), default)).ReturnsAsync((ReminderSetting s, CancellationToken _) => s);
+
+        var service = new ReminderSettingService(repo.Object);
+
+        var fetched = await service.GetSettingsAsync(TenantId);
+        Assert.True(fetched.Success);
+        Assert.Equal(7, fetched.Data!.PartialPaymentIntervalValue);
+        Assert.Equal("Days", fetched.Data.PartialPaymentIntervalUnit);
+        Assert.Equal(1, fetched.Data.OverdueReminderIntervalDays);
+
+        var invalid = await service.UpdateSettingsAsync(TenantId, new Billing.Contracts.Settings.UpdateReminderSettingsRequest
+        {
+            PartialPaymentIntervalValue = 0,
+            PartialPaymentIntervalUnit = "Days",
+            OverdueReminderIntervalDays = 1
+        }, "Admin");
+        Assert.False(invalid.Success);
+
+        var updated = await service.UpdateSettingsAsync(TenantId, new Billing.Contracts.Settings.UpdateReminderSettingsRequest
+        {
+            PartialPaymentReminderEnabled = true,
+            PartialPaymentIntervalValue = 14,
+            PartialPaymentIntervalUnit = "days",
+            OverdueReminderEnabled = true,
+            OverdueReminderIntervalDays = 2,
+            UpcomingDueReminderEnabled = false
+        }, "Admin");
+        Assert.True(updated.Success);
+        Assert.Equal(14, updated.Data!.PartialPaymentIntervalValue);
+        Assert.Equal("Days", updated.Data.PartialPaymentIntervalUnit);
+        Assert.Equal(2, updated.Data.OverdueReminderIntervalDays);
+        Assert.False(updated.Data.UpcomingDueReminderEnabled);
+    }
 }

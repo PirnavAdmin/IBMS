@@ -544,7 +544,7 @@ public static class DbInitializer
             }
 
             // Add the reusable Pirnav layouts independently of the original seed block.
-            var allTenantIds = await context.Tenants.Where(t => t.IsActive).Select(t => t.Id).ToListAsync();
+            var allTenantIds = await context.Tenants.Where(t => t.Status == "Active").Select(t => t.Id).ToListAsync();
             if (!allTenantIds.Contains(1)) allTenantIds.Add(1);
             if (!allTenantIds.Contains(2)) allTenantIds.Add(2);
 
