@@ -3,11 +3,7 @@ import { connectionFailureMessage, transportErrorMessage } from './transportErro
     import { parseCustomerError } from '../billing-contracts/customer.contracts.js';
 
 const resolveBaseUrl = () => {
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
-  const configured = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL;
-  return configured || 'http://127.0.0.1:5271';
+    return 'https://pediatric-astrology-outrank.ngrok-free.dev';
 };
 
 export const BACKEND_URL = String(resolveBaseUrl()).replace(/\/+$/, '');
