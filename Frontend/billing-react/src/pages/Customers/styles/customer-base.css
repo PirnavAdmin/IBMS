@@ -361,19 +361,21 @@
 .cust-table th {
   background: #f8f3ed;
   color: #67452f;
-  font-size: 0.78rem;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 14px 18px;
+  padding: 5px 8px;
   border-bottom: 1px solid #eae3db;
 }
 
 .cust-table td {
-  padding: 14px 18px;
+  padding: 4px 8px;
   border-bottom: 1px solid #f0ebe5;
   color: #302a26;
   vertical-align: middle;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .cust-table tbody tr:hover {

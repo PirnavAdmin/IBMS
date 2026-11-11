@@ -69,8 +69,8 @@
 .ura-workspace .MuiInputBase-input:-moz-autofill { box-shadow: 0 0 0 1000px #fffdf9 inset !important; }
 .ura-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #eadfd4; border-radius: 10px; background: #fff; }
 .ura-table { width: 100%; min-width: 930px; border-collapse: separate; border-spacing: 0; text-align: left; }
-.ura-table th { padding: 13px 12px; border-bottom: 1px solid #e6d7c8; background: #f5ece2; color: #5d402b; font-size: .72rem; font-weight: 750; line-height: 1.35; white-space: nowrap; }
-.ura-table td { padding: 12px; border-bottom: 1px solid #eee5dc; color: #6f6052; font-size: .8rem; line-height: 1.45; vertical-align: middle; overflow-wrap: anywhere; }
+.ura-table th { padding: 6px 10px; border-bottom: 1px solid #e6d7c8; background: #f5ece2; color: #5d402b; font-size: .72rem; font-weight: 750; line-height: 1.25; white-space: nowrap; }
+.ura-table td { padding: 5px 10px; border-bottom: 1px solid #eee5dc; color: #6f6052; font-size: .8rem; line-height: 1.25; vertical-align: middle; overflow-wrap: anywhere; }
 .ura-table tbody tr { transition: background-color .15s ease; }
 .ura-table tbody tr:hover { background: #fffaf4; }
 .ura-table tbody tr:last-child td { border-bottom: 0; }
@@ -100,9 +100,9 @@
 .ura-assignment-table td { padding-block: 9px; }
 .ura-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .ura-row-actions .MuiButton-root { min-width: 0; text-transform: none; }
-.ura-role-table th:last-child,.ura-role-table td:last-child { width: 64px; text-align: center; }
-.ura-action-cell { width: 64px; padding-inline: 4px !important; text-align: center; }
-.ura-action-menu-button { display: inline-flex; width: 32px; height: 32px; color: #69452e; }
+.ura-table th:last-child, .ura-table td:last-child, .ura-action-cell { text-align: center; }
+.ura-role-table th:last-child, .ura-role-table td:last-child, .ura-action-cell { width: 64px; padding-inline: 4px !important; }
+.ura-action-menu-button { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; color: #69452e; }
 .ura-action-menu-button:hover { background: #f4eade; }
 .ura-select-menu.MuiPaper-root:not(.ura-action-menu) { max-height: min(250px, calc(100vh - 32px)); margin-top: 8px; padding: 5px; overflow-y: auto; border: 1px solid #e1d2c2; border-radius: 14px; background: #fffdfb; box-shadow: 0 12px 30px #35231c20, 0 2px 6px #35231c0d; }
 .ura-select-menu:not(.ura-action-menu) .MuiMenuItem-root { min-height: 40px; margin: 1px; padding: 7px 12px; border: 1px solid transparent; border-radius: 8px; color: #49372a; font-size: .9rem; transition: background-color .15s ease, color .15s ease; }
