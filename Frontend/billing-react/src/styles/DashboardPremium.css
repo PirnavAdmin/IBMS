@@ -121,7 +121,7 @@
 .premium-stat span { color: #634a36; font-size: 11px; font-weight: 650; line-height: 1.35; }
 .premium-stat i { display: grid; place-items: center; width: 27px; height: 27px; flex-shrink: 0; border-radius: 8px; background: var(--stat-icon); color: var(--stat-accent); }
 .premium-stat i svg { font-size: 17px; }
-.premium-stat strong { display: block; margin: 12px 0 6px; color: #35271e; font-size: clamp(18px, 1.5vw, 25px); line-height: 1.15; font-weight: 750; letter-spacing: -.045em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.premium-stat strong { display: block; margin: 12px 0 6px; color: #35271e; font-size: clamp(17px, 1.15vw, 20px); line-height: 1.2; font-weight: 750; letter-spacing: -.03em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .premium-stat small { color: #78614d; font-size: 10px; line-height: 1.4; }
 
 .premium-actions { margin-bottom: 20px; }
@@ -362,7 +362,8 @@
 .app-layout .premium-dashboard .premium-stat > div > span { order: -1; color: var(--stat-accent); font-size: 13px; line-height: 1.45; font-weight: 650; }
 .app-layout .premium-dashboard .premium-stat i { width: 36px; height: 36px; border-radius: 11px; background: var(--stat-icon); }
 .app-layout .premium-dashboard .premium-stat i svg { font-size: 20px; }
-.app-layout .premium-dashboard .premium-stat > strong { margin: 16px 0 6px; font-size: clamp(22px, 1.4vw, 26px); line-height: 1.2; letter-spacing: -.035em; color: var(--stat-accent); }
+.app-layout .premium-dashboard .premium-stat > strong,
+.dashboard-kpi-value { margin: 12px 0 5px; font-size: clamp(17px, 1.15vw, 20px); line-height: 1.25; letter-spacing: -.025em; color: var(--stat-accent); }
 .app-layout .premium-dashboard .premium-stat > small { margin-top: auto; color: #827365; font-size: 12px; line-height: 1.6; }
 .app-layout .premium-dashboard .premium-stat-link:hover { border-color: color-mix(in srgb, var(--stat-accent) 45%, white); box-shadow: 0 6px 20px #35271f10; }
 @media (max-width: 600px) { .app-layout .premium-dashboard .premium-kpis .premium-stat { padding: 17px; min-height: 150px; } }

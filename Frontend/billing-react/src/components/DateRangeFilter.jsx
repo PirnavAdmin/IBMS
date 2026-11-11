@@ -13,7 +13,7 @@ import { useExclusiveDropdown } from '../hooks/useExclusiveDropdown';
 import '../styles/DateRangeFilter.css';
 
 export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdownIcon = <ArrowDropDown />,
-  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false, placement = 'bottomLeft' }) {
+  confirmationMessage, title = 'Date Range', fromLabel = 'From Date', toLabel = 'To Date', latestDate, className = '', inline = false, placement = 'bottomLeft', iconOnly = false }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState('');
@@ -60,10 +60,11 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
     if (next) { setDraft({ startDate, endDate }); setAttempted(false); }
     setOpen(next);
   };
-  const trigger = <Button htmlType="button" className={"invoice-filter-date-range date-range-filter " + className} icon={<CalendarTodayOutlined />}
+  const trigger = <Button htmlType="button" className={"invoice-filter-date-range date-range-filter " + className + (iconOnly ? ' date-range-icon-only' : '') + (startDate || endDate ? ' has-dates' : '')} icon={<CalendarTodayOutlined />}
     aria-label={'Date Range: ' + label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
+    title={startDate && endDate ? `${displayDate(startDate)} – ${displayDate(endDate)}` : 'Filter by date range'}
     onClick={inline ? () => changeOpen(!open) : undefined}>
-    <span className="date-range-label">{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{dropdownIcon}
+    <span className={`date-range-label${iconOnly ? ' visually-hidden' : ''}`}>{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{!iconOnly && dropdownIcon}
   </Button>;
   return <ConfigProvider theme={dateRangeTheme}>
     <div className={`date-range-control${inline ? ' date-range-control-inline' : ''}`}>
