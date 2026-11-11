@@ -172,14 +172,32 @@ public class AuthService
             };
         }
 
-        if (user.Tenant != null && !user.Tenant.IsActive)
-        {
-            return new LoginResponse
-            {
-                Success = false,
-                Message = "Company account is inactive or suspended"
-            };
-        }
+        var isTenantAccountInactive = false;
+        if (user.TenantId.HasValue)
+        {
+            var tenantObj = user.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(user.TenantId.Value) : null);
+            if (tenantObj != null)
+            {
+                isTenantAccountInactive = !tenantObj.IsActive ||
+                    string.Equals(tenantObj.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tenantObj.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        else if (user.Tenant != null)
+        {
+            isTenantAccountInactive = !user.Tenant.IsActive ||
+                string.Equals(user.Tenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(user.Tenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (isTenantAccountInactive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
+            };
+        }
 
         var passwordCorrect =
             BCrypt.Net.BCrypt.Verify(
@@ -386,16 +404,34 @@ public class AuthService
             };
         }
 
-        if (user.Tenant != null && !user.Tenant.IsActive)
-        {
-            await _userSessionRepository.RevokeSessionAsync(session.Id, "Company account is suspended or inactive");
-
-            return new LoginResponse
-            {
-                Success = false,
-                Message = "Company account is inactive or suspended"
-            };
-        }
+        var isTenantAccountInactive = false;
+        if (user.TenantId.HasValue)
+        {
+            var tenantObj = user.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(user.TenantId.Value) : null);
+            if (tenantObj != null)
+            {
+                isTenantAccountInactive = !tenantObj.IsActive ||
+                    string.Equals(tenantObj.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(tenantObj.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        else if (user.Tenant != null)
+        {
+            isTenantAccountInactive = !user.Tenant.IsActive ||
+                string.Equals(user.Tenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(user.Tenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (isTenantAccountInactive)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Company account is suspended or inactive");
+
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
+            };
+        }
 
         // Token Rotation: Generate new Refresh Token and revoke old one
         var newRawRefreshToken = _jwtTokenService.GenerateRefreshToken();

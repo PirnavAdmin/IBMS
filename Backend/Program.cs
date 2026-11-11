@@ -380,6 +380,16 @@ builder.Services.AddAuthentication(options =>
                     return;
 
                 case SessionValidationStatus.Valid:
+                    // Check inactive or suspended tenant organization
+                    var sessionTenant = session?.User?.Tenant;
+                    if (sessionTenant != null && (!sessionTenant.IsActive ||
+                        string.Equals(sessionTenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(sessionTenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        await userSessionRepo.RevokeSessionAsync(sessionId, "Tenant organization is inactive or suspended");
+                        context.Fail("Tenant organization is inactive or suspended.");
+                        return;
+                    }
                     if (evaluation.ShouldUpdateActivity)
                     {
                         await userSessionRepo.UpdateActivityAsync(sessionId, evaluation.SlidingExpiryUtc);

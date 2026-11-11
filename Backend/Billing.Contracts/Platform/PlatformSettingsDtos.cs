@@ -12,7 +12,11 @@ public class PlatformSettingsDto
     public int PasswordMinLength { get; set; } = 8;
     public bool RequireDigit { get; set; } = true;
     public bool RequireSpecialChar { get; set; } = true;
-    public List<string> SupportedCurrencies { get; set; } = new() { "INR", "USD", "EUR", "GBP" };
+    public List<string> SupportedCurrencies { get; set; } = new()
+    {
+        "INR", "USD", "EUR", "GBP", "AED", "AUD", "CAD", "SGD",
+        "JPY", "CHF", "CNY", "NZD", "SAR", "QAR", "KWD", "ZAR"
+    };
     public string AccountRecoveryContact { get; set; } = "support@ibms.com";
     public DateTime UpdatedAtUtc { get; set; }
     public string UpdatedBy { get; set; } = "System";

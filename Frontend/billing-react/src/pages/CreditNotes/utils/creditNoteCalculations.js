@@ -27,6 +27,22 @@ export const validateCreditQuantity = (value, available) => {
   return { valid: true, quantity, error: '' };
 };
 
+export const creditQuantitiesForScope = (items = [], scope = 'Partial') => scope === 'Full'
+  ? Object.fromEntries(items
+    .filter((item) => Number(item.remainingQuantity) > 0)
+    .map((item) => [item.id, Number(item.remainingQuantity)]))
+  : {};
+
+export const creditBalance = (available, selected) => {
+  const availableCredit = roundCurrency(Math.max(0, Number(available) || 0));
+  const selectedCredit = roundCurrency(Math.max(0, Number(selected) || 0));
+  return {
+    availableCredit,
+    selectedCredit,
+    remainingCredit: roundCurrency(Math.max(0, availableCredit - selectedCredit)),
+  };
+};
+
 export const validateRefundAmount = (value, remaining) => {
   const raw = String(value ?? '').trim();
   if (!/^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(raw)) {
@@ -53,6 +69,8 @@ export const creditLineAmounts = (item, quantity = item.quantity) => {
   const inclusiveFlag = item?.isTaxInclusive ?? item?.taxInclusive;
   const isInclusive = inclusiveFlag == null ? /inclusive/i.test(String(item?.taxType || '')) : Boolean(inclusiveFlag);
   const originalQuantity = Math.max(Number(item.originalQuantity || selectedQuantity || 0), 0.000001);
+  // The creditable-summary API exposes TaxAmount on each invoice line. Treat it
+  // as the whole-line amount, then prorate by selected/original quantity.
   const hasInvoiceTaxAmount = item.taxAmount != null && Number.isFinite(Number(item.taxAmount));
   const invoiceTax = hasInvoiceTaxAmount
     ? roundCurrency(Number(item.taxAmount) * selectedQuantity / originalQuantity)
@@ -67,6 +85,50 @@ export const creditLineAmounts = (item, quantity = item.quantity) => {
   const tax = invoiceTax == null ? roundCurrency(subtotal * taxRate / 100) : invoiceTax;
   return { subtotal, tax, total: roundCurrency(subtotal + tax) };
 };
+
+export const validateInvoiceTaxAmount = (item, currency = 'INR') => {
+  const rawTax = item?.taxAmount;
+  const rawRate = item?.taxRate;
+  if (rawTax == null || !Number.isFinite(Number(rawTax))) return null;
+  const tax = Number(rawTax);
+  if (rawRate == null || !Number.isFinite(Number(rawRate))) {
+    return Math.abs(tax) > 0.005 ? 'The invoice includes a tax amount but no tax rate, so the tax amount cannot be checked.' : null;
+  }
+  const taxRate = Number(rawRate);
+  if (taxRate < 0 || taxRate > 100) return `The invoice tax rate (${taxRate}%) is outside the valid range.`;
+  const originalQuantity = Number(item?.originalQuantity ?? item?.quantity);
+  const unitPrice = Number(item?.unitPrice);
+  if (!Number.isFinite(originalQuantity) || originalQuantity <= 0 || !Number.isFinite(unitPrice)) {
+    return Math.abs(tax) > 0.005 ? 'The invoice line is missing quantity or unit price, so its tax amount cannot be checked.' : null;
+  }
+  const gross = roundCurrency(originalQuantity * unitPrice);
+  const discount = Math.min(gross, Math.max(0, roundCurrency(Number(item?.discountAmount) || 0)));
+  const afterDiscount = Math.max(0, roundCurrency(gross - discount));
+  const inclusiveFlag = item?.isTaxInclusive ?? item?.taxInclusive;
+  const isInclusive = inclusiveFlag == null
+    ? /inclusive/i.test(String(item?.taxType || ''))
+    : Boolean(inclusiveFlag);
+  const taxForBase = (base) => isInclusive && taxRate > 0
+    ? roundCurrency(base - base / (1 + taxRate / 100))
+    : roundCurrency(base * taxRate / 100);
+  const possibleTaxes = [taxForBase(afterDiscount), taxForBase(gross)];
+  const minimumTax = Math.min(...possibleTaxes);
+  const maximumTax = Math.max(...possibleTaxes);
+  if (tax >= minimumTax - 0.05 && tax <= maximumTax + 0.05) return null;
+  return `The invoice line tax amount (${money(tax, currency)}) does not match ${taxRate}% tax for any base between the invoice line amount and its reported discount (expected ${money(minimumTax, currency)}–${money(maximumTax, currency)}). The preview keeps the invoice tax amount and does not replace it.`;
+};
+
+export const validatePreviouslyCreditedAllocation = (item) => {
+  const previouslyCreditedQuantity = Number(item?.previouslyCreditedQuantity) || 0;
+  const discountAmount = Number(item?.discountAmount) || 0;
+  if (previouslyCreditedQuantity <= 0 || discountAmount <= 0) return null;
+  return 'The invoice summary does not include the discount and tax amounts allocated to earlier credits, so this remaining discounted line cannot be reconciled exactly with the saved credit calculation.';
+};
+
+export const invoiceLineWarnings = (item, currency = 'INR') => [
+  validateInvoiceTaxAmount(item, currency),
+  validatePreviouslyCreditedAllocation(item),
+].filter(Boolean);
 
 export const splitTaxAmount = (amount, taxMode) => {
   const tax = roundCurrency(amount);
