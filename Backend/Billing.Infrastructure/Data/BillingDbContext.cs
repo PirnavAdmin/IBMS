@@ -88,6 +88,7 @@ public class BillingDbContext : DbContext
     public DbSet<ExportJob> ExportJobs { get; set; }
     public DbSet<CountrySetting> CountrySettings { get; set; }
     public DbSet<PlatformSetting> PlatformSettings { get; set; }
+    public DbSet<PaymentGatewaySetting> PaymentGatewaySettings { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -102,7 +103,7 @@ public class BillingDbContext : DbContext
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is AuditLog) continue;
+            if (entry.Entity is AuditLog || entry.Entity is UserSession) continue;
 
             var entityName = entry.Entity.GetType().Name;
             var entityId = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "Unknown";
@@ -115,22 +116,23 @@ public class BillingDbContext : DbContext
                 if (property.IsTemporary) continue;
 
                 string propertyName = property.Metadata.Name;
+                var isProtectedSecret = entry.Entity is PaymentGatewaySetting && propertyName.EndsWith("Protected", StringComparison.Ordinal);
 
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        newValues[propertyName] = property.CurrentValue;
+                        newValues[propertyName] = isProtectedSecret ? "[REDACTED]" : property.CurrentValue;
                         break;
 
                     case EntityState.Deleted:
-                        oldValues[propertyName] = property.OriginalValue;
+                        oldValues[propertyName] = isProtectedSecret ? "[REDACTED]" : property.OriginalValue;
                         break;
 
                     case EntityState.Modified:
                         if (property.IsModified)
                         {
-                            oldValues[propertyName] = property.OriginalValue;
-                            newValues[propertyName] = property.CurrentValue;
+                            oldValues[propertyName] = isProtectedSecret ? "[REDACTED]" : property.OriginalValue;
+                            newValues[propertyName] = isProtectedSecret ? "[REDACTED]" : property.CurrentValue;
                         }
                         break;
                 }
@@ -145,6 +147,10 @@ public class BillingDbContext : DbContext
                 EntityId = entityId,
                 Action = entry.State.ToString().ToUpper(),
                 UserName = userName,
+                ActorUserId = _currentUserService?.UserId,
+                ActorRole = _currentUserService?.Role,
+                CorrelationId = _currentUserService?.CorrelationId,
+                ResultStatus = "Success",
                 Timestamp = DateTime.UtcNow,
                 OldValues = oldValues.Count > 0 ? JsonSerializer.Serialize(oldValues) : null,
                 NewValues = newValues.Count > 0 ? JsonSerializer.Serialize(newValues) : null,
@@ -1090,6 +1096,24 @@ public class BillingDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.TenantId).IsUnique();
             entity.Property(e => e.CountriesJson).HasColumnType("longtext").IsRequired();
+        });
+
+        modelBuilder.Entity<PaymentGatewaySetting>(entity =>
+        {
+            entity.ToTable("paymentgatewaysettings");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.Property(e => e.Provider).HasMaxLength(64).HasDefaultValue("Razorpay").IsRequired();
+            entity.Property(e => e.IsSandbox).HasDefaultValue(true);
+            entity.Property(e => e.AllowTestSimulationTools).HasDefaultValue(true);
+            entity.Property(e => e.RazorpayTestKeyId).HasMaxLength(128);
+            entity.Property(e => e.RazorpayTestKeySecretProtected).HasMaxLength(1024);
+            entity.Property(e => e.RazorpayTestWebhookSecretProtected).HasMaxLength(1024);
+            entity.Property(e => e.RazorpayLiveKeyId).HasMaxLength(128);
+            entity.Property(e => e.RazorpayLiveKeySecretProtected).HasMaxLength(1024);
+            entity.Property(e => e.RazorpayLiveWebhookSecretProtected).HasMaxLength(1024);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(128);
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(

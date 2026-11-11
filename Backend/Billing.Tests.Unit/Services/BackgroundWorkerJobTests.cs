@@ -181,6 +181,120 @@ public class BackgroundWorkerJobTests
     }
 
     // =========================================================================
+    // =========================================================================
+    // 2B. Partial Payment Recurring Reminder Tests
+    // =========================================================================
+    [Fact]
+    public async Task ReminderJob_SendsPartialPaymentReminder_WhenPaidPartially_AndCooldownElapsed()
+    {
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var tenantRepo = new Mock<ITenantRepository>();
+        var notificationService = new Mock<INotificationService>();
+        var logRepo = new Mock<INotificationLogRepository>();
+        var commRepo = new Mock<IInvoiceCommunicationRepository>();
+        var paymentRepo = new Mock<IPaymentRepository>();
+        var logger = new Mock<ILogger<ReminderJobService>>();
+
+        var partialInvoice = new Invoice
+        {
+            Id = 22,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-0022",
+            Status = "Partially Paid",
+            TotalAmount = 1000m,
+            PaidAmount = 400m,
+            BalanceAmount = 600m,
+            DueDate = DateTime.UtcNow.Date.AddDays(15),
+            Customer = new Customer { Id = 5, Name = "Alice", Email = "alice@example.com" }
+        };
+
+        invoiceRepo.Setup(r => r.GetAllAsync(TenantId)).ReturnsAsync(new List<Invoice> { partialInvoice });
+        paymentRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<PaymentListFilterRequest>(), null))
+            .ReturnsAsync(new PagedResult<Payment>(new List<Payment>
+            {
+                new() { Id = 1, Amount = 400m, CreatedAtUtc = DateTime.UtcNow.AddMinutes(-65), Status = PaymentStatus.Completed }
+            }, 1, 1, 1));
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.Is<NotificationLogQueryParameters>(q => q.EventType == "PartialPaymentReminder")))
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>
+            {
+                new() { Id = 100, EventType = "PartialPaymentReminder", Status = "Sent", SentAtUtc = DateTime.UtcNow.AddMinutes(-61) }
+            }, 1, 1, 1));
+
+        notificationService.Setup(s => s.SendInvoiceNotificationAsync(partialInvoice.Id, TenantId, "PartialPaymentReminder", "SystemReminderJob", null, null))
+            .ReturnsAsync(ApiResponse<NotificationLogDto>.Ok(new NotificationLogDto { Id = 2, Status = "Sent" }));
+
+        var job = new ReminderJobService(
+            invoiceRepo.Object,
+            tenantRepo.Object,
+            notificationService.Object,
+            logRepo.Object,
+            commRepo.Object,
+            logger.Object,
+            paymentRepo.Object);
+
+        var result = await job.ProcessPaymentRemindersAsync(TenantId);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.ProcessedCount);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(partialInvoice.Id, TenantId, "PartialPaymentReminder", "SystemReminderJob", null, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReminderJob_SkipsPartialPaymentReminder_WithinConfiguredInterval_AndRespects7DaysOverride()
+    {
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var tenantRepo = new Mock<ITenantRepository>();
+        var notificationService = new Mock<INotificationService>();
+        var logRepo = new Mock<INotificationLogRepository>();
+        var commRepo = new Mock<IInvoiceCommunicationRepository>();
+        var paymentRepo = new Mock<IPaymentRepository>();
+        var logger = new Mock<ILogger<ReminderJobService>>();
+
+        var partialInvoice = new Invoice
+        {
+            Id = 23,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-0023",
+            Status = "Partially Paid",
+            TotalAmount = 2000m,
+            PaidAmount = 500m,
+            BalanceAmount = 1500m,
+            DueDate = DateTime.UtcNow.Date.AddDays(20),
+            Customer = new Customer { Id = 5, Name = "Bob", Email = "bob@example.com" }
+        };
+
+        invoiceRepo.Setup(r => r.GetAllAsync(TenantId)).ReturnsAsync(new List<Invoice> { partialInvoice });
+        paymentRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<PaymentListFilterRequest>(), null))
+            .ReturnsAsync(new PagedResult<Payment>(new List<Payment>
+            {
+                new() { Id = 2, Amount = 500m, CreatedAtUtc = DateTime.UtcNow.AddDays(-3), Status = PaymentStatus.Completed }
+            }, 1, 1, 1));
+        logRepo.Setup(r => r.QueryLogsAsync(TenantId, It.Is<NotificationLogQueryParameters>(q => q.EventType == "PartialPaymentReminder")))
+            .ReturnsAsync(new PagedResult<NotificationLog>(new List<NotificationLog>
+            {
+                new() { Id = 101, EventType = "PartialPaymentReminder", Status = "Sent", SentAtUtc = DateTime.UtcNow.AddDays(-2) }
+            }, 1, 1, 1));
+
+        var config7Days = PartialPaymentReminderOptions.Create(days: 7);
+
+        var job = new ReminderJobService(
+            invoiceRepo.Object,
+            tenantRepo.Object,
+            notificationService.Object,
+            logRepo.Object,
+            commRepo.Object,
+            logger.Object,
+            paymentRepo.Object,
+            config7Days);
+
+        var result = await job.ProcessPaymentRemindersAsync(TenantId);
+
+        Assert.True(result.Success);
+        Assert.Equal(0, result.ProcessedCount);
+        notificationService.Verify(s => s.SendInvoiceNotificationAsync(It.IsAny<int>(), It.IsAny<int>(), "PartialPaymentReminder", It.IsAny<string>(), null, null), Times.Never);
+    }
+
+    // =========================================================================
     // 3. PDF Generation Job Tests
     // =========================================================================
     [Fact]

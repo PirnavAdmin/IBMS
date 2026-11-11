@@ -9,6 +9,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardSidebar } from '../components/dashboard/DashboardSidebar';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { queryClient } from '../queryClient';
+import { ScreenErrorBoundary } from '../components/PageLoading';
 import { useTableScrollHeaders } from '../hooks/useTableScrollHeaders';
 import '../styles/Dashboard.css';
 import '../styles/ModuleSpacing.css';
@@ -94,6 +95,6 @@ export const AppLayout = () => {
   return <div ref={tableScrollRoot} className={`app-layout astra-layout${platform ? ' platform-layout' : ''}${!mobileNavigation && sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
     <button ref={menuRef} type="button" className="app-layout-menu" onClick={toggleNavigation} aria-label={navigationExpanded ? 'Collapse navigation' : 'Expand navigation'}  aria-expanded={navigationExpanded} aria-controls="app-primary-navigation"><Menu /></button>
     <DashboardSidebar activeItem={activeItem} open={sidebarOpen} mobile={mobileNavigation} collapsed={!mobileNavigation && sidebarCollapsed} onToggle={toggleNavigation} onSelect={(item) => openRoute(Object.keys(routeModules).find((route) => routeModules[route] === item) || '/dashboard')} onNavigate={openRoute} onClose={() => { setSidebarOpen(false); menuRef.current?.focus(); }} />
-    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={activeSearch?.value ?? searchQuery} onSearch={activeSearch?.onChange || onSearch} navigationItems={navigationSearch ? navigationItems : undefined} searchLabel={activeSearch?.label || (auditSearch ? 'Search current activity page' : 'Search modules')} searchPlaceholder={activeSearch ? activeSearch.label + '...' : auditSearch ? 'Search current activity page...' : 'Search modules...'} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><Outlet context={{ searchQuery: activeSearch?.value ?? searchQuery, onSearch: activeSearch?.onChange || (auditSearch ? onSearch : undefined), registerModuleSearch }} /></div></div>
+    <div className="app-layout-main">{!hasPageHeader && <DashboardHeader searchQuery={activeSearch?.value ?? searchQuery} onSearch={activeSearch?.onChange || onSearch} navigationItems={navigationSearch ? navigationItems : undefined} searchLabel={activeSearch?.label || (auditSearch ? 'Search current activity page' : 'Search modules')} searchPlaceholder={activeSearch ? activeSearch.label + '...' : auditSearch ? 'Search current activity page...' : 'Search modules...'} onSignOut={signOut} />}<div className={`app-layout-content${hasPageHeader ? ' app-layout-content-with-header' : ''}`}><ScreenErrorBoundary resetKey={pathname} onNavigateHome={() => openRoute('/dashboard')}><Outlet context={{ searchQuery: activeSearch?.value ?? searchQuery, onSearch: activeSearch?.onChange || (auditSearch ? onSearch : undefined), registerModuleSearch }} /></ScreenErrorBoundary></div></div>
   </div>;
 };

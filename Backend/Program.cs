@@ -197,6 +197,10 @@ builder.Services.AddScoped<IIntegrationApplicationService, IntegrationApplicatio
 // Background Worker & Jobs (Module 16)
 // ============================================================
 builder.Services.AddScoped<IOverdueInvoiceJobService, OverdueInvoiceJobService>();
+builder.Services.AddSingleton(PartialPaymentReminderOptions.Create(
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalDays"),
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalHours"),
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalMinutes")));
 builder.Services.AddScoped<IReminderJobService, ReminderJobService>();
 builder.Services.AddScoped<IPdfGenerationJobService, PdfGenerationJobService>();
 builder.Services.AddScoped<IEmailNotificationJobService, EmailNotificationJobService>();
@@ -352,6 +356,17 @@ builder.Services.AddAuthentication(options =>
                 context.Fail("Session has expired.");
                 return;
             }
+
+            // Check inactive or suspended tenant organization
+            var sessionTenant = session.User?.Tenant;
+            if (sessionTenant != null && (!sessionTenant.IsActive ||
+                string.Equals(sessionTenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(sessionTenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase)))
+            {
+                await userSessionRepo.RevokeSessionAsync(sessionId, "Tenant organization is inactive or suspended");
+                context.Fail("Tenant organization is inactive or suspended.");
+                return;
+            }
 
             // =================================================
             // Inactivity timeout (dynamically bound to Platform Settings)
@@ -550,7 +565,24 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.All
 });
 
-app.UseCors("AllowAll");
+app.UseCors("AllowAll");
+
+// Serve bundled Frontend SPA assets when available so public payment links work over the ngrok/API domain too
+var frontendDistPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Frontend", "billing-react", "dist"));
+if (!Directory.Exists(frontendDistPath))
+{
+    frontendDistPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Frontend", "billing-react", "dist"));
+}
+
+Microsoft.Extensions.FileProviders.PhysicalFileProvider? frontendFileProvider = null;
+if (Directory.Exists(frontendDistPath))
+{
+    frontendFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(frontendDistPath);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = frontendFileProvider
+    });
+}
 
 // Standardized API Error Handling Middleware (IBMSBE-020)
 app.UseMiddleware<StandardizedApiErrorMiddleware>();
@@ -570,7 +602,23 @@ app.UseMiddleware<PlatformMaintenanceMiddleware>();
 app.MapControllers();
 
 // Auto-redirect root URL ("/") to Swagger UI (hidden from Swagger UI documentation)
-app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+
+if (frontendFileProvider != null)
+{
+    app.MapGet("/pay/{**slug}", async context =>
+    {
+        var indexPath = Path.Combine(frontendDistPath, "index.html");
+        if (File.Exists(indexPath))
+        {
+            context.Response.ContentType = "text/html; charset=utf-8";
+            await context.Response.SendFileAsync(indexPath);
+            return;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+    }).AllowAnonymous().ExcludeFromDescription();
+}
 
 // ============================================================
 // Run

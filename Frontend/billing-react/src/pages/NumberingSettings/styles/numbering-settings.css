@@ -654,7 +654,7 @@
    ========================================================================== */
 .numbering-bottom-bar {
   position: sticky;
-  bottom: 16px;
+  bottom: 0;
   min-height: 72px;
   margin-top: 24px;
   background: var(--surface, #ffffff);
@@ -667,7 +667,7 @@
   align-items: center;
   padding: 14px 20px;
   box-shadow: 0 -4px 18px rgba(90, 37, 8, 0.05);
-  z-index: 5;
+  z-index: 20;
 }
 
 .numbering-bottom-bar .bottom-bar-left,
@@ -741,7 +741,7 @@
 
 @media (max-width: 760px) {
   .numbering-bottom-bar {
-    bottom: 8px;
+    bottom: 0;
     padding: 12px;
   }
 

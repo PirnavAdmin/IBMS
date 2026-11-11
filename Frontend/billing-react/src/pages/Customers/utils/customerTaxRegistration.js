@@ -3,7 +3,7 @@ const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
 
 // Keep the overview consistent with the editor's existing API compatibility
 // rules: taxId stores either PAN or GSTIN, not necessarily a separate status.
-export function customerTaxRegistrationType(values = {}) {
+export function customerTaxRegistrationType(values = {}) { if (!values || typeof values !== 'object') return '';
   const provided = String(values.taxRegistrationType ?? values.TaxRegistrationType ?? values.taxRegistration ?? values.TaxRegistration ?? '').trim().toLowerCase();
   if (['non-gst', 'unregistered'].includes(provided)) return 'non-gst';
   if (['gst', 'registered'].includes(provided)) return 'gst';

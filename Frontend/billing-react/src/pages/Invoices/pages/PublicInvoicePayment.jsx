@@ -3,15 +3,142 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
   Box, Container, Paper, Typography, TextField, Button, Alert,
   CircularProgress, Divider, Tab, Tabs, Chip, Stack, Card, CardContent,
-  IconButton, Tooltip, Collapse, InputAdornment, Grid
+  IconButton, Tooltip, Collapse, InputAdornment, Autocomplete
 } from '@mui/material';
 import {
   CheckCircleOutline, QrCode2Outlined, PaymentOutlined,
   AccountBalanceOutlined, ArrowBack, SecurityOutlined,
   ContentCopy, Done, RadioButtonChecked, CreditCardOutlined,
-  LockOutlined, FlashOn
+  LockOutlined, FlashOn, PersonOutline, Visibility, VisibilityOff
 } from '@mui/icons-material';
 import axios from 'axios';
+import { InvoiceBillingLogo } from '../../../components/InvoiceBillingLogo';
+// Comprehensive list of RBI-scheduled Indian banks (Public Sector, Private Sector,
+// Small Finance, Payments, Major Foreign Banks in India, Co-operative & Grameena Banks)
+const INDIAN_NETBANKING_BANKS = [
+  'Abhyudaya Co-operative Bank',
+  'Airtel Payments Bank',
+  'Andhra Pragathi Grameena Bank',
+  'Andhra Pradesh Grameena Vikas Bank',
+  'AP Mahesh Co-operative Urban Bank',
+  'AU Small Finance Bank',
+  'Axis Bank',
+  'Bandhan Bank',
+  'Bank of America India',
+  'Bank of Baroda',
+  'Bank of India',
+  'Bank of Maharashtra',
+  'Barclays Bank India',
+  'Baroda Gujarat Gramin Bank',
+  'Baroda Rajasthan Kshetriya Gramin Bank',
+  'Baroda UP Bank',
+  'BNP Paribas India',
+  'Canara Bank',
+  'Capital Small Finance Bank',
+  'Central Bank of India',
+  'Chaitanya Godavari Grameena Bank',
+  'Citibank India',
+  'City Union Bank',
+  'Cosmos Co-operative Bank',
+  'CSB Bank',
+  'DBS Bank India',
+  'DCB Bank',
+  'Deutsche Bank India',
+  'Dhanlaxmi Bank',
+  'Equitas Small Finance Bank',
+  'ESAF Small Finance Bank',
+  'Federal Bank',
+  'Fino Payments Bank',
+  'HDFC Bank',
+  'HSBC India',
+  'ICICI Bank',
+  'IDBI Bank',
+  'IDFC First Bank',
+  'India Post Payments Bank',
+  'Indian Bank',
+  'Indian Overseas Bank',
+  'IndusInd Bank',
+  'Jammu & Kashmir Bank',
+  'Jana Small Finance Bank',
+  'Jio Payments Bank',
+  'JPMorgan Chase Bank India',
+  'Kalupur Commercial Co-operative Bank',
+  'Karnataka Bank',
+  'Karnataka Gramin Bank',
+  'Karnataka Vikas Grameena Bank',
+  'Karur Vysya Bank',
+  'Kerala Gramin Bank',
+  'Kotak Mahindra Bank',
+  'Maharashtra Gramin Bank',
+  'Nainital Bank',
+  'North East Small Finance Bank',
+  'NSDL Payments Bank',
+  'Paytm Payments Bank',
+  'Punjab & Sind Bank',
+  'Punjab National Bank',
+  'RBL Bank',
+  'Saptagiri Grameena Bank',
+  'Saraswat Co-operative Bank',
+  'Sarva Haryana Gramin Bank',
+  'Shamrao Vithal Co-operative Bank (SVC Bank)',
+  'Shivalik Small Finance Bank',
+  'South Indian Bank',
+  'Standard Chartered Bank',
+  'State Bank of India',
+  'Suryoday Small Finance Bank',
+  'Tamil Nadu Grama Bank',
+  'Tamilnad Mercantile Bank',
+  'Telangana Grameena Bank',
+  'TJSB Sahakari Bank',
+  'UCO Bank',
+  'Ujjivan Small Finance Bank',
+  'Union Bank of India',
+  'Unity Small Finance Bank',
+  'Utkarsh Small Finance Bank',
+  'Yes Bank'
+];
+
+const INDIAN_BANK_SEARCH_ALIASES = {
+  'State Bank of India': ['sbi'],
+  'Punjab National Bank': ['pnb'],
+  'Bank of Baroda': ['bob'],
+  'Bank of India': ['boi'],
+  'Bank of Maharashtra': ['bom'],
+  'Central Bank of India': ['cbi'],
+  'Indian Overseas Bank': ['iob'],
+  'Punjab & Sind Bank': ['psb'],
+  'Union Bank of India': ['ubi'],
+  'India Post Payments Bank': ['ippb'],
+  'Karur Vysya Bank': ['kvb'],
+  'Tamilnad Mercantile Bank': ['tmb'],
+  'City Union Bank': ['cub'],
+  'South Indian Bank': ['sib'],
+  'Jammu & Kashmir Bank': ['jk', 'j&k', 'jkb'],
+  'Andhra Pragathi Grameena Bank': ['apgb'],
+  'Andhra Pradesh Grameena Vikas Bank': ['apgvb'],
+  'Chaitanya Godavari Grameena Bank': ['cggb'],
+  'Telangana Grameena Bank': ['tgb'],
+  'Standard Chartered Bank': ['scb', 'sc']
+};
+
+const checkoutInputSx = (readOnlyBg = false) => ({
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    backgroundColor: readOnlyBg ? '#FAF4EC' : '#FFFFFF',
+    '& fieldset': { borderColor: '#DECFBB' },
+    '&:hover fieldset': { borderColor: '#A2693E' },
+    '&.Mui-focused fieldset': { borderColor: '#65442E', borderWidth: 2 }
+  },
+  '& .MuiInputLabel-root.Mui-focused': { color: '#65442E' },
+  '& .MuiFormHelperText-root': { mx: 0.5, mt: 0.6 }
+});
+
+const gatewayClient = axios.create({
+  headers: {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true'
+  }
+});
 
 // Detect Card Brand for display
 const getCardBrand = (number = '') => {
@@ -61,6 +188,8 @@ export function PublicInvoicePayment() {
   const [searchParams] = useSearchParams();
   const tenantId = searchParams.get('tenantId') || '2';
   const allowPartialParam = searchParams.get('allowPartial');
+  const payNowOnlyParam = searchParams.get('payNowOnly') === '1';
+  const isForcedFullOnly = !payNowOnlyParam && allowPartialParam === '0';
 
   const [loading, setLoading] = useState(true);
   const [qrLoading, setQrLoading] = useState(false);
@@ -102,10 +231,35 @@ export function PublicInvoicePayment() {
   const [cardCvv, setCardCvv] = useState('');
   const [cardErrors, setCardErrors] = useState({});
 
+  // Internet Banking (NetBanking) Test-Box States
+  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [netBankingType, setNetBankingType] = useState('Retail Banking');
+  const [netBankingUserId, setNetBankingUserId] = useState('');
+  const [netBankingPassword, setNetBankingPassword] = useState('');
+  const [showNetBankingPassword, setShowNetBankingPassword] = useState(false);
+  const [netBankingOtp, setNetBankingOtp] = useState('');
+  const [netBankingStep, setNetBankingStep] = useState('select'); // 'select' | 'authorize'
+  const [netBankingErrors, setNetBankingErrors] = useState({});
+  const [showSellerBankInfo, setShowSellerBankInfo] = useState(false);
+
   const initialPaidRef = useRef(null);
   const initialBalanceRef = useRef(null);
+  const statusPollInFlightRef = useRef(false);
+  const latestOrderRef = useRef(null);
+  const latestPayAmountRef = useRef('');
+  latestOrderRef.current = order;
+  latestPayAmountRef.current = payAmount;
 
-  const isPartialAllowed = (order?.allowPartialPayments ?? (allowPartialParam === '0' ? false : true)) !== false;
+  const isPartialAllowed = isForcedFullOnly ? false : (order?.allowPartialPayments ?? true) !== false;
+  const isSandboxMode = order?.isSandbox !== false;
+  const showTestTools = isSandboxMode && order?.allowTestSimulationTools !== false;
+  const hasRealRazorpay = Boolean(order?.hasRazorpayOrder && order?.keyId && !String(order.keyId).includes('ibms_sandbox'));
+  const getEffectivePayableAmount = () => {
+    if (!order) return 0;
+    if (!isPartialAllowed) return order.balanceAmount ?? order.amount ?? 0;
+    const rawVal = parseFloat(payAmount);
+    return !isNaN(rawVal) && rawVal > 0 ? Math.min(rawVal, order.balanceAmount) : order.balanceAmount;
+  };
 
   const getApiUrl = () => {
     if (typeof window !== 'undefined' && window.location?.origin) {
@@ -125,12 +279,12 @@ export function PublicInvoicePayment() {
       const payload = {
         invoiceId: parseInt(id, 10),
         tenantId: parseInt(tenantId, 10),
-        amount: customAmount !== null ? Number(customAmount) : undefined,
+        amount: (!isForcedFullOnly && customAmount !== null) ? Number(customAmount) : undefined,
         currency: 'INR',
         gateway: 'Razorpay'
       };
 
-      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/create-order`, payload, {
+      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/create-order`, payload, {
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -147,6 +301,9 @@ export function PublicInvoicePayment() {
           setBankAmount(balStr);
           if (data.customerName) {
             setCardHolder((prev) => prev || data.customerName);
+          }
+          if (Array.isArray(data.supportedNetBankingBanks) && data.supportedNetBankingBanks.length > 0) {
+            setSelectedBank((prev) => data.supportedNetBankingBanks.includes(prev) ? prev : data.supportedNetBankingBanks[0]);
           }
         }
       }
@@ -166,7 +323,7 @@ export function PublicInvoicePayment() {
 
   // Debounced dynamic QR update as the user types amount
   useEffect(() => {
-    if (!order || !order.balanceAmount) return;
+    if (!order || !order.balanceAmount || !isPartialAllowed) return;
 
     const timer = setTimeout(() => {
       const rawVal = parseFloat(payAmount);
@@ -186,40 +343,78 @@ export function PublicInvoicePayment() {
     return () => clearTimeout(timer);
   }, [payAmount, order?.balanceAmount, order?.amount]);
 
-  // Automatic Polling: Auto-detect when QR payment or bank transfer completes without clicking any button
-  useEffect(() => {
-    if (!order || paymentSuccess) return;
+  const pollInvoiceStatus = async () => {
+    const activeOrder = latestOrderRef.current;
+    if (!activeOrder || statusPollInFlightRef.current) return;
+    statusPollInFlightRef.current = true;
+    try {
+      const res = await gatewayClient.get(`${API_URL}/api/v1/payments/gateway/invoice-status/${activeOrder.invoiceId}?tenantId=${tenantId}`);
+      const inv = res?.data?.data;
+      if (inv) {
+        const initPaid = initialPaidRef.current ?? activeOrder.paidAmount ?? 0;
+        const initBal = initialBalanceRef.current ?? activeOrder.balanceAmount ?? 0;
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/v1/payments/gateway/invoice-status/${order.invoiceId}?tenantId=${tenantId}`);
-        const inv = res?.data?.data;
-        if (inv) {
-          const initPaid = initialPaidRef.current ?? order.paidAmount ?? 0;
-          const initBal = initialBalanceRef.current ?? order.balanceAmount ?? 0;
-
-          if (inv.paidAmount > initPaid || inv.balanceAmount < initBal || inv.isPaid) {
-            const newlyPaid = inv.paidAmount - initPaid;
-            setPaymentSuccess({
-              isFull: inv.isPaid || inv.balanceAmount <= 0,
-              paidAmount: newlyPaid > 0 ? newlyPaid : (Number(payAmount) || order.amount),
-              remainingBalance: inv.balanceAmount,
-              reference: 'UPI_AUTO_VERIFIED',
-              invoiceNumber: inv.invoiceNumber,
-              customerName: order.customerName
-            });
-          }
+        if (inv.paidAmount > initPaid || inv.balanceAmount < initBal || inv.isPaid) {
+          const newlyPaid = inv.paidAmount - initPaid;
+          setPaymentSuccess({
+            isFull: inv.isPaid || inv.balanceAmount <= 0,
+            paidAmount: newlyPaid > 0 ? newlyPaid : (Number(latestPayAmountRef.current) || activeOrder.amount),
+            remainingBalance: inv.balanceAmount,
+            reference: 'UPI_AUTO_VERIFIED',
+            invoiceNumber: inv.invoiceNumber,
+            customerName: activeOrder.customerName
+          });
         }
-      } catch (err) {
-        // Silently retry on next poll interval
       }
-    }, 1200);
+    } catch {
+      // Silently retry on next scheduled check
+    } finally {
+      statusPollInFlightRef.current = false;
+    }
+  };
 
-    return () => clearInterval(interval);
-  }, [order, paymentSuccess, tenantId, payAmount]);
+  // Visibility-aware QR payment polling: polls only on active Scan UPI QR tab while visible (4s -> 15s backoff, max 15m)
+  useEffect(() => {
+    if (!order?.invoiceId || paymentSuccess || tab !== 0) return;
 
-  // Handle Real Razorpay Card Checkout Modal
-  const handleRazorpayCardCheckout = async () => {
+    let cancelled = false;
+    let timerId = null;
+    const startedAt = Date.now();
+
+    const scheduleNext = () => {
+      if (cancelled || document.hidden) return;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > 15 * 60 * 1000) return;
+      const delay = elapsed > 3 * 60 * 1000 ? 15000 : 4000;
+      timerId = setTimeout(async () => {
+        if (cancelled || document.hidden) return;
+        await pollInvoiceStatus();
+        scheduleNext();
+      }, delay);
+    };
+
+    const handleVisibilityChange = () => {
+      if (timerId) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      if (!document.hidden && !cancelled) {
+        void pollInvoiceStatus().then(() => scheduleNext());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    scheduleNext();
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [order?.invoiceId, paymentSuccess, tenantId, tab]);
+
+  // Handle Real Razorpay Checkout Modal (Card / NetBanking / UPI)
+  const handleRazorpayCardCheckout = async (preferredMethod = null) => {
     if (!order || processing) return;
     setProcessing(true);
     setError('');
@@ -231,10 +426,7 @@ export function PublicInvoicePayment() {
       return;
     }
 
-    const rawVal = parseFloat(payAmount);
-    const effectiveAmount = !isNaN(rawVal) && rawVal > 0
-      ? Math.min(rawVal, order.balanceAmount)
-      : order.balanceAmount;
+    const effectiveAmount = getEffectivePayableAmount();
 
     const options = {
       key: order.keyId || 'rzp_test_ibms_sandbox',
@@ -242,12 +434,13 @@ export function PublicInvoicePayment() {
       currency: order.currency || 'INR',
       name: 'IBMS Invoicing',
       description: `Payment for Invoice #${order.invoiceNumber}`,
-      image: '/branding/ibms-crest.png',
-      order_id: order.orderId && order.orderId.startsWith('order_') && order.orderId.length === 20 ? order.orderId : undefined,
+      image: '/branding/ibms-brand.png',
+      order_id: order.hasRazorpayOrder ? order.orderId : undefined,
       prefill: {
         name: order.customerName || '',
         email: order.customerEmail || '',
-        contact: order.customerPhone || ''
+        contact: order.customerPhone || '',
+        ...(preferredMethod ? { method: preferredMethod } : {})
       },
       notes: {
         invoiceId: String(order.invoiceId),
@@ -259,14 +452,16 @@ export function PublicInvoicePayment() {
       },
       handler: async function (response) {
         try {
-          const res = await axios.post(`${API_URL}/api/v1/payments/gateway/verify`, {
+          const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/verify`, {
             invoiceId: order.invoiceId,
             tenantId: parseInt(tenantId, 10),
-            orderId: order.orderId,
+            orderId: response.razorpay_order_id || order.orderId,
             paymentId: response.razorpay_payment_id || `pay_${Date.now()}`,
             signature: response.razorpay_signature || 'rzp_sig',
             amount: effectiveAmount,
-            gateway: 'Razorpay'
+            gateway: 'Razorpay',
+            bankName: preferredMethod === 'netbanking' ? selectedBank : undefined,
+            accountType: preferredMethod === 'netbanking' ? netBankingType : undefined
           });
 
           if (res?.data?.success !== false) {
@@ -356,17 +551,14 @@ export function PublicInvoicePayment() {
     setProcessing(true);
     setError('');
 
-    const rawVal = parseFloat(payAmount);
-    const effectiveAmount = !isNaN(rawVal) && rawVal > 0
-      ? Math.min(rawVal, order.balanceAmount)
-      : order.balanceAmount;
+    const effectiveAmount = getEffectivePayableAmount();
 
     const digits = cardNumber.replace(/\D/g, '');
     const last4 = digits.slice(-4);
     const brandInfo = getCardBrand(cardNumber);
 
     try {
-      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/verify`, {
+      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/verify`, {
         invoiceId: order.invoiceId,
         tenantId: parseInt(tenantId, 10),
         orderId: order.orderId,
@@ -398,38 +590,84 @@ export function PublicInvoicePayment() {
     }
   };
 
-  // Bank transfer submission with explicit customer amount
-  const handleBankTransferSubmit = async () => {
-    const finalRef = (utrNumber || '').trim();
-    if (!finalRef) {
-      setError('Please enter your Bank UTR or Transaction Reference Number.');
+  // Internet Banking Test-Box Helpers (Sandbox / Demo Mode)
+  const supportedBanks = (Array.isArray(order?.supportedNetBankingBanks) && order.supportedNetBankingBanks.length > 0)
+    ? order.supportedNetBankingBanks
+    : INDIAN_NETBANKING_BANKS;
+
+  const filterBankOptions = (options, { inputValue }) => {
+    const query = (inputValue || '').trim().toLowerCase();
+    if (!query || (selectedBank && query === selectedBank.toLowerCase())) {
+      return options;
+    }
+    return options.filter((bank) => {
+      if (bank.toLowerCase().includes(query)) return true;
+      const aliases = INDIAN_BANK_SEARCH_ALIASES[bank] || [];
+      return aliases.some((alias) => alias.includes(query));
+    });
+  };
+
+  const handleAutofillNetBanking = () => {
+    setSelectedBank((prev) =>
+      supportedBanks.includes(prev)
+        ? prev
+        : (supportedBanks.includes('HDFC Bank') ? 'HDFC Bank' : (supportedBanks[0] || 'HDFC Bank'))
+    );
+    setNetBankingType('Retail Banking');
+    setNetBankingUserId('IBMS884210');
+    setNetBankingPassword('Demo@1234');
+    setNetBankingOtp('123456');
+    setNetBankingErrors({});
+  };
+
+  const handleNetBankingProceed = () => {
+    const errs = {};
+    if (!selectedBank?.trim()) errs.selectedBank = 'Please select your bank.';
+    if (!netBankingType?.trim()) errs.netBankingType = 'Select Retail or Corporate banking.';
+    if (!netBankingUserId.trim() || netBankingUserId.trim().length < 4) {
+      errs.netBankingUserId = 'Enter Customer / NetBanking User ID (min 4 characters).';
+    }
+    if (!netBankingPassword.trim() || netBankingPassword.trim().length < 4) {
+      errs.netBankingPassword = 'Enter NetBanking Password / TPIN (min 4 characters).';
+    }
+    if (!currentPayable || currentPayable <= 0 || currentPayable > (order?.balanceAmount ?? 0)) {
+      errs.amount = 'Enter a valid payable amount within invoice balance.';
+    }
+    if (Object.keys(errs).length > 0) {
+      setNetBankingErrors(errs);
       return;
     }
+    setNetBankingErrors({});
+    setError('');
+    setNetBankingStep('authorize');
+  };
 
-    const rawBank = parseFloat(bankAmount);
-    if (isNaN(rawBank) || rawBank <= 0) {
-      setError('Please enter a valid amount transferred.');
+  const handleNetBankingAuthorize = async () => {
+    if (!order || processing) return;
+    if (!/^\d{4,6}$/.test(netBankingOtp.trim())) {
+      setNetBankingErrors({ netBankingOtp: 'Enter 4-6 digit Bank OTP (Test Box OTP: 123456).' });
       return;
     }
-
-    if (rawBank > order.balanceAmount) {
-      setError(`Amount transferred cannot exceed the outstanding balance of ₹${order.balanceAmount.toFixed(2)}.`);
-      return;
-    }
-
-    const effectiveAmount = isPartialAllowed ? rawBank : order.balanceAmount;
-
+    setNetBankingErrors({});
     setProcessing(true);
     setError('');
 
+    const effectiveAmount = getEffectivePayableAmount();
+
+    const bankCode = selectedBank.replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase() || 'NETB';
+    const netBankingRef = `NB_${bankCode}_${Date.now()}`;
+
     try {
-      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/verify`, {
+      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/verify`, {
         invoiceId: order.invoiceId,
         tenantId: parseInt(tenantId, 10),
         orderId: order.orderId,
-        paymentId: finalRef,
+        paymentId: netBankingRef,
+        signature: 'NETBANKING_AUTH_SUCCESS',
         amount: effectiveAmount,
-        gateway: 'BankTransfer'
+        gateway: 'InternetBanking',
+        bankName: selectedBank,
+        accountType: netBankingType
       });
 
       if (res?.data?.success !== false) {
@@ -440,15 +678,15 @@ export function PublicInvoicePayment() {
           isFull: remaining <= 0,
           paidAmount: paid,
           remainingBalance: remaining,
-          reference: finalRef,
+          reference: `${selectedBank} (${netBankingType}) • ${netBankingRef}`,
           invoiceNumber: order.invoiceNumber,
           customerName: order.customerName
         });
       } else {
-        setError(res?.data?.message || 'Payment verification failed.');
+        setError(res?.data?.message || 'Internet Banking authorization failed.');
       }
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to submit bank transfer reference.');
+      setError(err?.response?.data?.message || err?.message || 'Failed to complete Internet Banking payment.');
     } finally {
       setProcessing(false);
     }
@@ -470,12 +708,9 @@ export function PublicInvoicePayment() {
     setError('');
 
     try {
-      const rawVal = parseFloat(payAmount);
-      const effectiveAmount = !isNaN(rawVal) && rawVal > 0
-        ? Math.min(rawVal, order.balanceAmount)
-        : order.balanceAmount;
+      const effectiveAmount = getEffectivePayableAmount();
 
-      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/simulate-qr-payment/${order.invoiceId}?tenantId=${tenantId}`, {
+      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/simulate-qr-payment/${order.invoiceId}?tenantId=${tenantId}`, {
         tenantId: parseInt(tenantId, 10),
         amount: effectiveAmount,
         utrReference: `UPI${Date.now()}`
@@ -483,8 +718,9 @@ export function PublicInvoicePayment() {
 
       if (res?.data?.success === false) {
         setError(res?.data?.message || 'UPI Simulation failed.');
+      } else {
+        await pollInvoiceStatus();
       }
-      // The auto-polling loop running every 2.5s detects the recorded payment and switches to success screen!
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || 'Failed to simulate UPI payment.');
     } finally {
@@ -498,19 +734,16 @@ export function PublicInvoicePayment() {
     setProcessing(true);
     setError('');
 
-    const rawVal = parseFloat(payAmount);
-    const effectiveAmount = !isNaN(rawVal) && rawVal > 0
-      ? Math.min(rawVal, order.balanceAmount)
-      : order.balanceAmount;
+    const effectiveAmount = getEffectivePayableAmount();
 
     try {
-      const res = await axios.post(`${API_URL}/api/v1/payments/gateway/verify`, {
+      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/verify`, {
         invoiceId: order.invoiceId,
         tenantId: parseInt(tenantId, 10),
         orderId: order.orderId,
         paymentId: finalRef,
         amount: effectiveAmount,
-        gateway: tab === 2 ? 'BankTransfer' : 'UPI_Direct'
+        gateway: tab === 2 ? 'InternetBanking' : 'UPI_Direct'
       });
 
       if (res?.data?.success !== false) {
@@ -556,7 +789,7 @@ export function PublicInvoicePayment() {
 
   const rawInput = parseFloat(payAmount);
   const isCapped = !isNaN(rawInput) && rawInput > (order?.balanceAmount ?? 0);
-  const currentPayable = isCapped ? order.balanceAmount : (!isNaN(rawInput) && rawInput > 0 ? rawInput : order?.amount ?? 0);
+  const currentPayable = !isPartialAllowed ? (order?.balanceAmount ?? order?.amount ?? 0) : (isCapped ? order.balanceAmount : (!isNaN(rawInput) && rawInput > 0 ? rawInput : order?.amount ?? 0));
 
   return (
     <Box sx={{
@@ -567,24 +800,14 @@ export function PublicInvoicePayment() {
       px: { xs: 2, sm: 3 }
     }}>
       <Container maxWidth="sm">
-        {/* Header Branding matching INVOICE.BILLING design */}
+        {/* Header Branding using official IBMS logo */}
         <Box sx={{ mb: 3.5, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, mb: 0.8 }}>
-            <Box
-              component="img"
-              src="/branding/ibms-crest.png"
-              alt="IBMS Crest"
-              sx={{ width: 44, height: 44, objectFit: 'contain' }}
-            />
-            <Box sx={{ textAlign: 'left' }}>
-              <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, color: '#3E2C24', letterSpacing: '-0.03em', lineHeight: 1.1 }}>
-                INVOICE<span style={{ color: '#92634C' }}>.</span>BILLING
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', fontWeight: 750, color: '#8A6850', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Secure Payment Portal
-              </Typography>
-            </Box>
+          <Box sx={{ width: { xs: 150, sm: 175 }, mx: 'auto', mb: 0.75 }}>
+            <InvoiceBillingLogo variant="full" />
           </Box>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 750, color: '#8A6850', letterSpacing: '0.14em', textTransform: 'uppercase', mb: 0.25 }}>
+            Secure Payment Portal
+          </Typography>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.5, py: 0.4, bgcolor: '#EFE4D6', borderRadius: 99, mt: 0.5 }}>
             <SecurityOutlined sx={{ fontSize: 13, color: '#65442E' }} />
             <Typography variant="caption" sx={{ color: '#6A4838', fontWeight: 600, fontSize: '0.72rem' }}>
@@ -772,35 +995,73 @@ export function PublicInvoicePayment() {
               </Typography>
 
               {/* Financial Snapshot */}
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 1.5,
-                bgcolor: '#FFFFFF',
-                p: 1.75,
-                borderRadius: 2.5,
-                border: '1px solid #E4D8C8',
-                boxShadow: '0 2px 8px rgba(90, 37, 8, 0.04)'
-              }}>
-                <Box>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Amount</Typography>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#35271F' }}>
-                    ₹{order.totalAmount?.toLocaleString('en-IN')}
-                  </Typography>
+              {(Number(order.paidAmount) > 0 || Number(order.lastPaidAmount) > 0) ? (
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+                  gap: 1.5,
+                  bgcolor: '#FFFFFF',
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: '1px solid #E4D8C8',
+                  boxShadow: '0 2px 8px rgba(90, 37, 8, 0.04)'
+                }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Amount</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#35271F' }}>
+                      ₹{Number(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#15803D', fontWeight: 700 }}>Recently Paid</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#16A34A' }}>
+                      ₹{Number(order.lastPaidAmount ?? order.paidAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Paid</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#16A34A' }}>
+                      ₹{Number(order.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Balance Due</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#65442E' }}>
+                      ₹{Number(order.balanceAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Already Paid</Typography>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#16A34A' }}>
-                    ₹{order.paidAmount?.toLocaleString('en-IN')}
-                  </Typography>
+              ) : (
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 1.5,
+                  bgcolor: '#FFFFFF',
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: '1px solid #E4D8C8',
+                  boxShadow: '0 2px 8px rgba(90, 37, 8, 0.04)'
+                }}>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Amount</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#35271F' }}>
+                      ₹{order.totalAmount?.toLocaleString('en-IN')}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Total Paid</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 750, color: '#16A34A' }}>
+                      ₹{order.paidAmount?.toLocaleString('en-IN')}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Balance Due</Typography>
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#65442E' }}>
+                      ₹{order.balanceAmount?.toLocaleString('en-IN')}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#7E6B5C', fontWeight: 600 }}>Balance Due</Typography>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#65442E' }}>
-                    ₹{order.balanceAmount?.toLocaleString('en-IN')}
-                  </Typography>
-                </Box>
-              </Box>
+              )}
             </Box>
 
             <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
@@ -830,16 +1091,7 @@ export function PublicInvoicePayment() {
                   }}
                   helperText={!isPartialAllowed ? "Full payment required. Partial payment is disabled for this invoice." : undefined}
                   inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
-                  sx={{
-                    bgcolor: isPartialAllowed ? '#FFFFFF' : '#FAF4EC',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      '& fieldset': { borderColor: '#DECFBB' },
-                      '&:hover fieldset': { borderColor: '#A2693E' },
-                      '&.Mui-focused fieldset': { borderColor: '#65442E', borderWidth: 2 }
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': { color: '#65442E' }
-                  }}
+                  sx={checkoutInputSx(!isPartialAllowed)}
                 />
 
                 {isCapped && isPartialAllowed && (
@@ -906,8 +1158,8 @@ export function PublicInvoicePayment() {
                 >
                   <Tab icon={<QrCode2Outlined />} label="Scan UPI QR" iconPosition="start" />
                   <Tab icon={<CreditCardOutlined />} label="Credit / Debit Card" iconPosition="start" />
-                  {(order.bankName || order.accountNumber) && (
-                    <Tab icon={<AccountBalanceOutlined />} label="Bank Transfer" iconPosition="start" />
+                  {order.netBankingEnabled !== false && (
+                    <Tab icon={<AccountBalanceOutlined />} label="Internet Banking" iconPosition="start" />
                   )}
                 </Tabs>
               </Box>
@@ -1061,33 +1313,58 @@ export function PublicInvoicePayment() {
                     </Typography>
                   </Box>
 
+                  {hasRealRazorpay && (
+                    <Box sx={{ mt: 2 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        disabled={processing}
+                        onClick={() => handleRazorpayCardCheckout('upi')}
+                        startIcon={processing ? <CircularProgress size={18} color="inherit" /> : <PaymentOutlined />}
+                        sx={{
+                          py: 1.35,
+                          borderRadius: '10px',
+                          fontWeight: 750,
+                          textTransform: 'none',
+                          bgcolor: '#65442E',
+                          color: '#FFF8EF',
+                          '&:hover': { bgcolor: '#513420' }
+                        }}
+                      >
+                        {processing ? 'Opening Razorpay...' : `Pay ₹${Number(currentPayable).toFixed(2)} via Razorpay UPI / Apps`}
+                      </Button>
+                    </Box>
+                  )}
+
                   {/* Sandbox / Dev mode Simulation Trigger for Instant QR Close Verification */}
-                  <Box sx={{ mt: 2.5, p: 2, bgcolor: '#FAF4EC', border: '1px dashed #DECFBB', borderRadius: 2.5 }}>
-                    <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block', mb: 1, fontWeight: 600 }}>
-                      Testing in Sandbox / Dev mode:
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      disabled={simulatingUpi}
-                      onClick={handleSimulateUpiPayment}
-                      sx={{
-                        bgcolor: '#16A34A',
-                        color: '#FFFFFF',
-                        fontWeight: 750,
-                        textTransform: 'none',
-                        borderRadius: 2,
-                        px: 2.5,
-                        py: 0.8,
-                        '&:hover': { bgcolor: '#15803D' }
-                      }}
-                    >
-                      {simulatingUpi ? 'Triggering UPI Simulation...' : `⚡ Test Auto-Detect: Simulate UPI App Payment (₹${Number(currentPayable).toFixed(2)})`}
-                    </Button>
-                    <Typography variant="caption" sx={{ color: '#8A6850', display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
-                      Simulates phone app payment; within 1.2s both laptop and phone will close the QR and celebrate completion!
-                    </Typography>
-                  </Box>
+                  {showTestTools && (
+                    <Box sx={{ mt: 2.5, p: 2, bgcolor: '#FAF4EC', border: '1px dashed #DECFBB', borderRadius: 2.5 }}>
+                      <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block', mb: 1, fontWeight: 600 }}>
+                        Testing in Sandbox / Dev mode:
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={simulatingUpi}
+                        onClick={handleSimulateUpiPayment}
+                        sx={{
+                          bgcolor: '#16A34A',
+                          color: '#FFFFFF',
+                          fontWeight: 750,
+                          textTransform: 'none',
+                          borderRadius: 2,
+                          px: 2.5,
+                          py: 0.8,
+                          '&:hover': { bgcolor: '#15803D' }
+                        }}
+                      >
+                        {simulatingUpi ? 'Triggering UPI Simulation...' : `⚡ Test Auto-Detect: Simulate UPI App Payment (₹${Number(currentPayable).toFixed(2)})`}
+                      </Button>
+                      <Typography variant="caption" sx={{ color: '#8A6850', display: 'block', mt: 0.8, fontSize: '0.72rem' }}>
+                        Simulates phone app payment; within 1.2s both laptop and phone will close the QR and celebrate completion!
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               )}
 
@@ -1202,169 +1479,159 @@ export function PublicInvoicePayment() {
                     );
                   })()}
 
-                  {/* Autofill Helper Banner */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 650 }}>
-                      Enter your card details to complete payment:
-                    </Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<FlashOn sx={{ fontSize: 15 }} />}
-                      onClick={handleAutofillTestCard}
-                      sx={{
-                        fontSize: '0.74rem',
-                        fontWeight: 750,
-                        textTransform: 'none',
-                        color: '#166534',
-                        borderColor: '#86EFAC',
-                        bgcolor: '#F0FDF4',
-                        py: 0.3,
-                        px: 1.2,
-                        borderRadius: 2,
-                        '&:hover': { bgcolor: '#DCFCE7', borderColor: '#4ADE80' }
-                      }}
-                    >
-                      Autofill Test Card
-                    </Button>
-                  </Box>
+                  {!showTestTools ? (
+                    <Stack spacing={2} sx={{ mb: 2 }}>
+                      <Paper variant="outlined" sx={{ p: 2.25, borderRadius: '12px', bgcolor: '#FAF4EC', border: '1px solid #E5D7C6' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#35271F', mb: 0.6 }}>
+                          Secure Credit / Debit Card Checkout
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#64748b', display: 'block', lineHeight: 1.5 }}>
+                          Pay using Visa, Mastercard, RuPay, or American Express through encrypted Razorpay Checkout with 3D Secure OTP verification. Zero card details touch our servers.
+                        </Typography>
+                        {!hasRealRazorpay && (
+                          <Alert severity="info" sx={{ mt: 1.5 }}>
+                            Checkout Test Mode is turned off. Add Razorpay API keys in <strong>Payments → Gateway Mode</strong> to accept real Card payments.
+                          </Alert>
+                        )}
+                      </Paper>
+                    </Stack>
+                  ) : (
+                    <>
+                      {/* Autofill Helper Banner */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 650 }}>
+                          Enter your card details to complete payment:
+                        </Typography>
+                        {showTestTools && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<FlashOn sx={{ fontSize: 15 }} />}
+                            onClick={handleAutofillTestCard}
+                            sx={{
+                              fontSize: '0.74rem',
+                              fontWeight: 750,
+                              textTransform: 'none',
+                              color: '#166534',
+                              borderColor: '#86EFAC',
+                              bgcolor: '#F0FDF4',
+                              py: 0.3,
+                              px: 1.2,
+                              borderRadius: 2,
+                              '&:hover': { bgcolor: '#DCFCE7', borderColor: '#4ADE80' }
+                            }}
+                          >
+                            Autofill Test Card
+                          </Button>
+                        )}
+                      </Box>
 
-                  {/* Card Form */}
-                  <Stack spacing={2} sx={{ mb: 2 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Card Number"
-                      placeholder="4532 8901 2345 6789"
-                      value={cardNumber}
-                      onChange={(e) => {
-                        setCardNumber(formatCardNumber(e.target.value));
-                        if (cardErrors.cardNumber) {
-                          setCardErrors((prev) => ({ ...prev, cardNumber: undefined }));
-                        }
-                      }}
-                      error={!!cardErrors.cardNumber}
-                      helperText={cardErrors.cardNumber}
-                      inputProps={{ maxLength: 19 }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <CreditCardOutlined sx={{ color: '#8A6850', fontSize: 20 }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: cardNumber.replace(/\D/g, '').length >= 4 && (
-                          <InputAdornment position="end">
-                            <Chip
-                              size="small"
-                              label={getCardBrand(cardNumber).name}
-                              sx={{
-                                height: 22,
-                                fontSize: '0.7rem',
-                                fontWeight: 750,
-                                bgcolor: getCardBrand(cardNumber).bg,
-                                color: getCardBrand(cardNumber).color,
-                                border: `1px solid ${getCardBrand(cardNumber).border}`
-                              }}
-                            />
-                          </InputAdornment>
-                        )
-                      }}
-                      sx={{
-                        bgcolor: '#FFFFFF',
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          '& fieldset': { borderColor: '#DECFBB' },
-                          '&:hover fieldset': { borderColor: '#A2693E' },
-                          '&.Mui-focused fieldset': { borderColor: '#65442E' }
-                        }
-                      }}
-                    />
+                      {/* Card Form */}
+                      <Stack spacing={2} sx={{ mb: 2 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Card Number"
+                          placeholder="4532 8901 2345 6789"
+                          value={cardNumber}
+                          onChange={(e) => {
+                            setCardNumber(formatCardNumber(e.target.value));
+                            if (cardErrors.cardNumber) {
+                              setCardErrors((prev) => ({ ...prev, cardNumber: undefined }));
+                            }
+                          }}
+                          error={!!cardErrors.cardNumber}
+                          helperText={cardErrors.cardNumber}
+                          inputProps={{ maxLength: 19 }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <CreditCardOutlined sx={{ color: '#8A6850', fontSize: 20 }} />
+                              </InputAdornment>
+                            ),
+                            endAdornment: cardNumber.replace(/\D/g, '').length >= 4 && (
+                              <InputAdornment position="end">
+                                <Chip
+                                  size="small"
+                                  label={getCardBrand(cardNumber).name}
+                                  sx={{
+                                    height: 22,
+                                    fontSize: '0.7rem',
+                                    fontWeight: 750,
+                                    bgcolor: getCardBrand(cardNumber).bg,
+                                    color: getCardBrand(cardNumber).color,
+                                    border: `1px solid ${getCardBrand(cardNumber).border}`
+                                  }}
+                                />
+                              </InputAdornment>
+                            )
+                          }}
+                          sx={checkoutInputSx()}
+                        />
 
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Cardholder Name"
-                      placeholder="e.g. Sandeep Singampalli"
-                      value={cardHolder}
-                      onChange={(e) => {
-                        setCardHolder(e.target.value);
-                        if (cardErrors.cardHolder) {
-                          setCardErrors((prev) => ({ ...prev, cardHolder: undefined }));
-                        }
-                      }}
-                      error={!!cardErrors.cardHolder}
-                      helperText={cardErrors.cardHolder}
-                      sx={{
-                        bgcolor: '#FFFFFF',
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2,
-                          '& fieldset': { borderColor: '#DECFBB' },
-                          '&:hover fieldset': { borderColor: '#A2693E' },
-                          '&.Mui-focused fieldset': { borderColor: '#65442E' }
-                        }
-                      }}
-                    />
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Cardholder Name"
+                          placeholder="e.g. Sandeep Singampalli"
+                          value={cardHolder}
+                          onChange={(e) => {
+                            setCardHolder(e.target.value);
+                            if (cardErrors.cardHolder) {
+                              setCardErrors((prev) => ({ ...prev, cardHolder: undefined }));
+                            }
+                          }}
+                          error={!!cardErrors.cardHolder}
+                          helperText={cardErrors.cardHolder}
+                          sx={checkoutInputSx()}
+                        />
 
-                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                      <TextField
-                        size="small"
-                        label="Expiry (MM/YY)"
-                        placeholder="MM/YY"
-                        value={cardExpiry}
-                        onChange={(e) => {
-                          setCardExpiry(formatExpiry(e.target.value));
-                          if (cardErrors.cardExpiry) {
-                            setCardErrors((prev) => ({ ...prev, cardExpiry: undefined }));
-                          }
-                        }}
-                        error={!!cardErrors.cardExpiry}
-                        helperText={cardErrors.cardExpiry}
-                        inputProps={{ maxLength: 5 }}
-                        sx={{
-                          bgcolor: '#FFFFFF',
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            '& fieldset': { borderColor: '#DECFBB' },
-                            '&:hover fieldset': { borderColor: '#A2693E' },
-                            '&.Mui-focused fieldset': { borderColor: '#65442E' }
-                          }
-                        }}
-                      />
+                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                          <TextField
+                            size="small"
+                            label="Expiry (MM/YY)"
+                            placeholder="MM/YY"
+                            value={cardExpiry}
+                            onChange={(e) => {
+                              setCardExpiry(formatExpiry(e.target.value));
+                              if (cardErrors.cardExpiry) {
+                                setCardErrors((prev) => ({ ...prev, cardExpiry: undefined }));
+                              }
+                            }}
+                            error={!!cardErrors.cardExpiry}
+                            helperText={cardErrors.cardExpiry}
+                            inputProps={{ maxLength: 5 }}
+                            sx={checkoutInputSx()}
+                          />
 
-                      <TextField
-                        size="small"
-                        type="password"
-                        label="CVV / CVC"
-                        placeholder="•••"
-                        value={cardCvv}
-                        onChange={(e) => {
-                          setCardCvv(formatCvv(e.target.value));
-                          if (cardErrors.cardCvv) {
-                            setCardErrors((prev) => ({ ...prev, cardCvv: undefined }));
-                          }
-                        }}
-                        error={!!cardErrors.cardCvv}
-                        helperText={cardErrors.cardCvv}
-                        inputProps={{ maxLength: 4 }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <LockOutlined sx={{ color: '#8A6850', fontSize: 18 }} />
-                            </InputAdornment>
-                          )
-                        }}
-                        sx={{
-                          bgcolor: '#FFFFFF',
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            '& fieldset': { borderColor: '#DECFBB' },
-                            '&:hover fieldset': { borderColor: '#A2693E' },
-                            '&.Mui-focused fieldset': { borderColor: '#65442E' }
-                          }
-                        }}
-                      />
-                    </Box>
-                  </Stack>
+                          <TextField
+                            size="small"
+                            type="password"
+                            label="CVV / CVC"
+                            placeholder="•••"
+                            value={cardCvv}
+                            onChange={(e) => {
+                              setCardCvv(formatCvv(e.target.value));
+                              if (cardErrors.cardCvv) {
+                                setCardErrors((prev) => ({ ...prev, cardCvv: undefined }));
+                              }
+                            }}
+                            error={!!cardErrors.cardCvv}
+                            helperText={cardErrors.cardCvv}
+                            inputProps={{ maxLength: 4 }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <LockOutlined sx={{ color: '#8A6850', fontSize: 18 }} />
+                                </InputAdornment>
+                              )
+                            }}
+                            sx={checkoutInputSx()}
+                          />
+                        </Box>
+                      </Stack>
+                    </>
+                  )}
 
                   {/* Settlement Preview */}
                   {(() => {
@@ -1386,12 +1653,12 @@ export function PublicInvoicePayment() {
                     variant="contained"
                     size="large"
                     fullWidth
-                    disabled={processing}
-                    onClick={handleCardPaymentSubmit}
+                    disabled={processing || (!showTestTools && !hasRealRazorpay)}
+                    onClick={!showTestTools ? () => handleRazorpayCardCheckout('card') : handleCardPaymentSubmit}
                     startIcon={processing ? <CircularProgress size={20} color="inherit" /> : <LockOutlined />}
                     sx={{
                       py: 1.5,
-                      borderRadius: 2.5,
+                      borderRadius: '10px',
                       fontWeight: 750,
                       fontSize: '0.98rem',
                       textTransform: 'none',
@@ -1404,8 +1671,25 @@ export function PublicInvoicePayment() {
                       }
                     }}
                   >
-                    {processing ? 'Authorizing Card Payment...' : `Pay ₹${Number(currentPayable).toFixed(2)} via Card`}
+                    {processing
+                      ? 'Authorizing Card Payment...'
+                      : !showTestTools
+                        ? `Pay ₹${Number(currentPayable).toFixed(2)} Securely via Razorpay`
+                        : `Pay ₹${Number(currentPayable).toFixed(2)} via Card`}
                   </Button>
+
+                  {showTestTools && hasRealRazorpay && (
+                    <Button
+                      variant="outlined"
+                      size="medium"
+                      fullWidth
+                      disabled={processing}
+                      onClick={() => handleRazorpayCardCheckout('card')}
+                      sx={{ mt: 1.2, borderRadius: '10px', fontWeight: 700, textTransform: 'none', borderColor: '#DECFBB', color: '#65442E' }}
+                    >
+                      Open Razorpay Test Checkout Modal
+                    </Button>
+                  )}
 
                   <Box sx={{ mt: 1.5, textAlign: 'center' }}>
                     <Typography variant="caption" sx={{ color: '#8A6850', fontSize: '0.72rem' }}>
@@ -1415,186 +1699,481 @@ export function PublicInvoicePayment() {
                 </Box>
               )}
 
-              {/* TAB 2: Direct Bank Transfer Details */}
+              {/* TAB 2: Internet Banking (Sandbox / Test-Box NetBanking Procedure) */}
               {tab === 2 && (
                 <Box sx={{ py: 1 }}>
-                  <Typography variant="body2" sx={{ color: '#7E6B5C', mb: 2 }}>
-                    Transfer directly from your banking app (IMPS, NEFT, RTGS) or UPI "To Bank Account" using these details:
-                  </Typography>
+                  {/* Header with Provider + 1-Click Autofill Test Credentials */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#35271F' }}>
+                        {showTestTools ? 'Internet Banking (NetBanking Test Box)' : 'Internet Banking'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#7E6B5C', display: 'block' }}>
+                        {order.netBankingInstructions || (showTestTools ? 'Select your bank, log in with sandbox NetBanking credentials, and authorize OTP.' : 'Select your bank and account type to authorize securely via Razorpay NetBanking.')}
+                      </Typography>
+                    </Box>
+                    {showTestTools && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleAutofillNetBanking}
+                        startIcon={<FlashOn />}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 700,
+                          borderRadius: 2,
+                          borderColor: '#65442E',
+                          color: '#65442E',
+                          bgcolor: '#FAF4EC',
+                          '&:hover': { bgcolor: '#EFE4D6', borderColor: '#513420' }
+                        }}
+                      >
+                        Autofill Test Login
+                      </Button>
+                    )}
+                  </Box>
 
-                  <Paper variant="outlined" sx={{
-                    p: 2.5,
-                    borderRadius: 3,
-                    bgcolor: '#FAF4EC',
-                    border: '1px solid #E8DCCE',
-                    mb: 3
-                  }}>
-                    <Stack spacing={1.5}>
-                      {order.accountHolderName && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 600 }}>Account Holder:</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 750, color: '#35271F' }}>{order.accountHolderName}</Typography>
-                        </Box>
-                      )}
-                      {order.bankName && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 600 }}>Bank Name:</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 750, color: '#35271F' }}>{order.bankName}</Typography>
-                        </Box>
-                      )}
-                      {order.accountNumber && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 600 }}>Account Number:</Typography>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography variant="body2" sx={{ fontWeight: 750, fontFamily: 'monospace', fontSize: '1.05rem', color: '#35271F' }}>
-                              {order.accountNumber}
-                            </Typography>
-                            <Tooltip title="Copy Account Number">
-                              <IconButton size="small" onClick={() => copyToClipboard(order.accountNumber, 'account')} sx={{ color: '#65442E' }}>
-                                {copiedField === 'account' ? <Done fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                      )}
-                      {order.ifscCode && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 600 }}>IFSC Code:</Typography>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <Typography variant="body2" sx={{ fontWeight: 750, fontFamily: 'monospace', fontSize: '1.05rem', color: '#35271F' }}>
-                              {order.ifscCode}
-                            </Typography>
-                            <Tooltip title="Copy IFSC">
-                              <IconButton size="small" onClick={() => copyToClipboard(order.ifscCode, 'ifsc')} sx={{ color: '#65442E' }}>
-                                {copiedField === 'ifsc' ? <Done fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                      )}
-                      {order.branch && (
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="caption" sx={{ color: '#7E6B5C', fontWeight: 600 }}>Branch:</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 750, color: '#35271F' }}>{order.branch}</Typography>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Paper>
+                  {/* Guided 3-Step Internet Banking Procedure Bar */}
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2.5, p: 1.2, bgcolor: '#FAF4EC', borderRadius: 2.5, border: '1px solid #E8DCCE' }}>
+                    {[
+                      { id: 'select', label: showTestTools ? '1. Bank & Login' : '1. Select Bank', active: netBankingStep === 'select' },
+                      { id: 'authorize', label: showTestTools ? '2. OTP Authorization' : '2. Bank Authorization', active: netBankingStep === 'authorize' },
+                      { id: 'done', label: '3. Instant Receipt', active: false }
+                    ].map((step) => (
+                      <Box
+                        key={step.id}
+                        sx={{
+                          flex: 1,
+                          textAlign: 'center',
+                          py: 0.6,
+                          px: 0.5,
+                          borderRadius: 1.8,
+                          bgcolor: step.active ? '#65442E' : 'transparent',
+                          color: step.active ? '#FFF8EF' : '#7E6B5C',
+                          fontWeight: step.active ? 750 : 600,
+                          fontSize: '0.72rem'
+                        }}
+                      >
+                        {step.label}
+                      </Box>
+                    ))}
+                  </Box>
 
-                  {/* Step-by-Step Instructions & UTR Submission */}
-                  <Box sx={{ p: 2.5, bgcolor: '#F3FAF4', border: '1px solid #86EFAC', borderRadius: 3, mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#166534', mb: 0.5 }}>
-                      After Transferring, Confirm Your Payment:
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#4B6353', display: 'block', mb: 2 }}>
-                      Once you complete the transfer in your bank app, enter the amount you transferred and the 12-digit UTR / Reference Number below to record your payment.
-                    </Typography>
-
-                    <Stack spacing={2}>
+                  {netBankingStep === 'select' ? (
+                    <Stack spacing={2.2}>
+                      {/* Step 1A: All-India Bank Dropdown (Searchable) */}
                       <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 700, color: '#166534' }}>
-                            Amount Transferred (₹)
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#4B6353', fontWeight: 600 }}>
-                            {isPartialAllowed ? `Max: ₹${order.balanceAmount?.toFixed(2)}` : 'Full Balance Required'}
-                          </Typography>
-                        </Box>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          type="number"
-                          value={bankAmount}
-                          disabled={!isPartialAllowed}
-                          onChange={(e) => setBankAmount(e.target.value)}
-                          placeholder={`Enter amount transferred (e.g. ${order.balanceAmount})`}
-                          inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
-                          sx={{
-                            bgcolor: '#FFFFFF',
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: 2,
-                              '& fieldset': { borderColor: '#DECFBB' },
-                              '&:hover fieldset': { borderColor: '#16A34A' },
-                              '&.Mui-focused fieldset': { borderColor: '#16A34A' }
+                        <Typography
+                          component="label"
+                          htmlFor="nb-bank-select"
+                          variant="caption"
+                          sx={{ fontWeight: 750, color: '#35271F', display: 'block', mb: 0.75 }}
+                        >
+                          Select Your Bank <Box component="span" sx={{ color: '#DC2626' }}>*</Box>
+                        </Typography>
+                        <Autocomplete
+                          id="nb-bank-select"
+                          options={supportedBanks}
+                          value={selectedBank || null}
+                          disableClearable
+                          openOnFocus
+                          autoHighlight
+                          filterOptions={filterBankOptions}
+                          onChange={(_, newValue) => {
+                            if (newValue) {
+                              setSelectedBank(newValue);
+                              setNetBankingErrors((p) => ({ ...p, selectedBank: '' }));
                             }
                           }}
+                          ListboxProps={{
+                            style: { maxHeight: 260, padding: '6px' }
+                          }}
+                          renderOption={(props, option) => {
+                            const { key, ...optionProps } = props;
+                            const active = option === selectedBank;
+                            return (
+                              <Box
+                                component="li"
+                                key={key}
+                                {...optionProps}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1.2,
+                                  px: 1.5,
+                                  py: 1,
+                                  borderRadius: '8px',
+                                  fontSize: '0.88rem',
+                                  fontWeight: active ? 750 : 500,
+                                  color: active ? '#65442E' : '#1F2937',
+                                  bgcolor: active ? '#FAF4EC !important' : 'transparent',
+                                  '&:hover': { bgcolor: '#FAF4EC' }
+                                }}
+                              >
+                                <AccountBalanceOutlined sx={{ fontSize: 17, color: active ? '#65442E' : '#8A6850', flexShrink: 0 }} />
+                                <Box component="span" sx={{ flex: 1 }}>{option}</Box>
+                                {active && <Done sx={{ fontSize: 16, color: '#65442E' }} />}
+                              </Box>
+                            );
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              size="small"
+                              placeholder="Search or choose any bank in India..."
+                              error={Boolean(netBankingErrors.selectedBank)}
+                              helperText={
+                                netBankingErrors.selectedBank ||
+                                `${supportedBanks.length} Indian banks available • ${order.netBankingProvider || 'Razorpay NetBanking'}${showTestTools ? ' (Test Mode)' : ''}`
+                              }
+                              InputProps={{
+                                ...params.InputProps,
+                                startAdornment: (
+                                  <InputAdornment position="start" sx={{ pl: 0.5, mr: 0 }}>
+                                    <AccountBalanceOutlined sx={{ color: '#8A6850', fontSize: 18 }} />
+                                  </InputAdornment>
+                                )
+                              }}
+                              sx={checkoutInputSx()}
+                            />
+                          )}
                         />
-
-                        {/* Live Settlement Status Preview */}
-                        {(() => {
-                          const numBank = parseFloat(bankAmount);
-                          if (isNaN(numBank) || numBank <= 0) return null;
-                          const rem = Math.max(0, order.balanceAmount - numBank);
-                          const isFull = rem <= 0.01;
-                          return (
-                            <Box sx={{ mt: 1, p: 1, bgcolor: isFull ? '#DCFCE7' : '#FEF3C7', borderRadius: 1.5, border: isFull ? '1px solid #86EFAC' : '1px solid #FCD34D' }}>
-                              <Typography variant="caption" sx={{ fontWeight: 750, color: isFull ? '#166534' : '#92400E', display: 'block' }}>
-                                {isFull
-                                  ? `✓ Full Settlement: Invoice will be marked as FULLY PAID (Remaining Due: ₹0.00)`
-                                  : `ℹ Partial Payment: ₹${numBank.toFixed(2)} will be recorded (Remaining Balance Due will be ₹${rem.toFixed(2)})`}
-                              </Typography>
-                            </Box>
-                          );
-                        })()}
                       </Box>
 
-                      <TextField
-                        size="small"
-                        fullWidth
-                        label="Bank UTR / Transaction Reference Number"
-                        placeholder="e.g. 430219876543 or UBIN..."
-                        value={utrNumber}
-                        onChange={(e) => setUtrNumber(e.target.value)}
-                        sx={{
-                          bgcolor: '#FFFFFF',
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
-                            '& fieldset': { borderColor: '#DECFBB' },
-                            '&:hover fieldset': { borderColor: '#A2693E' },
-                            '&.Mui-focused fieldset': { borderColor: '#16A34A' }
-                          }
-                        }}
-                      />
+                      {/* Step 1B: Banking Type (Retail vs Corporate) */}
+                      <Box>
+                        <Typography variant="caption" sx={{ fontWeight: 750, color: '#35271F', display: 'block', mb: 0.8 }}>
+                          Account Type <Box component="span" sx={{ color: '#DC2626' }}>*</Box>
+                        </Typography>
+                        <Stack direction="row" spacing={1.2}>
+                          {['Retail Banking', 'Corporate Banking'].map((bType) => {
+                            const activeType = netBankingType === bType;
+                            return (
+                              <Button
+                                key={bType}
+                                fullWidth
+                                variant={activeType ? 'contained' : 'outlined'}
+                                onClick={() => setNetBankingType(bType)}
+                                sx={{
+                                  textTransform: 'none',
+                                  py: 0.95,
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.84rem',
+                                  bgcolor: activeType ? '#65442E' : '#FFFFFF',
+                                  color: activeType ? '#FFF8EF' : '#65442E',
+                                  borderColor: activeType ? '#65442E' : '#DECFBB',
+                                  '&:hover': { bgcolor: activeType ? '#513420' : '#FAF4EC', borderColor: '#65442E' }
+                                }}
+                              >
+                                {bType}
+                              </Button>
+                            );
+                          })}
+                        </Stack>
+                      </Box>
+
+                      {/* Step 1C: Live Redirect Notice vs Sandbox Login Test Box */}
+                      {!showTestTools ? (
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 2.25,
+                            borderRadius: '12px',
+                            bgcolor: '#FAF4EC',
+                            border: '1px solid #E5D7C6'
+                          }}
+                        >
+                          <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#35271F', mb: 0.6 }}>
+                            Secure {selectedBank} Authorization ({netBankingType})
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'block', lineHeight: 1.5 }}>
+                            Clicking below opens encrypted Razorpay NetBanking checkout to authorize payment directly with {selectedBank}.
+                          </Typography>
+                          {!hasRealRazorpay && (
+                            <Alert severity="info" sx={{ mt: 1.5 }}>
+                              Checkout Test Mode is turned off. Add Razorpay API keys in <strong>Payments → Gateway Mode</strong> to proceed with Razorpay NetBanking.
+                            </Alert>
+                          )}
+                        </Paper>
+                      ) : (
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 2.25,
+                            borderRadius: '12px',
+                            bgcolor: '#FAF4EC',
+                            border: '1px solid #E5D7C6'
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.8 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 750, color: '#65442E', fontSize: '0.82rem' }}>
+                              {selectedBank} — Sandbox Login Test Box
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label="Test Mode"
+                              sx={{
+                                height: 22,
+                                fontSize: '0.68rem',
+                                fontWeight: 750,
+                                bgcolor: '#EFE2D1',
+                                color: '#65442E'
+                              }}
+                            />
+                          </Box>
+
+                          <Stack spacing={2}>
+                            <Box>
+                              <Typography
+                                component="label"
+                                htmlFor="nb-user-id"
+                                variant="caption"
+                                sx={{ fontWeight: 700, color: '#35271F', display: 'block', mb: 0.6 }}
+                              >
+                                Customer ID / NetBanking User ID <Box component="span" sx={{ color: '#DC2626' }}>*</Box>
+                              </Typography>
+                              <TextField
+                                id="nb-user-id"
+                                fullWidth
+                                size="small"
+                                placeholder="e.g. IBMS884210"
+                                value={netBankingUserId}
+                                onChange={(e) => {
+                                  setNetBankingUserId(e.target.value);
+                                  setNetBankingErrors((p) => ({ ...p, netBankingUserId: '' }));
+                                }}
+                                error={Boolean(netBankingErrors.netBankingUserId)}
+                                helperText={netBankingErrors.netBankingUserId}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <PersonOutline sx={{ color: '#8A6850', fontSize: 18 }} />
+                                    </InputAdornment>
+                                  )
+                                }}
+                                sx={checkoutInputSx()}
+                              />
+                            </Box>
+
+                            <Box>
+                              <Typography
+                                component="label"
+                                htmlFor="nb-password"
+                                variant="caption"
+                                sx={{ fontWeight: 700, color: '#35271F', display: 'block', mb: 0.6 }}
+                              >
+                                NetBanking Password / TPIN (Test Box) <Box component="span" sx={{ color: '#DC2626' }}>*</Box>
+                              </Typography>
+                              <TextField
+                                id="nb-password"
+                                fullWidth
+                                size="small"
+                                type={showNetBankingPassword ? 'text' : 'password'}
+                                placeholder="Enter any 4+ chars (not stored)"
+                                value={netBankingPassword}
+                                onChange={(e) => {
+                                  setNetBankingPassword(e.target.value);
+                                  setNetBankingErrors((p) => ({ ...p, netBankingPassword: '' }));
+                                }}
+                                error={Boolean(netBankingErrors.netBankingPassword)}
+                                helperText={
+                                  netBankingErrors.netBankingPassword ||
+                                  'Sandbox verification only — credentials stay in browser.'
+                                }
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <LockOutlined sx={{ color: '#8A6850', fontSize: 18 }} />
+                                    </InputAdornment>
+                                  ),
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <IconButton
+                                        size="small"
+                                        edge="end"
+                                        onClick={() => setShowNetBankingPassword((prev) => !prev)}
+                                        aria-label={showNetBankingPassword ? 'Hide NetBanking password' : 'Show NetBanking password'}
+                                      >
+                                        {showNetBankingPassword
+                                          ? <VisibilityOff sx={{ fontSize: 18, color: '#7E6B5C' }} />
+                                          : <Visibility sx={{ fontSize: 18, color: '#7E6B5C' }} />}
+                                      </IconButton>
+                                    </InputAdornment>
+                                  )
+                                }}
+                                sx={checkoutInputSx()}
+                              />
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      )}
+
+                      {/* Settlement Preview */}
+                      {(() => {
+                        const rem = Math.max(0, order.balanceAmount - currentPayable);
+                        const isFull = rem <= 0.01;
+                        return (
+                          <Box sx={{ p: 1.5, bgcolor: isFull ? '#DCFCE7' : '#FEF3C7', borderRadius: '10px', border: isFull ? '1px solid #86EFAC' : '1px solid #FCD34D' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 750, color: isFull ? '#166534' : '#92400E', display: 'block' }}>
+                              {isFull
+                                ? `✓ Full Settlement via ${selectedBank}: Invoice will be marked as FULLY PAID (Remaining Due: ₹0.00)`
+                                : `ℹ Partial Settlement via ${selectedBank}: ₹${Number(currentPayable).toFixed(2)} will be paid (Remaining Due: ₹${rem.toFixed(2)})`}
+                            </Typography>
+                          </Box>
+                        );
+                      })()}
 
                       <Button
                         variant="contained"
                         size="large"
                         fullWidth
-                        disabled={
-                          processing ||
-                          !utrNumber.trim() ||
-                          !bankAmount ||
-                          parseFloat(bankAmount) <= 0 ||
-                          parseFloat(bankAmount) > order.balanceAmount
-                        }
-                        onClick={handleBankTransferSubmit}
+                        disabled={processing || (!showTestTools && !hasRealRazorpay)}
+                        onClick={!showTestTools ? () => handleRazorpayCardCheckout('netbanking') : handleNetBankingProceed}
                         sx={{
-                          py: 1.4,
+                          py: 1.5,
+                          borderRadius: '10px',
                           fontWeight: 750,
                           textTransform: 'none',
-                          borderRadius: 2.5,
-                          bgcolor: '#16A34A',
-                          color: '#FFFFFF',
-                          '&:hover': { bgcolor: '#15803D' }
+                          bgcolor: '#65442E',
+                          color: '#FFF8EF',
+                          boxShadow: '0 4px 16px rgba(101, 68, 46, 0.25)',
+                          '&:hover': { bgcolor: '#513420' }
                         }}
                       >
-                        {processing ? 'Recording Bank Payment...' : `Confirm Payment of ₹${(parseFloat(bankAmount) || 0).toFixed(2)}`}
+                        Proceed to {selectedBank} NetBanking →
                       </Button>
-                    </Stack>
-                  </Box>
 
-                  {/* Or NetBanking Online Option */}
-                  <Box sx={{ textAlign: 'center', pt: 1 }}>
-                    <Button
-                      variant="text"
-                      size="small"
-                      startIcon={<PaymentOutlined />}
-                      onClick={() => setTab(1)}
-                      sx={{ textTransform: 'none', color: '#65442E', fontWeight: 700 }}
-                    >
-                      Want to pay online instantly via NetBanking / Cards instead? Click here
-                    </Button>
-                  </Box>
+                      {showTestTools && hasRealRazorpay && (
+                        <Button
+                          variant="outlined"
+                          size="medium"
+                          fullWidth
+                          disabled={processing}
+                          onClick={() => handleRazorpayCardCheckout('netbanking')}
+                          sx={{ borderRadius: '10px', fontWeight: 700, textTransform: 'none', borderColor: '#DECFBB', color: '#65442E' }}
+                        >
+                          Open Razorpay Test NetBanking Modal
+                        </Button>
+                      )}
+                    </Stack>
+                  ) : (
+                    /* Step 2: Simulated Bank OTP Authorization Test Box */
+                    <Stack spacing={2}>
+                      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '12px', bgcolor: '#F3FAF4', border: '1px solid #86EFAC' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                          <Chip size="small" label={`${selectedBank} • ${netBankingType}`} sx={{ bgcolor: '#166534', color: '#FFFFFF', fontWeight: 750 }} />
+                          <Typography variant="caption" sx={{ color: '#166534', fontWeight: 700 }}>
+                            Sandbox Session Active
+                          </Typography>
+                        </Box>
+
+                        <Stack spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: '#FFFFFF', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>Merchant / Payee:</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 750, color: '#0f172a' }}>IBMS Invoicing</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>NetBanking User ID:</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 750, fontFamily: 'monospace', color: '#0f172a' }}>{netBankingUserId}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>Payable Amount:</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#166534' }}>₹{Number(currentPayable).toFixed(2)}</Typography>
+                          </Box>
+                        </Stack>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.8 }}>
+                          <Typography component="label" htmlFor="nb-otp" variant="caption" sx={{ fontWeight: 750, color: '#166534' }}>
+                            Enter Sandbox Bank OTP <Box component="span" sx={{ color: '#DC2626' }}>*</Box>
+                          </Typography>
+                          {showTestTools && (
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setNetBankingOtp('123456');
+                                setNetBankingErrors({});
+                              }}
+                              sx={{ textTransform: 'none', fontSize: '0.72rem', fontWeight: 700, color: '#15803D', p: 0 }}
+                            >
+                              Fill Demo OTP (123456)
+                            </Button>
+                          )}
+                        </Box>
+
+                        <TextField
+                          id="nb-otp"
+                          fullWidth
+                          size="small"
+                          required
+                          placeholder="Enter 6-digit OTP (e.g. 123456)"
+                          value={netBankingOtp}
+                          onChange={(e) => {
+                            setNetBankingOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                            setNetBankingErrors({});
+                          }}
+                          error={Boolean(netBankingErrors.netBankingOtp)}
+                          helperText={netBankingErrors.netBankingOtp}
+                          sx={{ mb: 2, ...checkoutInputSx() }}
+                        />
+
+                        <Stack direction="row" spacing={1.5}>
+                          <Button
+                            variant="outlined"
+                            disabled={processing}
+                            onClick={() => setNetBankingStep('select')}
+                            sx={{ textTransform: 'none', borderRadius: '10px', fontWeight: 700, borderColor: '#DECFBB', color: '#65442E' }}
+                          >
+                            ← Change Bank
+                          </Button>
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            size="large"
+                            disabled={processing}
+                            onClick={handleNetBankingAuthorize}
+                            startIcon={processing ? <CircularProgress size={18} color="inherit" /> : <LockOutlined />}
+                            sx={{
+                              py: 1.4,
+                              fontWeight: 750,
+                              textTransform: 'none',
+                              borderRadius: '10px',
+                              bgcolor: '#16A34A',
+                              color: '#FFFFFF',
+                              '&:hover': { bgcolor: '#15803D' }
+                            }}
+                          >
+                            {processing ? 'Verifying with Bank...' : `Authorize & Pay ₹${Number(currentPayable).toFixed(2)}`}
+                          </Button>
+                        </Stack>
+                      </Paper>
+                    </Stack>
+                  )}
+
+                  {/* Optional Company Receiving Bank Info Reference */}
+                  {(order.bankName || order.accountNumber) && (
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowSellerBankInfo((v) => !v)}
+                        sx={{ textTransform: 'none', color: '#7E6B5C', fontWeight: 650, fontSize: '0.76rem' }}
+                      >
+                        {showSellerBankInfo ? '▲ Hide Beneficiary Bank Details' : '▼ View Beneficiary Settlement Bank Details'}
+                      </Button>
+                      <Collapse in={showSellerBankInfo}>
+                        <Paper variant="outlined" sx={{ mt: 1, p: 2, borderRadius: 2.5, bgcolor: '#FAF4EC', border: '1px solid #E8DCCE', textAlign: 'left' }}>
+                          <Stack spacing={0.8}>
+                            {order.accountHolderName && <Typography variant="caption"><strong>Account Holder:</strong> {order.accountHolderName}</Typography>}
+                            {order.bankName && <Typography variant="caption"><strong>Bank:</strong> {order.bankName}</Typography>}
+                            {order.accountNumber && <Typography variant="caption"><strong>Account #:</strong> {order.accountNumber}</Typography>}
+                            {order.ifscCode && <Typography variant="caption"><strong>IFSC:</strong> {order.ifscCode}</Typography>}
+                            {order.branch && <Typography variant="caption"><strong>Branch:</strong> {order.branch}</Typography>}
+                          </Stack>
+                        </Paper>
+                      </Collapse>
+                    </Box>
+                  )}
                 </Box>
               )}
             </Box>

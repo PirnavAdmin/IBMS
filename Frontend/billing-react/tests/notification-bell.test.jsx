@@ -122,9 +122,15 @@ test('query caches isolate tenants and users; signed-out bell makes no API calls
   try { assert.ok(view.client.getQueryData(['notification-inbox', 1, 'user-1', 'count']) === 1); assert.equal(view.client.getQueryData(['notification-inbox', 2, 'user-1', 'count']), undefined); }
   finally { await view.close(); }
   let calls = 0;
-  const signedOut = await mount(<NotificationBell user={null} />, { unreadCount: async () => { calls++; return 0; }, list: async () => { calls++; return page(); } });
-  try { await open(); assert.equal(calls, 0); assert.match(document.querySelector('[role="alert"]').textContent, /unavailable/); }
-  finally { await signedOut.close(); }
+  const signedOut = await mount(<NotificationBell user={null} />, { unreadCount: async () => { calls++; return 0; }, list: async () => { calls++; return page(); } }); try { await open(); assert.equal(calls, 0); assert.match(document.querySelector('[role="alert"]').textContent, /unavailable/); } finally { await signedOut.close(); }
+
+
+  calls = 0;
+  const hostAdmin = await mount(<NotificationBell user={{ userId: 'super-1', roles: ['SuperAdmin'] }} />, { unreadCount: async () => { calls++; return 0; }, list: async () => { calls++; return page(); } });
+  try { assert.equal(calls, 0); assert.equal(hostAdmin.host.querySelector('.notification-badge'), null); }
+  finally { await hostAdmin.close(); }
+
+
 });
 
 test('API adapter validates response envelopes and uses inbox-only endpoints', async () => {

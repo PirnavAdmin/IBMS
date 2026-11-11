@@ -1,7 +1,7 @@
 import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { FilterSelectField } from '../../components/FilterSelectField';
 import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
-import { displayDateTime as formatDateTime } from '../../utils/localDate';
+import { displayDate as formatPreviewDate, displayDateTime as formatDateTime } from '../../utils/localDate';
 import { useDraftState, useFormDraft } from '../../context/FormDraftContext';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -40,7 +40,14 @@ const STYLES = ['Standard', 'Professional', 'Compact'];
 const STATUS_LABELS = { 1: 'Draft', 2: 'Active', 3: 'Inactive', 4: 'Archived', Draft: 'Draft', Active: 'Active', Inactive: 'Inactive', Archived: 'Archived' };
 const rowsFrom = (value) => Array.isArray(value) ? value : value?.items || value?.Items || value?.data?.items || [];
 const asError = (error) => error?.userMessage || error?.message || 'The request failed. Please try again.';
-const customerAddress = (customer = {}) => [customer.address, customer.city, customer.state, customer.postalCode, customer.country].filter(Boolean).join(', ');
+const customerAddress = (customer) => { const c = customer && typeof customer === 'object' ? customer : {}; return [c.address, c.city, c.state, c.postalCode, c.country].filter(Boolean).join(', '); };
+const previewMoney = (amount, currency = 'INR') => {
+  const numeric = Number(amount);
+  if (amount == null || !Number.isFinite(numeric)) return '—';
+  const code = String(currency || 'INR').trim().toUpperCase() || 'INR';
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: code, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(numeric); }
+  catch { return `${currencySymbol(code)}${numeric.toFixed(2)}`; }
+};
 const currencySymbol = (currency = 'INR') => {
   try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((part) => part.type === 'currency')?.value || currency; }
   catch { return currency; }
@@ -79,12 +86,17 @@ const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const paymentProvider = ['Razorpay', 'Stripe'].includes(storedProvider) ? storedProvider : storedProvider ? 'Other' : '';
   const providerName = paymentProvider === 'Other' ? storedProvider : '';
   const securePaymentLink = storedDetails.find((line) => line.startsWith('Secure payment link: '))?.replace('Secure payment link: ', '') || '';
-  const cardPaymentInstructions = storedDetails.find((line) => line.startsWith('Card payment instructions: '))?.replace('Card payment instructions: ', '') || '';
+  const cardPaymentInstructions = payment.cardPaymentInstructions || payment.CardPaymentInstructions || storedDetails.find((line) => line.startsWith('Card payment instructions: '))?.replace('Card payment instructions: ', '') || '';
+  const netBankingEnabled = (payment.netBankingEnabled ?? payment.NetBankingEnabled) !== false;
+  const netBankingProvider = payment.netBankingProvider || payment.NetBankingProvider || 'Razorpay NetBanking';
+  const rawNetBankingBanks = payment.netBankingBanks || payment.NetBankingBanks || '';
+  const netBankingBanks = rawNetBankingBanks.trim() === 'HDFC Bank, ICICI Bank, State Bank of India, Axis Bank, Kotak Mahindra Bank, Union Bank of India' ? '' : rawNetBankingBanks;
+  const netBankingInstructions = payment.netBankingInstructions || payment.NetBankingInstructions || 'Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP.';
   const paymentMethod = storedMethod || (payment.upiId && !payment.bankName && !payment.accountNumber ? 'UPI' : payment.bankName || payment.accountNumber ? 'Bank Transfer' : '');
-  const paymentDetails = storedDetails.filter((line) => !line.startsWith('Payment method: ') && !line.startsWith('Branch: ') && !line.startsWith('Payment provider: ') && !line.startsWith('Secure payment link: ') && !line.startsWith('Card payment instructions: ')).join('\n');
+  const paymentDetails = storedDetails.filter((line) => !['Payment method: ', 'Branch: ', 'Payment provider: ', 'Secure payment link: ', 'Card payment instructions: ', 'Internet Banking: ', 'Supported Banks: ', 'NetBanking Banks: ', 'NetBanking instructions: ', 'Card Gateway: ', 'Card instructions: '].some((prefix) => line.startsWith(prefix))).join('\n');
   const templateName = template.name || template.Name || '';
   const detectedDesign = layout.templateDesign || layout.TemplateDesign || (templateName.includes('Template 4') ? 'Corner' : 'Standard');
-  return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || company.contact || company.Contact || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
+  return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', netBankingEnabled, netBankingProvider, netBankingBanks, netBankingInstructions, paymentProvider: payment.paymentProvider || payment.PaymentProvider || paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
 };
 const paymentDetailsText = (config) => [
   config.bankName && `Bank: ${config.bankName}`,
@@ -93,11 +105,14 @@ const paymentDetailsText = (config) => [
   config.ifscCode && `IFSC: ${config.ifscCode}`,
   config.branch && `Branch: ${config.branch}`,
   config.upiId && `UPI ID: ${config.upiId}`,
+  config.netBankingEnabled !== false && config.netBankingProvider && `Internet Banking: ${config.netBankingProvider}`,
+  config.netBankingEnabled !== false && `NetBanking Banks: ${config.netBankingBanks || 'All Indian Banks'}`,
+  config.netBankingEnabled !== false && config.netBankingInstructions && `NetBanking instructions: ${config.netBankingInstructions}`,
   config.paymentProvider && `Card Gateway: ${config.paymentProvider === 'Other' ? config.providerName : config.paymentProvider}`,
   config.cardPaymentInstructions && `Card instructions: ${config.cardPaymentInstructions}`,
   config.paymentDetails
 ].filter(Boolean).join('\n');
-const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
+const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, netBankingEnabled: config.netBankingEnabled !== false, netBankingProvider: config.netBankingProvider || 'Razorpay NetBanking', netBankingBanks: config.netBankingBanks || null, netBankingInstructions: config.netBankingInstructions || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
 
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
@@ -169,6 +184,7 @@ export function InvoiceTemplates() {
   const [viewTemplate, setViewTemplate] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState('');
+  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const load = async () => {
     setLoading(true); setError(''); setLoadError('');
     try {
@@ -235,7 +251,7 @@ export function InvoiceTemplates() {
       setViewLoading(false);
     }
   };
-  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button>}>
+  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<div className="template-heading-actions"><Button variant="outlined" onClick={() => setTemplateGalleryOpen(true)}>Templates</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button></div>}>
     <TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     <section className="template-list-card" aria-labelledby="template-list-heading">
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
@@ -274,11 +290,44 @@ export function InvoiceTemplates() {
       </DialogContent>
       <DialogActions><Button onClick={() => setViewTemplate(null)} disabled={viewLoading}>Close</Button></DialogActions>
     </Dialog>
+    <Dialog open={templateGalleryOpen} onClose={() => setTemplateGalleryOpen(false)} maxWidth="xl" fullWidth aria-labelledby="template-gallery-title">
+      <DialogTitle id="template-gallery-title">Choose an invoice template</DialogTitle>
+      <DialogContent dividers>
+        <p className="template-gallery-intro">Pick a design to start with. You can customize it before saving it to your organization.</p>
+        <div className="template-gallery-grid">
+          {SAMPLE_TEMPLATE_DESIGNS.map((design) => <article className="template-gallery-card" key={design.id}>
+            <div className="template-gallery-card-heading"><div><h3>{design.name}</h3><p>{design.description}</p></div><Chip label={design.config.style} size="small" /></div>
+            <div className="template-gallery-preview"><SampleInvoicePreview style={design.config.style} config={design.config} /></div>
+            <Button variant="contained" onClick={() => {
+              setTemplateGalleryOpen(false);
+              navigate('/templates-branding/new', { state: { config: design.config, creationFlow: true } });
+            }}>Use this template</Button>
+          </article>)}
+        </div>
+      </DialogContent>
+      <DialogActions><Button onClick={() => setTemplateGalleryOpen(false)}>Close</Button></DialogActions>
+    </Dialog>
   </TemplatePage>;
 }
 
 const DEFAULT_SECTIONS = { invoiceNumber: true, invoiceDate: true, dueDate: true, customer: true, items: true, quantity: true, unitPrice: true, discount: true, tax: true, lineTotals: true, totals: true };
-const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
+const emptyConfig = { name: '', style: 'Standard', description: '', company: '', address: '', email: '', phone: '', website: '', registration: '', primary: '#6B2E0C', secondary: '#F7EDE5', header: '', footer: 'Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.', paymentMethod: '', payment: '', accountHolderName: '', bankName: '', accountNumber: '', ifscCode: '', branch: '', upiId: '', netBankingEnabled: true, netBankingProvider: 'Razorpay NetBanking', netBankingBanks: '', netBankingInstructions: 'Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP.', paymentProvider: '', providerName: '', securePaymentLink: '', cardPaymentInstructions: '', paymentDetails: '', terms: '1. Payment should be made against this invoice as per the agreed payment terms.\n2. Please mention the invoice number in all payment references.\n3. Any billing discrepancy should be reported within 7 days from the invoice date.\n4. Services are subject to the agreed scope and commercial terms.', logoName: '', logoUrl: '', logoPosition: 'right', logoWidth: 132, usePirnavStandardLayout: true, templateDesign: '', sections: DEFAULT_SECTIONS };
+const SAMPLE_TEMPLATE_DESIGNS = [
+  { id: 'executive-blue', name: 'Executive Blue', description: 'A crisp, professional layout for client-facing invoices.', config: { ...emptyConfig, name: 'Executive Blue', style: 'Professional', company: 'Northstar Consulting', primary: '#24476B', secondary: '#E8EFF6', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'modern-teal', name: 'Modern Teal', description: 'A clean, contemporary look with a calm teal accent.', config: { ...emptyConfig, name: 'Modern Teal', style: 'Standard', company: 'Evergreen Studio', primary: '#087E8B', secondary: '#E5F4F3', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'classic-burgundy', name: 'Classic Burgundy', description: 'A traditional design with strong headings and warm contrast.', config: { ...emptyConfig, name: 'Classic Burgundy', style: 'Professional', company: 'Cedar & Co.', primary: '#762F43', secondary: '#F5E9EC', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'compact-sage', name: 'Compact Sage', description: 'A compact, easy-to-scan layout for frequent billing.', config: { ...emptyConfig, name: 'Compact Sage', style: 'Compact', company: 'Meadow Services', primary: '#48624B', secondary: '#EAF0E8', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'midnight-gold', name: 'Midnight Gold', description: 'A premium dark-blue identity with restrained gold accents.', config: { ...emptyConfig, name: 'Midnight Gold', style: 'Professional', company: 'Aurelia Partners', primary: '#172A46', secondary: '#F3EBD8', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'terracotta-studio', name: 'Terracotta Studio', description: 'Warm, expressive colors for creative businesses and studios.', config: { ...emptyConfig, name: 'Terracotta Studio', style: 'Standard', company: 'Clay House Creative', primary: '#B65C3A', secondary: '#F8ECE5', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'minimal-charcoal', name: 'Minimal Charcoal', description: 'A quiet monochrome layout with clear invoice hierarchy.', config: { ...emptyConfig, name: 'Minimal Charcoal', style: 'Compact', company: 'Form & Function', primary: '#343A40', secondary: '#ECEFF1', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'ocean-cobalt', name: 'Ocean Cobalt', description: 'Confident cobalt details for technology and consulting invoices.', config: { ...emptyConfig, name: 'Ocean Cobalt', style: 'Professional', company: 'Bluewave Technologies', primary: '#3157A4', secondary: '#E9EEFA', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'orchid-luxe', name: 'Orchid Luxe', description: 'Elegant plum tones for boutique and premium services.', config: { ...emptyConfig, name: 'Orchid Luxe', style: 'Standard', company: 'Orchid House', primary: '#70436E', secondary: '#F3EAF2', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'citrus-fresh', name: 'Citrus Fresh', description: 'Fresh green accents and compact spacing for everyday billing.', config: { ...emptyConfig, name: 'Citrus Fresh', style: 'Compact', company: 'Citrus Supply Co.', primary: '#4D7028', secondary: '#EEF4E5', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'slate-copper', name: 'Slate & Copper', description: 'A polished slate palette warmed with copper-colored details.', config: { ...emptyConfig, name: 'Slate & Copper', style: 'Professional', company: 'Copperline Services', primary: '#46515B', secondary: '#F2E9E1', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'skyline-lilac', name: 'Skyline Lilac', description: 'Airy blue and lilac accents for modern client services.', config: { ...emptyConfig, name: 'Skyline Lilac', style: 'Standard', company: 'Skyline Studio', primary: '#5967A8', secondary: '#EEF0FA', logoPosition: 'right', usePirnavStandardLayout: false } },
+  { id: 'espresso-cream', name: 'Espresso Cream', description: 'A warm, understated layout with a refined coffee-toned palette.', config: { ...emptyConfig, name: 'Espresso Cream', style: 'Compact', company: 'Roast & Ritual', primary: '#634331', secondary: '#F4EEE7', logoPosition: 'left', usePirnavStandardLayout: false } },
+  { id: 'coral-clean', name: 'Coral Clean', description: 'Bright coral highlights in a clean, approachable invoice design.', config: { ...emptyConfig, name: 'Coral Clean', style: 'Standard', company: 'Coral Coast Studio', primary: '#C6534B', secondary: '#F9ECEA', logoPosition: 'right', usePirnavStandardLayout: false } },
+];
 
 const validateContactField = (key, value) => {
   const text = value.trim();
@@ -383,7 +432,7 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
     <div style={{ marginTop: 24, marginBottom: 24, padding: 20, border: '1px solid #e2e8f0', borderRadius: 12, backgroundColor: '#ffffff' }}>
       <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: '#1e293b' }}>Payment Methods & Instructions</h3>
       <p style={{ margin: '0 0 16px 0', fontSize: '0.875rem', color: '#64748b' }}>
-        Add your UPI ID, Bank Transfer details, and Card Payment instructions. All details will be available for customer checkout and invoice presentation.
+        Add your UPI ID, Internet Banking options, settlement bank details, and Card Payment instructions. All details will be available for customer checkout and invoice presentation.
       </p>
 
       {/* 1. UPI ID Section */}
@@ -395,8 +444,26 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
 
       {/* 2. Bank Details Section */}
       <div style={{ marginBottom: 20, padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>🏦 Bank Transfer Details (NEFT / IMPS / RTGS)</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Account information for direct bank wire transfers.</p>
+        <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>🌐 Internet Banking (NetBanking) Configuration</h4>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Configure banks list, gateway, and instructions for the Internet Banking checkout tab.</p>
+        <div style={{ marginBottom: 12 }}>
+          <FormControlLabel
+            control={<Checkbox checked={value.netBankingEnabled !== false} onChange={(event) => onChange('netBankingEnabled', event.target.checked)} />}
+            label="Enable Internet Banking on customer invoice checkout portal"
+          />
+        </div>
+        <div className="template-fields" style={{ marginBottom: 16 }}>
+          <TextField label="Internet Banking Gateway" select value={value.netBankingProvider || 'Razorpay NetBanking'} onChange={(event) => onChange('netBankingProvider', event.target.value)} fullWidth>
+            <MenuItem value="Razorpay NetBanking">Razorpay NetBanking</MenuItem>
+            <MenuItem value="Cashfree NetBanking">Cashfree NetBanking</MenuItem>
+            <MenuItem value="PayU NetBanking">PayU NetBanking</MenuItem>
+            <MenuItem value="Direct Bank Corporate Portal">Direct Bank Corporate Portal</MenuItem>
+          </TextField>
+          <TextField label="NetBanking Banks (Optional — leave blank for All Indian Banks)" placeholder="Leave blank for all banks in India, or enter comma-separated bank names" helperText="All RBI-licensed Indian banks are listed in the checkout dropdown when left blank." {...text('netBankingBanks')} fullWidth />
+          <TextField label="Internet Banking Instructions" placeholder="Select your bank at checkout and authorize via Retail or Corporate NetBanking OTP." {...text('netBankingInstructions')} multiline minRows={2} fullWidth />
+        </div>
+        <h5 style={{ margin: '12px 0 6px 0', color: '#334155' }}>🏦 Settlement / Receiving Bank Account (Optional for PDF &amp; Receipts)</h5>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Account information printed on invoice PDFs and settlement receipts.</p>
         <div className="template-fields">
           <TextField label="Account Holder Name" {...text('accountHolderName')} fullWidth />
           <TextField label="Bank Name" {...text('bankName')} fullWidth />
@@ -409,7 +476,7 @@ function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, on
       {/* 3. Card & Gateway Section */}
       <div style={{ padding: 16, backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
         <h4 style={{ margin: '0 0 6px 0', color: '#0f172a' }}>💳 Credit / Debit Cards & Razorpay</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Online gateway settings for card checkout.</p>
+        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#64748b' }}>Online gateway settings for card checkout. Toggle Sandbox (Test Mode) vs Live Working Mode or configure Razorpay keys in <Link to="/payments?gateway=settings" style={{ color: '#65442E', fontWeight: 700 }}>Payments → Gateway Mode</Link>.</p>
         <div className="template-fields">
           <TextField label="Payment Gateway" select value={value.paymentProvider || 'Razorpay'} onChange={(event) => onChange('paymentProvider', event.target.value)} fullWidth>
             <MenuItem value="Razorpay">Razorpay</MenuItem>
@@ -698,6 +765,7 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
           <div className="corner-words-terms-card" style={{ backgroundColor: secondary }}>
             <b style={{ color: primary }}>Amount in Words</b>
             <p>{isRealInvoice ? `Rupees ${invoice.totalAmount} Only` : 'Rupees One Thousand Four Hundred Seventy Five Only'}</p>
+            {config.bankDetails && <><b style={{ color: primary }}>Payment details</b><p className="sample-copy">{config.bankDetails}</p></>}
             <b style={{ color: primary }}>Terms &amp; Conditions</b>
             <p className="sample-copy">{config.terms || 'Payment terms apply.'}</p>
           </div>
@@ -722,7 +790,7 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
     <div className="sample-brand"><div className={'sample-identity' + (isPirnavStandardLayout ? '' : ' position-' + (config.logoPosition || 'left'))}>{!isPirnavStandardLayout && config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo sample" style={{ width: config.logoWidth || 96 }} />}<div><strong>{config.company || 'Sample Company Ltd.'}</strong>{config.header && <span>{config.header}</span>}<span className="sample-company-address">{previewCompanyAddress}</span><span>{previewContact || 'billing@example.test · +00 000 000 0000'}</span>{isPirnavStandardLayout && config.website && <span>{config.website}</span>}</div></div>{isPirnavStandardLayout ? <div className="sample-logo-right">{config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo" />}</div> : <div className="sample-title"><span>INVOICE</span>{sections.invoiceNumber && <b>{invoice?.invoiceNumber || 'INV-SAMPLE-001'}</b>}</div>}</div>
     <div className="sample-meta">{sections.customer && <div><small>{isPirnavStandardLayout ? 'Bill To:' : 'BILL TO'}</small><strong>{customer.name || 'Sample Customer Ltd.'}</strong><span>{customer.email || 'accounts@example.test'}</span><span>{customerAddress(customer) || '100 Market Street, Sample City'}</span></div>}<div>{sections.invoiceDate && <span><b>Invoice date</b> {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</span>}{sections.dueDate && <span><b>Due date</b> {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</span>}</div></div>
     {sections.items && <table className="sample-lines"><thead><tr>{columns.map((column) => <th key={column.key}>{column.title}</th>)}</tr></thead><tbody>{renderTableRows()}</tbody></table>}
-    <div className="sample-bottom"><div>{config.bankDetails && <><b>Payment details</b><p>{config.bankDetails}</p></>}<b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div>{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}</div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
+    <div className="sample-bottom">{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}<div className="sample-payment-terms">{config.bankDetails && <div className="sample-payment-details"><b>Payment details</b><p className="sample-copy">{config.bankDetails}</p></div>}<div className="sample-terms"><b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div></div></div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
   </article>;
 }
 
@@ -765,6 +833,11 @@ export function TemplatePreview() {
     return () => { active = false; };
   }, []);
   useEffect(() => {
+    if (!selectedTemplateId && templateOptions.length) {
+      const preferred = templateOptions.find((template) => template.isDefault || template.IsDefault || template.status === 2 || template.status === 'Active') || templateOptions[0];
+      if (preferred) setSelectedTemplateId(String(preferred.id ?? preferred.Id));
+      return undefined;
+    }
     if (!selectedTemplateId) {
       setSelectedTemplate(null);
       setSelectedTemplateError('');
@@ -788,7 +861,7 @@ export function TemplatePreview() {
       if (active) setSelectedTemplateLoading(false);
     });
     return () => { active = false; };
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, templateOptions]);
   useEffect(() => {
     let active = true;
     invoiceApi.getInvoices({ page: 1, pageSize: 100, sortBy: 'InvoiceDate', sortOrder: 'desc' }).then((result) => {

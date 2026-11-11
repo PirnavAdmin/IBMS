@@ -64,6 +64,10 @@ builder.Services.AddScoped<IIntegrationApplicationService, IntegrationApplicatio
 
 // Module 16 Background Job Services
 builder.Services.AddScoped<IOverdueInvoiceJobService, OverdueInvoiceJobService>();
+builder.Services.AddSingleton(PartialPaymentReminderOptions.Create(
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalDays"),
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalHours"),
+    builder.Configuration.GetValue<double?>("PaymentReminders:PartialPaymentIntervalMinutes")));
 builder.Services.AddScoped<IReminderJobService, ReminderJobService>();
 builder.Services.AddScoped<IPdfGenerationJobService, PdfGenerationJobService>();
 builder.Services.AddScoped<IEmailNotificationJobService, EmailNotificationJobService>();

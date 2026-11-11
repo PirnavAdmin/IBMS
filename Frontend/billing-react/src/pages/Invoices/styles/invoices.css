@@ -567,6 +567,12 @@
   border-top: 1px solid var(--border) !important;
 }
 
+.invoice-page .invoice-panel .bd-dashboard-error h2:not(:first-child) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
 /* --------------------------------------------------------------------------
    5. Search & Filters Bar
    -------------------------------------------------------------------------- */

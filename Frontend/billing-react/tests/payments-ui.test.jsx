@@ -13,7 +13,7 @@ import { RecordPayment } from '../src/pages/Payments/RecordPayment';
 import { PaymentDetails } from '../src/pages/Payments/PaymentDetails';
 import { PaymentReversalContent } from '../src/pages/Payments/PaymentReversal';
 import { PaymentState } from '../src/pages/Payments/PaymentShared';
-import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money, displayDate } from '../src/pages/Payments/paymentService';
+import { paymentService, paymentQuery, mapPayment, mapBalance, createPaymentDto, createAttemptManager, createSubmissionGuard, invalidatePaymentData, paymentError, paymentPermissions, money, displayDate, methodLabel } from '../src/pages/Payments/paymentService';
 import { paymentSchema, reversalSchema } from '../src/pages/Payments/paymentValidation';
 import { connectionErrorMessage } from '../src/utils/errorPresentation';
 import { localCalendarDate } from '../src/utils/localDate';
@@ -164,7 +164,8 @@ test('Payment GET adapters use confirmed paths, signals and DTO mapping',async()
  try{
   const page=await paymentService.getPayments({...params,pageNumber:2},{signal});assert.equal(page.pageNumber,2);assert.equal(page.items[0].invoiceDisplay,'QA-7');assert.equal(calls[0][1].params.pageNumber,2);assert.equal(calls[0][1].signal,signal);
   assert.equal((await paymentService.getEligibleInvoices()).length,1);assert.deepEqual(await paymentService.getInvoiceBalance(7),invoice);assert.equal((await paymentService.getPaymentById(9)).auditHistory[0].action,'PaymentCreated');
-  assert.deepEqual(calls.map(x=>x[0]),['/api/v1/payments','/api/v1/payments/eligible-invoices','/api/v1/payments/invoices/7/balance','/api/v1/payments/9']);
+  assert.ok(await paymentService.getGatewaySettings());
+  assert.deepEqual(calls.map(x=>x[0]),['/api/v1/payments','/api/v1/payments/eligible-invoices','/api/v1/payments/invoices/7/balance','/api/v1/payments/9','/api/v1/payments/gateway/settings']);
  }finally{apiClient.get=original;}
 });
 test('Balance mapping preserves authoritative amounts and rejects invalid DTOs',()=>{
@@ -195,8 +196,9 @@ test('Validation covers amount, method details, dates and reversal limits',()=>{
  for(const amount of ['',0,-1,'bad',Infinity,1.001,1.00000001,80.25000001,1000000001])assert.throws(()=>paymentSchema.validateSyncAt('amount',{amount}), `Invalid amount accepted: ${amount}`);
  assert.equal(paymentSchema.validateSyncAt('amount',{amount:'12.50'}),12.5);
  for (const amount of ['0.01', '1.13', '2.51', '80.25']) assert.equal(paymentSchema.validateSyncAt('amount', {amount}), Number(amount));
- for(const method of ['BankTransfer','UPI','Card','Cheque','Gateway','Custom','Unsupported'])assert.throws(()=>paymentSchema.validateSync({...form,method}));
- for(const [method,patch] of [['BankTransfer',{reference:'R'}],['UPI',{providerTransactionId:'R'}],['Card',{reference:'R'}],['Cheque',{chequeNumber:'C',chequeDate:'2026-09-30'}],['Gateway',{providerName:'P',reference:'R'}],['Custom',{customMethodName:'Other'}]])assert.doesNotThrow(()=>paymentSchema.validateSync({...form,method,...patch}));
+ for(const method of ['BankTransfer','InternetBanking','UPI','Card','Cheque','Gateway','Custom','Unsupported'])assert.throws(()=>paymentSchema.validateSync({...form,method}));
+ for(const [method,patch] of [['BankTransfer',{reference:'R'}],['InternetBanking',{reference:'NB_HDFC_1',bankName:'HDFC Bank'}],['UPI',{providerTransactionId:'R'}],['Card',{reference:'R'}],['Cheque',{chequeNumber:'C',chequeDate:'2026-09-30'}],['Gateway',{providerName:'P',reference:'R'}],['Custom',{customMethodName:'Other'}]])assert.doesNotThrow(()=>paymentSchema.validateSync({...form,method,...patch}));
+ assert.equal(methodLabel('InternetBanking'), 'Internet Banking');
  for(const reason of ['', '  ', 'ab','x'.repeat(501)])assert.throws(()=>reversalSchema.validateSync({reason}));assert.equal(reversalSchema.validateSync({reason:'  QA reason  '}).reason,'QA reason');
 });
 test('Distinct payment failures preserve safe backend messages',()=>{

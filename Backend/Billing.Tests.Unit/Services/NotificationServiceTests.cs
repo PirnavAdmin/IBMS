@@ -173,6 +173,71 @@ public class NotificationServiceTests
     }
 
     [Fact]
+    public async Task SendInvoiceNotificationAsync_PartialPaymentReminder_IncludesRecentlyPaidPayNowLinkAndAttachesPdf()
+    {
+        var invoiceId = 55;
+        var tenantId = 2;
+        var invoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            InvoiceNumber = "INV-0055",
+            Currency = "INR",
+            TotalAmount = 1000m,
+            PaidAmount = 350m,
+            BalanceAmount = 650m,
+            AllowPartialPayments = true,
+            DueDate = DateTime.UtcNow.Date.AddDays(5),
+            Customer = new Customer { Id = 9, Name = "Neha", Email = "neha@example.com" }
+        };
+
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(invoiceId, tenantId, default)).ReturnsAsync(invoice);
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(tenantId)).ReturnsAsync(new Tenant { Id = tenantId, Name = "Acme Tech", CompanyEmail = "support@acme.test" });
+        _paymentRepoMock.Setup(r => r.GetPagedListAsync(tenantId, It.IsAny<Billing.Contracts.Payment.PaymentListFilterRequest>(), null))
+            .ReturnsAsync(new PagedResult<Payment>(new List<Payment>
+            {
+                new()
+                {
+                    Id = 77,
+                    Amount = 200m,
+                    PaymentDate = DateTime.UtcNow.Date,
+                    Status = PaymentStatus.Completed,
+                    Allocations = new List<InvoicePaymentAllocation> { new() { InvoiceId = invoiceId, AllocatedAmount = 200m } }
+                }
+            }, 1, 1, 1));
+
+        var pdfService = new Mock<IInvoiceTemplateService>();
+        var samplePdf = new byte[] { 1, 2, 3, 4 };
+        pdfService.Setup(p => p.GetInvoicePdfAsync(invoiceId, tenantId, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((samplePdf, "INV-0055-updated.pdf", "v1"));
+
+        var sut = new NotificationService(
+            _templateRepoMock.Object,
+            _logRepoMock.Object,
+            _templateEngineMock.Object,
+            _emailMock.Object,
+            _invoiceRepoMock.Object,
+            _paymentRepoMock.Object,
+            _quotationRepoMock.Object,
+            _creditNoteRepoMock.Object,
+            _tenantRepoMock.Object,
+            _auditLogRepoMock.Object,
+            _loggerMock.Object,
+            null,
+            pdfService.Object);
+
+        var result = await sut.SendInvoiceNotificationAsync(invoiceId, tenantId, "PartialPaymentReminder", "SystemReminderJob");
+
+        Assert.True(result.Success);
+        _emailMock.Verify(e => e.SendEmailAsync(
+            "neha@example.com",
+            It.Is<string>(s => s.Contains("650.00") && s.Contains("INV-0055")),
+            It.Is<string>(b => b.Contains("Recently Paid") && b.Contains("Total Paid") && b.Contains("200.00") && b.Contains("350.00") && b.Contains("650.00") && b.Contains("allowPartial=1&source=reminder") && b.Contains("Pay Now")),
+            samplePdf,
+            "INV-0055-updated.pdf"), Times.Once);
+    }
+
+    [Fact]
     public async Task SendCreditNoteNotificationAsync_SendsEmailAndLogsNotification()
     {
         int creditNoteId = 8;

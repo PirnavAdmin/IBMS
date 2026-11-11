@@ -37,6 +37,8 @@ export function ProtectedRoute({ children }) {
           throw new Error('The server returned an invalid session response. Please try again.');
         }
         localStorage.setItem('billing_auth_user', JSON.stringify(profile));
+        queryClient.setQueryData(['auth-user'], response);
+        queryClient.setQueryData(['payment-user'], response);
         setValidation({ token, attempt, status: 'authenticated' });
       })
       .catch(error => {

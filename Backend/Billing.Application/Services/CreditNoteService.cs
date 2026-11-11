@@ -69,6 +69,9 @@ public class CreditNoteService : ICreditNoteService
 
     private static readonly HashSet<string> AllowedRefundPaymentMethods = new(StringComparer.OrdinalIgnoreCase)
     {
+        "Internet Banking",
+        "InternetBanking",
+        "NetBanking",
         "Bank Transfer",
         "Original Payment Method",
         "UPI",

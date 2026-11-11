@@ -36,7 +36,7 @@
 .cn-demo-banner span:not(.cn-demo-dot):not(.cn-demo-tag) { color: #887560; font-size: .76rem; }
 .cn-demo-tag { margin-left: auto; padding: 4px 8px; border-radius: 999px; background: #f0e2cf; color: #775333; font-size: .61rem; font-weight: 800; letter-spacing: .08em; }
 .cn-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
-.cn-summary-card { position: relative; display: grid; min-width: 0; min-height: 132px; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; gap: 3px 10px; padding: 17px 18px; border: 1px solid #e8d9c9; border-top: 3px solid #cba989; border-radius: 13px; background: #fffdf9; color: #3c2d22; text-align: left; box-shadow: 0 5px 16px #5a35100a; }
+.cn-summary-card { position: relative; display: grid; min-width: 0; min-height: 112px; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; gap: 3px 10px; padding: 12px 18px; border: 1px solid #e8d9c9; border-top: 3px solid #cba989; border-radius: 13px; background: #fffdf9; color: #3c2d22; text-align: left; box-shadow: 0 5px 16px #5a35100a; }
 button.cn-summary-card { cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
 button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20px #5a351014; }
 .cn-summary-card.selected { box-shadow: 0 0 0 2px #9b704d44, 0 6px 18px #5a351012; }
@@ -95,13 +95,13 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-list-page .cn-table-wrap .MuiTableCell-root { box-sizing: border-box; padding: 7px 8px; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(1) { width: 14%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(2) { width: 16%; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(3) { width: 7%; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(3) { width: 9%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(4) { width: 10%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(5) { width: 10%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(6) { width: 13%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(7) { width: 11%; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(8) { width: 11%; }
-.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(9) { width: 8%; text-align: center; }
+.cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(9) { width: 6%; text-align: center; }
 .cn-list-page .cn-table-wrap .cn-type-pill,.cn-list-page .cn-table-wrap .cn-status { max-width: 100%; white-space: normal; }
 .cn-page .MuiTableCell-head { padding: 6px 10px; background: #f4e9dc; color: #644833; font-size: .72rem; font-weight: 800; white-space: nowrap; }
 .cn-page .MuiTableCell-body { padding: 5px 10px; border-color: #f0e6dc; color: #4d4138; font-size: .8rem; line-height: 1.25; }
@@ -117,6 +117,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-list-page .cn-table-wrap .MuiTableCell-head:nth-child(7) .cn-sort-button,
 .cn-list-page .cn-table-wrap .MuiTableCell-head:nth-child(8) .cn-sort-button { justify-content: center; text-align: center; }
 .cn-list-page .cn-table-wrap .MuiTableCell-body:nth-child(7) .cn-status { display: flex; width: fit-content; margin-inline: auto; }
+.cn-list-page .cn-table-wrap .MuiTableCell-body:nth-child(3) .cn-type-pill { display: inline-flex; max-width: 100%; justify-content: center; margin-inline: auto; white-space: nowrap; }
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(4),
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(5),
 .cn-list-page .cn-table-wrap .MuiTableCell-root:nth-child(6) { text-align: right; font-variant-numeric: tabular-nums; }
@@ -267,10 +268,20 @@ body:has(.cn-form-page) { overflow: hidden; }
 .cn-form-page .cn-lines-table .MuiTableCell-body .MuiOutlinedInput-input { padding: 7px 5px; }
 .cn-review-lines-table .cn-review-description { display: -webkit-box; min-height: 2.6em; max-height: 2.6em; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.3; overflow-wrap: anywhere; }
 .cn-lines-table .MuiOutlinedInput-root { background: white; }
-.cn-eligibility-message { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 11px 14px; border: 1px solid #b9d2bd; border-left: 4px solid #54805a; border-radius: 9px; background: #eaf4e9; color: #365b3b; font-size: .8rem; font-weight: 650; }
+.cn-eligibility-message { display: block; margin-top: 12px; padding: 11px 14px; border: 1px solid #b9d2bd; border-left: 4px solid #54805a; border-radius: 9px; background: #eaf4e9; color: #365b3b; font-size: .8rem; font-weight: 650; }
 .cn-eligibility-message.warning { border-color: #e4c39e; border-left-color: #b36a28; background: #fff2e2; color: #814a1e; }
 .cn-eligibility-message strong { color: #285331; font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cn-eligibility-message.warning strong { color: #814a1e; }
+.cn-credit-balance-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cn-credit-balance-values > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.cn-credit-balance-values small { color: #547258; font-size: .68rem; font-weight: 700; }
+.cn-credit-balance-values strong { overflow-wrap: anywhere; }
+.cn-eligibility-message.warning .cn-credit-balance-values small { color: #814a1e; }
+.cn-eligibility-warning-detail { display: block; margin-top: 8px; font-size: .72rem; }
+.cn-tax-warning { margin: 0 0 12px; padding: 10px 13px; border: 1px solid #e4c39e; border-left: 4px solid #b36a28; border-radius: 8px; background: #fff7eb; color: #70451f; font-size: .72rem; line-height: 1.45; }
+.cn-tax-warning strong { display: block; margin-bottom: 4px; font-size: .76rem; }
+.cn-tax-warning ul { margin: 0; padding-left: 18px; }
+.cn-tax-warning li + li { margin-top: 3px; }
 .cn-form-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .cn-form-fields .cn-notes-field { grid-column: 1 / -1; }
 .cn-info-callout { display: flex; flex-direction: column; gap: 4px; margin-top: 20px; padding: 13px 15px; border-left: 3px solid #bf9873; border-radius: 7px; background: #faf4ed; }
@@ -497,6 +508,9 @@ body:has(.cn-form-page) { overflow: hidden; }
   .cn-form-actions > div { width: 100%; }
   .cn-form-actions > div .MuiButton-root { flex: 1; }
   .cn-review-actions > div > .MuiButton-root { width: auto; min-width: 0; }
+}
+@media (max-width: 480px) {
+  .cn-credit-balance-values { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 }
 @media (max-width: 900px) { .cn-export-layout,.cn-form-layout { grid-template-columns: minmax(0, 1fr); } .cn-calculation-card { position: static; max-height: none; overflow: visible; } }
 @media (max-width: 1100px) {

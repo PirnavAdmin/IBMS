@@ -19,7 +19,9 @@ public static class PaymentValidator
 {
     private static readonly HashSet<string> SupportedCurrencies = new(StringComparer.OrdinalIgnoreCase)
     {
-        "INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD"
+        "INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD",
+        "JPY", "CHF", "CNY", "NZD", "SAR", "QAR", "KWD", "ZAR",
+        "BRL", "HKD", "SEK", "NOK", "MXN"
     };
 
     private static readonly HashSet<string> PermittedClearingStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -60,6 +62,7 @@ public static class PaymentValidator
             method = PaymentMethod.Cash;
             return true;
         }
+        if (string.Equals(normalized, "InternetBanking", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "NetBanking", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "OnlineBanking", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "EBanking", StringComparison.OrdinalIgnoreCase)) { method = PaymentMethod.InternetBanking; return true; }
         if (string.Equals(normalized, "BankTransfer", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(normalized, "Bank", StringComparison.OrdinalIgnoreCase))
         {
@@ -105,6 +108,7 @@ public static class PaymentValidator
         {
             PaymentMethod.Cash => "Cash",
             PaymentMethod.BankTransfer => "Bank Transfer",
+            PaymentMethod.InternetBanking => "Internet Banking",
             PaymentMethod.UPI => "UPI",
             PaymentMethod.Card => "Card",
             PaymentMethod.Cheque => "Cheque",
@@ -335,13 +339,20 @@ public static class PaymentValidator
         if (!TryParsePaymentMethod(request.Method, out parsedMethod))
         {
             return (false,
-                $"Unsupported payment method '{request.Method}'. Supported methods are: Cash, Bank Transfer, UPI, Card, Cheque, Gateway, Custom.",
+                $"Unsupported payment method '{request.Method}'. Supported methods are: Cash, Bank Transfer, Internet Banking, UPI, Card, Cheque, Gateway, Custom.",
                 "INVALID_PAYMENT_METHOD");
         }
 
         switch (parsedMethod)
         {
             case PaymentMethod.Cash:
+                break;
+
+            case PaymentMethod.InternetBanking:
+                if (string.IsNullOrWhiteSpace(request.Reference) && string.IsNullOrWhiteSpace(request.ProviderTransactionId))
+                {
+                    return (false, "NetBanking transaction reference is required for Internet Banking payments.", "METHOD_REFERENCE_REQUIRED");
+                }
                 break;
 
             case PaymentMethod.BankTransfer:

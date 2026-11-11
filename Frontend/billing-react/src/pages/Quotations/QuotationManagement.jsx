@@ -46,8 +46,12 @@ const tenantProfileFromTemplate = template => {
   };
 };
 const loadTenantProfile = async () => {
+  const cachedUser = typeof authApi?.getCurrentUser === 'function' ? authApi.getCurrentUser() : null;
+  const userPromise = (cachedUser && typeof cachedUser === 'object' && (cachedUser.userId || cachedUser.UserId))
+    ? Promise.resolve(cachedUser)
+    : apiClient.get('/api/Auth/me');
   const [userResponse,templatesResponse]=await Promise.all([
-    apiClient.get('/api/Auth/me'),
+    userPromise,
     templateApi.list({Status:'Active',PageNumber:1,PageSize:20}),
   ]);
   const userProfile=tenantProfileFrom(unwrap(userResponse));
@@ -71,6 +75,7 @@ export function QuotationManagement() {
   const [loading,setLoading]=useState(true), [busy,setBusy]=useState(false), [error,setError]=useState(''), [notice,setNotice]=useState('');
   const [listFailed,setListFailed]=useState(false);
   const locked=useRef(false), generation=useRef(0);
+  const refreshingQuotes=useRef(false);
   const listViewState=useRef(null);
   const screenRoot=useRef(null), listScroll=useRef(0), previousScreen=useRef({screen:'list',id:null});
   useLayoutEffect(()=>{
@@ -113,6 +118,34 @@ export function QuotationManagement() {
     }catch(e){setListFailed(true);setError(message(e));}finally{setLoading(false);}
   };
   useEffect(()=>{load();return()=>{generation.current++;};},[]);
+  useEffect(()=>{
+    if(screen!=='list')return undefined;
+    let active=true;
+    const refreshQuotes=async()=>{
+      if(!active||document.visibilityState==='hidden'||locked.current||refreshingQuotes.current)return;
+      refreshingQuotes.current=true;
+      try{
+        const refreshed=await fetchAllPages(quotationApi.list);
+        if(active){setQuotes(refreshed.map(normalizeQuotation));setListFailed(false);setError(current=>current.startsWith('Quotations could not be refreshed.')?'':current);}
+      }catch(e){
+        if(active)setError(current=>current.startsWith('Quotations could not be refreshed.')
+          ?`Quotations could not be refreshed. ${message(e)}`
+          :current||`Quotations could not be refreshed. ${message(e)}`);
+      }finally{refreshingQuotes.current=false;}
+    };
+    const refreshWhenVisible=()=>{
+      if(document.visibilityState==='visible')void refreshQuotes();
+    };
+    window.addEventListener('focus',refreshWhenVisible);
+    document.addEventListener('visibilitychange',refreshWhenVisible);
+    const interval=window.setInterval(refreshQuotes,30000);
+    return()=>{
+      active=false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus',refreshWhenVisible);
+      document.removeEventListener('visibilitychange',refreshWhenVisible);
+    };
+  },[screen]);
   const enrich=q=>({...q,customer:{...q.customer,...(customers.find(c=>c.id===q.customerId)||{})}});
   const replace=q=>{setQuotes(rows=>[q,...rows.filter(row=>row.id!==q.id)]);setCurrent(q);};
   const refreshDetails=async id=>{

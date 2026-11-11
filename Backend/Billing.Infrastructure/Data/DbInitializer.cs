@@ -28,11 +28,24 @@ public static class DbInitializer
                     TenantCode = "default",
                     CompanyEmail = "admin@ibms.local",
                     IsActive = true,
-                    CreatedAtUtc = DateTime.UtcNow
+                    CreatedAtUtc = DateTime.UtcNow,
+                    UpdatedAtUtc = DateTime.UtcNow
                 };
                 await context.Tenants.AddAsync(defaultTenant);
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Created default tenant (TenantCode: default, Id: {Id})", defaultTenant.Id);
+            }
+
+            // Backfill any legacy tenants that have null UpdatedAtUtc
+            var legacyTenants = await context.Tenants.Where(t => t.UpdatedAtUtc == null).ToListAsync();
+            if (legacyTenants.Any())
+            {
+                foreach (var lt in legacyTenants)
+                {
+                    lt.UpdatedAtUtc = lt.CreatedAtUtc;
+                }
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Backfilled UpdatedAtUtc for {Count} legacy tenants", legacyTenants.Count);
             }
 
             // 2. Ensure Roles & Permissions and Super Admin exist
