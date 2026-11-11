@@ -163,23 +163,170 @@ public class QuotationsController : ControllerBase
 
     [HttpGet("public/decision")]
     [AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> PublicProcessQuotationDecision(
         [FromQuery] string? token,
         [FromQuery] string? action,
         [FromQuery] int? tenantId)
     {
+        SetNoCacheHeaders();
         var targetTenant = tenantId ?? GetTenantId() ?? 2;
-        var result = await _actionService.ProcessCustomerDecisionAsync(token ?? string.Empty, action ?? string.Empty, targetTenant);
-        return RenderDecisionHtmlPage(result);
+        var safeToken = token ?? string.Empty;
+        var safeAction = action ?? string.Empty;
+        var result = await _actionService.GetCustomerDecisionPreviewAsync(safeToken, safeAction, targetTenant);
+        if (!result.Success || result.Data == null || result.Data.IsAlreadyRecorded)
+        {
+            return RenderDecisionHtmlPage(result);
+        }
+
+        return RenderDecisionConfirmationHtmlPage(safeToken, safeAction, targetTenant, result.Data);
     }
 
     [HttpGet("public/{id:int}/approve")]
     [AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> PublicApproveQuotation([FromRoute] int id, [FromQuery] int? tenantId)
     {
+        SetNoCacheHeaders();
         var targetTenant = tenantId ?? GetTenantId() ?? 2;
-        var result = await _actionService.ProcessCustomerDecisionAsync(id.ToString(), "approve", targetTenant);
+        var safeToken = id.ToString();
+        var result = await _actionService.GetCustomerDecisionPreviewAsync(safeToken, "approve", targetTenant);
+        if (!result.Success || result.Data == null || result.Data.IsAlreadyRecorded)
+        {
+            return RenderDecisionHtmlPage(result);
+        }
+
+        return RenderDecisionConfirmationHtmlPage(safeToken, "approve", targetTenant, result.Data);
+    }
+
+    [HttpPost("public/decision")]
+    [AllowAnonymous]
+    [Consumes("application/x-www-form-urlencoded", "application/json")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> PublicConfirmQuotationDecision(
+        [FromQuery] string? token,
+        [FromQuery] string? action,
+        [FromQuery] int? tenantId)
+    {
+        SetNoCacheHeaders();
+        var resolvedToken = token ?? string.Empty;
+        var resolvedAction = action ?? string.Empty;
+        var resolvedTenantId = tenantId;
+
+        if (Request.HasFormContentType)
+        {
+            var form = await Request.ReadFormAsync();
+            if (string.IsNullOrWhiteSpace(resolvedToken)) resolvedToken = form["token"].ToString();
+            if (string.IsNullOrWhiteSpace(resolvedAction)) resolvedAction = form["action"].ToString();
+            if (!resolvedTenantId.HasValue && int.TryParse(form["tenantId"].ToString(), out var formTenant) && formTenant > 0)
+            {
+                resolvedTenantId = formTenant;
+            }
+        }
+        else if (Request.ContentType?.Contains("json", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            try
+            {
+                using var doc = await System.Text.Json.JsonDocument.ParseAsync(Request.Body);
+                var root = doc.RootElement;
+                if (string.IsNullOrWhiteSpace(resolvedToken) && root.TryGetProperty("token", out var tProp)) resolvedToken = tProp.GetString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(resolvedAction) && root.TryGetProperty("action", out var aProp)) resolvedAction = aProp.GetString() ?? string.Empty;
+                if (!resolvedTenantId.HasValue && root.TryGetProperty("tenantId", out var tidProp))
+                {
+                    if (tidProp.ValueKind == System.Text.Json.JsonValueKind.Number && tidProp.TryGetInt32(out var numTid)) resolvedTenantId = numTid;
+                    else if (int.TryParse(tidProp.GetString(), out var strTid)) resolvedTenantId = strTid;
+                }
+            }
+            catch
+            {
+                // Keep empty values so validation returns the standard HTML notice
+            }
+        }
+
+        var targetTenant = resolvedTenantId ?? GetTenantId() ?? 2;
+        var result = await _actionService.ProcessCustomerDecisionAsync(resolvedToken, resolvedAction, targetTenant);
         return RenderDecisionHtmlPage(result);
+    }
+
+    private void SetNoCacheHeaders()
+    {
+        Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+        Response.Headers["Pragma"] = "no-cache";
+        Response.Headers["Expires"] = "0";
+    }
+
+    private IActionResult RenderDecisionConfirmationHtmlPage(string token, string action, int tenantId, QuotationPublicDecisionResult data)
+    {
+        var normalizedAction = action.Trim().ToLowerInvariant();
+        var isApprove = normalizedAction == "approve";
+        var alternateAction = isApprove ? "decline" : "approve";
+        var actionTitle = isApprove ? "Confirm Quotation Approval" : "Confirm Quotation Decline";
+        var actionBtnLabel = isApprove ? "Confirm &amp; Approve Quotation" : "Confirm &amp; Decline Quotation";
+        var altBtnLabel = isApprove ? "Decline Instead" : "Approve Instead";
+        var accentBg = isApprove ? "#16a34a" : "#dc2626";
+        var badgeBg = isApprove ? "#dcfce7" : "#fee2e2";
+        var badgeColor = isApprove ? "#166534" : "#991b1b";
+        var badgeText = isApprove ? "Ready to Approve" : "Ready to Decline";
+        var encodedToken = System.Net.WebUtility.HtmlEncode(token);
+        var encodedAction = System.Net.WebUtility.HtmlEncode(normalizedAction);
+        var encodedAltAction = System.Net.WebUtility.HtmlEncode(alternateAction);
+
+        var html = @"<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>" + actionTitle + @"</title>
+</head>
+<body style='margin:0;padding:40px 16px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#1e293b;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;box-sizing:border-box;'>
+  <div style='background:#ffffff;max-width:540px;width:100%;border-radius:16px;box-shadow:0 12px 35px rgba(0,0,0,0.06);border:1px solid #e2e8f0;overflow:hidden;'>
+    <div style='background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);padding:24px 32px;color:#ffffff;display:flex;justify-content:space-between;align-items:center;gap:12px;'>
+      <div>
+        <div style='font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;font-weight:600;'>" + System.Net.WebUtility.HtmlEncode(data.CompanyName) + @"</div>
+        <div style='font-size:18px;font-weight:700;margin-top:2px;'>Quotation Confirmation</div>
+      </div>
+      <div><span style='background:" + badgeBg + ";color:" + badgeColor + @";padding:5px 12px;border-radius:20px;font-weight:700;font-size:12px;white-space:nowrap;'>" + badgeText + @"</span></div>
+    </div>
+    <div style='padding:32px;text-align:center;'>
+      <h2 style='margin:0 0 10px;font-size:22px;font-weight:700;color:#0f172a;'>" + actionTitle + @"</h2>
+      <p style='color:#64748b;font-size:14px;line-height:1.6;margin:0 0 22px;'>" + System.Net.WebUtility.HtmlEncode(data.Message) + @"</p>
+      <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;text-align:left;margin-bottom:22px;'>
+        <table style='width:100%;border-collapse:collapse;font-size:14px;'>
+          <tr><td style='color:#64748b;padding:6px 0;'>Quote Number:</td><td style='font-weight:700;color:#0f172a;text-align:right;padding:6px 0;'>" + System.Net.WebUtility.HtmlEncode(data.QuoteNumber) + @"</td></tr>
+          <tr><td style='color:#64748b;padding:6px 0;'>Customer:</td><td style='font-weight:600;color:#0f172a;text-align:right;padding:6px 0;'>" + System.Net.WebUtility.HtmlEncode(data.CustomerName) + @"</td></tr>
+          <tr><td style='color:#64748b;padding:6px 0;'>Total Amount:</td><td style='font-weight:700;color:#0f172a;text-align:right;padding:6px 0;'>" + System.Net.WebUtility.HtmlEncode(data.Currency) + " " + data.TotalAmount.ToString("N2") + @"</td></tr>
+        </table>
+      </div>
+      <form id='decision-form' method='post' action='/api/v1/quotations/public/decision' style='margin:0;'>
+        <input type='hidden' name='token' value='" + encodedToken + @"' />
+        <input type='hidden' name='action' value='" + encodedAction + @"' />
+        <input type='hidden' name='tenantId' value='" + tenantId + @"' />
+        <button id='confirm-btn' type='submit' style='width:100%;background:" + accentBg + @";color:#ffffff;border:none;border-radius:10px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;'>" + actionBtnLabel + @"</button>
+      </form>
+      <form method='post' action='/api/v1/quotations/public/decision' style='margin:10px 0 0;'>
+        <input type='hidden' name='token' value='" + encodedToken + @"' />
+        <input type='hidden' name='action' value='" + encodedAltAction + @"' />
+        <input type='hidden' name='tenantId' value='" + tenantId + @"' />
+        <button type='submit' style='width:100%;background:#ffffff;color:#475569;border:1px solid #cbd5e1;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;'>" + altBtnLabel + @"</button>
+      </form>
+      <div style='font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.5;'>Once confirmed, your quotation response is saved permanently and single-use buttons are locked.</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var form = document.getElementById('decision-form');
+      var btn = document.getElementById('confirm-btn');
+      if (!form || !btn) return;
+      form.addEventListener('submit', function () {
+        btn.disabled = true;
+        btn.textContent = 'Recording Decision...';
+      });
+    })();
+  </script>
+</body>
+</html>";
+
+        return Content(html, "text/html");
     }
 
     private IActionResult RenderDecisionHtmlPage(ApiResponse<QuotationPublicDecisionResult> result)

@@ -391,14 +391,15 @@ public class InvoiceTemplatesController : ControllerBase
     public async Task<IActionResult> DownloadInvoicePdf(
         [FromRoute] int id, 
         [FromQuery] int? tenantId = null,
-        [FromQuery] bool inline = false, 
+        [FromQuery] bool inline = false,
+        [FromQuery] bool regenerate = false,
         CancellationToken ct = default)
     {
         var targetTenant = tenantId ?? GetTenantId() ?? 2;
 
         try
         {
-            var (fileBytes, fileName, contentType) = await _templateService.GetInvoicePdfAsync(id, targetTenant, false, ct);
+            var (fileBytes, fileName, contentType) = await _templateService.GetInvoicePdfAsync(id, targetTenant, regenerate, ct);
             
             if (inline)
             {

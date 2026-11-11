@@ -58,7 +58,14 @@ export const getAccessTokenExpirationMs = (token) => {
 };
 
 const resolveBaseUrl = () => {
-    return 'https://pediatric-astrology-outrank.ngrok-free.dev';
+  if (typeof window !== 'undefined' && window.location?.origin && /^https?:\/\//i.test(window.location.origin)) {
+    return window.location.origin;
+  }
+  const envUrl = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_API_BASE_URL : undefined;
+  if (envUrl && String(envUrl).trim()) {
+    return String(envUrl).trim();
+  }
+  return 'http://127.0.0.1:5271';
 };
 
 export const BACKEND_URL = String(resolveBaseUrl()).replace(/\/+$/, '');

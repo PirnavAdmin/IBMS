@@ -79,13 +79,14 @@ public class PaymentGatewayService : IPaymentGatewayService
 
         var orderId = $"order_{Guid.NewGuid():N}"[..20];
         var hasRazorpayOrder = false;
-        if (!string.IsNullOrWhiteSpace(activeKeyId)
+        var hasGatewayCredentials = !string.IsNullOrWhiteSpace(activeKeyId)
             && !string.Equals(activeKeyId, "rzp_test_ibms_sandbox", StringComparison.OrdinalIgnoreCase)
-            && !string.IsNullOrWhiteSpace(activeKeySecret))
+            && !string.IsNullOrWhiteSpace(activeKeySecret);
+        if (!request.SkipGatewayOrderCreation && hasGatewayCredentials)
         {
             var (ok, rzpOrderId, errMsg) = await CreateRazorpayOrderAsync(
-                activeKeyId,
-                activeKeySecret,
+                activeKeyId!,
+                activeKeySecret!,
                 amountToPay,
                 invoice.Currency ?? "INR",
                 invoice.InvoiceNumber,
@@ -329,6 +330,7 @@ public class PaymentGatewayService : IPaymentGatewayService
             IsSandbox = isSandbox,
             AllowTestSimulationTools = allowTestTools,
             HasRazorpayOrder = hasRazorpayOrder,
+            IsGatewayConfigured = hasGatewayCredentials,
             CreatedAtUtc = DateTime.UtcNow
         };
 

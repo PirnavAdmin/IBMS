@@ -514,5 +514,46 @@ public class PlatformRemediationIntegrationTests
         db.Dispose();
     }
 
+    [Fact]
+    public async Task PlatformSettings_MemoryCache_RefreshesImmediatelyAfterUpdate()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var mockUser = new Mock<ICurrentUserService>();
+        mockUser.Setup(u => u.UserName).Returns("SuperAdmin");
+        mockUser.Setup(u => u.Role).Returns("SuperAdmin");
+        mockUser.Setup(u => u.TenantId).Returns(1);
+        mockUser.Setup(u => u.UserId).Returns("usr_super");
+
+        using var db = CreateDbContext(dbName, mockUser.Object);
+        using var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(
+            new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
+
+        var service = new PlatformAdministrationService(
+            db,
+            new TenantRepository(db),
+            new UserRepository(db),
+            new RoleRepository(db),
+            new UserSessionRepository(db),
+            new AuditLogRepository(db),
+            new Mock<ITenantProvisioningService>().Object,
+            Mock.Of<ILogger<PlatformAdministrationService>>(),
+            mockUser.Object,
+            cache);
+
+        var initial = await service.GetPlatformSettingsAsync();
+        Assert.False(initial.MaintenanceMode);
+
+        // Toggle MaintenanceMode directly via UpdatePlatformSettingsAsync -> cache must reflect immediately
+        var (ok, _, _, _) = await service.UpdatePlatformSettingsAsync(new UpdatePlatformSettingsRequest
+        {
+            PlatformName = "IBMS",
+            MaintenanceMode = true
+        }, "SuperAdmin");
+        Assert.True(ok);
+
+        var refreshed = await service.GetPlatformSettingsAsync();
+        Assert.True(refreshed.MaintenanceMode);
+    }
+
     #endregion
 }

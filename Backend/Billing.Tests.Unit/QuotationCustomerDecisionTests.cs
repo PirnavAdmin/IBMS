@@ -163,4 +163,97 @@ public class QuotationCustomerDecisionTests
         Assert.False(result.Success);
         Assert.Equal("NOT_FOUND", result.ErrorCode);
     }
+
+    [Fact]
+    public async Task GetCustomerDecisionPreview_PendingQuotation_DoesNotMutateOrLockQuotation()
+    {
+        // Arrange
+        const string token = "preview-token-1";
+        var q = new Quotation
+        {
+            Id = 40,
+            TenantId = 1,
+            Status = QuotationStatus.Sent,
+            QuoteNumber = "QT-400",
+            PublicActionToken = token,
+            CustomerId = 400,
+            Customer = new Customer { Id = 400, Name = "Prefetch User", Email = "prefetch@example.com", Currency = "INR" },
+            TotalAmount = 3200m
+        };
+
+        _mockQuotationRepo.Setup(r => r.GetByPublicActionTokenAsync(token, 1)).ReturnsAsync(q);
+        _mockTenantRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Tenant { Id = 1, Name = "Test Company" });
+
+        // Act
+        var preview = await _service.GetCustomerDecisionPreviewAsync(token, "approve", 1);
+
+        // Assert - Scanner / GET preview leaves quotation untouched & unlocked
+        Assert.True(preview.Success);
+        Assert.NotNull(preview.Data);
+        Assert.False(preview.Data.IsAlreadyRecorded);
+        Assert.Equal("Approve", preview.Data.Decision);
+        Assert.Equal(QuotationStatus.Sent, q.Status);
+        Assert.Null(q.CustomerRespondedAtUtc);
+        Assert.Null(q.CustomerDecision);
+        _mockQuotationRepo.Verify(r => r.UpdateAsync(It.IsAny<Quotation>()), Times.Never);
+        _mockAuditRepo.Verify(a => a.AddAsync(It.IsAny<AuditLog>(), default), Times.Never);
+        _mockInAppNotif.Verify(n => n.PublishTenantNotificationAsync(It.IsAny<Billing.Contracts.Notification.PublishTenantNotificationCommand>(), default), Times.Never);
+    }
+
+    [Fact]
+    public async Task QuotationsController_TwoStepPublicDecision_GetRendersConfirmation_AndPostFormCommits()
+    {
+        // Arrange
+        const string token = "controller-two-step-token";
+        var q = new Quotation
+        {
+            Id = 41,
+            TenantId = 2,
+            Status = QuotationStatus.Sent,
+            QuoteNumber = "QT-410",
+            PublicActionToken = token,
+            CustomerId = 410,
+            Customer = new Customer { Id = 410, Name = "Mobile User", Email = "mobile@example.com", Currency = "INR" },
+            TotalAmount = 4500m
+        };
+
+        _mockQuotationRepo.Setup(r => r.GetByPublicActionTokenAsync(token, 2)).ReturnsAsync(q);
+        _mockTenantRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Tenant { Id = 2, Name = "Acme Corp" });
+
+        var controller = new Billing.API.Controllers.QuotationsController(
+            new Mock<IQuotationService>().Object,
+            _service,
+            Mock.Of<Microsoft.Extensions.Logging.ILogger<Billing.API.Controllers.QuotationsController>>())
+        {
+            ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+            }
+        };
+
+        // 1. GET confirmation screen does not lock quotation
+        var getAction = await controller.PublicProcessQuotationDecision(token, "approve", 2);
+        var getContent = Assert.IsType<Microsoft.AspNetCore.Mvc.ContentResult>(getAction);
+        Assert.Contains("Confirm Quotation Approval", getContent.Content);
+        Assert.Contains("method='post'", getContent.Content);
+        Assert.Equal(QuotationStatus.Sent, q.Status);
+        Assert.Null(q.CustomerRespondedAtUtc);
+
+        // 2. POST form submission commits approval
+        var postContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        postContext.Request.ContentType = "application/x-www-form-urlencoded";
+        postContext.Request.Form = new Microsoft.AspNetCore.Http.FormCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+        {
+            ["token"] = token,
+            ["action"] = "approve",
+            ["tenantId"] = "2"
+        });
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = postContext };
+
+        var postAction = await controller.PublicConfirmQuotationDecision(null, null, null);
+        var postContent = Assert.IsType<Microsoft.AspNetCore.Mvc.ContentResult>(postAction);
+        Assert.Contains("Quotation Approved!", postContent.Content);
+        Assert.Equal(QuotationStatus.Approved, q.Status);
+        Assert.NotNull(q.CustomerRespondedAtUtc);
+    }
 }

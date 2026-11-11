@@ -177,12 +177,20 @@ public class QuotationActionService : IQuotationActionService
 
         if (_notificationService != null)
         {
-            var notifResult = await _notificationService.SendQuotationNotificationAsync(
-                quotationId,
-                tenantId,
-                userId,
-                pdfBytes,
-                pdfBytes != null ? pdfFileName : null);
+            var notifResult = _notificationService is NotificationService concreteNotificationService
+                ? await concreteNotificationService.SendQuotationNotificationAsync(
+                    quotationId,
+                    tenantId,
+                    userId,
+                    pdfBytes,
+                    pdfBytes != null ? pdfFileName : null,
+                    quotation.PublicActionToken)
+                : await _notificationService.SendQuotationNotificationAsync(
+                    quotationId,
+                    tenantId,
+                    userId,
+                    pdfBytes,
+                    pdfBytes != null ? pdfFileName : null);
 
             if (!notifResult.Success)
             {
@@ -719,57 +727,38 @@ public class QuotationActionService : IQuotationActionService
         }
     }
 
+    public async Task<ApiResponse<QuotationPublicDecisionResult>> GetCustomerDecisionPreviewAsync(string token, string action, int tenantId)
+    {
+        var (error, quotation, isApproved, companyName, currency, alreadyRecorded) =
+            await PrepareCustomerDecisionAsync(token, action, tenantId, readOnly: true);
+
+        if (error != null) return error;
+        if (alreadyRecorded != null) return alreadyRecorded;
+
+        return ApiResponse<QuotationPublicDecisionResult>.Ok(new QuotationPublicDecisionResult
+        {
+            IsAlreadyRecorded = false,
+            Decision = isApproved ? "Approve" : "Decline",
+            QuoteNumber = quotation!.QuoteNumber,
+            TotalAmount = quotation.TotalAmount,
+            Currency = currency,
+            CustomerName = quotation.Customer?.Name ?? "Valued Customer",
+            CompanyName = companyName,
+            Message = isApproved
+                ? $"Please confirm that you want to approve quotation {quotation.QuoteNumber}."
+                : $"Please confirm that you want to decline quotation {quotation.QuoteNumber}."
+        }, "Confirmation required.");
+    }
+
     public async Task<ApiResponse<QuotationPublicDecisionResult>> ProcessCustomerDecisionAsync(string token, string action, int tenantId)
     {
-        if (string.IsNullOrWhiteSpace(token))
-            return ApiResponse<QuotationPublicDecisionResult>.Fail("Action token is required.", errorCode: "INVALID_TOKEN");
+        var (error, quotationObj, isApproved, companyName, currency, alreadyRecorded) =
+            await PrepareCustomerDecisionAsync(token, action, tenantId, readOnly: false);
 
-        var normalizedAction = action?.Trim().ToLowerInvariant();
-        var isApproved = normalizedAction == "approve";
-        var isDecline = normalizedAction == "decline";
+        if (error != null) return error;
+        if (alreadyRecorded != null) return alreadyRecorded;
 
-        if (!isApproved && !isDecline)
-            return ApiResponse<QuotationPublicDecisionResult>.Fail("Invalid action requested. Supported actions are approve or decline.", errorCode: "INVALID_ACTION");
-
-        // 1. Look up quotation by PublicActionToken or numeric ID
-        var quotation = await _quotationRepository.GetByPublicActionTokenAsync(token.Trim(), tenantId);
-        if (quotation == null && int.TryParse(token.Trim(), out var quotationId))
-        {
-            quotation = await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
-                ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
-        }
-
-        if (quotation == null)
-            return ApiResponse<QuotationPublicDecisionResult>.Fail("Quotation not found or the action link is invalid.", errorCode: "NOT_FOUND");
-
-        var tenant = quotation.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId) : null);
-        var companyName = tenant?.Name ?? "Billing Team";
-        var currency = string.IsNullOrWhiteSpace(quotation.Customer?.Currency) ? "INR" : quotation.Customer.Currency.Trim().ToUpperInvariant();
-
-        // 2. Strict Single-Use / Invalidation Enforcement
-        // If CustomerRespondedAtUtc is set or Status is no longer Sent, the links are locked!
-        if (quotation.CustomerRespondedAtUtc.HasValue || quotation.Status != QuotationStatus.Sent)
-        {
-            var existingDecision = !string.IsNullOrWhiteSpace(quotation.CustomerDecision)
-                ? quotation.CustomerDecision
-                : (quotation.Status == QuotationStatus.Approved ? "Approved" : (quotation.Status == QuotationStatus.Cancelled ? "Declined" : quotation.Status.ToString()));
-
-            var respondedAt = quotation.CustomerRespondedAtUtc ?? quotation.UpdatedAtUtc ?? DateTime.UtcNow;
-
-            return ApiResponse<QuotationPublicDecisionResult>.Ok(new QuotationPublicDecisionResult
-            {
-                IsAlreadyRecorded = true,
-                ExistingDecision = existingDecision,
-                RespondedAtUtc = respondedAt,
-                Decision = existingDecision,
-                QuoteNumber = quotation.QuoteNumber,
-                TotalAmount = quotation.TotalAmount,
-                Currency = currency,
-                CustomerName = quotation.Customer?.Name ?? "Valued Customer",
-                CompanyName = companyName,
-                Message = $"Your decision ({existingDecision}) was already recorded on {respondedAt:dd MMM yyyy, hh:mm tt} UTC. These action buttons are single-use and permanently locked."
-            }, "Decision was already recorded.");
-        }
+        var quotation = quotationObj!;
 
         // 3. Apply Decision
         var now = DateTime.UtcNow;
@@ -876,5 +865,73 @@ public class QuotationActionService : IQuotationActionService
                 ? "Your quotation has been successfully approved! Our billing team has been notified and will proceed with your tax invoice."
                 : "Your decision to decline this quotation has been recorded. Our team has been notified."
         }, $"Quotation successfully {decisionText.ToLowerInvariant()}.");
+    }
+
+    private async Task<(
+        ApiResponse<QuotationPublicDecisionResult>? Error,
+        Quotation? Quotation,
+        bool IsApproved,
+        string CompanyName,
+        string Currency,
+        ApiResponse<QuotationPublicDecisionResult>? AlreadyRecorded)> PrepareCustomerDecisionAsync(
+        string token,
+        string action,
+        int tenantId,
+        bool readOnly)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return (ApiResponse<QuotationPublicDecisionResult>.Fail("Action token is required.", errorCode: "INVALID_TOKEN"), null, false, "Billing Team", "INR", null);
+
+        var normalizedAction = action?.Trim().ToLowerInvariant();
+        var isApproved = normalizedAction == "approve";
+        var isDecline = normalizedAction == "decline";
+
+        if (!isApproved && !isDecline)
+            return (ApiResponse<QuotationPublicDecisionResult>.Fail("Invalid action requested. Supported actions are approve or decline.", errorCode: "INVALID_ACTION"), null, false, "Billing Team", "INR", null);
+
+        // 1. Look up quotation by PublicActionToken or numeric ID
+        var quotation = await _quotationRepository.GetByPublicActionTokenAsync(token.Trim(), tenantId);
+        if (quotation == null && int.TryParse(token.Trim(), out var quotationId))
+        {
+            quotation = readOnly
+                ? await _quotationRepository.GetByIdAsync(quotationId, tenantId) ?? await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId)
+                : await _quotationRepository.GetByIdForUpdateAsync(quotationId, tenantId) ?? await _quotationRepository.GetByIdAsync(quotationId, tenantId);
+        }
+
+        if (quotation == null)
+            return (ApiResponse<QuotationPublicDecisionResult>.Fail("Quotation not found or the action link is invalid.", errorCode: "NOT_FOUND"), null, isApproved, "Billing Team", "INR", null);
+
+        var tenant = quotation.Tenant ?? (_tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId) : null);
+        var companyName = tenant?.Name ?? "Billing Team";
+        var currency = string.IsNullOrWhiteSpace(quotation.Customer?.Currency) ? "INR" : quotation.Customer.Currency.Trim().ToUpperInvariant();
+
+        // 2. Strict Single-Use / Invalidation Enforcement
+        // If CustomerRespondedAtUtc is set or Status is no longer Sent, the links are locked!
+        if (quotation.CustomerRespondedAtUtc.HasValue || quotation.Status != QuotationStatus.Sent)
+        {
+            var existingDecision = !string.IsNullOrWhiteSpace(quotation.CustomerDecision)
+                ? quotation.CustomerDecision
+                : (quotation.Status == QuotationStatus.Approved ? "Approved" : (quotation.Status == QuotationStatus.Cancelled ? "Declined" : quotation.Status.ToString()));
+
+            var respondedAt = quotation.CustomerRespondedAtUtc ?? quotation.UpdatedAtUtc ?? DateTime.UtcNow;
+
+            var alreadyRecorded = ApiResponse<QuotationPublicDecisionResult>.Ok(new QuotationPublicDecisionResult
+            {
+                IsAlreadyRecorded = true,
+                ExistingDecision = existingDecision,
+                RespondedAtUtc = respondedAt,
+                Decision = existingDecision,
+                QuoteNumber = quotation.QuoteNumber,
+                TotalAmount = quotation.TotalAmount,
+                Currency = currency,
+                CustomerName = quotation.Customer?.Name ?? "Valued Customer",
+                CompanyName = companyName,
+                Message = $"Your decision ({existingDecision}) was already recorded on {respondedAt:dd MMM yyyy, hh:mm tt} UTC. These action buttons are single-use and permanently locked."
+            }, "Decision was already recorded.");
+
+            return (null, quotation, isApproved, companyName, currency, alreadyRecorded);
+        }
+
+        return (null, quotation, isApproved, companyName, currency, null);
     }
 }

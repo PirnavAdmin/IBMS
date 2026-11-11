@@ -12,4 +12,6 @@ public interface IQuotationActionService
     Task<ApiResponse<bool>> CancelQuotationAsync(int quotationId, int tenantId, string reason, string userId);
     Task<ApiResponse<int>> ConvertToInvoiceAsync(int quotationId, int tenantId, string userId);
     Task<ApiResponse<QuotationPublicDecisionResult>> ProcessCustomerDecisionAsync(string token, string action, int tenantId);
+    Task<ApiResponse<QuotationPublicDecisionResult>> GetCustomerDecisionPreviewAsync(string token, string action, int tenantId)
+        => ProcessCustomerDecisionAsync(token, action, tenantId);
 }
