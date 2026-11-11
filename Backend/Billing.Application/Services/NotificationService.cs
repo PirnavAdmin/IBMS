@@ -507,12 +507,21 @@ public class NotificationService : INotificationService
         }
     }
 
-    public async Task<ApiResponse<NotificationLogDto>> SendQuotationNotificationAsync(
+    public Task<ApiResponse<NotificationLogDto>> SendQuotationNotificationAsync(
         int quotationId,
         int tenantId,
         string? userName = null,
         byte[]? pdfBytes = null,
         string? pdfFileName = null)
+        => SendQuotationNotificationAsync(quotationId, tenantId, userName, pdfBytes, pdfFileName, null);
+
+    public async Task<ApiResponse<NotificationLogDto>> SendQuotationNotificationAsync(
+        int quotationId,
+        int tenantId,
+        string? userName,
+        byte[]? pdfBytes,
+        string? pdfFileName,
+        string? publicActionToken)
     {
         var quotation = await _quotationRepository.GetByIdAsync(quotationId, tenantId);
         if (quotation == null)
@@ -539,9 +548,11 @@ public class NotificationService : INotificationService
             ["TotalAmount"] = quotation.TotalAmount.ToString("N2")
         };
 
-        var actionToken = !string.IsNullOrWhiteSpace(quotation.PublicActionToken)
-            ? quotation.PublicActionToken
-            : quotation.Id.ToString();
+        var actionToken = !string.IsNullOrWhiteSpace(publicActionToken)
+            ? publicActionToken
+            : (!string.IsNullOrWhiteSpace(quotation.PublicActionToken)
+                ? quotation.PublicActionToken
+                : quotation.Id.ToString());
         var approveLink = $"{AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=approve&tenantId={tenantId}";
         var declineLink = $"{AppUrlResolver.GetApiBaseUrl()}/api/v1/quotations/public/decision?token={actionToken}&action=decline&tenantId={tenantId}";
         var replyLink = $"mailto:{supportEmail}?subject=Feedback on Quotation {quotation.QuoteNumber}";

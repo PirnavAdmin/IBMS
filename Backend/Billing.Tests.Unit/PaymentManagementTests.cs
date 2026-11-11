@@ -1172,4 +1172,56 @@ public class PaymentManagementTests
         Assert.NotNull(result.Data);
         Assert.Equal("Completed", result.Data!.Status);
     }
+
+    [Fact]
+    public async Task PaymentService_QueuesNotificationAsync_WhenBackgroundQueueConfigured()
+    {
+        var ctx = new TestContext();
+        var invoice = await ctx.SeedInvoiceAsync(totalAmount: 1000.00m);
+
+        var notificationMock = new Moq.Mock<INotificationService>();
+        var queueMock = new Moq.Mock<IPaymentNotificationQueue>();
+        var queued = new List<(int PaymentId, int TenantId, string EventType, string? Actor)>();
+        queueMock
+            .Setup(q => q.EnqueueAsync(
+                Moq.It.IsAny<int>(),
+                Tenant1,
+                "PaymentReceived",
+                "finance@ibms.com",
+                Moq.It.IsAny<CancellationToken>()))
+            .Callback<int, int, string, string?, CancellationToken>((pid, tid, ev, actor, _) => queued.Add((pid, tid, ev, actor)))
+            .Returns(ValueTask.CompletedTask);
+
+        var paymentService = new PaymentService(
+            ctx.PaymentRepo,
+            ctx.InvoiceRepo,
+            ctx.CustomerRepo,
+            ctx.NumberGenService,
+            ctx.AuditRepo,
+            ctx.UnitOfWork,
+            outboxService: null,
+            notificationService: notificationMock.Object,
+            paymentNotificationQueue: queueMock.Object);
+
+        var result = await paymentService.CreatePaymentAsync(
+            Tenant1,
+            new CreatePaymentRequest
+            {
+                InvoiceId = invoice.Id,
+                Amount = 450.00m,
+                Currency = "INR",
+                PaymentDate = DateTime.UtcNow.Date,
+                Method = "BankTransfer",
+                Reference = "QUEUE-NOTIFY-01"
+            },
+            "finance@ibms.com");
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(queued);
+        Assert.Equal(result.Data!.Id, queued[0].PaymentId);
+        Assert.Equal("PaymentReceived", queued[0].EventType);
+        notificationMock.Verify(
+            n => n.SendPaymentNotificationAsync(Moq.It.IsAny<int>(), Moq.It.IsAny<int>(), Moq.It.IsAny<string>(), Moq.It.IsAny<string?>()),
+            Moq.Times.Never);
+    }
 }

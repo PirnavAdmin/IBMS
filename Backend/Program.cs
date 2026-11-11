@@ -209,10 +209,14 @@ builder.Services.AddScoped<IEmailNotificationJobService, EmailNotificationJobSer
 builder.Services.AddScoped<IWebhookDeliveryJobService, WebhookDeliveryJobService>();
 builder.Services.AddScoped<IExportJobService, ExportJobService>();
 builder.Services.AddScoped<IOperationalCleanupJobService, OperationalCleanupJobService>();
-builder.Services.AddScoped<IBackgroundJobCoordinator, BackgroundJobCoordinator>();
+builder.Services.AddScoped<IBackgroundJobCoordinator, BackgroundJobCoordinator>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ChannelPaymentNotificationQueue>();
+builder.Services.AddSingleton<IPaymentNotificationQueue>(sp => sp.GetRequiredService<ChannelPaymentNotificationQueue>());
 if (builder.Configuration.GetValue<bool>("BackgroundWorker:Enabled", true))
 {
-    builder.Services.AddHostedService<BackgroundWorkerHostedService>();
+    builder.Services.AddHostedService<BackgroundWorkerHostedService>();
+    builder.Services.AddHostedService<PaymentNotificationBackgroundService>();
 }
 
 // ============================================================

@@ -42,6 +42,7 @@ public class PaymentService : IPaymentService
     private readonly IOutboxService? _outboxService;
     private readonly INotificationService? _notificationService;
     private readonly IInAppNotificationService? _inAppNotificationService;
+    private readonly IPaymentNotificationQueue? _paymentNotificationQueue;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
@@ -52,7 +53,8 @@ public class PaymentService : IPaymentService
         IUnitOfWork unitOfWork,
         IOutboxService? outboxService = null,
         INotificationService? notificationService = null,
-        IInAppNotificationService? inAppNotificationService = null)
+        IInAppNotificationService? inAppNotificationService = null,
+        IPaymentNotificationQueue? paymentNotificationQueue = null)
     {
         _paymentRepository = paymentRepository;
         _invoiceRepository = invoiceRepository;
@@ -63,6 +65,7 @@ public class PaymentService : IPaymentService
         _outboxService = outboxService;
         _notificationService = notificationService;
         _inAppNotificationService = inAppNotificationService;
+        _paymentNotificationQueue = paymentNotificationQueue;
     }
 
     public async Task<PaymentOperationResult<PaymentDetailDto>> CreatePaymentAsync(
@@ -432,20 +435,9 @@ public class PaymentService : IPaymentService
 
                 await _unitOfWork.CommitTransactionAsync();
 
-                if (_notificationService != null && savedPayment.Status == PaymentStatus.Completed)
+                if ((_paymentNotificationQueue != null || _notificationService != null) && savedPayment.Status == PaymentStatus.Completed)
                 {
-                    try
-                    {
-                        await _notificationService.SendPaymentNotificationAsync(
-                            savedPayment.Id,
-                            tenantId,
-                            "PaymentReceived",
-                            actor);
-                    }
-                    catch
-                    {
-                        // Notification failure must not affect the committed payment transaction
-                    }
+                    await DispatchPaymentNotificationAsync(savedPayment.Id, tenantId, "PaymentReceived", actor);
                 }
 
                 await PublishCreatedPaymentInAppNotificationAsync(tenantId, savedPayment, customer);
@@ -1013,21 +1005,10 @@ public class PaymentService : IPaymentService
 
                     await _unitOfWork.CommitTransactionAsync();
 
-                    if (_notificationService != null && (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed))
+                    if ((_paymentNotificationQueue != null || _notificationService != null) && (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed))
                     {
-                        try
-                        {
-                            var notificationEventType = targetStatus == PaymentStatus.Completed ? "PaymentReceived" : "PaymentFailed";
-                            await _notificationService.SendPaymentNotificationAsync(
-                                payment.Id,
-                                tenantId,
-                                notificationEventType,
-                                performedBy);
-                        }
-                        catch
-                        {
-                            // Notification failure must not affect the committed status change
-                        }
+                        var notificationEventType = targetStatus == PaymentStatus.Completed ? "PaymentReceived" : "PaymentFailed";
+                        await DispatchPaymentNotificationAsync(payment.Id, tenantId, notificationEventType, performedBy);
                     }
 
                     if (targetStatus == PaymentStatus.Completed || targetStatus == PaymentStatus.Failed)
@@ -1390,6 +1371,27 @@ public class PaymentService : IPaymentService
             IsEligibleForPayment = isEligible,
             IneligibilityReason = reason
         };
+    }
+
+    private async Task DispatchPaymentNotificationAsync(int paymentId, int tenantId, string eventType, string? actor)
+    {
+        try
+        {
+            if (_paymentNotificationQueue != null)
+            {
+                await _paymentNotificationQueue.EnqueueAsync(paymentId, tenantId, eventType, actor);
+                return;
+            }
+
+            if (_notificationService != null)
+            {
+                await _notificationService.SendPaymentNotificationAsync(paymentId, tenantId, eventType, actor);
+            }
+        }
+        catch
+        {
+            // Notification failure must not affect committed payment operations
+        }
     }
 
     private async Task PublishCreatedPaymentInAppNotificationAsync(int tenantId, Payment payment, Customer? customer)

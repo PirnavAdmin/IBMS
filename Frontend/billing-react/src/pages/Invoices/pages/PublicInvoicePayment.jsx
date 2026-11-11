@@ -134,6 +134,7 @@ const checkoutInputSx = (readOnlyBg = false) => ({
 });
 
 const gatewayClient = axios.create({
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true'
@@ -204,21 +205,30 @@ export function PublicInvoicePayment() {
   const [copiedField, setCopiedField] = useState('');
   const [showUtrFallback, setShowUtrFallback] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined') return false;
+  const detectMobileEnv = () => {
+    if (typeof window === 'undefined') {
+      return { isMobile: false, isIOS: false, isInAppBrowser: false };
+    }
     const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua);
     const isSmallTouch = window.innerWidth <= 768 && ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
-    return Boolean(isMobileUA || isSmallTouch);
-  });
-  const [showQrOnMobile, setShowQrOnMobile] = useState(false);
+    const isInAppBrowser = /FBAN|FBAV|Instagram|Line|WhatsApp|Gmail|Outlook|GSA|\bwv\b/i.test(ua);
+    return {
+      isMobile: Boolean(isMobileUA || isSmallTouch),
+      isIOS,
+      isInAppBrowser
+    };
+  };
+
+  const [mobileEnv, setMobileEnv] = useState(detectMobileEnv);
+  const { isMobile, isIOS, isInAppBrowser } = mobileEnv;
+  const [showQrOnMobile, setShowQrOnMobile] = useState(() => detectMobileEnv().isIOS);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const ua = navigator.userAgent || navigator.vendor || window.opera || '';
-      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua);
-      const isSmallTouch = window.innerWidth <= 768 && ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
-      setIsMobile(Boolean(isMobileUA || isSmallTouch));
+      setMobileEnv(detectMobileEnv());
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -253,7 +263,7 @@ export function PublicInvoicePayment() {
   const isPartialAllowed = isForcedFullOnly ? false : (order?.allowPartialPayments ?? true) !== false;
   const isSandboxMode = order?.isSandbox !== false;
   const showTestTools = isSandboxMode && order?.allowTestSimulationTools !== false;
-  const hasRealRazorpay = Boolean(order?.hasRazorpayOrder && order?.keyId && !String(order.keyId).includes('ibms_sandbox'));
+  const hasRealRazorpay = Boolean((order?.hasRazorpayOrder || order?.isGatewayConfigured) && order?.keyId && !String(order.keyId).includes('ibms_sandbox'));
   const getEffectivePayableAmount = () => {
     if (!order) return 0;
     if (!isPartialAllowed) return order.balanceAmount ?? order.amount ?? 0;
@@ -269,26 +279,31 @@ export function PublicInvoicePayment() {
   };
   const API_URL = getApiUrl();
 
-  // Fetch or update order details
-  const fetchOrder = async (customAmount = null, updateInputText = false) => {
+  const createGatewayOrderRequest = async (customAmount = null, skipGatewayOrderCreation = true) => {
+    const payload = {
+      invoiceId: parseInt(id, 10),
+      tenantId: parseInt(tenantId, 10),
+      amount: (!isForcedFullOnly && customAmount !== null) ? Number(customAmount) : undefined,
+      currency: 'INR',
+      gateway: 'Razorpay',
+      skipGatewayOrderCreation
+    };
+
+    const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/create-order`, payload, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    return res?.data?.data || res?.data || null;
+  };
+
+  // Fetch or update order details (skip external Razorpay /v1/orders HTTP calls during initial render & amount typing)
+  const fetchOrder = async (customAmount = null, updateInputText = false, skipGatewayOrderCreation = true) => {
     if (customAmount !== null) setQrLoading(true);
     else setLoading(true);
     setError('');
 
     try {
-      const payload = {
-        invoiceId: parseInt(id, 10),
-        tenantId: parseInt(tenantId, 10),
-        amount: (!isForcedFullOnly && customAmount !== null) ? Number(customAmount) : undefined,
-        currency: 'INR',
-        gateway: 'Razorpay'
-      };
-
-      const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/create-order`, payload, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = res?.data?.data || res?.data;
+      const data = await createGatewayOrderRequest(customAmount, skipGatewayOrderCreation);
       if (data) {
         setOrder(data);
         if (initialPaidRef.current === null) {
@@ -307,8 +322,10 @@ export function PublicInvoicePayment() {
           }
         }
       }
+      return data;
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || 'Failed to load invoice payment details.');
+      return null;
     } finally {
       setLoading(false);
       setQrLoading(false);
@@ -317,11 +334,11 @@ export function PublicInvoicePayment() {
 
   useEffect(() => {
     if (id) {
-      fetchOrder(null, true);
+      fetchOrder(null, true, true);
     }
   }, [id, tenantId]);
 
-  // Debounced dynamic QR update as the user types amount
+  // Debounced dynamic QR update as the user types amount (local QR refresh only)
   useEffect(() => {
     if (!order || !order.balanceAmount || !isPartialAllowed) return;
 
@@ -336,7 +353,7 @@ export function PublicInvoicePayment() {
 
       // Only regenerate if target amount differs from the currently locked QR amount
       if (Math.abs(targetAmount - order.amount) > 0.01) {
-        fetchOrder(targetAmount, false);
+        fetchOrder(targetAmount, false, true);
       }
     }, 350);
 
@@ -413,6 +430,30 @@ export function PublicInvoicePayment() {
     };
   }, [order?.invoiceId, paymentSuccess, tenantId, tab]);
 
+  // Download freshly updated Tax Invoice PDF (uses axios header so ngrok interstitial is skipped)
+  const handleDownloadUpdatedPdf = async () => {
+    if (downloadingPdf) return;
+    const targetInvoiceId = order?.invoiceId || id;
+    const pdfUrl = `${API_URL}/api/v1/invoices/${targetInvoiceId}/pdf?tenantId=${tenantId}&regenerate=true`;
+    setDownloadingPdf(true);
+    try {
+      const response = await gatewayClient.get(pdfUrl, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${paymentSuccess?.invoiceNumber || order?.invoiceNumber || `Invoice-${targetInvoiceId}`}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 10000);
+    } catch {
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   // Handle Real Razorpay Checkout Modal (Card / NetBanking / UPI)
   const handleRazorpayCardCheckout = async (preferredMethod = null) => {
     if (!order || processing) return;
@@ -427,24 +468,41 @@ export function PublicInvoicePayment() {
     }
 
     const effectiveAmount = getEffectivePayableAmount();
+    let checkoutOrder = order;
+    if (hasRealRazorpay && (!checkoutOrder.hasRazorpayOrder || Math.abs(effectiveAmount - Number(checkoutOrder.amount || 0)) > 0.01)) {
+      try {
+        const freshOrder = await createGatewayOrderRequest(effectiveAmount, false);
+        if (!freshOrder || !freshOrder.orderId) {
+          setError('Unable to initialize Razorpay payment order.');
+          setProcessing(false);
+          return;
+        }
+        checkoutOrder = freshOrder;
+        setOrder(freshOrder);
+      } catch (err) {
+        setError(err?.response?.data?.message || err?.message || 'Unable to initialize Razorpay payment order.');
+        setProcessing(false);
+        return;
+      }
+    }
 
     const options = {
-      key: order.keyId || 'rzp_test_ibms_sandbox',
+      key: checkoutOrder.keyId || 'rzp_test_ibms_sandbox',
       amount: Math.round(effectiveAmount * 100), // amount in paise
-      currency: order.currency || 'INR',
+      currency: checkoutOrder.currency || 'INR',
       name: 'IBMS Invoicing',
-      description: `Payment for Invoice #${order.invoiceNumber}`,
+      description: `Payment for Invoice #${checkoutOrder.invoiceNumber}`,
       image: '/branding/ibms-brand.png',
-      order_id: order.hasRazorpayOrder ? order.orderId : undefined,
+      order_id: checkoutOrder.hasRazorpayOrder ? checkoutOrder.orderId : undefined,
       prefill: {
-        name: order.customerName || '',
-        email: order.customerEmail || '',
-        contact: order.customerPhone || '',
+        name: checkoutOrder.customerName || '',
+        email: checkoutOrder.customerEmail || '',
+        contact: checkoutOrder.customerPhone || '',
         ...(preferredMethod ? { method: preferredMethod } : {})
       },
       notes: {
-        invoiceId: String(order.invoiceId),
-        invoiceNumber: order.invoiceNumber,
+        invoiceId: String(checkoutOrder.invoiceId),
+        invoiceNumber: checkoutOrder.invoiceNumber,
         tenantId: String(tenantId)
       },
       theme: {
@@ -453,9 +511,9 @@ export function PublicInvoicePayment() {
       handler: async function (response) {
         try {
           const res = await gatewayClient.post(`${API_URL}/api/v1/payments/gateway/verify`, {
-            invoiceId: order.invoiceId,
+            invoiceId: checkoutOrder.invoiceId,
             tenantId: parseInt(tenantId, 10),
-            orderId: response.razorpay_order_id || order.orderId,
+            orderId: response.razorpay_order_id || checkoutOrder.orderId,
             paymentId: response.razorpay_payment_id || `pay_${Date.now()}`,
             signature: response.razorpay_signature || 'rzp_sig',
             amount: effectiveAmount,
@@ -465,14 +523,14 @@ export function PublicInvoicePayment() {
           });
 
           if (res?.data?.success !== false) {
-            const remaining = Math.max(0, order.balanceAmount - effectiveAmount);
+            const remaining = Math.max(0, checkoutOrder.balanceAmount - effectiveAmount);
             setPaymentSuccess({
               isFull: remaining === 0,
               paidAmount: effectiveAmount,
               remainingBalance: remaining,
               reference: response.razorpay_payment_id,
-              invoiceNumber: order.invoiceNumber,
-              customerName: order.customerName
+              invoiceNumber: checkoutOrder.invoiceNumber,
+              customerName: checkoutOrder.customerName
             });
           } else {
             setError(res?.data?.message || 'Payment verification failed.');
@@ -906,11 +964,9 @@ export function PublicInvoicePayment() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} justifyContent="center">
               <Button
                 variant="contained"
-                component="a"
-                href={`${API_URL}/api/v1/invoices/${order?.invoiceId || id}/pdf?tenantId=${tenantId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                startIcon={<PaymentOutlined />}
+                disabled={downloadingPdf}
+                onClick={handleDownloadUpdatedPdf}
+                startIcon={downloadingPdf ? <CircularProgress size={18} color="inherit" /> : <PaymentOutlined />}
                 sx={{
                   bgcolor: '#65442E',
                   color: '#FFF8EF',
@@ -922,7 +978,7 @@ export function PublicInvoicePayment() {
                   '&:hover': { bgcolor: '#513420' }
                 }}
               >
-                Download Updated Tax Invoice (PDF)
+                {downloadingPdf ? 'Preparing Tax Invoice PDF...' : 'Download Updated Tax Invoice (PDF)'}
               </Button>
 
               <Button
@@ -1167,7 +1223,7 @@ export function PublicInvoicePayment() {
               {/* TAB 0: UPI Payments & QR */}
               {tab === 0 && (
                 <Box sx={{ textAlign: 'center', py: 1.5 }}>
-                  {/* MOBILE VIEW ONLY: Instant Pay via Installed UPI Apps (GPay / PhonePe / Paytm / CRED) */}
+                  {/* MOBILE VIEW ONLY: Verified Razorpay UPI on mobile when configured, or Android intent + iOS-safe QR/Copy fallback */}
                   {isMobile ? (
                     <Box sx={{
                       mb: 2,
@@ -1178,33 +1234,74 @@ export function PublicInvoicePayment() {
                       boxShadow: '0 4px 18px rgba(22, 101, 52, 0.08)'
                     }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#166534', mb: 0.5, fontSize: '1.05rem' }}>
-                        ⚡ Instant Pay via UPI App
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#15803D', display: 'block', mb: 2, fontSize: '0.8rem' }}>
-                        Tap to open Google Pay, PhonePe, Paytm, or CRED directly on this phone with <strong>₹{Number(currentPayable).toFixed(2)}</strong> pre-filled.
+                        ⚡ Instant Pay via UPI
                       </Typography>
 
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        onClick={handlePayViaUpiApp}
-                        startIcon={<FlashOn sx={{ color: '#FEF08A' }} />}
-                        sx={{
-                          py: 1.6,
-                          borderRadius: 3,
-                          bgcolor: '#16A34A',
-                          color: '#FFFFFF',
-                          fontWeight: 800,
-                          fontSize: '1.02rem',
-                          letterSpacing: '-0.01em',
-                          textTransform: 'none',
-                          boxShadow: '0 6px 20px rgba(22, 163, 74, 0.35)',
-                          '&:hover': { bgcolor: '#15803D' }
-                        }}
-                      >
-                        Pay ₹{Number(currentPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })} via UPI App
-                      </Button>
+                      {hasRealRazorpay ? (
+                        <>
+                          <Typography variant="caption" sx={{ color: '#15803D', display: 'block', mb: 2, fontSize: '0.8rem' }}>
+                            Pay securely with Google Pay, PhonePe, Paytm, or CRED via verified Razorpay UPI for <strong>₹{Number(currentPayable).toFixed(2)}</strong>.
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            fullWidth
+                            size="large"
+                            disabled={processing}
+                            onClick={() => handleRazorpayCardCheckout('upi')}
+                            startIcon={processing ? <CircularProgress size={18} color="inherit" /> : <FlashOn sx={{ color: '#FEF08A' }} />}
+                            sx={{
+                              py: 1.6,
+                              borderRadius: 3,
+                              bgcolor: '#16A34A',
+                              color: '#FFFFFF',
+                              fontWeight: 800,
+                              fontSize: '1.02rem',
+                              letterSpacing: '-0.01em',
+                              textTransform: 'none',
+                              boxShadow: '0 6px 20px rgba(22, 163, 74, 0.35)',
+                              '&:hover': { bgcolor: '#15803D' }
+                            }}
+                          >
+                            {processing ? 'Opening UPI Checkout...' : `Pay ₹${Number(currentPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })} via UPI App`}
+                          </Button>
+                        </>
+                      ) : !isIOS ? (
+                        <>
+                          <Typography variant="caption" sx={{ color: '#15803D', display: 'block', mb: 2, fontSize: '0.8rem' }}>
+                            Tap to launch Google Pay, PhonePe, Paytm, or CRED with <strong>₹{Number(currentPayable).toFixed(2)}</strong> pre-filled, or pay using the UPI ID / QR below.
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            fullWidth
+                            size="large"
+                            onClick={handlePayViaUpiApp}
+                            startIcon={<FlashOn sx={{ color: '#FEF08A' }} />}
+                            sx={{
+                              py: 1.6,
+                              borderRadius: 3,
+                              bgcolor: '#16A34A',
+                              color: '#FFFFFF',
+                              fontWeight: 800,
+                              fontSize: '1.02rem',
+                              letterSpacing: '-0.01em',
+                              textTransform: 'none',
+                              boxShadow: '0 6px 20px rgba(22, 163, 74, 0.35)',
+                              '&:hover': { bgcolor: '#15803D' }
+                            }}
+                          >
+                            Pay ₹{Number(currentPayable).toLocaleString('en-IN', { minimumFractionDigits: 2 })} via UPI App
+                          </Button>
+                          {isInAppBrowser && (
+                            <Alert severity="info" sx={{ mt: 1.5, textAlign: 'left', fontSize: '0.76rem', borderRadius: 2 }}>
+                              Using an in-app browser (Gmail/WhatsApp)? If your UPI app blocks the redirect, open this link in Chrome or copy the UPI ID below to pay.
+                            </Alert>
+                          )}
+                        </>
+                      ) : (
+                        <Typography variant="caption" sx={{ color: '#15803D', display: 'block', mb: 1.5, fontSize: '0.8rem' }}>
+                          On iPhone/iPad, copy the UPI ID below to pay <strong>₹{Number(currentPayable).toFixed(2)}</strong> from your UPI app, scan the QR from another device, or switch to the Card / Internet Banking tabs.
+                        </Typography>
+                      )}
 
                       <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2, flexWrap: 'wrap', gap: 0.5 }}>
                         <Chip size="small" label="Google Pay" sx={{ bgcolor: '#FFFFFF', fontWeight: 650, color: '#1E293B', border: '1px solid #CBD5E1' }} />
@@ -1214,21 +1311,23 @@ export function PublicInvoicePayment() {
                         <Chip size="small" label="BHIM" sx={{ bgcolor: '#FFFFFF', fontWeight: 650, color: '#047857', border: '1px solid #A7F3D0' }} />
                       </Stack>
 
-                      <Box sx={{ mt: 2 }}>
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={() => setShowQrOnMobile(!showQrOnMobile)}
-                          sx={{ color: '#65442E', textTransform: 'none', fontWeight: 650, fontSize: '0.8rem' }}
-                        >
-                          {showQrOnMobile ? '▲ Hide QR Code' : '▼ Need QR to scan from another device? Tap here'}
-                        </Button>
-                      </Box>
+                      {hasRealRazorpay && (
+                        <Box sx={{ mt: 2 }}>
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => setShowQrOnMobile(!showQrOnMobile)}
+                            sx={{ color: '#65442E', textTransform: 'none', fontWeight: 650, fontSize: '0.8rem' }}
+                          >
+                            {showQrOnMobile ? '▲ Hide QR Code' : '▼ Need QR to scan from another device? Tap here'}
+                          </Button>
+                        </Box>
+                      )}
                     </Box>
                   ) : null}
 
-                  {/* DESKTOP WEB VIEW (OR MOBILE ON DEMAND): Show QR Code Directly */}
-                  {(!isMobile || showQrOnMobile) && (
+                  {/* DESKTOP WEB VIEW (OR MOBILE QR / UPI COPY FALLBACK): Show QR Code Directly */}
+                  {(!isMobile || showQrOnMobile || !hasRealRazorpay) && (
                     <Box sx={{ mt: isMobile ? 1 : 0, mb: 1 }}>
                       {!isMobile && (
                         <Box sx={{ mb: 2 }}>
@@ -1313,7 +1412,7 @@ export function PublicInvoicePayment() {
                     </Typography>
                   </Box>
 
-                  {hasRealRazorpay && (
+                  {!isMobile && hasRealRazorpay && (
                     <Box sx={{ mt: 2 }}>
                       <Button
                         fullWidth

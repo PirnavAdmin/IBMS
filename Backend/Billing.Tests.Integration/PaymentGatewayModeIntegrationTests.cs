@@ -197,4 +197,34 @@ public class PaymentGatewayModeIntegrationTests
         Assert.True(await service.VerifyWebhookSignatureAsync(2, webhookBody, validWhSig));
         Assert.False(await service.VerifyWebhookSignatureAsync(2, webhookBody, "tampered_sig"));
     }
+
+    [Fact]
+    public async Task CreateOrder_WithSkipGatewayOrderCreation_SkipsRemoteOrderCallAndReportsConfigured()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        var service = CreateGatewayService(db, out var invoice);
+
+        await service.UpdateGatewaySettingsAsync(2, new UpdatePaymentGatewaySettingsRequest
+        {
+            IsSandbox = false,
+            AllowTestSimulationTools = false,
+            RazorpayLiveKeyId = "rzp_live_SkipOrderTest1",
+            RazorpayLiveKeySecret = "live_secret_skip_test_123"
+        }, "Admin");
+
+        var previewOrder = await service.CreateOrderAsync(2, new CreatePaymentOrderRequest
+        {
+            InvoiceId = invoice.Id,
+            Amount = 500m,
+            Gateway = "Razorpay",
+            SkipGatewayOrderCreation = true
+        });
+
+        Assert.True(previewOrder.Success);
+        Assert.NotNull(previewOrder.Data);
+        Assert.True(previewOrder.Data!.IsGatewayConfigured);
+        Assert.False(previewOrder.Data.HasRazorpayOrder);
+        Assert.Equal("rzp_live_SkipOrderTest1", previewOrder.Data.KeyId);
+        Assert.False(string.IsNullOrWhiteSpace(previewOrder.Data.QrCodeBase64));
+    }
 }

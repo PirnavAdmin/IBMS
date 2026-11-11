@@ -7,6 +7,7 @@ public class CreatePaymentOrderRequest
     public decimal? Amount { get; set; }
     public string? Currency { get; set; } = "INR";
     public string Gateway { get; set; } = "Razorpay";
+    public bool SkipGatewayOrderCreation { get; set; } = false;
 }
 
 public class PaymentOrderDto
@@ -45,6 +46,7 @@ public class PaymentOrderDto
     public bool IsSandbox { get; set; } = true;
     public bool AllowTestSimulationTools { get; set; } = true;
     public bool HasRazorpayOrder { get; set; }
+    public bool IsGatewayConfigured { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 

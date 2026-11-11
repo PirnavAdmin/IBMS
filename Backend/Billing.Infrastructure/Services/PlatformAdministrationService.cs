@@ -9,12 +9,15 @@ using Billing.Contracts.Platform;
 using Billing.Domain.Entities;
 using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace Billing.Infrastructure.Services;
 
 public class PlatformAdministrationService : IPlatformAdministrationService
 {
+    private const string PlatformSettingsCacheKey = "IBMS:PlatformSettings:Global";
+
     private readonly BillingDbContext _context;
     private readonly ITenantRepository _tenantRepository;
     private readonly IUserRepository _userRepository;
@@ -24,6 +27,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
     private readonly ITenantProvisioningService _tenantProvisioningService;
     private readonly ILogger<PlatformAdministrationService>? _logger;
     private readonly ICurrentUserService? _currentUserService;
+    private readonly IMemoryCache? _memoryCache;
 
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _tenantLocks = new();
 
@@ -36,7 +40,8 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         IAuditLogRepository auditLogRepository,
         ITenantProvisioningService tenantProvisioningService,
         ILogger<PlatformAdministrationService>? logger = null,
-        ICurrentUserService? currentUserService = null)
+        ICurrentUserService? currentUserService = null,
+        IMemoryCache? memoryCache = null)
     {
         _context = context;
         _tenantRepository = tenantRepository;
@@ -47,6 +52,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         _tenantProvisioningService = tenantProvisioningService;
         _logger = logger;
         _currentUserService = currentUserService;
+        _memoryCache = memoryCache;
     }
 
     #region Dashboard (BR-02)
@@ -935,6 +941,11 @@ public class PlatformAdministrationService : IPlatformAdministrationService
 
     public async Task<PlatformSettingsDto> GetPlatformSettingsAsync(CancellationToken cancellationToken = default)
     {
+        if (_memoryCache != null && _memoryCache.TryGetValue<PlatformSettingsDto>(PlatformSettingsCacheKey, out var cached) && cached != null)
+        {
+            return ClonePlatformSettingsDto(cached);
+        }
+
         var setting = await _context.PlatformSettings.FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
         if (setting == null)
         {
@@ -978,7 +989,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             currencies = new List<string> { "INR", "USD", "EUR", "GBP", "AED", "AUD", "CAD", "SGD", "JPY", "CHF", "CNY", "NZD", "SAR", "QAR", "KWD", "ZAR" };
         }
 
-        return new PlatformSettingsDto
+        var dto = new PlatformSettingsDto
         {
             PlatformName = setting.PlatformName,
             MaintenanceMode = setting.MaintenanceMode,
@@ -994,7 +1005,27 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             UpdatedBy = setting.UpdatedBy,
             Version = setting.Version
         };
+
+        _memoryCache?.Set(PlatformSettingsCacheKey, ClonePlatformSettingsDto(dto), TimeSpan.FromSeconds(30));
+        return dto;
     }
+
+    private static PlatformSettingsDto ClonePlatformSettingsDto(PlatformSettingsDto source) => new()
+    {
+        PlatformName = source.PlatformName,
+        MaintenanceMode = source.MaintenanceMode,
+        AllowSelfRegistration = source.AllowSelfRegistration,
+        SessionTimeoutMinutes = source.SessionTimeoutMinutes,
+        InactivityTimeoutMinutes = source.InactivityTimeoutMinutes,
+        PasswordMinLength = source.PasswordMinLength,
+        RequireDigit = source.RequireDigit,
+        RequireSpecialChar = source.RequireSpecialChar,
+        SupportedCurrencies = new List<string>(source.SupportedCurrencies ?? new List<string>()),
+        AccountRecoveryContact = source.AccountRecoveryContact,
+        UpdatedAtUtc = source.UpdatedAtUtc,
+        UpdatedBy = source.UpdatedBy,
+        Version = source.Version
+    };
 
     public async Task<(bool Success, string Message, PlatformSettingsDto? Settings, string? ErrorCode)> UpdatePlatformSettingsAsync(UpdatePlatformSettingsRequest request, string currentUserName, CancellationToken cancellationToken = default)
     {
@@ -1125,6 +1156,8 @@ public class PlatformAdministrationService : IPlatformAdministrationService
                     UpdatedBy = setting.UpdatedBy,
                     Version = setting.Version
                 };
+
+                _memoryCache?.Set(PlatformSettingsCacheKey, ClonePlatformSettingsDto(copy), TimeSpan.FromSeconds(30));
 
                 return (true, "Platform settings updated successfully.", copy, (string?)null);
             }
