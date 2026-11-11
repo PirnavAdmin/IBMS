@@ -317,10 +317,28 @@
 .customer-detail-link { display: block; margin-top: 8px; font-size: 13px; }
 .customer-inactivity-reason { margin-top: 12px; padding: 12px; background: #f6f0fa; border-radius: 8px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; }
 .customer-inactivity-reason p { margin: 6px 0; }
-.customer-outstanding-invoices { min-width: 0; overflow-wrap: anywhere; text-align: left; white-space: normal; }
-.customer-outstanding-invoices ol { padding-left: 20px; }
-.customer-outstanding-invoices li { margin: 12px 0; }
-.customer-outstanding-invoices span { display: block; margin-top: 4px; font-size: 12px; }
+.customer-outstanding-invoices { width: 100%; min-width: 190px; max-height: 240px; overflow: auto; padding: 2px 8px 2px 2px; border: 1px solid #eadfd2; border-radius: 8px; background: #fffdf9; overflow-wrap: anywhere; text-align: left; white-space: normal; }
+.customer-outstanding-invoices ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.customer-outstanding-invoices li { display: grid; gap: 3px; margin: 0; padding: 9px 10px; border: 1px solid #eee2d5; border-radius: 7px; background: #fff; color: #685849; font-size: 12px; line-height: 1.4; }
+.customer-outstanding-invoices li strong { color: #51331f; font-size: 12px; overflow-wrap: anywhere; }
+.customer-outstanding-invoices li span { display: block; margin: 0; font-size: 11px; }
+.customers-page .customer-table .MuiTableCell-body:has(.customer-outstanding-invoices) { min-width: 250px; padding: 10px 12px; text-align: left; vertical-align: top; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTable-root { width: 100%; min-width: 1320px; table-layout: fixed; }
+.customers-page .customer-table.is-outstanding-view .MuiTableCell-root { box-sizing: border-box; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(1) { width: 11%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(2) { width: 19%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(3) { width: 9%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(4) { width: 13%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(5) { width: 17%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(6) { width: 14%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(7) { width: 9%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-head:nth-child(8) { width: 8%; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .MuiTableCell-root { padding: 12px 10px; vertical-align: middle; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .customer-code,
+.customers-page .customer-panel .customer-table.is-outstanding-view .customer-tax,
+.customers-page .customer-panel .customer-table.is-outstanding-view .customer-type,
+.customers-page .customer-panel .customer-table.is-outstanding-view .customer-balance { white-space: nowrap; overflow-wrap: normal; }
+.customers-page .customer-panel .customer-table.is-outstanding-view .customer-status-details { align-items: flex-start; }
 
 /* Compact directory with warm filters and readable contact columns. */
 .customers-page .customer-panel-heading { padding: 20px 22px 16px; }
