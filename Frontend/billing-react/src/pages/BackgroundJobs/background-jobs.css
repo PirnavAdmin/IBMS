@@ -33,9 +33,9 @@
 .export-job-list-heading .MuiTextField-root { min-width: 145px; }
 .background-jobs-table-scroll { width: 100%; overflow-x: auto; }
 .background-jobs-table { width: 100%; min-width: 900px; border-collapse: collapse; text-align: left; }
-.background-jobs-table th { padding: 12px 10px; color: var(--primary, #68462f); background: var(--bg-main, #f9f5ef); font-size: 12px; white-space: nowrap; }
+.background-jobs-table th { padding: 6px 10px; color: var(--primary, #68462f); background: var(--bg-main, #f9f5ef); font-size: 11px; white-space: nowrap; }
 .app-layout .export-job-list .background-jobs-table th:not([align="right"]):not(.MuiTableCell-alignRight):not(.numeric) { text-align: center; }
-.background-jobs-table td { padding: 13px 10px; border-top: 1px solid var(--border, #dccebf); font-size: 13px; vertical-align: middle; }
+.background-jobs-table td { padding: 5px 10px; border-top: 1px solid var(--border, #dccebf); font-size: 12.5px; line-height: 1.25; vertical-align: middle; }
 .background-jobs-table td:nth-child(4), .background-jobs-table td:nth-child(5), .background-jobs-table td:nth-child(6) { white-space: nowrap; }
 .background-jobs-table td:first-child { min-width: 160px; }
 .background-jobs-table td:first-child span { display: block; margin-top: 4px; color: var(--text-secondary, #806b5b); font-size: 12px; }

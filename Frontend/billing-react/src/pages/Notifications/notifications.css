@@ -101,7 +101,7 @@
 .notification-editor-toolbar > div { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .notification-toolbar-hint { color: #806B5B; font-size: 11px; margin-left: 6px; }
 .notification-subject-tooltip { overflow-wrap: anywhere; }
-.notification-page .notification-secondary { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.notification-page .notification-secondary { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .notification-form-actions { align-items: center; }
 .notification-page .notification-form-actions .ant-form-item { margin: 0 auto 0 0; }
 .notification-page .notification-form-actions .ant-form-item-row { display: flex; align-items: center; gap: 12px; }

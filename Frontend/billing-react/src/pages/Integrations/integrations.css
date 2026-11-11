@@ -27,8 +27,9 @@
 .integrations-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; }
 .integrations-table { width: 100%; min-width: 54rem; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
 .integrations-table th { text-align: left; color: var(--secondary); background: var(--bg-main); font-size: 12px; }
-.integrations-table th, .integrations-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; text-align: left; line-height: 1.4; }
-.integrations-table tbody tr { height: 58px; }
+.integrations-table th, .integrations-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; text-align: left; line-height: 1.25; font-size: 12.5px; }
+.integrations-table th { padding: 6px 10px; font-size: 11px; }
+.integrations-table tbody tr { min-height: 34px; }
 .integrations-table th:nth-child(1) { width: 20%; }
 .integrations-table th:nth-child(2) { width: 20%; }
 .integrations-table th:nth-child(3) { width: 11%; }

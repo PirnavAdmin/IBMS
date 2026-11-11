@@ -140,6 +140,16 @@ test('failed role lookup is explained without hiding successfully loaded users',
   try{assert.match(v.host.textContent,/Unable to load available roles/);assert.match(v.host.textContent,/Platform Admin/);assert.equal([...v.host.querySelectorAll('button')].find(button=>button.textContent==='Create Administrator').disabled,true);}finally{await v.close();Object.assign(api,originals);}
 });
 
+test('when platform users fail to load, only a single primary error card is rendered',async()=>{
+  const originals={users:api.users,roles:api.roles};api.users=async()=>{throw new Error('Network Error');};api.roles=async()=>{throw new Error('Network Error');};
+  const v=await mount(<PlatformUsers/>);
+  try{
+    assert.match(v.host.textContent,/Unable to load platform users/);
+    assert.doesNotMatch(v.host.textContent,/Unable to load available roles/);
+    assert.equal(v.host.querySelectorAll('[role="alert"]').length,1);
+  }finally{await v.close();Object.assign(api,originals);}
+});
+
 test('server field errors appear beside tenant inputs and preserve the draft',async()=>{
   const original=api.updateTenant;api.updateTenant=async()=>{throw {response:{status:400,data:{errors:{CompanyEmail:['This contact email is already in use.']}}}};};
   const v=await mount(<TenantEditor tenant={{id:4,name:'Acme',companyEmail:'acme@example.test'}} onClose={()=>{}}/>);
