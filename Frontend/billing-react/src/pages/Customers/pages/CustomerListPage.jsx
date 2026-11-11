@@ -311,7 +311,12 @@ export function CustomerListPage() {
   const [confirm, setConfirm] = useState(null);
   const [inactiveDetails, setInactiveDetails] = useState(null);
   const [reason, setReason] = useState("");
+  const [outstandingDetails, setOutstandingDetails] = useState(null);
   const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
+  const customerTableRef = useRef(null);
+  useEffect(() => {
+    if (cardView === "outstanding" && customerTableRef.current) customerTableRef.current.scrollLeft = 0;
+  }, [cardView]);
   const selectCard = (view) => {
     setSearch("");
     setUrl(view === "total" ? {} : view === "outstanding" ? { outstanding: "Has Outstanding" } : { status: view });
@@ -578,7 +583,7 @@ export function CustomerListPage() {
           </div>
         ) : (
           <>
-            <TableContainer className={`ibms-table-frame customer-table${cardView === "inactive" ? " is-inactive-view" : ""}`}>
+            <TableContainer ref={customerTableRef} className={`ibms-table-frame customer-table${cardView === "inactive" ? " is-inactive-view" : ""}${cardView === "outstanding" ? " is-outstanding-view" : ""}`}>
               <Table size="small" aria-label="Customer directory">
                 <TableHead>
                   <TableRow>
@@ -699,7 +704,6 @@ export function CustomerListPage() {
                             customer.currency
                           )}
                         </strong>
-                        {cardView === "outstanding" && <CustomerCardDetails customerId={customer.id} view="outstanding" />}
                       </TableCell>
                       <TableCell data-label="Status">
                         <div className="customer-status-details">
@@ -713,6 +717,16 @@ export function CustomerListPage() {
                               onClick={() => setInactiveDetails(customer)}
                             >
                               View reason
+                            </Button>
+                          )}
+                          {cardView === "outstanding" && (
+                            <Button
+                              className="customer-reason-trigger"
+                              size="small"
+                              aria-haspopup="dialog"
+                              onClick={() => setOutstandingDetails(customer)}
+                            >
+                              View outstanding
                             </Button>
                           )}
                         </div>
@@ -765,6 +779,26 @@ export function CustomerListPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setInactiveDetails(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        className="customer-reason-dialog customer-outstanding-dialog"
+        open={!!outstandingDetails}
+        onClose={() => setOutstandingDetails(null)}
+        aria-labelledby="customer-outstanding-title"
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle id="customer-outstanding-title">Outstanding invoices</DialogTitle>
+        <DialogContent>
+          <div className="customer-reason-profile">
+            <strong>{outstandingDetails?.name}</strong>
+            <span>{outstandingDetails?.customerCode}</span>
+          </div>
+          {outstandingDetails && <CustomerCardDetails key={outstandingDetails.id} customerId={outstandingDetails.id} view="outstanding" />}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOutstandingDetails(null)}>Close</Button>
         </DialogActions>
       </Dialog>
       <Dialog
