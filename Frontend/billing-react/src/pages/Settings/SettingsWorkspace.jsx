@@ -10,6 +10,7 @@ const sections = [
   ['/settings/charges', 'Charges'],
   ['/settings/numbering', 'Invoice Numbering'],
   ['/settings/notifications', 'Notifications'],
+  ['/settings/reminders', 'Reminders'],
   ['/settings/countries', 'Countries'],
 ];
 

@@ -38,6 +38,7 @@ const NotificationHistory = lazyPage(() => import('../pages/Notifications/Notifi
 const DiscountConfiguration = lazyPage(() => import('../pages/Settings/DiscountConfiguration'), 'DiscountConfiguration');
 const ChargesConfiguration = lazyPage(() => import('../pages/Settings/ChargesConfiguration'), 'ChargesConfiguration');
 const CountryConfiguration = lazyPage(() => import('../pages/Settings/CountryConfiguration'), 'CountryConfiguration');
+const ReminderSettings = lazyPage(() => import('../pages/Settings/ReminderSettings'), 'ReminderSettings');
 const Payments = lazyPage(() => import('../pages/Payments/Payments'), 'Payments');
 const RecordPayment = lazyPage(() => import('../pages/Payments/RecordPayment'), 'RecordPayment');
 const PaymentDetails = lazyPage(() => import('../pages/Payments/PaymentDetails'), 'PaymentDetails');
@@ -177,6 +178,7 @@ export const AppRoutes = () => (
       <Route path="/settings/notifications/new" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationHistory /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/reminders" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ReminderSettings /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><CountryConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><Taxes embedded /></SettingsWorkspace></PermissionRoute>} />

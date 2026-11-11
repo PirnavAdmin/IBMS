@@ -378,16 +378,26 @@ public class InvoiceService : IInvoiceService
         return ApiResponse<Invoice>.Ok(invoice, "Invoice voided successfully.");
     }
 
-    public async Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId, string? userName = null, bool? allowPartialPayments = null)
+    public Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId, string? userName = null, bool? allowPartialPayments = null)
+        => DeliverInvoiceAsync(id, tenantId, userName, allowPartialPayments, includePayOnlineButton: true);
+
+    public async Task<ApiResponse<bool>> DeliverInvoiceAsync(int id, int tenantId, string? userName, bool? allowPartialPayments, bool includePayOnlineButton)
     {
         var invoice = await _invoiceRepository.GetByIdAsync(id, tenantId);
         if (invoice == null) return ApiResponse<bool>.Fail("Invoice not found.");
         if (invoice.Status == "Draft" || invoice.Status == "Cancelled" || invoice.Status == "Voided") 
             return ApiResponse<bool>.Fail("Invoice cannot be delivered in its current state.");
 
-        if (allowPartialPayments.HasValue)
+        var payOnlineChoiceChanged = invoice.IncludePayOnlineButton != includePayOnlineButton;
+        invoice.IncludePayOnlineButton = includePayOnlineButton;
+
+        if ((includePayOnlineButton && allowPartialPayments.HasValue) || payOnlineChoiceChanged)
         {
-            invoice.AllowPartialPayments = allowPartialPayments.Value;
+            if (includePayOnlineButton && allowPartialPayments.HasValue)
+            {
+                invoice.AllowPartialPayments = allowPartialPayments.Value;
+            }
+            invoice.UpdatedAtUtc = DateTime.UtcNow;
             await _invoiceRepository.UpdateAsync(invoice);
         }
 
@@ -399,7 +409,12 @@ public class InvoiceService : IInvoiceService
         string fileName = $"{invoice.InvoiceNumber}.pdf";
         try 
         {
-            var pdfRequest = new Billing.Contracts.InvoiceTemplate.GenerateInvoicePdfRequest { InvoiceId = invoice.Id };
+            var pdfRequest = new Billing.Contracts.InvoiceTemplate.GenerateInvoicePdfRequest
+            {
+                InvoiceId = invoice.Id,
+                ForceRegenerate = true,
+                IncludePayOnlineLink = includePayOnlineButton
+            };
             var pdfResponse = await _templateService.GenerateInvoicePdfAsync(pdfRequest, tenantId, userName ?? "System");
             var fileData = await _templateService.GetInvoicePdfAsync(pdfResponse.InvoiceId, tenantId);
             pdfBytes = fileData.FileBytes;
@@ -421,7 +436,8 @@ public class InvoiceService : IInvoiceService
                 "InvoiceSent",
                 userName,
                 pdfBytes,
-                fileName);
+                fileName,
+                includePayOnlineButton);
 
             if (!notifResult.Success)
             {

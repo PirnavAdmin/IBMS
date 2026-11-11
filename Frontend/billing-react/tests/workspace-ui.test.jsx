@@ -30,6 +30,7 @@ import { Simulate } from 'react-dom/test-utils';
 import { MemoryRouter, Route, Routes, Link, useLocation } from 'react-router-dom';
 import { apiClient, authApi, customerApi } from 'billing-api-client';
 import { CountryConfiguration } from '../src/pages/Settings/CountryConfiguration';
+import { ReminderSettings, validateReminderSettings } from '../src/pages/Settings/ReminderSettings';
 import { SettingsWorkspace } from '../src/pages/Settings/SettingsWorkspace';
 import { SettingsLanding } from '../src/pages/Settings/SettingsLanding';
 import { COUNTRIES_LIST } from '../src/services/regionalSettingsService';
@@ -249,10 +250,14 @@ test('Settings workspace uses route-aware tabs and preserves access to all confi
   const ui = await mount(<SettingsWorkspace><p>Existing settings form</p></SettingsWorkspace>, '/settings/notifications/history');
   try {
     const tabs = [...ui.host.querySelectorAll('[role="tab"]')];
-    assert.equal(tabs.length, 6);
+    assert.equal(tabs.length, 7);
     assert.equal(ui.host.querySelector('[aria-selected="true"]').textContent, 'Notifications');
     assert.equal(ui.host.querySelector('.settings-nav-card'), null);
     assert.match(ui.host.querySelector('[role="tabpanel"]').textContent, /Existing settings form/);
+    const reminders = tabs.find(tab => tab.textContent === 'Reminders');
+    await click(reminders);
+    assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/reminders');
+    assert.equal(reminders.getAttribute('aria-selected'), 'true');
     const country = tabs.find(tab => tab.textContent === 'Countries');
     await click(country);
     assert.equal(ui.host.querySelector('[data-location]').textContent, '/settings/countries');
@@ -1284,5 +1289,64 @@ test('Customer edit keeps PAN-only and explicit unregistered records non-GST whi
       assert.equal(ui.host.querySelector('#customer-gstin').disabled,!gst);
       assert.equal(ui.host.querySelector('#customer-pan').value,'ABCDE1234F');
     } finally {await ui.close();}
+  }
+});
+
+test('ReminderSettings loads tenant defaults, validates intervals and saves updated schedule to backend', async () => {
+  const originalGet = apiClient.get;
+  const originalPut = apiClient.put;
+  const calls = [];
+  apiClient.get = async (url) => {
+    calls.push({ method: 'GET', url });
+    return {
+      success: true,
+      data: {
+        tenantId: 2,
+        partialPaymentReminderEnabled: true,
+        partialPaymentIntervalValue: 7,
+        partialPaymentIntervalUnit: 'Days',
+        overdueReminderEnabled: true,
+        overdueReminderIntervalDays: 1,
+        upcomingDueReminderEnabled: true,
+      },
+    };
+  };
+  apiClient.put = async (url, payload) => {
+    calls.push({ method: 'PUT', url, payload });
+    return { success: true, data: { tenantId: 2, ...payload } };
+  };
+
+  assert.ok(validateReminderSettings({ partialPaymentIntervalValue: 0, partialPaymentIntervalUnit: 'Days', overdueReminderIntervalDays: 1 }).partialPaymentIntervalValue);
+  assert.deepEqual(validateReminderSettings({ partialPaymentIntervalValue: 7, partialPaymentIntervalUnit: 'Days', overdueReminderIntervalDays: 1 }), {});
+
+  const ui = await mount(<ReminderSettings />, '/settings/reminders');
+  try {
+    await settle();
+    assert.equal(calls[0].url, '/api/v1/settings/reminders');
+    const partialInput = ui.host.querySelector('input[aria-label="Partial payment interval value"]');
+    const overdueInput = ui.host.querySelector('input[aria-label="Overdue interval days"]');
+    assert.equal(partialInput.value, '7');
+    assert.equal(overdueInput.value, '1');
+    assert.equal(button(ui.host, 'Save Changes').disabled, true);
+
+    await act(async () => {
+      Simulate.change(partialInput, { target: { value: '14' } });
+      Simulate.change(overdueInput, { target: { value: '2' } });
+    });
+    await settle();
+    assert.equal(button(ui.host, 'Save Changes').disabled, false);
+
+    await click(button(ui.host, 'Save Changes'));
+    await settle();
+    const putCall = calls.find((c) => c.method === 'PUT');
+    assert.ok(putCall);
+    assert.equal(putCall.url, '/api/v1/settings/reminders');
+    assert.equal(putCall.payload.partialPaymentIntervalValue, 14);
+    assert.equal(putCall.payload.partialPaymentIntervalUnit, 'Days');
+    assert.equal(putCall.payload.overdueReminderIntervalDays, 2);
+  } finally {
+    await ui.close();
+    apiClient.get = originalGet;
+    apiClient.put = originalPut;
   }
 });

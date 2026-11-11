@@ -123,7 +123,14 @@ public class OverdueInvoiceJobService : IOverdueInvoiceJobService
                     {
                         try
                         {
-                            await _notificationService.SendInvoiceNotificationAsync(invoice.Id, tId, "InvoiceOverdue", "SystemWorker");
+                            if (invoice.IncludePayOnlineButton)
+                            {
+                                await _notificationService.SendInvoiceNotificationAsync(invoice.Id, tId, "InvoiceOverdue", "SystemWorker");
+                            }
+                            else
+                            {
+                                await _notificationService.SendInvoiceNotificationAsync(invoice.Id, tId, "InvoiceOverdue", "SystemWorker", null, null, false);
+                            }
                         }
                         catch (Exception ex)
                         {

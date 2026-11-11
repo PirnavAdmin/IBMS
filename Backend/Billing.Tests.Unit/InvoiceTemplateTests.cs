@@ -651,4 +651,59 @@ public class InvoiceTemplateTests
         Assert.NotNull(bytes);
         Assert.NotEmpty(bytes);
     }
+
+    [Fact]
+    public void QuestPdfEngine_IncludePayOnlineLinkToggle_ControlsPayOnlineUriInGeneratedPdf()
+    {
+        var template = new TemplateVersionDto
+        {
+            Branding = new BrandingConfigDto { PrimaryColor = "#6B2E0C", SecondaryColor = "#F7EDE5" },
+            CompanyDetails = new CompanyDetailsConfigDto { CompanyName = "Pirnav Software Solutions Pvt. Ltd.", Country = "India" },
+            Layout = new LayoutConfigDto
+            {
+                UsePirnavStandardLayout = false,
+                ShowHeader = true,
+                ShowFooter = true,
+                ShowPaymentInstructions = true,
+                ShowTermsAndConditions = true,
+                CurrencyCode = "INR",
+                CurrencySymbol = "₹",
+                MarginTopMm = 12,
+                MarginBottomMm = 12,
+                MarginLeftMm = 14,
+                MarginRightMm = 14
+            },
+            PaymentInstructions = new PaymentInstructionsConfigDto { BankName = "HDFC Bank", AccountNumber = "123456", UpiId = "pirnav@upi" },
+            Terms = new TermsConfigDto { TermsAndConditions = "Pay in 30 days.", FooterNote = "Generated invoice" }
+        };
+
+        InvoiceSnapshotDto CreateSnapshot(bool includePayOnlineLink) => new()
+        {
+            InvoiceId = 49,
+            TenantId = 2,
+            InvoiceNumber = "INV-2026-11-000049",
+            IssueDate = new DateTime(2026, 11, 10),
+            DueDate = new DateTime(2026, 12, 10),
+            Status = "Issued",
+            Currency = "INR",
+            CurrencySymbol = "₹",
+            IncludePayOnlineLink = includePayOnlineLink,
+            Customer = new CustomerSnapshotDto { CustomerId = 31, CustomerName = "Pratap", CustomerCode = "CUST-027", BillingAddress = "Hyderabad" },
+            Items = new List<InvoiceItemSnapshotDto>
+            {
+                new() { ItemId = 1, ItemName = "Service", Description = "Service", Quantity = 1, Unit = "Job", UnitPrice = 1000, TaxRatePercent = 18, TaxAmount = 180, LineTotal = 1180 }
+            },
+            Subtotal = 1000,
+            TotalTax = 180,
+            GrandTotal = 1180,
+            AmountPaid = 0,
+            BalanceDue = 1180
+        };
+
+        var pdfWithLink = Encoding.Latin1.GetString(_pdfEngine.GenerateInvoicePdf(CreateSnapshot(true), template));
+        var pdfWithoutLink = Encoding.Latin1.GetString(_pdfEngine.GenerateInvoicePdf(CreateSnapshot(false), template));
+
+        Assert.Contains("/pay/49?tenantId=2", pdfWithLink);
+        Assert.DoesNotContain("/pay/49?tenantId=2", pdfWithoutLink);
+    }
 }

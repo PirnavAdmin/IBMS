@@ -7,6 +7,7 @@ using Billing.Application;
 using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
+using Billing.Contracts.Platform;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
 using Billing.Infrastructure.Services;
@@ -159,7 +160,8 @@ builder.Services.AddScoped<ITaxCalculationService, TaxCalculationService>();
 builder.Services.AddScoped<IChargeSettingService, ChargeSettingService>();
 builder.Services.AddScoped<IChargeCalculationService, ChargeCalculationService>();
 builder.Services.AddScoped<INumberingSettingService, NumberingSettingService>();
-builder.Services.AddScoped<ICountrySettingService, CountrySettingService>();
+builder.Services.AddScoped<ICountrySettingService, CountrySettingService>();
+builder.Services.AddScoped<IReminderSettingService, ReminderSettingService>();
 builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
 builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<LandingPageService>();
@@ -229,7 +231,8 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ITaxRepository, TaxRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
-builder.Services.AddScoped<ICountrySettingRepository, CountrySettingRepository>();
+builder.Services.AddScoped<ICountrySettingRepository, CountrySettingRepository>();
+builder.Services.AddScoped<IReminderSettingRepository, ReminderSettingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IInvoiceCommunicationRepository, InvoiceCommunicationRepository>();
@@ -337,76 +340,64 @@ builder.Services.AddAuthentication(options =>
             var session =
                 await userSessionRepo.GetByIdAsync(sessionId);
 
-            if (session == null)
-            {
-                context.Fail("Session not found.");
-                return;
-            }
-
-            // Check revoked session
-            if (session.IsRevoked)
-            {
-                context.Fail("Session has been revoked.");
-                return;
-            }
-
-            // Check session expiration
-            if (session.SessionExpiresAtUtc <= DateTime.UtcNow)
-            {
-                context.Fail("Session has expired.");
-                return;
-            }
-
-            // Check inactive or suspended tenant organization
-            var sessionTenant = session.User?.Tenant;
-            if (sessionTenant != null && (!sessionTenant.IsActive ||
-                string.Equals(sessionTenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(sessionTenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase)))
-            {
-                await userSessionRepo.RevokeSessionAsync(sessionId, "Tenant organization is inactive or suspended");
-                context.Fail("Tenant organization is inactive or suspended.");
-                return;
-            }
-
             // =================================================
-            // Inactivity timeout (dynamically bound to Platform Settings)
+            // Session & inactivity policy (dynamically bound to Platform Settings)
             // =================================================
-            int effectiveInactivityMinutes = jwtSettings.InactivityTimeoutMinutes;
+            PlatformSettingsDto? settings = null;
             try
             {
                 var platformService = context.HttpContext.RequestServices.GetService<IPlatformAdministrationService>();
                 if (platformService != null)
                 {
-                    var settings = await platformService.GetPlatformSettingsAsync();
-                    if (settings.InactivityTimeoutMinutes > 0)
-                    {
-                        effectiveInactivityMinutes = settings.InactivityTimeoutMinutes;
-                    }
+                    settings = await platformService.GetPlatformSettingsAsync();
                 }
             }
             catch { }
 
-            if (effectiveInactivityMinutes > 0 &&
-                (DateTime.UtcNow - session.LastActivityAtUtc)
-                    .TotalMinutes >
-                effectiveInactivityMinutes)
+            var bgHeader = context.Request.Headers["X-Background-Poll"].ToString();
+            var isBackgroundPoll = string.Equals(bgHeader, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(bgHeader, "1", StringComparison.OrdinalIgnoreCase);
+
+            var evaluation = SessionPolicy.EvaluateSession(
+                session,
+                settings,
+                jwtSettings,
+                DateTime.UtcNow,
+                isBackgroundPoll);
+
+            switch (evaluation.Status)
             {
-                await userSessionRepo.RevokeSessionAsync(
-                    sessionId,
-                    "Session expired due to inactivity"
-                );
+                case SessionValidationStatus.NotFound:
+                case SessionValidationStatus.Revoked:
+                case SessionValidationStatus.Expired:
+                    context.Fail(evaluation.FailureReason ?? "Session is invalid.");
+                    return;
 
-                context.Fail(
-                    "Session has expired due to inactivity."
-                );
+                case SessionValidationStatus.InactivityExpired:
+                    await userSessionRepo.RevokeSessionAsync(
+                        sessionId,
+                        "Session expired due to inactivity"
+                    );
+                    context.Fail(evaluation.FailureReason ?? "Session has expired due to inactivity.");
+                    return;
 
-                return;
+                case SessionValidationStatus.Valid:
+                    // Check inactive or suspended tenant organization
+                    var sessionTenant = session?.User?.Tenant;
+                    if (sessionTenant != null && (!sessionTenant.IsActive ||
+                        string.Equals(sessionTenant.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(sessionTenant.Status, "Suspended", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        await userSessionRepo.RevokeSessionAsync(sessionId, "Tenant organization is inactive or suspended");
+                        context.Fail("Tenant organization is inactive or suspended.");
+                        return;
+                    }
+                    if (evaluation.ShouldUpdateActivity)
+                    {
+                        await userSessionRepo.UpdateActivityAsync(sessionId, evaluation.SlidingExpiryUtc);
+                    }
+                    return;
             }
-
-            // =================================================
-            // Update last activity
-            // =================================================
-            await userSessionRepo.UpdateActivityAsync(sessionId);
         }
     };
 });

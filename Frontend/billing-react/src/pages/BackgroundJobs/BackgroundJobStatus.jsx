@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -53,14 +53,19 @@ export function BackgroundJobStatus() {
     staleTime: 60000,
   });
   const allowed = backgroundJobAccess(user.data);
+  const manualRefresh = useRef(true);
   const query = useQuery({
     queryKey: ['background-job-status'],
-    queryFn: ({ signal }) => backgroundJobService.getStatuses(signal),
+    queryFn: ({ signal }) => {
+      const manual = manualRefresh.current;
+      manualRefresh.current = false;
+      return backgroundJobService.getStatuses(signal, manual ? undefined : { backgroundPoll: true });
+    },
     enabled: allowed,
     retry: false,
     refetchInterval: 10000,
   });
-  const refresh = () => { void query.refetch(); };
+  const refresh = () => { manualRefresh.current = true; void query.refetch(); };
 
   return <main className="background-jobs-page">
     <header className="background-jobs-heading">

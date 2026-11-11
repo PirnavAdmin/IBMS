@@ -132,13 +132,12 @@ export function CreditNoteList() {
       <section className="cn-list-panel" id="credit-note-register" tabIndex={-1}>
         <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div></div>
         <div className="cn-filter-bar">
-          <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason' }} />
+          <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onFocus={() => { if (searchInput) { setSearchInput(''); setSearch(''); setPage(0); } }} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason', autoComplete: 'off', name: 'credit-note-register-search' }} />
           <FilterSelectField select size="small" label="Status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All Statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
           <FilterSelectField select size="small" label="Credit type" value={type} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
           <DateRangeFilter placement="topRight" startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
         </div>
-        {statusMenuOpen && <div className="cn-status-menu-space" aria-hidden="true" />}
         {!query.isPending && !query.isFetching && !query.isError && items.length === 0 ? (
           <div className="cn-empty-state">
             <span className="cn-empty-state-icon"><ReceiptLongOutlined /></span>

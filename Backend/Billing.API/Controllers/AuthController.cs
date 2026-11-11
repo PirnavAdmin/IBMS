@@ -44,8 +44,15 @@ public class AuthController : ControllerBase
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = Request.Headers.UserAgent.ToString();
+        var backgroundHeader = Request.Headers["X-Background-Poll"].ToString();
+        var isBackgroundPoll = string.Equals(backgroundHeader, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(backgroundHeader, "1", StringComparison.OrdinalIgnoreCase);
 
-        var response = await _authService.RefreshTokenAsync(request.RefreshToken, ipAddress, userAgent);
+        var response = await _authService.RefreshTokenAsync(
+            request.RefreshToken,
+            ipAddress,
+            userAgent,
+            preserveLastActivity: isBackgroundPoll);
 
         if (!response.Success)
         {

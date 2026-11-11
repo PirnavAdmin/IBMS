@@ -306,6 +306,7 @@ public class GenerateInvoicePdfRequest
     public int InvoiceId { get; set; }
     public int? OverrideTemplateId { get; set; }
     public bool ForceRegenerate { get; set; }
+    public bool? IncludePayOnlineLink { get; set; }
 }
 
 public class InvoicePdfResponse
@@ -355,6 +356,7 @@ public class InvoiceSnapshotDto
     public string Currency { get; set; } = "INR";
     public string CurrencySymbol { get; set; } = "₹";
     public string DocumentType { get; set; } = "Invoice";
+    public bool IncludePayOnlineLink { get; set; } = true;
     public string DocumentTitle => string.IsNullOrWhiteSpace(DocumentType) ? "INVOICE" : DocumentType.ToUpperInvariant();
     public string DocumentNumberLabel => DocumentType switch
     {

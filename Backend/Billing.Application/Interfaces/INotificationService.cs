@@ -6,6 +6,9 @@ namespace Billing.Application.Interfaces;
 public interface INotificationService
 {
     Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(int invoiceId, int tenantId, string eventType = "InvoiceSent", string? userName = null, byte[]? pdfBytes = null, string? pdfFileName = null);
+
+    Task<ApiResponse<NotificationLogDto>> SendInvoiceNotificationAsync(int invoiceId, int tenantId, string eventType, string? userName, byte[]? pdfBytes, string? pdfFileName, bool includePayOnlineButton)
+        => SendInvoiceNotificationAsync(invoiceId, tenantId, eventType, userName, pdfBytes, pdfFileName);
     Task<ApiResponse<NotificationLogDto>> SendPaymentNotificationAsync(int paymentId, int tenantId, string eventType = "PaymentReceived", string? userName = null);
     Task<ApiResponse<NotificationLogDto>> SendQuotationNotificationAsync(int quotationId, int tenantId, string? userName = null, byte[]? pdfBytes = null, string? pdfFileName = null);
     Task<ApiResponse<NotificationLogDto>> SendCreditNoteNotificationAsync(int creditNoteId, int tenantId, string? userName = null, byte[]? pdfBytes = null, string? pdfFileName = null);

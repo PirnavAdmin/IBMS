@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { PageLoading } from '../components/PageLoading';
-import { apiClient } from 'billing-api-client';
+import { apiClient, clearAuthStorage, recordUserActivity } from 'billing-api-client';
 import { queryClient } from '../queryClient';
 import { errorPresentation } from '../utils/errorPresentation';
 import { transportErrorMessage } from '../../../billing-api-client/transportError.js';
@@ -37,6 +37,7 @@ export function ProtectedRoute({ children }) {
           throw new Error('The server returned an invalid session response. Please try again.');
         }
         localStorage.setItem('billing_auth_user', JSON.stringify(profile));
+        recordUserActivity();
         queryClient.setQueryData(['auth-user'], response);
         queryClient.setQueryData(['payment-user'], response);
         setValidation({ token, attempt, status: 'authenticated' });
@@ -44,8 +45,7 @@ export function ProtectedRoute({ children }) {
       .catch(error => {
         if (!current()) return;
         if (!transportErrorMessage(error) && [401, 403, 404].includes(error?.response?.status)) {
-          localStorage.removeItem('billing_auth_token');
-          localStorage.removeItem('billing_auth_user');
+          clearAuthStorage();
           queryClient.clear();
           setValidation({ token, attempt, status: 'invalid' });
         } else {
@@ -58,7 +58,7 @@ export function ProtectedRoute({ children }) {
   if (!token) return <Navigate to="/login" replace state={{ from: location }} />;
   const status = validation?.token === token && validation?.attempt === attempt ? validation.status : 'checking';
   if (status === 'authenticated') return children;
-  if (status === 'invalid') return <Navigate to="/login" replace state={{ from: location }} />;
+  if (status === 'invalid') return <Navigate to="/login?reason=session-expired" replace state={{ from: location }} />;
   if (status !== 'error') return <PageLoading />;
   return <main className="protected-route-state">
     <section role="alert">

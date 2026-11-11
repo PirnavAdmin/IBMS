@@ -10,7 +10,7 @@ public class JwtSettings
 
     public string Audience { get; set; } = "IBMS.Billing.Client";
 
-    public int AccessTokenExpirationMinutes { get; set; } = 15;
+    public int AccessTokenExpirationMinutes { get; set; } = 60;
 
     public int RefreshTokenExpirationDays { get; set; } = 7;
 

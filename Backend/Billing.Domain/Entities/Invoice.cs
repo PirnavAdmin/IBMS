@@ -42,6 +42,8 @@ public class Invoice
 
     public bool AllowPartialPayments { get; set; } = true;
 
+    public bool IncludePayOnlineButton { get; set; } = true;
+
     public string? Notes { get; set; }
 
     public string? TermsAndConditions { get; set; }

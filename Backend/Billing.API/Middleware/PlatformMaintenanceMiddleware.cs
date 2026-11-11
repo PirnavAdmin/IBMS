@@ -29,6 +29,7 @@ public class PlatformMaintenanceMiddleware
         // Exempt routes: platform administration, auth login, swagger, root redirect, health checks
         if (path.StartsWith("/api/v1/platform", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/Auth/login", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
             path.Equals("/", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/health", StringComparison.OrdinalIgnoreCase))

@@ -39,7 +39,7 @@ export const parseLoginResponse = (response) => {
   const token = raw.token || raw.accessToken || raw.jwt || raw.bearerToken || null;
   const user = raw.user || raw.userInfo || (raw.email ? { email: raw.email, name: raw.name || raw.userName } : null);
   const refreshToken = raw.refreshToken || null;
-  const expiration = raw.expiration || raw.expiresAt || null;
+  const expiration = raw.expiration || raw.expiresAt || raw.expiresAtUtc || null;
 
   return {
     token,

@@ -144,6 +144,45 @@ public class InvoicePdfRetrievalTests
         _documents.Verify(r => r.AddAsync(It.IsAny<GeneratedDocument>()), Times.Once);
     }
 
+    [Fact]
+    public async Task DeliverInvoice_WithPayOnlineDisabled_ForcesRegenerationWithoutPayOnlineLinkAndDoesNotEnablePartialPayments()
+    {
+        SetExistingDocument("Generated");
+        var testInvoice = new Invoice
+        {
+            Id = InvoiceId,
+            TenantId = TenantId,
+            InvoiceNumber = "INV-101",
+            Status = "Issued",
+            AllowPartialPayments = false,
+            Customer = new Customer { Name = "Customer", Email = "customer@example.com" }
+        };
+        _invoices.Setup(r => r.GetByIdAsync(InvoiceId, TenantId)).ReturnsAsync(testInvoice);
+
+        var email = new Mock<IEmailService>();
+        var notification = new Mock<INotificationService>();
+        notification.Setup(n => n.SendInvoiceNotificationAsync(
+                InvoiceId, TenantId, "InvoiceSent", "Acme Admin", _bytes, "INV-101.pdf", false))
+            .ReturnsAsync(Billing.Contracts.ApiResponse<Billing.Contracts.Notification.NotificationLogDto>.Ok(new()));
+
+        var delivery = new InvoiceService(_invoices.Object, Mock.Of<INumberGenerationService>(),
+            Mock.Of<IFinancialCalculationEngine>(), Mock.Of<IUnitOfWork>(), _audit.Object,
+            email.Object, Mock.Of<IInvoiceCommunicationRepository>(), _service, notificationService: notification.Object);
+
+        var result = await delivery.DeliverInvoiceAsync(InvoiceId, TenantId, "Acme Admin", allowPartialPayments: true, includePayOnlineButton: false);
+
+        Assert.True(result.Success);
+        Assert.False(testInvoice.AllowPartialPayments);
+        Assert.False(testInvoice.IncludePayOnlineButton);
+        Assert.Equal("Sent", testInvoice.Status);
+        _engine.Verify(e => e.GenerateInvoicePdf(
+            It.Is<InvoiceSnapshotDto>(s => !s.IncludePayOnlineLink),
+            It.IsAny<TemplateVersionDto>()), Times.Once);
+        notification.Verify(n => n.SendInvoiceNotificationAsync(
+            InvoiceId, TenantId, "InvoiceSent", "Acme Admin", _bytes, "INV-101.pdf", false), Times.Once);
+        _invoices.Verify(r => r.UpdateAsync(testInvoice, default), Times.AtLeastOnce);
+    }
+
     private void SetExistingDocument(string status)
     {
         _document = new GeneratedDocument

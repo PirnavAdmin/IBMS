@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Billing.Application.Interfaces;
+using Billing.Contracts;
 using Billing.Contracts.BackgroundJobs;
 using Billing.Contracts.Notification;
 using Billing.Contracts.Payment;
@@ -39,6 +40,7 @@ public class ReminderJobService : IReminderJobService
     private readonly IInvoiceCommunicationRepository _communicationRepository;
     private readonly IPaymentRepository? _paymentRepository;
     private readonly PartialPaymentReminderOptions? _options;
+    private readonly IReminderSettingRepository? _settingRepository;
     private readonly ILogger<ReminderJobService> _logger;
 
     public ReminderJobService(
@@ -49,7 +51,8 @@ public class ReminderJobService : IReminderJobService
         IInvoiceCommunicationRepository communicationRepository,
         ILogger<ReminderJobService> logger,
         IPaymentRepository? paymentRepository = null,
-        PartialPaymentReminderOptions? options = null)
+        PartialPaymentReminderOptions? options = null,
+        IReminderSettingRepository? settingRepository = null)
     {
         _invoiceRepository = invoiceRepository;
         _tenantRepository = tenantRepository;
@@ -59,6 +62,7 @@ public class ReminderJobService : IReminderJobService
         _logger = logger;
         _paymentRepository = paymentRepository;
         _options = options;
+        _settingRepository = settingRepository;
     }
 
     public async Task<JobExecutionResultDto> ProcessPaymentRemindersAsync(int? tenantId = null, CancellationToken cancellationToken = default)
@@ -88,6 +92,18 @@ public class ReminderJobService : IReminderJobService
             {
                 if (cancellationToken.IsCancellationRequested) break;
 
+                ReminderSetting? tenantSettings = null;
+                if (_settingRepository != null)
+                {
+                    tenantSettings = await _settingRepository.GetOrCreateAsync(tId, cancellationToken);
+                }
+
+                var upcomingEnabled = tenantSettings?.UpcomingDueReminderEnabled ?? true;
+                var overdueEnabled = tenantSettings?.OverdueReminderEnabled ?? true;
+                var overdueIntervalDays = tenantSettings != null
+                    ? Math.Max(1, tenantSettings.OverdueReminderIntervalDays)
+                    : 7;
+
                 var invoices = await _invoiceRepository.GetAllAsync(tId);
                 var activeInvoices = invoices.Where(i =>
                     i.DueDate.HasValue &&
@@ -108,17 +124,22 @@ public class ReminderJobService : IReminderJobService
                     var daysUntilDue = (int)(dueDate - today).TotalDays;
 
                     // Trigger conditions:
-                    // 1. Due in 3 days (daysUntilDue == 3)
-                    // 2. Due in 1 day (daysUntilDue == 1)
-                    // 3. Due today (daysUntilDue == 0)
-                    // 4. Overdue (daysUntilDue < 0)
-                    bool isReminderCandidate = (daysUntilDue == 3 || daysUntilDue == 1 || daysUntilDue == 0 || daysUntilDue < 0);
-                    if (!isReminderCandidate) continue;
+                    // 1. Overdue (daysUntilDue < 0)
+                    // 2. Upcoming/Due today (daysUntilDue == 3 || 1 || 0)
+                    bool isOverdue = daysUntilDue < 0;
+                    bool isUpcomingOrDue = daysUntilDue == 3 || daysUntilDue == 1 || daysUntilDue == 0;
 
-                    string eventType = daysUntilDue < 0 ? "InvoiceOverdue" : "PaymentReminder";
+                    if (isOverdue && !overdueEnabled) continue;
+                    if (isUpcomingOrDue && !upcomingEnabled) continue;
+                    if (!isOverdue && !isUpcomingOrDue) continue;
 
-                    // Check if a reminder was already sent recently (same day for upcoming, within 7 days for overdue)
-                    var logCheckStartDate = daysUntilDue < 0 ? today.AddDays(-7) : today;
+                    string eventType = isOverdue ? "InvoiceOverdue" : "PaymentReminder";
+
+                    // Overdue check: when interval = 1 day, check today; when N days, check rolling (N-1) prior days + today.
+                    var logCheckStartDate = isOverdue
+                        ? (tenantSettings != null ? today.AddDays(-(overdueIntervalDays - 1)) : today.AddDays(-7))
+                        : today;
+
                     var existingLogs = await _notificationLogRepository.QueryLogsAsync(tId, new NotificationLogQueryParameters
                     {
                         EntityType = "Invoice",
@@ -139,11 +160,7 @@ public class ReminderJobService : IReminderJobService
 
                     try
                     {
-                        var sendResult = await _notificationService.SendInvoiceNotificationAsync(
-                            invoice.Id,
-                            tId,
-                            eventType,
-                            "SystemReminderJob");
+                        var sendResult = await DispatchInvoiceReminderAsync(invoice, tId, eventType);
 
                         if (sendResult.Success)
                         {
@@ -169,7 +186,7 @@ public class ReminderJobService : IReminderJobService
                     }
                 }
 
-                remindersSent += await ProcessPartialPaymentRemindersAsync(tId, invoices, DateTime.UtcNow, cancellationToken);
+                remindersSent += await ProcessPartialPaymentRemindersAsync(tId, invoices, DateTime.UtcNow, tenantSettings, cancellationToken);
             }
 
             sw.Stop();
@@ -203,28 +220,44 @@ public class ReminderJobService : IReminderJobService
     private static DateTime NormalizeUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
+    private Task<ApiResponse<NotificationLogDto>> DispatchInvoiceReminderAsync(Invoice invoice, int tenantId, string eventType)
+    {
+        return invoice.IncludePayOnlineButton
+            ? _notificationService.SendInvoiceNotificationAsync(invoice.Id, tenantId, eventType, "SystemReminderJob")
+            : _notificationService.SendInvoiceNotificationAsync(invoice.Id, tenantId, eventType, "SystemReminderJob", null, null, false);
+    }
+
     private async Task<int> ProcessPartialPaymentRemindersAsync(
         int tenantId,
         List<Invoice> invoices,
         DateTime nowUtc,
+        ReminderSetting? tenantSettings,
         CancellationToken cancellationToken)
     {
+        if (tenantSettings != null && !tenantSettings.PartialPaymentReminderEnabled)
+        {
+            return 0;
+        }
+
         var sentCount = 0;
-        var interval = GetPartialPaymentReminderInterval();
+        var interval = tenantSettings != null
+            ? tenantSettings.GetPartialPaymentInterval()
+            : GetPartialPaymentReminderInterval();
         // Allow small polling drift so an hourly reminder does not slip to hour 2.
         var effectiveWait = interval > TimeSpan.FromMinutes(5)
             ? interval - TimeSpan.FromMinutes(2)
             : interval;
 
         var partialInvoices = invoices.Where(i =>
-            i.PaidAmount > 0m &&
+            i.AllowPartialPayments &&
             i.GetEffectiveBalance() > 0m &&
             !string.Equals(i.Status, "Paid", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(i.Status, "Voided", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase)
+            !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase) &&
+            (i.PaidAmount > 0m || !string.Equals(i.Status, "Issued", StringComparison.OrdinalIgnoreCase))
         ).ToList();
 
         foreach (var invoice in partialInvoices)
@@ -291,6 +324,31 @@ public class ReminderJobService : IReminderJobService
             {
                 anchorUtc = lastPaymentUtc.Value;
             }
+            else
+            {
+                var sentLogs = await _notificationLogRepository.QueryLogsAsync(tenantId, new NotificationLogQueryParameters
+                {
+                    EntityType = "Invoice",
+                    EntityId = invoice.Id,
+                    EventType = "InvoiceSent",
+                    Status = "Sent",
+                    PageNumber = 1,
+                    PageSize = 1
+                });
+                var latestInvoiceSentLog = sentLogs?.Items?
+                    .Where(l => string.Equals(l.Status, "Sent", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(l => l.SentAtUtc)
+                    .FirstOrDefault();
+
+                if (latestInvoiceSentLog != null)
+                {
+                    anchorUtc = NormalizeUtc(latestInvoiceSentLog.SentAtUtc);
+                }
+                else
+                {
+                    anchorUtc = NormalizeUtc(invoice.CreatedAtUtc);
+                }
+            }
 
             if (anchorUtc.HasValue && (nowUtc - anchorUtc.Value) < effectiveWait)
             {
@@ -299,11 +357,7 @@ public class ReminderJobService : IReminderJobService
 
             try
             {
-                var sendResult = await _notificationService.SendInvoiceNotificationAsync(
-                    invoice.Id,
-                    tenantId,
-                    "PartialPaymentReminder",
-                    "SystemReminderJob");
+                var sendResult = await DispatchInvoiceReminderAsync(invoice, tenantId, "PartialPaymentReminder");
 
                 if (sendResult.Success)
                 {

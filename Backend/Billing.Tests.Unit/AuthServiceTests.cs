@@ -412,5 +412,89 @@ public class AuthServiceTests
         Assert.Equal("Company account is inactive or suspended", result.Message);
         Assert.Null(result.AccessToken);
     }
+
+    [Fact]
+    public void JwtSettings_Defaults_AllowAtLeastOneHourAccessAndInactivity()
+    {
+        var defaults = new JwtSettings();
+        Assert.True(defaults.AccessTokenExpirationMinutes >= 60);
+        Assert.Equal(60, defaults.InactivityTimeoutMinutes);
+        Assert.True(defaults.SessionTimeoutMinutes >= 60);
+    }
+
+    [Fact]
+    public void SessionPolicy_ActiveUserRequestSlidesExpiry_WhileBackgroundPollDoesNot()
+    {
+        var now = new DateTime(2026, 11, 11, 10, 0, 0, DateTimeKind.Utc);
+        var settings = new Billing.Contracts.Platform.PlatformSettingsDto
+        {
+            SessionTimeoutMinutes = 60,
+            InactivityTimeoutMinutes = 60
+        };
+        var jwt = new JwtSettings { InactivityTimeoutMinutes = 60, SessionTimeoutMinutes = 60 };
+        var session = new SessionTestBuilder()
+            .WithCreatedAt(now.AddMinutes(-50))
+            .WithLastActivity(now.AddMinutes(-10))
+            .WithSessionExpires(now.AddMinutes(10))
+            .Build();
+
+        // Background poll validates session without touching activity or sliding expiration
+        var bgResult = SessionPolicy.EvaluateSession(session, settings, jwt, now, isBackgroundPoll: true);
+        Assert.Equal(SessionValidationStatus.Valid, bgResult.Status);
+        Assert.False(bgResult.ShouldUpdateActivity);
+        Assert.Null(bgResult.SlidingExpiryUtc);
+
+        // Real user request extends activity and slides SessionExpiresAtUtc forward by 60 min
+        var userResult = SessionPolicy.EvaluateSession(session, settings, jwt, now, isBackgroundPoll: false);
+        Assert.Equal(SessionValidationStatus.Valid, userResult.Status);
+        Assert.True(userResult.ShouldUpdateActivity);
+        Assert.Equal(now.AddMinutes(60), userResult.SlidingExpiryUtc);
+
+        // After 61 min of no real activity, even a background poll trips InactivityExpired
+        var idleExpired = SessionPolicy.EvaluateSession(session, settings, jwt, now.AddMinutes(51), isBackgroundPoll: true);
+        Assert.Equal(SessionValidationStatus.InactivityExpired, idleExpired.Status);
+        Assert.False(idleExpired.ShouldUpdateActivity);
+    }
+
+    [Fact]
+    public async Task RefreshToken_PreserveLastActivity_RetainsIdleClockForBackgroundRefresh()
+    {
+        var loginResponse = await _authService.Login(new LoginRequest { Email = "john@example.com", Password = "Password@123" });
+        var tokenHash = _tokenService.HashRefreshToken(loginResponse.RefreshToken!);
+        var originalSession = _sessionRepository.Sessions.First(s => s.RefreshTokenHash == tokenHash);
+        var twentyMinutesAgo = DateTime.UtcNow.AddMinutes(-20);
+        originalSession.LastActivityAtUtc = twentyMinutesAgo;
+
+        var refreshed = await _authService.RefreshTokenAsync(
+            loginResponse.RefreshToken!,
+            preserveLastActivity: true);
+
+        Assert.True(refreshed.Success);
+        var newHash = _tokenService.HashRefreshToken(refreshed.RefreshToken!);
+        var rotatedSession = _sessionRepository.Sessions.First(s => s.RefreshTokenHash == newHash);
+        Assert.Equal(twentyMinutesAgo, rotatedSession.LastActivityAtUtc);
+    }
+
+    private sealed class SessionTestBuilder
+    {
+        private DateTime _createdAt = DateTime.UtcNow;
+        private DateTime _lastActivity = DateTime.UtcNow;
+        private DateTime _sessionExpires = DateTime.UtcNow.AddHours(1);
+
+        public SessionTestBuilder WithCreatedAt(DateTime dt) { _createdAt = dt; return this; }
+        public SessionTestBuilder WithLastActivity(DateTime dt) { _lastActivity = dt; return this; }
+        public SessionTestBuilder WithSessionExpires(DateTime dt) { _sessionExpires = dt; return this; }
+
+        public UserSession Build() => new()
+        {
+            Id = 1,
+            UserId = 1,
+            CreatedAtUtc = _createdAt,
+            LastActivityAtUtc = _lastActivity,
+            SessionExpiresAtUtc = _sessionExpires,
+            RefreshTokenExpiresAtUtc = _createdAt.AddDays(7),
+            IsRevoked = false
+        };
+    }
 }
 
