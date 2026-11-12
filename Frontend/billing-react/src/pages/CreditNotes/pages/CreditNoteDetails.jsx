@@ -111,7 +111,7 @@ export function CreditNoteDetails() {
   };
 
   if (query.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading credit note…</div></main>;
-  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes" variant="outlined" className="workspace-back-button">Back to Credit Notes</Button></main>;
+  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /></main>;
 
   const canSubmit = note.status === 'Draft';
   const canReview = note.status === 'Pending Approval';
@@ -125,7 +125,8 @@ export function CreditNoteDetails() {
       {isPreview && <div className="cn-preview-toolbar"><Button variant="outlined" className="workspace-back-button" onClick={() => navigate(`/credit-notes/${id}`)} startIcon={<ArrowBack />}>Back to details</Button><Button variant="contained" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print credit note</Button></div>}
 
       <header className="cn-document-header">
-        <div className="cn-document-brand"><InvoiceBillingLogo size={28} /><div><BrandName /><strong>Credit note</strong></div></div>
+        <span className="cn-document-type-label">Credit note</span>
+        <div className="cn-document-brand"><InvoiceBillingLogo size={18} /><div><BrandName /></div></div>
         <div className="cn-document-title"><div><span className="cn-eyebrow">CUSTOMER CREDIT</span><h1>{note.number}</h1><p>Credit note for invoice <span>{note.invoiceNumber}</span></p></div><CreditNoteStatusBadge status={note.status} /></div>
         <div className="cn-document-meta"><div><small>Credit note date</small><strong>{formatDate(note.date)}</strong></div><div><small>Created by</small><strong>{note.createdBy || '—'}</strong></div><div><small>Credit type</small><strong>{note.type}</strong></div><button type="button" className="cn-copy-link" onClick={() => { navigator.clipboard?.writeText(note.number || ''); setNotice('Reference copied.'); }}><ContentCopy fontSize="small" /> Copy reference</button></div>
       </header>

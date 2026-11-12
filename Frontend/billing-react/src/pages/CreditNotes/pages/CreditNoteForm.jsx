@@ -191,7 +191,7 @@ export function CreditNoteForm() {
   };
 
   if (isEditing && noteQuery.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading draft…</div></main>;
-  if (isEditing && noteQuery.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={noteQuery.error.message} onRetry={() => noteQuery.refetch()} /><Button component={Link} to="/credit-notes" variant="outlined" className="workspace-back-button">Back to Credit Notes</Button></main>;
+  if (isEditing && noteQuery.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={noteQuery.error.message} onRetry={() => noteQuery.refetch()} /></main>;
 
   return (
     <main className="cn-page cn-form-page">

@@ -27,6 +27,7 @@
 .cn-page-heading p { color: #786b60; font-size: .95rem; }
 .cn-eyebrow { color: #956b48; font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
 .cn-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.cn-heading-actions .cn-create-note-button { width: 180px; min-width: 0; padding-inline: 8px; font-size: .82rem; }
 .cn-heading-actions .cn-refresh-button { color: #806d5d; }
 .cn-heading-actions .cn-refresh-button:hover { background: #f3e8dc; color: #5b331b; }
 .cn-demo-banner { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; padding: 11px 14px; border: 1px solid #e9d7bf; border-radius: 11px; background: #fff9ef; color: #684c34; }
@@ -43,7 +44,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-summary-icon { display: grid; width: 34px; height: 34px; grid-column: 2; grid-row: 1 / span 2; place-items: center; border-radius: 10px; background: #f3e7d8; color: #845939; }
 .cn-summary-icon svg { font-size: 19px; }
 .cn-summary-label { align-self: end; color: #756558; font-size: .79rem; font-weight: 650; }
-.cn-summary-card strong { grid-column: 1; color: #512d19; font-size: clamp(1.25rem, 2vw, 1.7rem); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.cn-summary-card strong { grid-column: 1; color: #512d19; font-size: 1.2rem !important; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .cn-summary-card small { grid-column: 1 / -1; align-self: end; color: #928274; font-size: .72rem; }
 .cn-summary-all { border-color: #dfc9af; border-top-color: #bd9068; background: #fff8ef; }
 .cn-summary-all .cn-summary-icon { background: #f2dfc9; color: #956541; }
@@ -53,7 +54,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-summary-pending .cn-summary-icon { background: #f2ddd3; color: #a45f43; }
 .cn-summary-value { border-color: #d2e1d4; border-top-color: #78a087; background: #f2f8f2; }
 .cn-summary-value .cn-summary-icon { background: #dceee1; color: #54806a; }
-.cn-summary-value strong { font-size: 1.35rem; }
+.cn-summary-value strong { font-size: 1.25rem; }
 .cn-list-panel,.cn-form-card,.cn-calculation-card,.cn-detail-card { min-width: 0; border: 1px solid #e7d9ca; border-radius: 14px; background: #fffdf9; box-shadow: 0 6px 20px #5937170a; }
 .cn-list-panel { overflow: hidden; scroll-margin-top: 96px; }
 .cn-list-panel:focus { outline: 2px solid #b98354; outline-offset: 2px; }
@@ -338,8 +339,12 @@ body:has(.cn-form-page) { overflow: hidden; }
 .cn-detail-toolbar > .MuiButton-root:hover { border-color: #bd916c; background: #ecdbc8; }
 .cn-detail-toolbar > div { display: flex; gap: 8px; }
 .cn-inline-alert { margin-bottom: 12px; }
-.cn-document-header { overflow: hidden; margin-bottom: 16px; padding: 23px 26px 18px; border: 1px solid #dfc5aa; border-radius: 15px; background: linear-gradient(115deg, #f7ecdf 0%, #fffaf3 100%); box-shadow: 0 7px 20px #5937170a; }
-.cn-document-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 19px; }
+.cn-document-header { position: relative; display: grid; align-content: start; gap: 12px; overflow: hidden; margin-bottom: 16px; padding: 18px 24px; border: 1px solid #dfc5aa; border-radius: 15px; background: linear-gradient(115deg, #f7ecdf 0%, #fffaf3 100%); box-shadow: 0 7px 20px #5937170a; }
+.cn-document-type-label { position: absolute; top: 20px; right: 24px; color: #4e321f; font-size: .9rem; font-weight: 750; }
+.cn-document-brand { display: flex; align-items: flex-start; gap: 9px; margin: 0; min-height: 36px; }
+.cn-document-brand > .ibms-logo { align-self: flex-start; margin-top: 0; }
+.cn-document-brand > div { flex: 0 0 auto; }
+.cn-document-brand .ibms-brand-name { flex: 0 0 auto; width: 230px; }
 .cn-brand-mark { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 9px; background: #5a2508; color: white; }
 .cn-brand-mark svg { font-size: 19px; }
 .cn-document-brand div { display: flex; flex-direction: column; gap: 2px; }
@@ -349,7 +354,7 @@ body:has(.cn-form-page) { overflow: hidden; }
 .cn-document-title h1 { margin: 3px 0 4px; color: #4c2916; font-size: clamp(1.45rem, 2vw, 1.9rem); letter-spacing: -.03em; }
 .cn-document-title p { color: #7f7062; font-size: .78rem; }
 .cn-document-title a { color: #805332; font-weight: 750; }
-.cn-document-meta { display: flex; align-items: flex-end; gap: clamp(20px, 5vw, 60px); margin-top: 18px; padding-top: 13px; border-top: 1px solid #e9dac9; }
+.cn-document-meta { display: flex; align-items: flex-end; gap: clamp(20px, 5vw, 60px); margin-top: 0; padding-top: 12px; border-top: 1px solid #e9dac9; }
 .cn-document-meta > div { display: flex; flex-direction: column; gap: 4px; }
 .cn-document-meta small { color: #887968; font-size: .65rem; }
 .cn-document-meta strong { color: #543a26; font-size: .76rem; }

@@ -54,7 +54,7 @@ export function CreditNoteExportPage() {
   };
 
   if (query.isPending) return <main className="cn-page"><div className="cn-loading-card">Loading credit note…</div></main>;
-  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /><Button component={Link} to="/credit-notes" variant="outlined" className="workspace-back-button">Back to Credit Notes</Button></main>;
+  if (query.isError) return <main className="cn-page"><DashboardErrorState title="Unable to load credit note" message={query.error.message} onRetry={() => query.refetch()} /></main>;
 
   const approvalEvents = [
     ['Submitted', note.createdBy, note.createdAt], ['Approved', note.approvedBy, note.approvedAt],
