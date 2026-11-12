@@ -55,3 +55,19 @@ public class AssignTenantAdminRequest
 
     public string ApplicationId { get; set; } = "IBMS";
 }
+
+public class ApproveUserRegistrationRequest
+{
+    public int? TenantId { get; set; }
+
+    public List<string>? Roles { get; set; }
+
+    [StringLength(500)]
+    public string? Note { get; set; }
+}
+
+public class RejectUserRegistrationRequest
+{
+    [StringLength(500)]
+    public string? Reason { get; set; }
+}

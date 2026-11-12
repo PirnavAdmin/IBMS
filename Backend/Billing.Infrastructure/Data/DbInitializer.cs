@@ -77,7 +77,7 @@ public static class DbInitializer
                     PasswordHash = passwordHash,
                     TenantId = null,
                     ApplicationId = "IBMS-Billing",
-                    Roles = new List<string> { "SuperAdmin", "TenantAdmin", "Admin" },
+                    Roles = new List<string> { "SuperAdmin" },
                     Permissions = allPermCodes,
                     IsActive = true,
                     CreatedAtUtc = DateTime.UtcNow
@@ -89,18 +89,15 @@ public static class DbInitializer
             }
             else
             {
-                var rolesList = existingSuperAdmin.Roles;
-                if (!rolesList.Contains("SuperAdmin")) rolesList.Add("SuperAdmin");
-                if (!rolesList.Contains("TenantAdmin")) rolesList.Add("TenantAdmin");
-                existingSuperAdmin.Roles = rolesList;
+                existingSuperAdmin.Roles = new List<string> { "SuperAdmin" };
                 existingSuperAdmin.Permissions = allPermCodes;
                 await context.SaveChangesAsync();
-                logger?.LogInformation("Updated existing Super Admin {Email} with full roles and permissions", normalizedEmail);
+                logger?.LogInformation("Updated existing Super Admin {Email} with SuperAdmin role and full permissions", normalizedEmail);
             }
 
-            // Sync all TenantAdmin and Admin users with full permission set
+            // Sync all SuperAdmin, TenantAdmin and Admin users with full permission set
             var adminUsers = await context.Users
-                .Where(u => u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin"))
+                .Where(u => u.RolesString.Contains("SuperAdmin") || u.RolesString.Contains("TenantAdmin") || u.RolesString.Contains("Admin"))
                 .ToListAsync();
 
             foreach (var au in adminUsers)

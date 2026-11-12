@@ -60,7 +60,7 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, sear
   useExclusiveDropdown(menuOpen, setMenuOpen);
   const user = useCurrentUser();
   const displayName = getDisplayName(user);
-  const role = (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
+  const role = (isPlatformAdmin(user) ? 'SuperAdmin' : Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
   const canViewSettings = hasPermission(['settings.view', 'settings.manage'], user);
   return <><header className={`bd-header${onSearch ? '' : ' bd-header-profile-only'}`}>
     {onMenu && <button className="bd-mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu /></button>}

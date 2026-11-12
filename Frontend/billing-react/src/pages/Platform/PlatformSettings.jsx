@@ -11,7 +11,7 @@ const fields=[
   {name:'inactivityTimeoutMinutes',label:'Inactivity Timeout (minutes)',type:'number',min:5,max:43200,required:true},
   {name:'passwordMinLength',label:'Minimum Password Length',type:'number',min:8,max:128,required:true},
   ...['maintenanceMode','allowSelfRegistration','requireDigit','requireSpecialChar'].map((name,i)=>({name,label:['Maintenance Mode','Allow Self Registration','Require Password Digit','Require Password Special Character'][i],options:['Yes','No']})),
-  {name:'supportedCurrencies',label:'Supported Currencies',type:'autocomplete',multiple:true,fullWidth:true,options:CURRENCY_OPTIONS,filterOption:filterCurrencyOption,placeholder:'Search currency code, name or country...',helperText:'Select supported billing currencies for the platform.',required:true}
+  {name:'supportedCurrencies',label:'Supported Currencies',type:'autocomplete',multiple:true,options:CURRENCY_OPTIONS,filterOption:filterCurrencyOption,placeholder:'Search currency code, name or country...',required:true}
 ];
 const groups=[['General',['platformName','accountRecoveryContact','supportedCurrencies']],['Access & Availability',['maintenanceMode','allowSelfRegistration']],['Session Policy',['sessionTimeoutMinutes','inactivityTimeoutMinutes']],['Password Policy',['passwordMinLength','requireDigit','requireSpecialChar']]];
 export function PlatformSettings() {

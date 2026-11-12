@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useSearchDebounce } from '../../hooks/useSearchDebounce';
 import { platformService as api } from './platformService';
 import { RowActions, PlatformStatus, PlatformShell, PlatformRefresh, QueryState, PlatformTable, Pager, SelectFilter, MutationDialog, usePlatformQuery, dateText } from './PlatformShared';
+import { TenantOrganizationOverview } from './TenantOrganizationOverview';
 
 const fields = [
   {name:'name',label:'Company Name',required:true,minLength:2,maxLength:256},
@@ -56,9 +57,16 @@ export function PlatformTenants() {
 }
 
 export function PlatformTenantDetails() {
-  const {id}=useParams(); const query=usePlatformQuery('tenant',id,signal=>api.tenant(id,signal)); const [editor,setEditor]=useState(null); const t=query.data;
-  return <PlatformShell title={t ? t.name : 'Tenant Details'} actions={<Button component={Link} to="/platform/tenants" variant="outlined" className="workspace-back-button">Back to Tenants</Button>}><QueryState query={query} resource="tenant details">{t && <>
+  const {id}=useParams();
+  const query=usePlatformQuery('tenant',id,signal=>api.tenant(id,signal));
+  const usersQuery=usePlatformQuery('tenant-users',id,signal=>api.tenantUsers(Number(id),signal));
+  const rolesQuery=usePlatformQuery('tenant-roles',id,signal=>api.tenantRoles(Number(id),signal));
+  const [editor,setEditor]=useState(null);
+  const t=query.data;
+  const combinedRefresh={isFetching:query.isFetching||usersQuery.isFetching||rolesQuery.isFetching,refetch:()=>{query.refetch();usersQuery.refetch();rolesQuery.refetch();}};
+  return <PlatformShell title={t ? t.name : 'Tenant Details'} actions={<><PlatformRefresh query={combinedRefresh}/><Button component={Link} to="/platform/tenants" variant="outlined" className="workspace-back-button">Back to Tenants</Button></>}><QueryState query={query} resource="tenant details">{t && <>
     <section className="platform-panel"><dl>{[['tenantCode','Code'],['companyEmail','Email'],['phone','Phone'],['taxId','Tax ID'],['address','Address'],['status','Status'],['userCount','Users'],['createdAtUtc','Created']].map(([key,label])=><div key={key}><dt>{label}</dt><dd>{key==='createdAtUtc'?dateText(t[key]):key==='status'?<PlatformStatus value={t[key]}/>:t[key]??'—'}</dd></div>)}</dl><div className="platform-actions"><Button onClick={()=>setEditor('edit')}>Edit Tenant</Button><Button onClick={()=>setEditor('status')}>Change Status</Button><Button component={Link} to={'/platform/audit?tenantId='+t.id}>Administration Activity</Button></div></section>
+    <TenantOrganizationOverview tenantUserCount={t.userCount} usersQuery={usersQuery} rolesQuery={rolesQuery} />
     <section className="platform-panel"><h2>Assigned Administrators</h2><PlatformTable rows={t.assignedAdmins || []} columns={[[ 'name','Name'],['email','Email'],['status','Status'],['roles','Roles',r=>r.roles?.join(', ')]]}/></section>
     {editor==='edit' && <TenantEditor tenant={t} onClose={()=>setEditor(null)} onDone={()=>{setEditor(null);query.refetch();}}/>}
     {editor==='status' && <MutationDialog title="Change Tenant Status" description="Suspending or deactivating a tenant terminates its active sessions and prevents users from logging in. Confirm the target status and provide an audit reason." initial={{status:t.status,reason:''}} fields={[{name:'status',label:'Status',required:true,options:['Active','Suspended','Inactive']},{name:'reason',label:'Reason',required:true,minLength:5,multiline:true}]} submit={v=>api.tenantStatus(t.id,v)} onClose={()=>setEditor(null)} onDone={()=>{setEditor(null);query.refetch();}}/>}
