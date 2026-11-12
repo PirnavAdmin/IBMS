@@ -1783,6 +1783,13 @@ namespace Billing.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<string>("LockedByInstance")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("LockedUntilUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("PayloadJson")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -1807,7 +1814,10 @@ namespace Billing.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId", "EventId");
+                    b.HasIndex("TenantId", "EventId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "LockedUntilUtc", "CreatedAtUtc");
 
                     b.HasIndex("TenantId", "Status", "CreatedAtUtc");
 
@@ -3114,8 +3124,8 @@ namespace Billing.Infrastructure.Migrations
 
                     b.Property<string>("SecretKey")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -3184,6 +3194,13 @@ namespace Billing.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
+                    b.Property<string>("LockedByInstance")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime?>("LockedUntilUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int>("MaxAttempts")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -3220,11 +3237,14 @@ namespace Billing.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WebhookId");
-
                     b.HasIndex("TenantId", "CreatedAtUtc");
 
                     b.HasIndex("TenantId", "EventId");
+
+                    b.HasIndex("WebhookId", "EventId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "NextRetryUtc", "LockedUntilUtc");
 
                     b.HasIndex("TenantId", "WebhookId", "Status");
 

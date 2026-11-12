@@ -1,4 +1,4 @@
-.premium-dashboard { --dashboard-surface: #fffdf9; --dashboard-border: #e4d8c8; background: #f5f2ed; color: #34271e; }
+.premium-dashboard { --dashboard-surface: #fffdf9; --dashboard-border: #e4d8c8; background: var(--workspace-surface, #EAE4DA); color: #34271e; }
 .premium-dashboard * { box-sizing: border-box; }
 .premium-main { width: 100%; max-width: 1680px; margin: 0 auto; padding: 24px clamp(16px, 2vw, 28px) 32px; }
 .premium-title { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }

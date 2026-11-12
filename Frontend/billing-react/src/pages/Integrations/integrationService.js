@@ -2,13 +2,25 @@ import { apiClient } from 'billing-api-client';
 
 // IntegrationsController / IntegrationApplicationDtos / PagedResult contracts.
 const base = '/api/v1/integrations';
-export const REGISTRATION_FLAGS = ['AllowAutoReplay', 'SyncInvoices', 'BetaV2Api'];
+export const REGISTRATION_FLAGS = ['allowWebhooks', 'allowExcelSync', 'allowAutoReplay', 'syncInvoices'];
 
 export function integrationAccess(response) {
   const user = response?.data ?? response;
-  const raw = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
-  return (Array.isArray(raw) ? raw : [raw]).flatMap(value => String(value).split(','))
-    .some(role => ['tenantadmin', 'superadmin', 'user'].includes(role.trim().toLowerCase()));
+  const rawRoles = user?.roles ?? user?.Roles ?? user?.role ?? user?.Role ?? [];
+  const roles = (Array.isArray(rawRoles) ? rawRoles : [rawRoles])
+    .flatMap(value => String(value).split(','))
+    .map(role => role.trim().toLowerCase());
+  if (roles.some(role => ['tenantadmin', 'superadmin', 'admin'].includes(role))) {
+    return true;
+  }
+  if (roles.some(role => ['customer', 'viewer'].includes(role))) {
+    return false;
+  }
+  const rawPerms = user?.permissions ?? user?.Permissions ?? [];
+  const perms = (Array.isArray(rawPerms) ? rawPerms : [rawPerms])
+    .flatMap(value => String(value).split(','))
+    .map(p => p.trim().toLowerCase());
+  return perms.some(p => p === 'integrations.manage' || p === 'all' || p === '*');
 }
 
 export function integrationError(error) {

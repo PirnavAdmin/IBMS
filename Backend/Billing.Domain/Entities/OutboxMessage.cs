@@ -19,6 +19,10 @@ public class OutboxMessage
 
     public string? Error { get; set; }
 
+    public string? LockedByInstance { get; set; }
+
+    public DateTime? LockedUntilUtc { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public DateTime? ProcessedAtUtc { get; set; }

@@ -102,17 +102,17 @@
 .quotation-form-page .quotation-header { margin-bottom: 12px; gap: 14px; }
 .quotation-form-page .quote-back-link { display: flex; align-items: center; gap: 5px; margin: 0 0 7px; padding: 0; border: 0; background: transparent; color: var(--primary); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
 .quotation-form-page .quote-back-link svg { font-size: 1rem; }
-.quotation-form-page .quote-eyebrow { margin-bottom: 4px; font-size: .68rem; }
-.quotation-form-page .quotation-header h1 { font-size: clamp(1.45rem, 2vw, 1.8rem); line-height: 1.2; }
-.quotation-form-page .quotation-header p { margin-top: 4px; font-size: .92rem; line-height: 1.4; }
+.quotation-form-page .quote-eyebrow { margin-bottom: 4px; font-size: 11px; }
+.quotation-form-page .quotation-header h1 { font-size: clamp(22px, 1.85vw, 27px); line-height: 1.2; }
+.quotation-form-page .quotation-header p { margin-top: 4px; font-size: 13.5px; line-height: 1.5; }
 .quotation-form-page .quote-header-actions .quote-btn { min-height: 38px; padding: 7px 14px; }
 .quotation-form-page .quote-footer-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* Compact quotation-list heading. */
 .quotation-list-header { margin-bottom: 16px; padding: 0 10px; }
-.quotation-list-header .quote-eyebrow { margin-bottom: 4px; font-size: .68rem; }
-.quotation-list-header h1 { font-size: clamp(1.5rem, 2.1vw, 1.85rem); line-height: 1.2; }
-.quotation-list-header p { margin-top: 4px; font-size: .94rem; line-height: 1.4; }
+.quotation-list-header .quote-eyebrow { margin-bottom: 4px; font-size: 11px; }
+.quotation-list-header h1 { font-size: clamp(22px, 1.85vw, 27px); line-height: 1.2; }
+.quotation-list-header p { margin-top: 4px; font-size: 13.5px; line-height: 1.5; }
 .quotation-list-header > .quote-btn { min-height: 40px; padding: 8px 15px; }
 @media (max-width: 700px) { .quotation-list-header { padding: 0; } }
 

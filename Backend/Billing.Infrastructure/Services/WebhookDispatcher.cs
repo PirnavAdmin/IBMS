@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,8 @@ public class WebhookDispatcher : IWebhookDispatcher
     private readonly IWebhookRepository _webhookRepository;
     private readonly IWebhookDeliveryRepository _deliveryRepository;
     private readonly ICustomerRepository? _customerRepository;
+    private readonly ISecretEncryptionService? _encryptionService;
+    private readonly WebhookSecurityOptions _securityOptions;
     private readonly ILogger<WebhookDispatcher> _logger;
 
     public WebhookDispatcher(
@@ -23,7 +26,9 @@ public class WebhookDispatcher : IWebhookDispatcher
         IWebhookRepository webhookRepository,
         IWebhookDeliveryRepository deliveryRepository,
         ILogger<WebhookDispatcher> logger,
-        ICustomerRepository? customerRepository = null)
+        ICustomerRepository? customerRepository = null,
+        ISecretEncryptionService? encryptionService = null,
+        WebhookSecurityOptions? securityOptions = null)
     {
         _httpClient = httpClient;
         _securityService = securityService;
@@ -31,13 +36,38 @@ public class WebhookDispatcher : IWebhookDispatcher
         _deliveryRepository = deliveryRepository;
         _logger = logger;
         _customerRepository = customerRepository;
+        _encryptionService = encryptionService;
+        _securityOptions = securityOptions ?? new WebhookSecurityOptions();
     }
 
     public async Task<WebhookDelivery> DispatchDeliveryAsync(WebhookDelivery delivery, Webhook webhook)
     {
-        var payloadToSend = await PreparePayloadAsync(delivery.PayloadJson, delivery.EventType, delivery.TenantId, webhook.PayloadFormat, webhook.CustomTemplateJson);
+        var payloadToSend = await PreparePayloadAsync(delivery.PayloadJson, delivery.EventType, delivery.EventId, delivery.TenantId, webhook.PayloadFormat, webhook.CustomTemplateJson);
+        var plainSecretKey = _encryptionService?.Unprotect(webhook.SecretKey) ?? webhook.SecretKey;
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var signature = _securityService.ComputeHmacSha256(webhook.SecretKey, payloadToSend, timestamp);
+        var signature = _securityService.ComputeHmacSha256(plainSecretKey, payloadToSend, timestamp);
+
+        var headerSnapshot = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["User-Agent"] = "IBMS-Webhook-Delivery/1.0",
+            ["X-IBMS-Signature"] = $"t={timestamp},v1={signature}",
+            ["X-IBMS-Timestamp"] = timestamp.ToString(),
+            ["X-IBMS-Event"] = delivery.EventType,
+            ["X-IBMS-Delivery-Id"] = delivery.EventId,
+            ["Content-Type"] = "application/json"
+        };
+
+        var plainCustomHeadersJson = _encryptionService?.Unprotect(webhook.CustomHeadersJson) ?? webhook.CustomHeadersJson;
+
+        if (!_securityService.IsValidDestinationUrl(webhook.TargetUrl, _securityOptions.AllowLocalhostTargets, out var ssrfReason))
+        {
+            delivery.RequestHeadersJson = JsonSerializer.Serialize(_securityService.RedactHeaders(headerSnapshot));
+            await HandleFailureAsync(delivery, webhook, ssrfReason ?? "Blocked destination URL.");
+            delivery.LockedByInstance = null;
+            delivery.LockedUntilUtc = null;
+            await _deliveryRepository.UpdateAsync(delivery);
+            return delivery;
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, webhook.TargetUrl);
         request.Content = new StringContent(payloadToSend, Encoding.UTF8, "application/json");
@@ -48,21 +78,11 @@ public class WebhookDispatcher : IWebhookDispatcher
         request.Headers.Add("X-IBMS-Event", delivery.EventType);
         request.Headers.Add("X-IBMS-Delivery-Id", delivery.EventId);
 
-        var headerSnapshot = new Dictionary<string, string>
-        {
-            ["User-Agent"] = "IBMS-Webhook-Delivery/1.0",
-            ["X-IBMS-Signature"] = $"t={timestamp},v1={signature}",
-            ["X-IBMS-Timestamp"] = timestamp.ToString(),
-            ["X-IBMS-Event"] = delivery.EventType,
-            ["X-IBMS-Delivery-Id"] = delivery.EventId,
-            ["Content-Type"] = "application/json"
-        };
-
-        if (!string.IsNullOrWhiteSpace(webhook.CustomHeadersJson))
+        if (!string.IsNullOrWhiteSpace(plainCustomHeadersJson))
         {
             try
             {
-                var customHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(webhook.CustomHeadersJson);
+                var customHeaders = JsonSerializer.Deserialize<Dictionary<string, string>>(plainCustomHeadersJson);
                 if (customHeaders != null)
                 {
                     foreach (var (headerKey, headerVal) in customHeaders)
@@ -83,7 +103,7 @@ public class WebhookDispatcher : IWebhookDispatcher
             }
         }
 
-        delivery.RequestHeadersJson = JsonSerializer.Serialize(headerSnapshot);
+        delivery.RequestHeadersJson = JsonSerializer.Serialize(_securityService.RedactHeaders(headerSnapshot));
 
         var stopwatch = Stopwatch.StartNew();
         try
@@ -139,13 +159,15 @@ public class WebhookDispatcher : IWebhookDispatcher
             await HandleFailureAsync(delivery, webhook, $"Unexpected delivery failure: {ex.Message}");
         }
 
+        delivery.LockedByInstance = null;
+        delivery.LockedUntilUtc = null;
         await _deliveryRepository.UpdateAsync(delivery);
         return delivery;
     }
 
-    private async Task<string> PreparePayloadAsync(string rawPayloadJson, string eventType, int tenantId, string? format, string? customTemplate)
+    private async Task<string> PreparePayloadAsync(string rawPayloadJson, string eventType, string eventId, int tenantId, string? format, string? customTemplate)
     {
-        var dict = await BuildNormalizedDictionaryAsync(rawPayloadJson, eventType, tenantId);
+        var dict = await BuildNormalizedDictionaryAsync(rawPayloadJson, eventType, eventId, tenantId);
         var fmt = (format ?? "Standard").Trim();
 
         if (fmt.Equals("Slack", StringComparison.OrdinalIgnoreCase))
@@ -185,7 +207,7 @@ public class WebhookDispatcher : IWebhookDispatcher
         return JsonSerializer.Serialize(dict);
     }
 
-    private async Task<Dictionary<string, object?>> BuildNormalizedDictionaryAsync(string rawPayloadJson, string eventType, int tenantId)
+    private async Task<Dictionary<string, object?>> BuildNormalizedDictionaryAsync(string rawPayloadJson, string eventType, string eventId, int tenantId)
     {
         var dict = new Dictionary<string, object?>(StringComparer.Ordinal);
         try
@@ -211,6 +233,18 @@ public class WebhookDispatcher : IWebhookDispatcher
                 dict[prop.Name] = src[prop.Name];
             }
 
+            var resolvedEventId = src.GetValueOrDefault("EventId")?.ToString();
+            if (string.IsNullOrWhiteSpace(resolvedEventId))
+            {
+                resolvedEventId = eventId;
+            }
+            if (!string.IsNullOrWhiteSpace(resolvedEventId))
+            {
+                dict["EventId"] = resolvedEventId;
+                dict["eventId"] = resolvedEventId;
+                dict["event_id"] = resolvedEventId;
+            }
+
             // Event variants
             dict["event"] = eventType;
             dict["Event"] = eventType;
@@ -218,9 +252,12 @@ public class WebhookDispatcher : IWebhookDispatcher
             dict["EventType"] = eventType;
             dict["event_type"] = eventType;
 
-            var num = src.GetValueOrDefault("InvoiceNumber")
-                   ?? src.GetValueOrDefault("PaymentNumber")
+            var explicitInvoiceNumber = src.GetValueOrDefault("InvoiceNumber");
+            var explicitPaymentNumber = src.GetValueOrDefault("PaymentNumber");
+            var num = explicitInvoiceNumber
+                   ?? explicitPaymentNumber
                    ?? src.GetValueOrDefault("QuoteNumber")
+                   ?? src.GetValueOrDefault("QuotationNumber")
                    ?? src.GetValueOrDefault("CreditNoteNumber")
                    ?? src.GetValueOrDefault("CustomerCode")
                    ?? src.GetValueOrDefault("InvoiceId")
@@ -236,11 +273,32 @@ public class WebhookDispatcher : IWebhookDispatcher
             {
                 dict["number"] = num;
                 dict["Number"] = num;
-                dict["Invoice Number"] = num;
-                dict["InvoiceNumber"] = num;
-                dict["invoice_number"] = num;
                 dict["id"] = num;
                 dict["Id"] = num;
+            }
+
+            if (explicitInvoiceNumber != null && !string.IsNullOrWhiteSpace(explicitInvoiceNumber.ToString()))
+            {
+                dict["Invoice Number"] = explicitInvoiceNumber;
+                dict["InvoiceNumber"] = explicitInvoiceNumber;
+                dict["invoice_number"] = explicitInvoiceNumber;
+            }
+
+            if (explicitPaymentNumber != null && !string.IsNullOrWhiteSpace(explicitPaymentNumber.ToString()))
+            {
+                dict["PaymentNumber"] = explicitPaymentNumber;
+                dict["payment_number"] = explicitPaymentNumber;
+            }
+
+            var paymentStatus = src.GetValueOrDefault("PaymentStatus")
+                             ?? (eventType.StartsWith("payment.", StringComparison.OrdinalIgnoreCase)
+                                 ? src.GetValueOrDefault("Status")
+                                 : null);
+            if (paymentStatus != null && !string.IsNullOrWhiteSpace(paymentStatus.ToString()))
+            {
+                dict["PaymentStatus"] = paymentStatus;
+                dict["paymentStatus"] = paymentStatus;
+                dict["payment_status"] = paymentStatus;
             }
 
             if (customerCode != null)

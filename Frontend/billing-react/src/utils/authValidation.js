@@ -35,6 +35,7 @@ export const registrationSchema = yup.object({
   fullName: yup.string().trim().required('Full name is required').min(2, 'Name must be at least 2 characters')
     .matches(/^[\p{L}\p{M}][\p{L}\p{M}\s.'\u2019\u02bc\p{Pd}]*$/u, { message: 'Use letters, spaces, hyphens or apostrophes for your name', excludeEmptyString: true })
     .test('name-repetition', 'Full Name contains invalid repeated characters', value => !hasExcessiveNameRepetition(value)),
+  companyName: yup.string().trim().required('Company name is required').min(2, 'Company name must be at least 2 characters').max(150, 'Company name cannot exceed 150 characters'),
   email: workEmailSchema(),
   password: yup.string().required('Password is required')
     .min(8, 'Use 8 or more characters with letters and numbers')

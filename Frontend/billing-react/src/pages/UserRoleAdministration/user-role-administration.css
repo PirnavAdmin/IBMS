@@ -71,8 +71,8 @@
 .ura-workspace .MuiInputBase-input:-moz-autofill { box-shadow: 0 0 0 1000px #fffdf9 inset !important; }
 .ura-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #eadfd4; border-radius: 10px; background: #fff; }
 .ura-table { width: 100%; min-width: 930px; border-collapse: separate; border-spacing: 0; text-align: left; }
-.ura-table th { padding: 6px 10px; border-bottom: 1px solid #e6d7c8; background: #f5ece2; color: #5d402b; font-size: .72rem; font-weight: 750; line-height: 1.25; white-space: nowrap; }
-.ura-table td { padding: 5px 10px; border-bottom: 1px solid #eee5dc; color: #6f6052; font-size: .8rem; line-height: 1.25; vertical-align: middle; overflow-wrap: anywhere; }
+.ura-table th { padding: 6px 10px; border-bottom: 1px solid #e6d7c8; background: #f5ece2; color: #5d402b; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; line-height: 1.25; white-space: nowrap; }
+.ura-table td { padding: 5px 10px; border-bottom: 1px solid #eee5dc; color: #6f6052; font-size: 12.5px; line-height: 1.25; vertical-align: middle; overflow-wrap: anywhere; }
 .ura-table tbody tr { transition: background-color .15s ease; }
 .ura-table tbody tr:hover { background: #fffaf4; }
 .ura-table tbody tr:last-child td { border-bottom: 0; }

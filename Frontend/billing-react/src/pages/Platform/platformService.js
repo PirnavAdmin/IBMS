@@ -15,12 +15,32 @@ export const platformService = {
   dashboard: signal => get('/dashboard', undefined, signal),
   tenants: (params, signal) => get('/tenants', params, signal, true),
   tenant: (id, signal) => get('/tenants/' + encodeURIComponent(id), undefined, signal),
+  tenantUsers: async (tenantId, signal) => {
+    const all = [];
+    let page = 1;
+    let totalCount = 0;
+    do {
+      const data = platformPage(await apiClient.get(base + '/users', { params: { tenantId, page, pageSize: 100 }, signal }));
+      all.push(...data.items);
+      totalCount = data.totalCount;
+      page += 1;
+      if (data.items.length === 0) break;
+    } while (all.length < totalCount && page <= 20);
+    return all;
+  },
+  tenantRoles: async (tenantId, signal) => {
+    const data = unwrapPlatform(await apiClient.get('/api/Roles', { params: tenantId != null ? { tenantId } : undefined, signal }));
+    if (!Array.isArray(data)) throw new Error('Invalid roles API response.');
+    return data.filter(r => String(r?.name ?? r?.Name ?? '').trim().toLowerCase() !== 'superadmin');
+  },
   createTenant: payload => write('post', '/tenants', payload),
   updateTenant: (id, payload) => write('put', '/tenants/' + encodeURIComponent(id), payload),
   tenantStatus: (id, payload) => write('patch', '/tenants/' + encodeURIComponent(id) + '/status', payload),
   users: (params, signal) => get('/users', params, signal, true),
   createUser: payload => write('post', '/users', payload),
   userStatus: (id, status) => write('patch', '/users/' + encodeURIComponent(id) + '/status', { status }),
+  approveUser: (id, payload = {}) => write('post', '/users/' + encodeURIComponent(id) + '/approve', payload),
+  rejectUser: (id, payload = {}) => write('post', '/users/' + encodeURIComponent(id) + '/reject', payload),
   roles: signal => get('/roles', undefined, signal),
   assignRoles: (id, roles) => write('post', '/users/' + encodeURIComponent(id) + '/roles', { roles }),
   assignTenant: (id, payload) => write('put', '/users/' + encodeURIComponent(id) + '/assignment', payload),

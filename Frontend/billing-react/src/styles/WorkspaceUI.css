@@ -1,36 +1,50 @@
 /* Invoice's actual type scale and table structure, scoped to workspace UI. */
 .app-layout {
-  --ui-title: clamp(26px, 2.8vw, 34px);
-  --ui-section: 19px;
-  --ui-body: 14px;
-  --ui-secondary: 13px;
-  --ui-table: 13.5px;
-  --ui-table-heading: 11.5px;
+  --ui-title: clamp(22px, 1.85vw, 27px);
+  --ui-section: 16.5px;
+  --ui-body: 13.5px;
+  --ui-secondary: 12.5px;
+  --ui-table: 12.5px;
+  --ui-table-heading: 11px;
   --ui-kpi: clamp(17px, 1.15vw, 20px);
   --ui-heading-weight: 750;
   --ui-table-header-bg: #f5efe8;
   --ui-row-border: #f0e6dc;
 }
-.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading, .background-jobs-heading) h1 {
+.app-layout :is(
+  .invoice-eyebrow, .payment-eyebrow, .product-eyebrow, .customer-eyebrow,
+  .cn-eyebrow, .quote-eyebrow, .premium-eyebrow, .settings-eyebrow,
+  .notification-eyebrow, .audit-eyebrow, .template-eyebrow,
+  .background-jobs-eyebrow, .ura-eyebrow, .tax-eyebrow, .integrations-eyebrow
+) {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .cn-document-title, .quotation-header, .quotation-list-header, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading, .background-jobs-heading, .ura-page-header, .tax-heading, .integrations-heading) h1 {
   font-size: var(--ui-title);
   font-weight: var(--ui-heading-weight);
   line-height: 1.2;
   letter-spacing: -.025em;
 }
-.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .cn-page-heading, .cn-heading, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .background-jobs-heading) p:not([class$="eyebrow"]) { font-size: var(--ui-body); line-height: 1.6; }
-.app-layout :is(.premium-panel, .premium-actions, .payment-card-heading, .product-panel-heading, .customer-panel-heading, .settings-panel-heading, .cn-panel-heading, .cn-list-heading, .background-job-card, .export-job-create, .export-job-list) h2 {
+.app-layout :is(.invoice-heading, .payments-heading, .product-heading, .customers-heading, .customer-heading, .cn-page-heading, .cn-heading, .cn-document-title, .quotation-header, .quotation-list-header, .premium-title, .settings-hero, .settings-module-header, .notification-heading, .audit-heading, .template-heading, .background-jobs-heading, .ura-page-header, .tax-heading, .integrations-heading) p:not([class$="eyebrow"]) { font-size: var(--ui-body); line-height: 1.5; }
+.app-layout :is(.premium-panel, .premium-actions, .payment-panel, .payment-card-heading, .product-panel-heading, .customer-panel-heading, .settings-panel-heading, .cn-panel-heading, .cn-list-heading, .cn-detail-card-heading, .background-job-card, .background-job-card-heading, .export-job-create, .export-job-list, .quote-card, .quote-summary, .quote-section-heading, .invoice-panel, .invoice-table-heading, .invoice-list-heading-title, .audit-section-heading, .audit-results-heading, .ura-section-copy, .tax-section-heading, .tax-detail-heading, .template-section-title, .integrations-panel-heading) h2,
+.app-layout .quote-overview h3 {
   font-size: var(--ui-section);
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
+  letter-spacing: -.015em;
 }
 .app-layout :is(.premium-filters, .premium-title) :is(label, .premium-filter-field, input, select, button),
 .app-layout .premium-filters .premium-select-trigger { font-size: var(--ui-secondary); }
-.app-layout .premium-stat span { font-size: var(--ui-secondary); font-weight: 650; }
+.app-layout .premium-stat span { font-size: 12.5px; font-weight: 650; }
 .app-layout .premium-stat > strong { font-size: var(--ui-kpi); font-weight: var(--ui-heading-weight); line-height: 1.25; white-space: nowrap; overflow-wrap: normal; }
 .app-layout .premium-stat > small,
-.app-layout .premium-records td small,
 .app-layout .premium-empty,
 .app-layout .premium-notice { font-size: var(--ui-secondary); }
+.app-layout .premium-records td small { font-size: 11px; line-height: 1.3; }
 .app-layout .premium-actions strong { font-size: var(--ui-body); }
 .app-layout :is(.premium-chart-data, .premium-aging-legend, .premium-ring-label, .premium-legend, .premium-chart-legend) { font-size: 12px; }
 .app-layout .premium-aging-legend :is(strong, small) { font-size: 12px; }
@@ -76,6 +90,18 @@
   font-size: 12.5px;
   line-height: 1.25;
 }
+.app-layout .ibms-table-frame table > tbody > tr > :is(td, .MuiTableCell-body) :is(strong, a, button:not(.MuiButton-root):not(.MuiIconButton-root):not(.ibms-row-actions-trigger)) {
+  font-size: inherit;
+}
+.app-layout .ibms-table-frame table > tbody > tr > :is(td, .MuiTableCell-body) small {
+  font-size: 11px;
+  line-height: 1.3;
+}
+.app-layout .ibms-table-frame :is(.premium-status, .quote-status, .cn-status, .cn-type-pill, .invoice-status, .customer-status-badge, .product-status, .payment-status, .tax-status-badge) {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
 .app-layout .ibms-table-frame .MuiButton-root {
   min-height: 24px;
   height: 24px;
@@ -101,15 +127,15 @@
 /* Ant's decorative vertical header dividers are not part of the Invoice style. */
 .app-layout .ibms-table-frame .ant-table-thead > tr > th::before { display: none; }
 @media (max-width: 600px) {
-  .app-layout { --ui-title: 26px; --ui-kpi: clamp(16px, 3.8vw, 19px); }
+  .app-layout { --ui-title: 22px; --ui-kpi: clamp(16px, 3.8vw, 19px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-layout .premium-stat-link { transition: none; }
 }
 
-.app-layout .premium-records .premium-status { font-size: 11.5px; }
+.app-layout .premium-records .premium-status { font-size: 11px; }
 
-.app-layout main:is(.invoice-page, .payments-page, .product-page, .customers-page, .customer-page, .cn-page, .settings-page, .notification-page, .premium-main, .background-jobs-page) { font-size: var(--ui-body); }
+.app-layout main:is(.invoice-page, .payments-page, .product-page, .customers-page, .customer-page, .cn-page, .quotation-page, .settings-page, .notification-page, .premium-main, .background-jobs-page, .audit-page) { font-size: var(--ui-body); }
 
 .app-layout .premium-eyebrow { font-size: 11px; font-weight: 750; }
 .app-layout .premium-tag { font-size: 12px; }
@@ -330,8 +356,8 @@
     box-sizing: border-box;
     min-width: 0;
     padding: 4px 8px;
-    font-size: 12px;
-    line-height: 1.2;
+    font-size: 12.5px;
+    line-height: 1.25;
     white-space: nowrap;
     overflow-wrap: anywhere;
   }
@@ -364,8 +390,8 @@
     min-width: 0;
     box-sizing: border-box;
     padding: 4px 8px;
-    font-size: 12px;
-    line-height: 1.2;
+    font-size: 12.5px;
+    line-height: 1.25;
     white-space: nowrap;
     word-break: normal;
     overflow-wrap: normal;

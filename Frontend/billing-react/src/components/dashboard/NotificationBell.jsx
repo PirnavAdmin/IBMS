@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import Popover from '@mui/material/Popover';
+import Snackbar from '@mui/material/Snackbar';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
+import NotificationsActiveOutlined from '@mui/icons-material/NotificationsActiveOutlined';
 import Close from '@mui/icons-material/Close';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 import { notificationDestination, notificationInboxService as inbox } from '../../services/notificationInboxService';
@@ -39,6 +41,9 @@ export function NotificationBell({ user }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [incomingToast, setIncomingToast] = useState(null);
+  const prevUnreadRef = useRef(null);
+  const toastedIdsRef = useRef(new Set());
   const navigate = useNavigate();
   const client = useQueryClient();
   const tenant = user?.tenantId ?? user?.TenantId ?? user?.tenant_id ?? 'host';
@@ -53,6 +58,9 @@ export function NotificationBell({ user }) {
     setPageNumber(1);
     setError('');
     setNotice('');
+    setIncomingToast(null);
+    prevUnreadRef.current = null;
+    toastedIdsRef.current = new Set();
     setDismissedIds(loadDismissedIds(tenant, userId));
     setClearCutoff(loadClearCutoff(tenant, userId));
   }, [tenant, userId]);
@@ -138,7 +146,64 @@ export function NotificationBell({ user }) {
         ? 0
         : Math.max(0, serverUnread - (page?.items || []).filter(item => !item.isRead && !visibleItems.some(v => String(v.id) === String(item.id))).length))
     : undefined;
+
+  useEffect(() => {
+    if (!enabled || serverUnread == null) return undefined;
+    const prev = prevUnreadRef.current;
+    prevUnreadRef.current = serverUnread;
+    if (prev === null || serverUnread <= prev) return undefined;
+
+    let active = true;
+    const delta = serverUnread - prev;
+    (async () => {
+      try {
+        const latestPage = await inbox.list({ unreadOnly: true, pageNumber: 1 }, undefined, { backgroundPoll: true });
+        if (!active) return;
+        const newest = (latestPage?.items || []).find(entry => {
+          const entryId = String(entry.id);
+          if (dismissedIds.has(entryId) || toastedIdsRef.current.has(entryId)) return false;
+          if (clearCutoff && new Date(entry.createdAtUtc).getTime() <= new Date(clearCutoff).getTime()) return false;
+          return true;
+        });
+        if (newest) {
+          toastedIdsRef.current.add(String(newest.id));
+          setIncomingToast({ id: String(newest.id), title: newest.title || 'New notification', message: newest.message || '' });
+          return;
+        }
+      } catch {}
+      if (active) {
+        setIncomingToast({
+          id: `count-${Date.now()}`,
+          title: 'New notification received',
+          message: delta === 1 ? 'You have 1 new unread notification.' : `You have ${delta} new unread notifications.`,
+        });
+      }
+    })();
+
+    return () => { active = false; };
+  }, [enabled, serverUnread, dismissedIds, clearCutoff]);
+
   return <>
+    <Snackbar
+      open={Boolean(incomingToast)}
+      autoHideDuration={4500}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      onClose={(_event, reason) => { if (reason !== 'clickaway') setIncomingToast(null); }}
+      sx={{ zIndex: theme => theme.zIndex.modal + 120, top: { xs: 16, sm: 20 }, right: { xs: 16, sm: 20 } }}
+    >
+      <div className="notification-live-toast" role="status" aria-live="polite">
+        <span className="notification-live-toast-icon" aria-hidden="true">
+          <NotificationsActiveOutlined fontSize="small" />
+        </span>
+        <div className="notification-live-toast-copy">
+          <strong>{incomingToast?.title}</strong>
+          {incomingToast?.message && <p>{incomingToast.message}</p>}
+        </div>
+        <button type="button" className="notification-live-toast-close" aria-label="Dismiss notification toast" onClick={() => setIncomingToast(null)}>
+          <Close fontSize="small" />
+        </button>
+      </div>
+    </Snackbar>
     <button type="button" ref={trigger} className="notification-bell" aria-label={`Notifications${unread == null ? '' : `, ${unread} unread`}`}
       title="Notifications" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
       onClick={() => { if (!open && enabled) { manualCountFetch.current = true; manualListFetch.current = true; void count.refetch(); } setOpen(value => !value); setPageNumber(1); setError(''); setNotice(''); }}>
@@ -155,18 +220,20 @@ export function NotificationBell({ user }) {
           <button type="button" aria-pressed={!unreadOnly} onClick={() => { manualListFetch.current = true; setUnreadOnly(false); setPageNumber(1); }}>All</button>
           <button type="button" aria-pressed={unreadOnly} onClick={() => { manualListFetch.current = true; setUnreadOnly(true); setPageNumber(1); }}>Unread</button>
         </div><button type="button" disabled={busy || list.isFetching} onClick={refresh}>Refresh</button></div>
-        {error && <p role="alert" className="notification-error">{error}</p>}
-        {notice && <p role="status" className="notification-notice">{notice}</p>}
-        {!enabled || list.isError ? <div className="notification-state" role="alert"><p>Notifications are unavailable right now. Please try again later.</p><button type="button" disabled={!enabled || list.isFetching} onClick={refresh}>Try again</button></div>
-          : list.isPending ? <p className="notification-state" role="status">Loading notifications…</p>
-          : !visibleItems.length ? <p className="notification-state" role="status">{unreadOnly ? 'No unread notifications.' : 'You have no notifications yet.'}</p>
-          : <ul className="notification-list">{visibleItems.map(item => <li key={item.id} className={item.isRead ? '' : 'is-unread'}>
-            <div className="notification-item-heading"><strong>{item.title}</strong>{!item.isRead && <span className="notification-unread-dot" aria-label="Unread" />}</div>
-            <p>{item.message}</p><time dateTime={item.createdAtUtc}>{new Date(item.createdAtUtc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
-            <div className="notification-item-actions">{notificationDestination(item.action, user) && <button type="button" disabled={busy} onClick={() => openItem(item)}>Open record</button>}
-              {!item.isRead && <button type="button" disabled={busy} onClick={() => mutate(() => inbox.markRead(item.id))}>Mark as read<span className="notification-sr-only">: {item.title}</span></button>}
-              <button type="button" disabled={busy} onClick={() => deleteItem(item)}>Delete<span className="notification-sr-only">: {item.title}</span></button></div>
-          </li>)}</ul>}
+        <div className="notification-body">
+          {error && <p role="alert" className="notification-error">{error}</p>}
+          {notice && <p role="status" className="notification-notice">{notice}</p>}
+          {!enabled || list.isError ? <div className="notification-state" role="alert"><p>Notifications are unavailable right now. Please try again later.</p><button type="button" disabled={!enabled || list.isFetching} onClick={refresh}>Try again</button></div>
+            : list.isPending ? <p className="notification-state" role="status">Loading notifications…</p>
+            : !visibleItems.length ? <p className="notification-state" role="status">{unreadOnly ? 'No unread notifications.' : 'You have no notifications yet.'}</p>
+            : <ul className="notification-list">{visibleItems.map(item => <li key={item.id} className={item.isRead ? '' : 'is-unread'}>
+              <div className="notification-item-heading"><strong>{item.title}</strong>{!item.isRead && <span className="notification-unread-dot" aria-label="Unread" />}</div>
+              <p>{item.message}</p><time dateTime={item.createdAtUtc}>{new Date(item.createdAtUtc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
+              <div className="notification-item-actions">{notificationDestination(item.action, user) && <button type="button" disabled={busy} onClick={() => openItem(item)}>Open record</button>}
+                {!item.isRead && <button type="button" disabled={busy} onClick={() => mutate(() => inbox.markRead(item.id))}>Mark as read<span className="notification-sr-only">: {item.title}</span></button>}
+                <button type="button" disabled={busy} onClick={() => deleteItem(item)}>Delete<span className="notification-sr-only">: {item.title}</span></button></div>
+            </li>)}</ul>}
+        </div>
         {page && !list.isError && <footer className="notification-footer">
           <div className="notification-footer-actions">
             <button type="button" disabled={busy || list.isFetching || !visibleItems.length || !(unread > 0 || visibleItems.some(item => !item.isRead))}

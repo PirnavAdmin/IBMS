@@ -20,13 +20,16 @@ public class PlatformUsersController : ControllerBase
 {
     private readonly IPlatformAdministrationService _platformService;
     private readonly IRoleAdministrationService _roleService;
+    private readonly IEmailService? _emailService;
 
     public PlatformUsersController(
         IPlatformAdministrationService platformService,
-        IRoleAdministrationService roleService)
+        IRoleAdministrationService roleService,
+        IEmailService? emailService = null)
     {
         _platformService = platformService;
         _roleService = roleService;
+        _emailService = emailService;
     }
 
     /// <summary>
@@ -185,6 +188,83 @@ public class PlatformUsersController : ControllerBase
                 return NotFound(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode));
             }
             return BadRequest(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode ?? "ASSIGNMENT_FAILED"));
+        }
+
+        return Ok(ApiResponse<PlatformUserDto>.Ok(updatedUser!, message));
+    }
+
+    /// <summary>
+    /// Approves a self-registered user account and grants SuperAdmin login permission.
+    /// </summary>
+    [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(typeof(ApiResponse<PlatformUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ApproveUserRegistration(
+        int id,
+        [FromBody] ApproveUserRegistrationRequest? request = null,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserName = GetCurrentUserName();
+        var (success, message, updatedUser, errorCode) = await _platformService.ApproveUserRegistrationAsync(
+            id, request, currentUserName, cancellationToken);
+
+        if (!success)
+        {
+            if (errorCode == "NOT_FOUND")
+            {
+                return NotFound(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode));
+            }
+            return BadRequest(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode ?? "APPROVAL_FAILED"));
+        }
+
+        if (_emailService != null && updatedUser != null && !string.IsNullOrWhiteSpace(updatedUser.Email))
+        {
+            try
+            {
+                var rolesLabel = updatedUser.Roles.Any() ? string.Join(", ", updatedUser.Roles) : "Customer";
+                await _emailService.SendEmailAsync(
+                    updatedUser.Email,
+                    "IBMS Account Approved — You Can Now Sign In",
+                    $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Account Access Approved</h2><p style=\"color:#574840;\">Hi {System.Net.WebUtility.HtmlEncode(updatedUser.Name)}, a SuperAdmin has approved your IBMS account with role(s): <strong>{System.Net.WebUtility.HtmlEncode(rolesLabel)}</strong>.</p><p style=\"color:#35231C;font-weight:600;\">You can now sign in using your registered email and password.</p></div>"
+                );
+            }
+            catch
+            {
+                // Non-blocking approval notification email.
+            }
+        }
+
+        return Ok(ApiResponse<PlatformUserDto>.Ok(updatedUser!, message));
+    }
+
+    /// <summary>
+    /// Rejects a self-registered user account request so login remains blocked.
+    /// </summary>
+    [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<PlatformUserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RejectUserRegistration(
+        int id,
+        [FromBody] RejectUserRegistrationRequest? request = null,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserName = GetCurrentUserName();
+        var (success, message, updatedUser, errorCode) = await _platformService.RejectUserRegistrationAsync(
+            id, request?.Reason, currentUserName, cancellationToken);
+
+        if (!success)
+        {
+            if (errorCode == "NOT_FOUND")
+            {
+                return NotFound(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode));
+            }
+            return BadRequest(ApiResponse<object>.Fail(message, errors: null, errorCode: errorCode ?? "REJECTION_FAILED"));
         }
 
         return Ok(ApiResponse<PlatformUserDto>.Ok(updatedUser!, message));

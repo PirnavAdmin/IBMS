@@ -1004,8 +1004,12 @@ public class CreditNoteService : ICreditNoteService
                     CreditNoteId = creditNote.Id,
                     CreditNoteNumber = creditNote.CreditNoteNumber,
                     InvoiceId = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
                     CustomerId = creditNote.CustomerId,
+                    CustomerName = creditNote.Customer?.Name ?? creditNote.Customer?.CompanyName ?? invoice.Customer?.Name,
                     Amount = creditNote.TotalAmount,
+                    TotalAmount = creditNote.TotalAmount,
+                    PaymentStatus = "Credited",
                     IssuedBy = userDisplayName,
                     IssuedAtUtc = DateTime.UtcNow
                 });
@@ -1266,6 +1270,33 @@ public class CreditNoteService : ICreditNoteService
             await _unitOfWork.CommitTransactionAsync();
 
             var invoice = await _invoiceRepository.GetByIdAsync(creditNote.InvoiceId, tenantId, cancellationToken);
+
+            if (_outboxService != null)
+            {
+                try
+                {
+                    await _outboxService.PublishEventAsync(tenantId, "credit_note.refunded", new
+                    {
+                        CreditNoteId = creditNote.Id,
+                        CreditNoteNumber = creditNote.CreditNoteNumber,
+                        RefundNumber = savedRefund.RefundNumber,
+                        InvoiceId = creditNote.InvoiceId,
+                        InvoiceNumber = invoice?.InvoiceNumber,
+                        CustomerId = creditNote.CustomerId,
+                        CustomerName = creditNote.Customer?.Name ?? creditNote.Customer?.CompanyName ?? invoice?.Customer?.Name,
+                        Amount = savedRefund.RefundAmount,
+                        RefundAmount = savedRefund.RefundAmount,
+                        PaymentStatus = "Refunded",
+                        ProcessedBy = userDisplayName,
+                        RefundedAtUtc = DateTime.UtcNow
+                    });
+                }
+                catch
+                {
+                    // Event publishing must not revert committed refund
+                }
+            }
+
             var responseMessage = !string.IsNullOrWhiteSpace(normalizedRef)
                 ? "Refund transaction recorded with reference number; actual bank credit is subject to payment provider / bank settlement confirmation."
                 : "Refund recorded for manual verification; actual bank credit is subject to payment provider / bank confirmation.";
@@ -1386,8 +1417,9 @@ public class CreditNoteService : ICreditNoteService
             return true;
         }
 
-        // Allow synthetic derived rate on header-only invoices
-        if (sourceItem != null && sourceItem.Id == 0 && Math.Abs((sourceItem.TaxRate ?? 0m) - taxRate) < 0.01m)
+        // Allow any rate that matches the original invoice item's persisted/derived tax rate
+        // (including custom tenant tax rates or synthetic header-only invoice rates).
+        if (sourceItem != null && sourceItem.TaxRate.HasValue && Math.Abs(sourceItem.TaxRate.Value - taxRate) < 0.01m)
         {
             return true;
         }
@@ -1500,6 +1532,27 @@ public class CreditNoteService : ICreditNoteService
 
         var grossSum = items.Sum(i => Math.Max(0m, Math.Round(i.Quantity * i.UnitPrice, 2, MidpointRounding.AwayFromZero)));
         var lineDiscountsSum = items.Sum(i => Math.Max(0m, Math.Round(i.DiscountAmount, 2, MidpointRounding.AwayFromZero)));
+        var inclusiveTaxSum = items
+            .Where(i => IsTaxInclusiveType(i.TaxType))
+            .Sum(i =>
+            {
+                if (i.TaxAmount > 0m)
+                {
+                    return Math.Round(i.TaxAmount, 2, MidpointRounding.AwayFromZero);
+                }
+
+                var rate = i.TaxRate ?? 0m;
+                if (rate <= 0m)
+                {
+                    return 0m;
+                }
+
+                var net = Math.Max(0m, Math.Round(i.Quantity * i.UnitPrice - i.DiscountAmount, 2, MidpointRounding.AwayFromZero));
+                var baseAmount = Math.Round(net / (1m + (rate / 100m)), 2, MidpointRounding.AwayFromZero);
+                return Math.Max(0m, Math.Round(net - baseAmount, 2, MidpointRounding.AwayFromZero));
+            });
+        // Tax-inclusive items already carry their tax inside grossSum; only add exclusive tax on top when reconciling totals.
+        var exclusiveTaxAmount = Math.Max(0m, Math.Round(invoice.TaxAmount - inclusiveTaxSum, 2, MidpointRounding.AwayFromZero));
 
         decimal extraInvoiceDiscount;
         if (lineDiscountsSum <= 0m)
@@ -1515,8 +1568,8 @@ public class CreditNoteService : ICreditNoteService
             var netUnderConventionA = Math.Max(0m, grossSum - lineDiscountsSum - subtractExtra);
             var netUnderConventionB = Math.Max(0m, grossSum - lineDiscountsSum - invoice.DiscountAmount);
 
-            var expectedTotalA = Math.Round(netUnderConventionA + invoice.TaxAmount + invoice.ChargesAmount + invoice.RoundingAmount, 2, MidpointRounding.AwayFromZero);
-            var expectedTotalB = Math.Round(netUnderConventionB + invoice.TaxAmount + invoice.ChargesAmount + invoice.RoundingAmount, 2, MidpointRounding.AwayFromZero);
+            var expectedTotalA = Math.Round(netUnderConventionA + exclusiveTaxAmount + invoice.ChargesAmount + invoice.RoundingAmount, 2, MidpointRounding.AwayFromZero);
+            var expectedTotalB = Math.Round(netUnderConventionB + exclusiveTaxAmount + invoice.ChargesAmount + invoice.RoundingAmount, 2, MidpointRounding.AwayFromZero);
 
             if (netUnderConventionB >= 0m &&
                 Math.Abs(expectedTotalB - invoice.TotalAmount) + 0.02m < Math.Abs(expectedTotalA - invoice.TotalAmount))
@@ -1630,11 +1683,6 @@ public class CreditNoteService : ICreditNoteService
                 return $"Discount amount for '{requestedItem.Description}' cannot be negative.";
             }
 
-            if (requestedItem.TaxRate.HasValue && !IsValidTaxRate(requestedItem.TaxRate.Value))
-            {
-                return $"Invalid tax rate ({requestedItem.TaxRate.Value}%) for '{requestedItem.Description}'. Supported GST tax rates are 0%, 5%, 12%, 18%, and 28%.";
-            }
-
             InvoiceItem? sourceItem = null;
             if (requestedItem.InvoiceItemId.HasValue)
             {
@@ -1655,6 +1703,11 @@ public class CreditNoteService : ICreditNoteService
             else
             {
                 return $"A valid source InvoiceItemId is required for '{requestedItem.Description}'.";
+            }
+
+            if (requestedItem.TaxRate.HasValue && !IsValidTaxRate(requestedItem.TaxRate.Value, sourceItem))
+            {
+                return $"Invalid tax rate ({requestedItem.TaxRate.Value}%) for '{requestedItem.Description}'. Supported GST tax rates are 0%, 5%, 12%, 18%, and 28%.";
             }
 
             if (!seenInvoiceItemIds.Add(sourceItem.Id))
@@ -1890,6 +1943,8 @@ public class CreditNoteService : ICreditNoteService
             Subtotal = invoice.Subtotal,
             DiscountAmount = invoice.DiscountAmount,
             TaxAmount = invoice.TaxAmount,
+            ChargesAmount = invoice.ChargesAmount,
+            RoundingAmount = invoice.RoundingAmount,
             TotalAmount = invoice.TotalAmount,
             PaidAmount = invoice.PaidAmount,
             CreditedAmount = effectiveCreditedAmount,
@@ -1898,6 +1953,28 @@ public class CreditNoteService : ICreditNoteService
             IsEligibleForCredit = isEligible,
             IneligibilityReason = reason
         };
+
+        var totalExtraDiscount = extraDiscountsByItemId.Values.Sum();
+        var itemsTotalSum = effectiveInvoiceItems.Sum(i => i.TotalAmount);
+        var expectedInvoiceItemsTotal = Math.Max(0m, Math.Round(invoice.TotalAmount - invoice.ChargesAmount - invoice.RoundingAmount, 2, MidpointRounding.AwayFromZero));
+        // Some callers store item.TotalAmount already net of allocated invoice discounts (sum(items.TotalAmount) == invoice items total),
+        // while FinancialCalculationEngine stores pre-invoice-discount item totals (sum(items.TotalAmount) > invoice items total).
+        var itemTotalsAlreadyReflectExtraDiscount = totalExtraDiscount <= 0m || Math.Abs(itemsTotalSum - expectedInvoiceItemsTotal) <= 0.10m;
+
+        var preExtraTaxSum = effectiveInvoiceItems.Sum(i =>
+            IsTaxInclusiveType(i.TaxType)
+                ? 0m
+                : Math.Round(Math.Max(0m, i.Quantity * i.UnitPrice - i.DiscountAmount) * ((i.TaxRate ?? 0m) / 100m), 2, MidpointRounding.AwayFromZero));
+        var postExtraTaxSum = effectiveInvoiceItems.Sum(i =>
+        {
+            var extra = extraDiscountsByItemId.GetValueOrDefault(i.Id, 0m);
+            return IsTaxInclusiveType(i.TaxType)
+                ? 0m
+                : Math.Round(Math.Max(0m, i.Quantity * i.UnitPrice - i.DiscountAmount - extra) * ((i.TaxRate ?? 0m) / 100m), 2, MidpointRounding.AwayFromZero);
+        });
+        var taxComputedBeforeExtraDiscount = totalExtraDiscount > 0m &&
+            Math.Abs(invoice.TaxAmount - postExtraTaxSum) > 0.05m &&
+            Math.Abs(invoice.TaxAmount - preExtraTaxSum) <= 0.05m;
 
         foreach (var item in effectiveInvoiceItems)
         {
@@ -1911,7 +1988,36 @@ public class CreditNoteService : ICreditNoteService
 
             var extraDiscount = extraDiscountsByItemId.GetValueOrDefault(item.Id);
             var effectiveItemDiscount = Math.Round(item.DiscountAmount + extraDiscount, 2, MidpointRounding.AwayFromZero);
-            var effectiveItemTotal = Math.Max(0m, Math.Round(item.TotalAmount - extraDiscount, 2, MidpointRounding.AwayFromZero));
+            var isTaxInclusive = IsTaxInclusiveType(item.TaxType);
+            decimal effectiveItemTax;
+            decimal effectiveItemTotal;
+
+            if (itemTotalsAlreadyReflectExtraDiscount || extraDiscount <= 0m)
+            {
+                effectiveItemTax = item.TaxAmount;
+                effectiveItemTotal = item.TotalAmount;
+            }
+            else
+            {
+                var gross = Math.Round(item.Quantity * item.UnitPrice, 2, MidpointRounding.AwayFromZero);
+                var taxRate = item.TaxRate ?? 0m;
+                if (isTaxInclusive)
+                {
+                    effectiveItemTotal = Math.Max(0m, Math.Round(gross - effectiveItemDiscount, 2, MidpointRounding.AwayFromZero));
+                    effectiveItemTax = taxRate > 0m
+                        ? Math.Max(0m, Math.Round(effectiveItemTotal - Math.Round(effectiveItemTotal / (1m + (taxRate / 100m)), 2, MidpointRounding.AwayFromZero), 2, MidpointRounding.AwayFromZero))
+                        : 0m;
+                }
+                else
+                {
+                    var netSubtotal = Math.Max(0m, Math.Round(gross - effectiveItemDiscount, 2, MidpointRounding.AwayFromZero));
+                    var taxableBase = taxComputedBeforeExtraDiscount
+                        ? Math.Max(0m, Math.Round(gross - item.DiscountAmount, 2, MidpointRounding.AwayFromZero))
+                        : netSubtotal;
+                    effectiveItemTax = Math.Round(taxableBase * (taxRate / 100m), 2, MidpointRounding.AwayFromZero);
+                    effectiveItemTotal = Math.Round(netSubtotal + effectiveItemTax, 2, MidpointRounding.AwayFromZero);
+                }
+            }
 
             summary.Items.Add(new InvoiceCreditableLineItemDto
             {
@@ -1925,7 +2031,8 @@ public class CreditNoteService : ICreditNoteService
                 DiscountAmount = effectiveItemDiscount,
                 TaxType = item.TaxType,
                 TaxRate = item.TaxRate,
-                TaxAmount = item.TaxAmount,
+                TaxAmount = effectiveItemTax,
+                IsTaxInclusive = isTaxInclusive,
                 TotalAmount = effectiveItemTotal,
                 PreviouslyCreditedAmount = previouslyCreditedAmt,
                 RemainingEligibleAmount = Math.Max(0m, effectiveItemTotal - previouslyCreditedAmt),

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, reconcileFullCredit, refundableBalance, splitTaxAmount, validateCreditQuantity, validateInvoiceTaxAmount, validateRefundAmount } from '../src/pages/CreditNotes/utils/creditNoteCalculations.js';
+import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, reconcileFullCredit, refundableBalance, splitTaxAmount, summarizeCreditTaxBreakdown, validateCreditQuantity, validateInvoiceTaxAmount, validateRefundAmount } from '../src/pages/CreditNotes/utils/creditNoteCalculations.js';
 import { fetchAllInvoicePages } from '../src/pages/CreditNotes/utils/creditNoteInvoicePages.js';
 
 const line = {
@@ -127,20 +127,73 @@ test('previously credited and remaining quantities cap a full credit line', () =
   assert.deepEqual(validateCreditQuantity(invoiceItem.remainingQuantity, invoiceItem.remainingQuantity), { valid: true, quantity: 3, error: '' });
 });
 
-test('credit quantity rejects negative, over-available, malformed, and over-precision values', () => {
+test('credit quantity rejects negative, over-available, malformed, and over-precision values while allowing up to 4 decimals', () => {
   assert.equal(validateCreditQuantity('-1', 2).valid, false);
   assert.equal(validateCreditQuantity('2.01', 2).valid, false);
   assert.equal(validateCreditQuantity('abc', 2).valid, false);
-  assert.equal(validateCreditQuantity('1.001', 2).valid, false);
+  assert.equal(validateCreditQuantity('0.125', 0.125).valid, true);
+  assert.equal(validateCreditQuantity('1.001', 2).valid, true);
+  assert.equal(validateCreditQuantity('1.00001', 2).valid, false);
   assert.deepEqual(validateCreditQuantity('0', 2), { valid: true, quantity: 0, error: '' });
   assert.equal(calculateCredit([{ unitPrice: 100, quantity: 0, taxRate: 18 }]).total, 0);
 });
 
-test('rounding reconciliation only applies a half-unit rounding difference', () => {
+test('rounding reconciliation handles partial negative rounding, ignores unselected lines with isFull, and supports full rounding or charges', () => {
   const all = [{ id: 1, quantity: 1, remainingQuantity: 1, unitPrice: 99.99, taxRate: 0 }];
   const totals = calculateCredit(all);
   assert.equal(reconcileFullCredit(totals, all, 100, true).total, 100);
   assert.equal(reconcileFullCredit(totals, all, 101, true).total, totals.total);
+
+  // Full credit with 0.80 invoice rounding (within 1.00 default tolerance) and charges (+50 with options)
+  const roundedInvoiceItems = [{ id: 1, quantity: 3, originalQuantity: 3, remainingQuantity: 3, unitPrice: 100, discountAmount: 10, taxRate: 18, taxAmount: 52.2 }];
+  const roundedTotals = calculateCredit(roundedInvoiceItems);
+  const fullWith080 = reconcileFullCredit(roundedTotals, roundedInvoiceItems, 343, true, roundedInvoiceItems);
+  assert.equal(fullWith080.total, 343);
+  assert.equal(fullWith080.rounding, 0.8);
+
+  const chargeItems = [{ id: 1, quantity: 2, originalQuantity: 2, remainingQuantity: 2, unitPrice: 500, discountAmount: 0, taxRate: 18, taxAmount: 180 }];
+  const chargeTotals = calculateCredit(chargeItems);
+  const fullWithCharges = reconcileFullCredit(chargeTotals, chargeItems, 1230, true, chargeItems, { charges: 50, rounding: 0 });
+  assert.equal(fullWithCharges.total, 1230);
+  assert.equal(fullWithCharges.rounding, 50);
+
+  // Partial selection where isFull flag is stale should NOT pull in unselected line difference
+  const twoLines = [
+    { id: 1, quantity: 1, originalQuantity: 1, remainingQuantity: 1, unitPrice: 100, discountAmount: 0, taxRate: 0 },
+    { id: 2, quantity: 1, originalQuantity: 1, remainingQuantity: 1, unitPrice: 0.4, discountAmount: 0, taxRate: 0 },
+  ];
+  const onlyLine1 = [{ ...twoLines[0] }];
+  assert.equal(reconcileFullCredit(calculateCredit(onlyLine1), onlyLine1, 100.4, true, twoLines).total, 100);
+
+  // Partial selection exceeding eligibility solely by whole-rupee rounding <= 0.50 reconciles cleanly
+  const partialOverItems = [
+    { id: 1, quantity: 2, originalQuantity: 2, remainingQuantity: 2, unitPrice: 100, discountAmount: 0, taxRate: 18 },
+    { id: 2, quantity: 1, originalQuantity: 1, remainingQuantity: 1, unitPrice: 50, discountAmount: 0, taxRate: 18 },
+  ];
+  const selectedPartial = [{ ...partialOverItems[0] }];
+  const partialReconciled = reconcileFullCredit(calculateCredit(selectedPartial), selectedPartial, 235.8, false, partialOverItems);
+  assert.equal(partialReconciled.total, 235.8);
+  assert.equal(partialReconciled.rounding, -0.2);
+});
+
+test('summarizeCreditTaxBreakdown preserves inclusive taxable bases, inter-state splits, and rounding', () => {
+  const breakdown = summarizeCreditTaxBreakdown({
+    subtotal: 266.19,
+    taxAmount: 42.21,
+    roundingAmount: 0.03,
+    total: 308.43,
+    items: [
+      { quantity: 3, unitPrice: 100, discountAmount: 30, taxableAmount: 228.81, taxAmount: 41.19, cgstAmount: 20.6, sgstAmount: 20.59, igstAmount: 0, isTaxInclusive: true, taxType: 'Inclusive', taxRate: 18 },
+      { quantity: 1, unitPrice: 20.4, discountAmount: 0, taxAmount: 1.02, taxType: 'Inter-State GST', taxRate: 5 },
+    ],
+  });
+  assert.deepEqual(breakdown, {
+    taxable: 249.21,
+    cgst: 20.6,
+    sgst: 20.59,
+    igst: 1.02,
+    roundingAdjustment: 0.03,
+  });
 });
 
 test('remaining refundable amount follows total credit less amount refunded', () => {

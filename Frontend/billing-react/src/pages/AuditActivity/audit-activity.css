@@ -1,6 +1,6 @@
 .audit-page { padding:28px clamp(16px,3vw,36px) 48px; color:var(--text-primary,#35271f); }
 .audit-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:20px 24px; border-bottom:1px solid #eee7df; }
-.audit-heading h1 { margin:0 0 5px; font-size:22px; }
+.audit-heading h1 { margin:0 0 5px; font-size:clamp(22px, 1.85vw, 27px); }
 .audit-heading-title { display:flex; align-items:center; gap:14px; }
 .audit-heading-icon { display:flex; padding:12px; border-radius:10px; background:#f5eee7; color:#8a6548; }
 .audit-heading-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap; }
@@ -10,7 +10,7 @@
 .audit-heading .audit-eyebrow { text-transform:uppercase; letter-spacing:.1em; font-size:11px; font-weight:700; color:var(--primary,#674730); }
 .audit-card { background:var(--surface,#fff); border:1px solid var(--border,#d5c6b5); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-card,0 3px 12px #35231c12); }
 .audit-section-heading { display:flex; align-items:center; gap:10px; margin-bottom:20px; color:var(--primary,#674730); }
-.audit-section-heading h2,.audit-results-heading h2 { margin:0; font-size:19px; }
+.audit-section-heading h2,.audit-results-heading h2 { margin:0; font-size:16.5px; }
 .audit-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
 .audit-page .audit-filter-grid .date-range-filter.ant-btn { width:100%; max-width:none; min-width:0; height:40px; min-height:40px; justify-self:stretch; margin-right:0; padding-inline:8px; border-color:var(--border,#d5c6b5); border-radius:8px; background:#fff; color:var(--text-primary,#35271f); font-size:13px; font-weight:700; }
 .date-range-popover.audit-activity-date-range-popover { width:min(250px,calc(100vw - 16px)); max-width:calc(100vw - 16px); }
@@ -39,14 +39,14 @@
 .audit-results { padding:20px 24px 0; }
 .audit-results .MuiTableContainer-root { border:1px solid #eee7df; border-radius:8px; }
 .audit-results .MuiTableCell-head { background:var(--bg-main,#f9f5ef); font-weight:700; color:var(--text-primary,#35271f); white-space:nowrap; }
-.audit-results .MuiTableCell-body { vertical-align:top; border-color:#eee7df; font-size:13px; }
+.audit-results .MuiTableCell-body { vertical-align:top; border-color:#eee7df; font-size:12.5px; line-height:1.25; }
 .audit-results .MuiTableRow-hover:hover { background:#fcf8f2; }
 .audit-results .MuiTableCell-root:first-child { min-width:200px; }
 .audit-results .MuiTableCell-head:first-child { padding-left:25px; }
 .audit-event.MuiChip-root { background:#f5eee7; color:#674730; height:28px; max-width:none; }
 .audit-event .MuiChip-label { white-space:nowrap; overflow:visible; text-overflow:clip; padding:5px 9px; }
 .audit-date { min-width:180px; }
-.audit-entity-id { display:block; color:var(--text-secondary,#756354); font-size:12px; margin-top:4px; overflow-wrap:anywhere; }
+.audit-entity-id { display:block; color:var(--text-secondary,#756354); font-size:11px; margin-top:4px; overflow-wrap:anywhere; }
 .audit-changes { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; min-width:180px; overflow-wrap:anywhere; white-space:normal; line-height:1.45; }
 .audit-empty { padding:40px 16px; text-align:center; color:var(--text-secondary,#756354); }
 .audit-empty > svg { font-size:40px; color:#8a6548; }

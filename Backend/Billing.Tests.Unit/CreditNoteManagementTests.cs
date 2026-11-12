@@ -1295,4 +1295,258 @@ public class CreditNoteManagementTests
         Assert.True(issueResult.Success);
         notificationServiceMock.Verify(s => s.SendCreditNoteNotificationAsync(cnId, Tenant1, "Manager", null, null), Moq.Times.Once);
     }
+
+    [Fact]
+    public async Task CreateCreditNote_TaxInclusiveWithLineAndInvoiceDiscounts_DoesNotDoubleSubtractDiscount()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+
+        var lineDiscountOnlyInvoice = new Invoice
+        {
+            Id = 901,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0901",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 300m,
+            DiscountAmount = 10m,
+            TaxAmount = 44.24m,
+            TotalAmount = 290m,
+            BalanceAmount = 290m,
+            Items = new List<InvoiceItem>
+            {
+                new()
+                {
+                    Id = 9011,
+                    InvoiceId = 901,
+                    Description = "Inclusive Item",
+                    Quantity = 3m,
+                    UnitPrice = 100m,
+                    DiscountAmount = 10m,
+                    TaxType = "Inclusive",
+                    TaxRate = 18m,
+                    TaxAmount = 44.24m,
+                    TotalAmount = 290m
+                }
+            }
+        };
+        await ctx.InvoiceRepo.AddAsync(lineDiscountOnlyInvoice);
+
+        var resLineOnly = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = lineDiscountOnlyInvoice.Id,
+                Type = "Full",
+                Reason = "Tax-inclusive line discount regression"
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+
+        Assert.True(resLineOnly.Success);
+        Assert.Equal(10m, resLineOnly.Data!.DiscountAmount);
+        Assert.Equal(245.76m, resLineOnly.Data.Subtotal);
+        Assert.Equal(44.24m, resLineOnly.Data.TaxAmount);
+        Assert.Equal(290m, resLineOnly.Data.TotalAmount);
+        Assert.True(resLineOnly.Data.Items.Single().IsTaxInclusive);
+
+        var combinedDiscountInvoice = new Invoice
+        {
+            Id = 902,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0902",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 300m,
+            DiscountAmount = 30m,
+            TaxAmount = 44.24m,
+            TotalAmount = 270m,
+            BalanceAmount = 270m,
+            Items = new List<InvoiceItem>
+            {
+                new()
+                {
+                    Id = 9021,
+                    InvoiceId = 902,
+                    Description = "Inclusive Item",
+                    Quantity = 3m,
+                    UnitPrice = 100m,
+                    DiscountAmount = 10m,
+                    TaxType = "Inclusive",
+                    TaxRate = 18m,
+                    TaxAmount = 44.24m,
+                    TotalAmount = 290m
+                }
+            }
+        };
+        await ctx.InvoiceRepo.AddAsync(combinedDiscountInvoice);
+
+        var resCombined = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = combinedDiscountInvoice.Id,
+                Type = "Full",
+                Reason = "Tax-inclusive line and invoice discount regression"
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+
+        Assert.True(resCombined.Success);
+        Assert.Equal(30m, resCombined.Data!.DiscountAmount);
+        Assert.Equal(228.81m, resCombined.Data.Subtotal);
+        Assert.Equal(41.19m, resCombined.Data.TaxAmount);
+        Assert.Equal(270m, resCombined.Data.TotalAmount);
+    }
+
+    [Fact]
+    public async Task GetInvoiceCreditableSummary_WithInvoiceLevelDiscount_PreservesAlreadyDiscountedLineTotalsAndAdjustsPreDiscountTotals()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+
+        var alreadyDiscountedInvoice = new Invoice
+        {
+            Id = 903,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0903",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 900m,
+            DiscountAmount = 100m,
+            TaxAmount = 162m,
+            TotalAmount = 1062m,
+            BalanceAmount = 1062m,
+            Items = new List<InvoiceItem>
+            {
+                new() { Id = 9031, InvoiceId = 903, Description = "Item A", Quantity = 2m, UnitPrice = 300m, DiscountAmount = 0m, TaxType = "GST", TaxRate = 18m, TaxAmount = 97.20m, TotalAmount = 637.20m },
+                new() { Id = 9032, InvoiceId = 903, Description = "Item B", Quantity = 2m, UnitPrice = 200m, DiscountAmount = 0m, TaxType = "GST", TaxRate = 18m, TaxAmount = 64.80m, TotalAmount = 424.80m }
+            }
+        };
+        await ctx.InvoiceRepo.AddAsync(alreadyDiscountedInvoice);
+
+        var summaryAlreadyDiscounted = await ctx.CreditNoteService.GetInvoiceCreditableSummaryAsync(
+            Tenant1, alreadyDiscountedInvoice.Id, new List<string> { "Finance" });
+
+        Assert.True(summaryAlreadyDiscounted.Success);
+        Assert.Equal(60m, summaryAlreadyDiscounted.Data!.Items[0].DiscountAmount);
+        Assert.Equal(637.20m, summaryAlreadyDiscounted.Data.Items[0].TotalAmount);
+        Assert.Equal(424.80m, summaryAlreadyDiscounted.Data.Items[1].TotalAmount);
+        Assert.Equal(1062m, summaryAlreadyDiscounted.Data.Items.Sum(x => x.TotalAmount));
+
+        // FinancialCalculationEngine exclusive pre-discount tax case: 2*300 + 2*200 = 1000, InvoiceDiscount=100, line taxes=108+72=180, Charges=25, Total=1105
+        var preDiscountExclusiveInvoice = new Invoice
+        {
+            Id = 905,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0905",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 1000m,
+            DiscountAmount = 100m,
+            TaxAmount = 180m,
+            ChargesAmount = 25m,
+            RoundingAmount = 0m,
+            TotalAmount = 1105m,
+            BalanceAmount = 1105m,
+            Items = new List<InvoiceItem>
+            {
+                new() { Id = 9051, InvoiceId = 905, Description = "Item A", Quantity = 2m, UnitPrice = 300m, DiscountAmount = 0m, TaxType = "GST", TaxRate = 18m, TaxAmount = 108m, TotalAmount = 708m },
+                new() { Id = 9052, InvoiceId = 905, Description = "Item B", Quantity = 2m, UnitPrice = 200m, DiscountAmount = 0m, TaxType = "GST", TaxRate = 18m, TaxAmount = 72m, TotalAmount = 472m }
+            }
+        };
+        await ctx.InvoiceRepo.AddAsync(preDiscountExclusiveInvoice);
+
+        var summaryPreDiscount = await ctx.CreditNoteService.GetInvoiceCreditableSummaryAsync(
+            Tenant1, preDiscountExclusiveInvoice.Id, new List<string> { "Finance" });
+
+        Assert.True(summaryPreDiscount.Success);
+        Assert.Equal(25m, summaryPreDiscount.Data!.ChargesAmount);
+        Assert.Equal(648m, summaryPreDiscount.Data.Items[0].TotalAmount);
+        Assert.Equal(432m, summaryPreDiscount.Data.Items[1].TotalAmount);
+        Assert.Equal(1080m, summaryPreDiscount.Data.Items.Sum(x => x.TotalAmount));
+    }
+
+    [Fact]
+    public async Task CreateCreditNote_WithInvoicePersistedCustomTaxRateAndHeaderDerivedRate_Succeeds()
+    {
+        var ctx = new TestContext();
+        await ctx.SeedCustomerAsync();
+
+        var customRateInvoice = new Invoice
+        {
+            Id = 906,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0906",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 1395m,
+            DiscountAmount = 105m,
+            TaxAmount = 181.35m,
+            RoundingAmount = -0.35m,
+            TotalAmount = 1576m,
+            BalanceAmount = 1576m,
+            Items = new List<InvoiceItem>
+            {
+                new() { Id = 9061, InvoiceId = 906, Description = "Cooker", Quantity = 1m, UnitPrice = 1500m, DiscountAmount = 105m, TaxType = "GST", TaxRate = 13m, TaxAmount = 181.35m, TotalAmount = 1576.35m }
+            }
+        };
+        await ctx.InvoiceRepo.AddAsync(customRateInvoice);
+
+        var customRateResult = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = customRateInvoice.Id,
+                Type = "Partial",
+                Reason = "Custom GST rate regression",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = 9061, Description = "Cooker", Quantity = 1m, UnitPrice = 1500m, TaxRate = 13m }
+                }
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+
+        Assert.True(customRateResult.Success);
+        Assert.Equal(181.35m, customRateResult.Data!.TaxAmount);
+        Assert.Equal(1576m, customRateResult.Data.TotalAmount);
+
+        var headerOnlyInvoice = new Invoice
+        {
+            Id = 907,
+            TenantId = Tenant1,
+            InvoiceNumber = "INV-0907",
+            CustomerId = 10,
+            InvoiceDate = DateTime.UtcNow.AddDays(-2),
+            Status = "Issued",
+            Subtotal = 1000m,
+            DiscountAmount = 100m,
+            TaxAmount = 150m,
+            TotalAmount = 1050m,
+            BalanceAmount = 1050m,
+            Items = new List<InvoiceItem>()
+        };
+        await ctx.InvoiceRepo.AddAsync(headerOnlyInvoice);
+
+        var headerOnlyResult = await ctx.CreditNoteService.CreateCreditNoteAsync(
+            Tenant1,
+            new CreateCreditNoteRequest
+            {
+                InvoiceId = headerOnlyInvoice.Id,
+                Type = "Full",
+                Reason = "Header-only invoice derived tax rate",
+                Items = new List<CreateCreditNoteItemRequest>
+                {
+                    new() { InvoiceItemId = 0, Description = "Invoice INV-0907", Quantity = 1m, UnitPrice = 1000m, TaxRate = 16.67m }
+                }
+            },
+            "Staff", new List<string> { "Staff" }, new List<string>());
+
+        Assert.True(headerOnlyResult.Success);
+        Assert.Equal(1050m, headerOnlyResult.Data!.TotalAmount);
+    }
 }
