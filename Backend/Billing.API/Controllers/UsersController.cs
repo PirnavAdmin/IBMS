@@ -143,7 +143,7 @@ public class UsersController : ControllerBase
             }
         }
 
-        var (success, message) = await _userService.UpdateUserStatusAsync(id, request.Status);
+        var (success, message) = await _userService.UpdateUserStatusAsync(id, request.Status, GetCallerUserId());
         if (!success)
         {
             return BadRequest(new { success = false, message });
@@ -247,13 +247,21 @@ public class UsersController : ControllerBase
             }
         }
 
-        var (success, message) = await _userService.DeleteUserAsync(id);
+        var (success, message) = await _userService.DeleteUserAsync(id, GetCallerUserId());
         if (!success)
         {
             return BadRequest(new { success = false, message });
         }
 
         return Ok(new { success = true, message });
+    }
+
+    private int? GetCallerUserId()
+    {
+        var userClaim = User.FindFirst("UserId")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        return int.TryParse(userClaim, out var userId) && userId > 0 ? userId : null;
     }
 
     private int? GetCallerTenantId()

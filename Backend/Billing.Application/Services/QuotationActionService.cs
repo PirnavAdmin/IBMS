@@ -645,6 +645,9 @@ public class QuotationActionService : IQuotationActionService
                 TenantId = tenantId,
                 InvoiceNumber = numResp.Data!.GeneratedNumber,
                 CustomerId = quotation.CustomerId,
+                Currency = !string.IsNullOrWhiteSpace(quotation.Customer?.Currency)
+                    ? quotation.Customer.Currency.Trim().ToUpperInvariant()
+                    : "INR",
                 InvoiceDate = DateTime.UtcNow,
                 DueDate = quotation.ValidUntil > DateTime.UtcNow ? quotation.ValidUntil : DateTime.UtcNow.AddDays(30),
                 Reference = quotation.QuoteNumber,
@@ -653,13 +656,14 @@ public class QuotationActionService : IQuotationActionService
                 DiscountAmount = quotation.DiscountAmount,
                 TaxAmount = quotation.TaxAmount,
                 ChargesAmount = quotation.ChargesAmount,
+                RoundingAmount = 0m,
                 TotalAmount = quotation.TotalAmount,
                 PaidAmount = 0m,
                 BalanceAmount = quotation.TotalAmount,
                 Notes = quotation.Notes,
                 TermsAndConditions = quotation.TermsAndConditions,
                 Status = "Draft",
-                Items = quotation.Items.Select(i => new InvoiceItem
+                Items = quotation.Items.Select((i, index) => new InvoiceItem
                 {
                     ProductId = i.ProductId,
                     Description = i.Description,
@@ -672,7 +676,8 @@ public class QuotationActionService : IQuotationActionService
                     TaxRate = i.TaxRate,
                     TaxAmount = i.TaxAmount,
                     TotalAmount = i.TotalAmount,
-                    HSNSAC = i.HSNSAC
+                    HSNSAC = i.HSNSAC,
+                    SortOrder = index + 1
                 }).ToList()
             };
 

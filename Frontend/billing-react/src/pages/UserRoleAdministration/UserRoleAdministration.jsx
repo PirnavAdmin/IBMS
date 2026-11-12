@@ -181,23 +181,29 @@ function QueryState({ query, label, retry, empty, children }) {
   return children;
 }
 
-function currentTenantId() {
+function currentAuthUser() {
   try {
-    const user = JSON.parse(localStorage.getItem('billing_auth_user') || 'null');
-    const tenantId = user?.tenantId ?? user?.TenantId;
-    return tenantId !== '' && tenantId != null && Number.isInteger(Number(tenantId)) ? Number(tenantId) : undefined;
+    return JSON.parse(localStorage.getItem('billing_auth_user') || 'null');
   } catch {
-    return undefined;
+    return null;
   }
 }
 
+function currentTenantId() {
+  const user = currentAuthUser();
+  const tenantId = user?.tenantId ?? user?.TenantId;
+  return tenantId !== '' && tenantId != null && Number.isInteger(Number(tenantId)) ? Number(tenantId) : undefined;
+}
+
 function currentApplicationId() {
-  try {
-    const user = JSON.parse(localStorage.getItem('billing_auth_user') || 'null');
-    return user?.applicationId ?? user?.ApplicationId ?? '';
-  } catch {
-    return '';
-  }
+  const user = currentAuthUser();
+  return user?.applicationId ?? user?.ApplicationId ?? '';
+}
+
+function currentUserId() {
+  const user = currentAuthUser();
+  const id = user?.userId ?? user?.UserId ?? user?.id ?? user?.Id;
+  return id !== '' && id != null && Number.isInteger(Number(id)) ? Number(id) : undefined;
 }
 
 function FormActions({ busy, onCancel, onSubmit, saveLabel = 'Save', submitDisabled = false }) {
@@ -236,6 +242,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
   const [pageSize, setPageSize] = useState(10);
   const search = useDebounced(searchInput);
   const tenantId = currentTenantId();
+  const signedInUserId = currentUserId();
   const rolesQuery = useQuery({ queryKey: ['ura', 'roles', tenantId], queryFn: ({ signal }) => service.listRoles({ tenantId, signal }), retry: false });
   const params = { Search: search || undefined, Status: status === 'all' ? undefined : status, Role: role === 'all' ? undefined : role, IdentityType: identityType === 'all' ? undefined : identityType, TenantId: tenantId, PageNumber: page + 1, PageSize: pageSize };
   const usersQuery = useQuery({
@@ -283,11 +290,12 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
           const tenant = recordValue(user, 'tenantName', 'TenantName') || recordValue(user, 'tenantCode', 'TenantCode') || recordValue(user, 'tenantId', 'TenantId') || '—';
           const application = recordValue(user, 'applicationId', 'ApplicationId') || '—';
           const userStatus = String(statusValue(user)).toLowerCase() === 'active' ? 'Inactive' : 'Active';
+          const isSelf = signedInUserId != null && Number(id) === signedInUserId;
           const actions = [
             { label: 'View details', icon: VisibilityOutlined, onClick: () => onOpenUser(id) },
             { label: assignmentMode ? 'Edit assignments' : 'Edit user', icon: EditOutlined, onClick: () => onEditUser(id) },
-            ...(!assignmentMode ? [{ label: userStatus === 'Inactive' ? 'Deactivate user' : 'Activate user', icon: userStatus === 'Inactive' ? BlockOutlined : CheckCircleOutline, onClick: () => onToggleStatus(id, userStatus) }] : []),
-            ...(!assignmentMode && onDeleteUser ? [{ label: 'Delete user', icon: DeleteOutline, onClick: () => { if (window.confirm('Delete this user permanently?')) onDeleteUser(id); } }] : []),
+            ...(!assignmentMode && !(isSelf && userStatus === 'Inactive') ? [{ label: userStatus === 'Inactive' ? 'Deactivate user' : 'Activate user', icon: userStatus === 'Inactive' ? BlockOutlined : CheckCircleOutline, onClick: () => onToggleStatus(id, userStatus) }] : []),
+            ...(!assignmentMode && !isSelf && onDeleteUser ? [{ label: 'Delete user', icon: DeleteOutline, onClick: () => { if (window.confirm('Delete this user permanently?')) onDeleteUser(id); } }] : []),
           ];
           return <tr key={id}>
             <td><strong>{recordValue(user, 'name', 'Name') || '—'}</strong></td>
@@ -531,6 +539,7 @@ function RoleList({ onCreate, onView, onEdit, onDelete }) {
   const [search, setSearch] = useState('');
   useNavbarSearch(search, setSearch, 'Search roles');
   const tenantId = currentTenantId();
+  const signedInUserId = currentUserId();
   const rolesQuery = useQuery({ queryKey: ['ura', 'roles', tenantId], queryFn: ({ signal }) => service.listRoles({ tenantId, signal }), retry: false });
   const roles = useMemo(() => (rolesQuery.data ?? []).filter((role) => isAssignableRole(recordValue(role, 'name', 'Name'))).filter((role) => {
     const query = search.trim().toLowerCase();

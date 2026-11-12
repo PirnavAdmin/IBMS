@@ -10,8 +10,8 @@ export const roundCurrency = (amount) => {
 export const validateCreditQuantity = (value, available) => {
   const raw = String(value ?? '').trim();
   if (!raw) return { valid: true, quantity: 0, error: '' };
-  if (!/^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/.test(raw)) {
-    return { valid: false, quantity: 0, error: 'Enter a valid quantity with up to 2 decimal places.' };
+  if (!/^(?:\d+(?:\.\d{1,4})?|\.\d{1,4})$/.test(raw)) {
+    return { valid: false, quantity: 0, error: 'Enter a valid quantity with up to 4 decimal places.' };
   }
   const quantity = Number(raw);
   const limit = Number(available);
@@ -132,7 +132,7 @@ export const invoiceLineWarnings = (item, currency = 'INR') => [
 
 export const splitTaxAmount = (amount, taxMode) => {
   const tax = roundCurrency(amount);
-  if (/^(?:inter[- ]?state|igst)$/i.test(String(taxMode || ''))) return { cgst: 0, sgst: 0, igst: tax };
+  if (/(?:inter[- ]?state|igst)/i.test(String(taxMode || ''))) return { cgst: 0, sgst: 0, igst: tax };
   const cgst = roundCurrency(tax / 2);
   return { cgst, sgst: roundCurrency(tax - cgst), igst: 0 };
 };
@@ -168,7 +168,7 @@ export const calculateCredit = (items = []) => {
 // lines are credited in full (or when a partial selection exceeds remaining
 // eligibility solely by whole-rupee rounding <= 0.50), carry that rounding
 // adjustment so the credit reconciles cleanly to the persisted invoice balance.
-export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull = false, allInvoiceItems = items) => {
+export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull = false, allInvoiceItems = items, options = {}) => {
   if (!items.length) return totals;
   const selectedById = new Map(items.map((item) => [item.id, item]));
   const includesAllRemainingLines = allInvoiceItems.length > 0 && allInvoiceItems.every((invoiceItem) => {
@@ -179,10 +179,56 @@ export const reconcileFullCredit = (totals, items = [], eligibleAmount, isFull =
   if (total <= 0) return totals;
   const difference = roundCurrency(total - totals.total);
   if (difference === 0) return totals;
-  if ((includesAllRemainingLines || isFull) && Math.abs(difference) <= 0.5) {
+  const maxFullAdjustment = Math.max(
+    1,
+    roundCurrency(Math.abs(Number(options?.rounding || 0)) + Math.max(0, Number(options?.charges || 0)) + 0.5),
+  );
+  if (includesAllRemainingLines && Math.abs(difference) <= maxFullAdjustment) {
+    return { ...totals, rounding: roundCurrency((totals.rounding || 0) + difference), total };
+  }
+  if (!includesAllRemainingLines && difference < 0 && Math.abs(difference) <= 0.5) {
     return { ...totals, rounding: roundCurrency((totals.rounding || 0) + difference), total };
   }
   return totals;
+};
+
+export const summarizeCreditTaxBreakdown = (note) => {
+  const breakdown = (note?.items || []).reduce((sum, item) => {
+    const taxable = item.taxableAmount != null && Number.isFinite(Number(item.taxableAmount))
+      ? Number(item.taxableAmount)
+      : creditLineAmounts(item).subtotal;
+    const tax = item.taxAmount != null && Number.isFinite(Number(item.taxAmount))
+      ? Number(item.taxAmount)
+      : creditLineAmounts(item).tax;
+    const hasSplit = [item.cgstAmount, item.sgstAmount, item.igstAmount].some(
+      (value) => value != null && Number.isFinite(Number(value)),
+    );
+    const split = hasSplit
+      ? {
+        cgst: Number(item.cgstAmount || 0),
+        sgst: Number(item.sgstAmount || 0),
+        igst: Number(item.igstAmount || 0),
+      }
+      : splitTaxAmount(tax, item.taxMode || item.taxType);
+    sum.taxable += taxable;
+    sum.cgst += split.cgst;
+    sum.sgst += split.sgst;
+    sum.igst += split.igst;
+    return sum;
+  }, { taxable: 0, cgst: 0, sgst: 0, igst: 0 });
+
+  const roundingSource = note?.roundingAmount ?? note?.rounding;
+  const roundingAdjustment = roundingSource != null && Number.isFinite(Number(roundingSource)) && Number(roundingSource) !== 0
+    ? roundCurrency(Number(roundingSource))
+    : (note ? roundCurrency(Number(note.total || 0) - Number(note.subtotal || 0) - Number(note.taxAmount || 0)) : 0);
+
+  return {
+    taxable: roundCurrency(breakdown.taxable),
+    cgst: roundCurrency(breakdown.cgst),
+    sgst: roundCurrency(breakdown.sgst),
+    igst: roundCurrency(breakdown.igst),
+    roundingAdjustment,
+  };
 };
 
 export const refundableBalance = (note) => {

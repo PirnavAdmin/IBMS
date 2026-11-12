@@ -149,11 +149,12 @@ public class ReminderSettingsIntegrationTests
         Assert.Equal(2, sentEmails.Count);
 
         var partialEmail = Assert.Single(sentEmails, e => e.Subject.Contains("INV-REM-201"));
+        Assert.DoesNotContain("Click Here to Pay Online", partialEmail.Body);
         Assert.DoesNotContain("Pay Now", partialEmail.Body);
         Assert.DoesNotContain("/pay/201", partialEmail.Body);
 
         var overdueEmail = Assert.Single(sentEmails, e => e.Subject.Contains("INV-REM-202"));
-        Assert.Contains("Pay Now Online", overdueEmail.Body);
+        Assert.Contains("Click Here to Pay Online", overdueEmail.Body);
         Assert.Contains("/pay/202?tenantId=2", overdueEmail.Body);
 
         // Re-running within same day/7-day window dispatches 0 duplicates

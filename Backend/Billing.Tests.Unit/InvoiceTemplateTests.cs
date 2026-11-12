@@ -706,4 +706,200 @@ public class InvoiceTemplateTests
         Assert.Contains("/pay/49?tenantId=2", pdfWithLink);
         Assert.DoesNotContain("/pay/49?tenantId=2", pdfWithoutLink);
     }
+
+    [Fact]
+    public async Task GenerateInvoicePdf_PirnavStandardV2_ComputesDynamicCgstSgstAndFullBillingAddressAndOmitsPayOnlineUri()
+    {
+        var mockTaxRepo = new Mock<ITaxRepository>();
+        mockTaxRepo.Setup(t => t.GetSettingsAsync(1))
+            .ReturnsAsync(new TaxSetting { TenantId = 1, State = "Telangana", IsTaxEnabled = true });
+
+        var service = new InvoiceTemplateService(
+            _mockTemplateRepo.Object,
+            _mockSnapshotRepo.Object,
+            _mockDocumentRepo.Object,
+            _mockInvoiceRepo.Object,
+            _pdfEngine,
+            _mockStorage.Object,
+            taxRepository: mockTaxRepo.Object);
+
+        var invoice = new Invoice
+        {
+            Id = 47,
+            TenantId = 1,
+            InvoiceNumber = "INV-2026-11-000047",
+            InvoiceDate = new DateTime(2026, 11, 10),
+            DueDate = new DateTime(2026, 12, 10),
+            Status = "Issued",
+            Currency = "INR",
+            Reference = "QT-2026-11-0009",
+            Notes = "Delivered via courier.",
+            TermsAndConditions = "1. Pay on receipt.",
+            Subtotal = 4999m,
+            DiscountAmount = 0m,
+            TaxAmount = 599.88m,
+            TotalAmount = 5598.88m,
+            PaidAmount = 0m,
+            BalanceAmount = 5598.88m,
+            Customer = new Customer
+            {
+                Id = 6,
+                CustomerCode = "CUST-006",
+                Name = "sanya solutions",
+                Email = "mukkalla0607@gmail.com",
+                Address = "hitechcity",
+                City = "Hyderabad",
+                State = "Telangana",
+                PostalCode = "500081",
+                Country = "India"
+            },
+            Items = new List<InvoiceItem>
+            {
+                new()
+                {
+                    Id = 1,
+                    Description = "noise smart watch",
+                    Quantity = 1,
+                    UnitPrice = 4999m,
+                    DiscountAmount = 0m,
+                    TaxRate = 12m,
+                    TaxAmount = 599.88m,
+                    TotalAmount = 5598.88m,
+                    HSNSAC = "8517"
+                }
+            }
+        };
+
+        var pirnavTemplate = new InvoiceTemplate
+        {
+            Id = 2,
+            TenantId = 1,
+            Name = "Pirnav Standard Invoice",
+            Style = DomainStyle.Standard,
+            Status = DomainStatus.Active,
+            IsDefault = true,
+            ActiveVersionId = 20,
+            Versions = new List<TemplateVersion>
+            {
+                new()
+                {
+                    Id = 20,
+                    VersionNumber = 1,
+                    Status = DomainStatus.Active,
+                    BrandingJson = "{\"PrimaryColor\":\"#6B2E0C\",\"SecondaryColor\":\"#F7EDE5\",\"LogoUrl\":\"/template-assets/pirnav.png\",\"LogoPosition\":\"right\"}",
+                    CompanyDetailsJson = "{\"CompanyName\":\"Pirnav Software Solutions Pvt. Ltd.\",\"Email\":\"pradeep@pirnav.com\",\"Phone\":\"+91 8121076485\",\"AddressLine1\":\"Capital Park Road, Cyber Hills Colony\",\"City\":\"Hyderabad\",\"State\":\"Telangana\",\"PostalCode\":\"500081\"}",
+                    LayoutJson = "{\"UsePirnavStandardLayout\":true,\"ShowLogo\":true,\"ShowHeader\":true,\"ShowFooter\":true,\"ShowTermsAndConditions\":true,\"CurrencyCode\":\"INR\",\"CurrencySymbol\":\"₹\"}",
+                    PaymentInstructionsJson = "{}",
+                    TermsJson = "{\"TermsAndConditions\":\"Default terms\",\"FooterNote\":\"Thank you for choosing us! This is a system-generated invoice and does not require a physical signature.\"}"
+                }
+            }
+        };
+
+        InvoiceSnapshot? capturedSnapshot = null;
+        byte[]? capturedPdfBytes = null;
+
+        _mockInvoiceRepo.Setup(r => r.GetByIdAsync(47, 1)).ReturnsAsync(invoice);
+        _mockDocumentRepo.Setup(r => r.GetByInvoiceIdAsync(47, 1)).ReturnsAsync((GeneratedDocument?)null);
+        _mockSnapshotRepo.Setup(r => r.GetByInvoiceIdAsync(47, 1)).ReturnsAsync((InvoiceSnapshot?)null);
+        _mockTemplateRepo.Setup(r => r.GetDefaultTemplateAsync(1)).ReturnsAsync(pirnavTemplate);
+        _mockSnapshotRepo.Setup(r => r.AddAsync(It.IsAny<InvoiceSnapshot>()))
+            .Callback<InvoiceSnapshot>(s => capturedSnapshot = s)
+            .Returns(Task.CompletedTask);
+        _mockStorage.Setup(s => s.SaveDocumentAsync(It.IsAny<byte[]>(), It.IsAny<string>(), "application/pdf", 1, default))
+            .Callback<byte[], string, string, int, CancellationToken>((b, _, _, _, _) => capturedPdfBytes = b)
+            .ReturnsAsync("tenant_1/INV-2026-11-000047.pdf");
+        _mockDocumentRepo.Setup(r => r.AddAsync(It.IsAny<GeneratedDocument>())).Returns(Task.CompletedTask);
+
+        var response = await service.GenerateInvoicePdfAsync(new GenerateInvoicePdfRequest { InvoiceId = 47, ForceRegenerate = true, IncludePayOnlineLink = true }, 1, "Admin");
+
+        Assert.Equal("INV-2026-11-000047.pdf", response.FileName);
+        Assert.NotNull(capturedSnapshot);
+        Assert.NotNull(capturedPdfBytes);
+        Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(capturedPdfBytes, 0, 5));
+        // Option B: Pirnav Standard PDF omits Pay Online link inside PDF even when IncludePayOnlineLink is true for email.
+        Assert.DoesNotContain("/pay/47", Encoding.Latin1.GetString(capturedPdfBytes));
+
+        var snapshotDto = JsonSerializer.Deserialize<InvoiceSnapshotDto>(capturedSnapshot!.SnapshotDataJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        Assert.Equal("hitechcity, Hyderabad, Telangana, 500081, India", snapshotDto.Customer.BillingAddress);
+        Assert.Equal("QT-2026-11-0009", snapshotDto.Reference);
+        Assert.Equal("Delivered via courier.", snapshotDto.Notes);
+        Assert.Equal("1. Pay on receipt.", snapshotDto.TermsAndConditions);
+        Assert.Equal(5598.88m, snapshotDto.GrandTotal);
+        Assert.Equal(2, snapshotDto.TaxBreakdowns.Count);
+        Assert.Contains(snapshotDto.TaxBreakdowns, t => t.TaxName == "CGST" && t.RatePercent == 6m && t.TaxAmount == 299.94m);
+        Assert.Contains(snapshotDto.TaxBreakdowns, t => t.TaxName == "SGST" && t.RatePercent == 6m && t.TaxAmount == 299.94m);
+    }
+
+    [Fact]
+    public async Task GenerateInvoicePdf_InterStateCustomer_ComputesIgstAndForceRegenerateRefreshesQuotationFields()
+    {
+        var mockTaxRepo = new Mock<ITaxRepository>();
+        mockTaxRepo.Setup(t => t.GetSettingsAsync(1))
+            .ReturnsAsync(new TaxSetting { TenantId = 1, State = "Telangana", IsTaxEnabled = true });
+
+        var mockQuotationRepo = new Mock<IQuotationRepository>();
+        mockQuotationRepo.Setup(q => q.GetByIdAsync(90, 1))
+            .ReturnsAsync(new Quotation { Id = 90, QuoteNumber = "QT-2026-90", Notes = "Quotation special note", TermsAndConditions = "Quotation net 15" });
+
+        var service = new InvoiceTemplateService(
+            _mockTemplateRepo.Object,
+            _mockSnapshotRepo.Object,
+            _mockDocumentRepo.Object,
+            _mockInvoiceRepo.Object,
+            _pdfEngine,
+            _mockStorage.Object,
+            taxRepository: mockTaxRepo.Object,
+            quotationRepository: mockQuotationRepo.Object);
+
+        var invoice = new Invoice
+        {
+            Id = 88,
+            TenantId = 1,
+            QuotationId = 90,
+            InvoiceNumber = "INV-2026-11-000088",
+            InvoiceDate = new DateTime(2026, 11, 11),
+            Status = "Issued",
+            Currency = "INR",
+            Subtotal = 2000m,
+            DiscountAmount = 200m,
+            TaxAmount = 324m,
+            TotalAmount = 2124m,
+            BalanceAmount = 2124m,
+            Customer = new Customer { Id = 8, Name = "Bengaluru Buyer", State = "Karnataka", Email = "buyer@ka.example" },
+            Items = new List<InvoiceItem>
+            {
+                new() { Id = 1, Description = "Cloud Plan", Quantity = 2, UnitPrice = 1000m, DiscountAmount = 200m, TaxRate = 18m, TaxAmount = 324m, TotalAmount = 2124m }
+            }
+        };
+
+        var existingSnapshot = new InvoiceSnapshot
+        {
+            Id = 5,
+            TenantId = 1,
+            InvoiceId = 88,
+            InvoiceNumber = "INV-2026-11-000088",
+            SnapshotDataJson = "{\"InvoiceId\":88,\"TaxBreakdowns\":[{\"TaxName\":\"GST\",\"RatePercent\":18,\"TaxAmount\":100}]}",
+            TemplateConfigJson = "{\"VersionNumber\":1,\"Layout\":{\"UsePirnavStandardLayout\":true}}"
+        };
+
+        _mockInvoiceRepo.Setup(r => r.GetByIdAsync(88, 1)).ReturnsAsync(invoice);
+        _mockDocumentRepo.Setup(r => r.GetByInvoiceIdAsync(88, 1)).ReturnsAsync((GeneratedDocument?)null);
+        _mockSnapshotRepo.Setup(r => r.GetByInvoiceIdAsync(88, 1)).ReturnsAsync(existingSnapshot);
+        _mockStorage.Setup(s => s.SaveDocumentAsync(It.IsAny<byte[]>(), It.IsAny<string>(), "application/pdf", 1, default))
+            .ReturnsAsync("tenant_1/INV-2026-11-000088.pdf");
+        _mockDocumentRepo.Setup(r => r.AddAsync(It.IsAny<GeneratedDocument>())).Returns(Task.CompletedTask);
+        _mockSnapshotRepo.Setup(r => r.UpdateAsync(existingSnapshot)).Returns(Task.CompletedTask);
+
+        await service.GenerateInvoicePdfAsync(new GenerateInvoicePdfRequest { InvoiceId = 88, ForceRegenerate = true }, 1, "Admin");
+
+        var refreshed = JsonSerializer.Deserialize<InvoiceSnapshotDto>(existingSnapshot.SnapshotDataJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        Assert.True(refreshed.IsInterState);
+        Assert.Equal("QT-2026-90", refreshed.Reference);
+        Assert.Equal("Quotation special note", refreshed.Notes);
+        Assert.Equal("Quotation net 15", refreshed.TermsAndConditions);
+        var igst = Assert.Single(refreshed.TaxBreakdowns);
+        Assert.Equal("IGST", igst.TaxName);
+        Assert.Equal(18m, igst.RatePercent);
+        Assert.Equal(324m, igst.TaxAmount);
+    }
 }

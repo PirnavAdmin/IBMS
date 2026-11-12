@@ -396,10 +396,10 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                         }
                     });
                     table.Cell().Element(c => CellStyleRow(c, bg)).Text(item.HsnSacCode ?? "-");
-                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.Quantity:N0} {item.Unit}");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.Quantity:0.##} {item.Unit}");
                     table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol));
                     table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(item.DiscountAmount > 0 ? FormatMoney(item.DiscountAmount, snapshot.CurrencySymbol) : "-");
-                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.TaxRatePercent:N0}%");
+                    table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text($"{item.TaxRatePercent:0.##}%");
                     table.Cell().Element(c => CellStyleRow(c, bg)).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).Bold();
 
                     index++;
@@ -485,7 +485,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     // Taxes
                     foreach (var tax in snapshot.TaxBreakdowns)
                     {
-                        SummaryRow(c, $"{tax.TaxName} ({tax.RatePercent:N0}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
+                        SummaryRow(c, $"{tax.TaxName} ({tax.RatePercent:0.##}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
                     }
 
                     // Additional Charges
@@ -538,6 +538,8 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                     customer.Item().PaddingTop(5).Text(snapshot.Customer.CustomerName).FontSize(11).Bold();
                     if (!string.IsNullOrWhiteSpace(snapshot.Customer.CustomerCode)) customer.Item().Text($"Customer Code: {snapshot.Customer.CustomerCode}").FontSize(8.5f);
                     if (!string.IsNullOrWhiteSpace(snapshot.Customer.BillingAddress)) customer.Item().Text(snapshot.Customer.BillingAddress).FontSize(8.5f);
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.TaxId)) customer.Item().Text($"GSTIN / Tax ID: {snapshot.Customer.TaxId}").FontSize(8.5f);
+                    if (!string.IsNullOrWhiteSpace(snapshot.Customer.Phone)) customer.Item().Text($"Phone: {snapshot.Customer.Phone}").FontSize(8.5f);
                     if (!string.IsNullOrWhiteSpace(snapshot.Customer.Email)) customer.Item().Text($"Email: {snapshot.Customer.Email}").FontSize(8.5f);
                 });
 
@@ -559,26 +561,76 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             column.Item().Table(table => ComposePirnavReferenceItemsTable(table, snapshot, primary, softBackground));
             column.Item().PaddingTop(16).AlignRight().Width(260).Column(totals =>
             {
-                PirnavTotalRow(totals, "Subtotal", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
-                PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, Color.FromHex(primary));
-                PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Colors.Green.Darken2);
-                totals.Item().Background(primary).PaddingVertical(3).PaddingHorizontal(7).Row(row =>
-                {
-                    row.RelativeItem().Text("Balance Due").FontSize(10).Bold().FontColor(Colors.White);
-                    row.ConstantItem(100).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(10).Bold().FontColor(Colors.White);
-                });
+                ComposePirnavTotalsBlock(totals, snapshot, primary);
             });
 
             column.Item().PaddingTop(17).Text("Amount in Words").FontSize(9).Bold();
             column.Item().Text(FormatAmountInWords(snapshot.GrandTotal, snapshot.Currency)).FontSize(8.5f);
-            if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(template.Terms.TermsAndConditions))
+
+            if (!string.IsNullOrWhiteSpace(snapshot.Notes))
+            {
+                column.Item().PaddingTop(12).Background(primary).PaddingVertical(4).PaddingHorizontal(6).Text("Notes").FontSize(9).Bold().FontColor(Colors.White);
+                column.Item().Border(0.5f).BorderColor("#D8B9A8").Padding(6).Text(snapshot.Notes).FontSize(8.3f);
+            }
+
+            var termsText = !string.IsNullOrWhiteSpace(snapshot.TermsAndConditions)
+                ? snapshot.TermsAndConditions
+                : template.Terms.TermsAndConditions;
+            if (template.Layout.ShowTermsAndConditions && !string.IsNullOrWhiteSpace(termsText))
             {
                 column.Item().PaddingTop(12).Background(primary).PaddingVertical(4).PaddingHorizontal(6).Text("Terms & Conditions").FontSize(9).Bold().FontColor(Colors.White);
-                column.Item().Border(0.5f).BorderColor("#D8B9A8").Padding(6).Text(template.Terms.TermsAndConditions).FontSize(8.3f);
+                column.Item().Border(0.5f).BorderColor("#D8B9A8").Padding(6).Text(termsText).FontSize(8.3f);
             }
 
             column.Item().PaddingTop(17).AlignCenter().Text(thankYou).FontSize(10).Bold().FontColor(primary);
             column.Item().PaddingTop(3).AlignCenter().Text(systemNote).FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
+        });
+    }
+
+    private static void ComposePirnavTotalsBlock(ColumnDescriptor totals, InvoiceSnapshotDto snapshot, string primary)
+    {
+        PirnavTotalRow(totals, "Sub Total", FormatMoney(snapshot.Subtotal, snapshot.CurrencySymbol));
+        PirnavTotalRow(totals, "Total Discount", FormatMoney(snapshot.TotalDiscount, snapshot.CurrencySymbol));
+
+        var taxableAmount = Math.Max(0m, snapshot.Subtotal - snapshot.TotalDiscount);
+        PirnavTotalRow(totals, "Taxable Amount", FormatMoney(taxableAmount, snapshot.CurrencySymbol));
+
+        if (snapshot.TaxBreakdowns.Count > 0)
+        {
+            foreach (var tax in snapshot.TaxBreakdowns)
+            {
+                var rateLabel = tax.RatePercent > 0 ? $" ({tax.RatePercent:0.##}%)" : string.Empty;
+                PirnavTotalRow(totals, $"{tax.TaxName}{rateLabel}", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
+            }
+        }
+        else if (snapshot.TotalTax > 0)
+        {
+            PirnavTotalRow(totals, "Tax", FormatMoney(snapshot.TotalTax, snapshot.CurrencySymbol));
+        }
+
+        if (snapshot.AdditionalCharges.Count > 0)
+        {
+            foreach (var charge in snapshot.AdditionalCharges)
+            {
+                PirnavTotalRow(totals, charge.ChargeName, FormatMoney(charge.Amount, snapshot.CurrencySymbol));
+            }
+        }
+        else if (snapshot.TotalAdditionalCharges > 0)
+        {
+            PirnavTotalRow(totals, "Other Charges", FormatMoney(snapshot.TotalAdditionalCharges, snapshot.CurrencySymbol));
+        }
+
+        if (snapshot.RoundingAmount != 0m)
+        {
+            PirnavTotalRow(totals, "Round Off", FormatMoney(snapshot.RoundingAmount, snapshot.CurrencySymbol));
+        }
+
+        PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, Color.FromHex(primary));
+        PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Colors.Green.Darken2);
+        totals.Item().Background(primary).PaddingVertical(3).PaddingHorizontal(7).Row(row =>
+        {
+            row.RelativeItem().Text("Balance Due").FontSize(10).Bold().FontColor(Colors.White);
+            row.ConstantItem(100).AlignRight().Text(FormatMoney(snapshot.BalanceDue, snapshot.CurrencySymbol)).FontSize(10).Bold().FontColor(Colors.White);
         });
     }
 
@@ -606,11 +658,23 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
     {
         table.ColumnsDefinition(columns =>
         {
-            columns.ConstantColumn(42); columns.RelativeColumn(3); columns.ConstantColumn(92); columns.ConstantColumn(82); columns.ConstantColumn(88);
+            columns.ConstantColumn(38);
+            columns.RelativeColumn();
+            columns.ConstantColumn(38);
+            columns.ConstantColumn(76);
+            columns.ConstantColumn(70);
+            columns.ConstantColumn(44);
+            columns.ConstantColumn(80);
         });
         table.Header(header =>
         {
-            header.Cell().Element(HeaderCell).Text("Item #"); header.Cell().Element(HeaderCell).Text("Description"); header.Cell().Element(HeaderCell).Text("Months / Payment"); header.Cell().Element(HeaderCell).AlignRight().Text("Rate"); header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+            header.Cell().Element(HeaderCell).Text("Item #");
+            header.Cell().Element(HeaderCell).Text("Description");
+            header.Cell().Element(HeaderCell).AlignCenter().Text("Qty");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Unit Price ({snapshot.CurrencySymbol})");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Discount ({snapshot.CurrencySymbol})");
+            header.Cell().Element(HeaderCell).AlignCenter().Text("Tax (%)");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Amount ({snapshot.CurrencySymbol})");
         });
         var number = 1;
         foreach (var item in snapshot.Items)
@@ -619,15 +683,20 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
             table.Cell().Element(RowCell).Column(description =>
             {
                 description.Item().Text(item.ItemName).FontSize(8.5f).Bold();
-                if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.ItemName, item.Description, StringComparison.Ordinal)) description.Item().Text(item.Description).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.ItemName, item.Description, StringComparison.Ordinal))
+                    description.Item().Text(item.Description).FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                if (!string.IsNullOrWhiteSpace(item.HsnSacCode))
+                    description.Item().Text($"HSN/SAC: {item.HsnSacCode}").FontSize(7f).FontColor(Colors.Grey.Darken1);
             });
-            table.Cell().Element(RowCell).Text(string.IsNullOrWhiteSpace(item.Unit) ? "-" : item.Unit).FontSize(8.5f);
-            table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol)).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignCenter().Text(item.Quantity.ToString("0.##")).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(item.UnitPrice.ToString("N2")).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignRight().Text(item.DiscountAmount.ToString("N2")).FontSize(8.5f);
+            table.Cell().Element(RowCell).AlignCenter().Text($"{item.TaxRatePercent:0.##}%").FontSize(8.5f);
             table.Cell().Element(RowCell).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).FontSize(8.5f).Bold();
             number++;
         }
-        IContainer HeaderCell(IContainer container) => container.Background(primaryColor).PaddingVertical(5).PaddingHorizontal(6).DefaultTextStyle(style => style.FontSize(8.5f).Bold().FontColor(Colors.White));
-        IContainer RowCell(IContainer container) => container.Background(softBackground).PaddingVertical(5).PaddingHorizontal(6);
+        IContainer HeaderCell(IContainer container) => container.Background(primaryColor).PaddingVertical(5).PaddingHorizontal(5).DefaultTextStyle(style => style.FontSize(8.5f).Bold().FontColor(Colors.White));
+        IContainer RowCell(IContainer container) => container.Background(softBackground).PaddingVertical(5).PaddingHorizontal(5);
     }
 
     private static void ComposePirnavSidebarContent(IContainer content, InvoiceSnapshotDto snapshot, TemplateVersionDto template)
@@ -840,9 +909,22 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
 
     private static string FormatAmountInWords(decimal amount, string currency)
     {
-        var roundedAmount = Math.Max(0, decimal.ToInt64(decimal.Truncate(amount)));
-        var prefix = string.Equals(currency, "INR", StringComparison.OrdinalIgnoreCase) ? "Rupees" : currency;
-        return $"{prefix} {IndianNumberWords(roundedAmount)} Only";
+        var normalized = Math.Round(Math.Max(0m, amount), 2, MidpointRounding.AwayFromZero);
+        var wholeUnits = decimal.ToInt64(decimal.Truncate(normalized));
+        var fractionUnits = decimal.ToInt64(decimal.Round((normalized - wholeUnits) * 100m, 0, MidpointRounding.AwayFromZero));
+        if (fractionUnits >= 100)
+        {
+            wholeUnits += 1;
+            fractionUnits -= 100;
+        }
+
+        var isInr = string.Equals(currency, "INR", StringComparison.OrdinalIgnoreCase);
+        var prefix = isInr ? "Rupees" : currency;
+        var fractionLabel = isInr ? "Paise" : "Cents";
+
+        return fractionUnits > 0
+            ? $"{prefix} {IndianNumberWords(wholeUnits)} and {IndianNumberWords(fractionUnits)} {fractionLabel} Only"
+            : $"{prefix} {IndianNumberWords(wholeUnits)} Only";
     }
 
     private static string IndianNumberWords(long value)
@@ -879,8 +961,10 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         {
             columns.ConstantColumn(32);
             columns.RelativeColumn(3);
-            columns.ConstantColumn(82);
-            columns.ConstantColumn(75);
+            columns.ConstantColumn(40);
+            columns.ConstantColumn(72);
+            columns.ConstantColumn(65);
+            columns.ConstantColumn(44);
             columns.ConstantColumn(78);
         });
 
@@ -888,9 +972,11 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         {
             header.Cell().Element(HeaderCell).Text("Item #");
             header.Cell().Element(HeaderCell).Text("Description");
-            header.Cell().Element(HeaderCell).Text("Months / Payment");
-            header.Cell().Element(HeaderCell).AlignRight().Text("Rate");
-            header.Cell().Element(HeaderCell).AlignRight().Text("Amount");
+            header.Cell().Element(HeaderCell).AlignCenter().Text("Qty");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Unit Price ({snapshot.CurrencySymbol})");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Discount ({snapshot.CurrencySymbol})");
+            header.Cell().Element(HeaderCell).AlignCenter().Text("Tax (%)");
+            header.Cell().Element(HeaderCell).AlignRight().Text($"Amount ({snapshot.CurrencySymbol})");
         });
 
         var index = 1;
@@ -904,8 +990,10 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
                 if (!string.IsNullOrWhiteSpace(item.Description) && !string.Equals(item.Description, item.ItemName, StringComparison.Ordinal))
                     itemColumn.Item().Text(item.Description).FontSize(8).FontColor(Colors.Grey.Darken1);
             });
-            table.Cell().Element(c => RowCell(c, background)).Text(string.IsNullOrWhiteSpace(item.Unit) ? "-" : item.Unit);
-            table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(FormatMoney(item.UnitPrice, snapshot.CurrencySymbol));
+            table.Cell().Element(c => RowCell(c, background)).AlignCenter().Text(item.Quantity.ToString("0.##"));
+            table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(item.UnitPrice.ToString("N2"));
+            table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(item.DiscountAmount.ToString("N2"));
+            table.Cell().Element(c => RowCell(c, background)).AlignCenter().Text($"{item.TaxRatePercent:0.##}%");
             table.Cell().Element(c => RowCell(c, background)).AlignRight().Text(FormatMoney(item.LineTotal, snapshot.CurrencySymbol)).Bold().FontColor(primaryColor);
             index++;
         }
@@ -1193,7 +1281,7 @@ public class QuestPdfInvoiceEngine : IInvoicePdfEngine
         }
         foreach (var tax in snapshot.TaxBreakdowns)
         {
-            PirnavTotalRow(totals, $"{tax.TaxName} ({tax.RatePercent:N0}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
+            PirnavTotalRow(totals, $"{tax.TaxName} ({tax.RatePercent:0.##}%)", FormatMoney(tax.TaxAmount, snapshot.CurrencySymbol));
         }
         PirnavTotalRow(totals, "Total Amount", FormatMoney(snapshot.GrandTotal, snapshot.CurrencySymbol), true, Color.FromHex(PrimaryBrown));
         PirnavTotalRow(totals, "Amount Paid", FormatMoney(snapshot.AmountPaid, snapshot.CurrencySymbol), false, Color.FromHex(PaidGreen));

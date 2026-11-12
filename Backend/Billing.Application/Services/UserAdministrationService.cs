@@ -205,7 +205,7 @@ public class UserAdministrationService : IUserAdministrationService
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var newStatus = string.Equals(request.Status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
-            if (newStatus == "Inactive" && user.Roles.Contains("SuperAdmin") && !await IsAnotherActiveSuperAdminAvailableAsync(id))
+            if (newStatus == "Inactive" && user.Roles.Contains("SuperAdmin") && !await IsAnotherActiveRoleHolderAvailableAsync(id, "SuperAdmin"))
             {
                 return (false, "Cannot deactivate or remove the last active Super Admin account.", null);
             }
@@ -215,7 +215,7 @@ public class UserAdministrationService : IUserAdministrationService
         if (request.Roles != null && request.Roles.Any())
         {
             var cleanRoles = request.Roles.Select(r => r.Trim()).Distinct().ToList();
-            if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin") && !await IsAnotherActiveSuperAdminAvailableAsync(id))
+            if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin") && !await IsAnotherActiveRoleHolderAvailableAsync(id, "SuperAdmin"))
             {
                 return (false, "Cannot remove the SuperAdmin role from the last active Super Admin account.", null);
             }
@@ -239,7 +239,7 @@ public class UserAdministrationService : IUserAdministrationService
         return (true, "User updated successfully.", updated != null ? MapToUserDto(updated) : MapToUserDto(user));
     }
 
-    public async Task<(bool Success, string Message)> UpdateUserStatusAsync(int id, string status)
+    public async Task<(bool Success, string Message)> UpdateUserStatusAsync(int id, string status, int? callerUserId = null)
     {
         var user = await _userRepository.GetByIdAsync(id);
         if (user == null)
@@ -249,11 +249,12 @@ public class UserAdministrationService : IUserAdministrationService
 
         var normalizedStatus = string.Equals(status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
 
-        if (normalizedStatus == "Inactive" && user.Roles.Contains("SuperAdmin"))
+        if (normalizedStatus == "Inactive")
         {
-            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
+            var guardError = await ValidateSelfOrLastAdminChangeAsync(user, "deactivate", callerUserId);
+            if (guardError != null)
             {
-                return (false, "Cannot deactivate or remove the last active Super Admin account.");
+                return (false, guardError);
             }
         }
 
@@ -284,7 +285,7 @@ public class UserAdministrationService : IUserAdministrationService
 
         if (user.Roles.Contains("SuperAdmin") && !cleanRoles.Contains("SuperAdmin"))
         {
-            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
+            if (!await IsAnotherActiveRoleHolderAvailableAsync(id, "SuperAdmin"))
             {
                 return (false, "Cannot remove the SuperAdmin role from the last active Super Admin account.", null);
             }
@@ -384,7 +385,7 @@ public class UserAdministrationService : IUserAdministrationService
         return (true, "Host identity mapped and new user profile provisioned successfully.", created != null ? MapToUserDto(created) : MapToUserDto(newUser));
     }
 
-    public async Task<(bool Success, string Message)> DeleteUserAsync(int id)
+    public async Task<(bool Success, string Message)> DeleteUserAsync(int id, int? callerUserId = null)
     {
         var user = await _userRepository.GetByIdAsync(id);
         if (user == null)
@@ -392,22 +393,45 @@ public class UserAdministrationService : IUserAdministrationService
             return (false, "User not found.");
         }
 
-        if (user.Roles.Contains("SuperAdmin"))
+        var guardError = await ValidateSelfOrLastAdminChangeAsync(user, "delete", callerUserId);
+        if (guardError != null)
         {
-            if (!await IsAnotherActiveSuperAdminAvailableAsync(id))
-            {
-                return (false, "Cannot delete the last active Super Admin account.");
-            }
+            return (false, guardError);
         }
 
         await _userRepository.DeleteAsync(user);
         return (true, "User deleted successfully.");
     }
 
-    private async Task<bool> IsAnotherActiveSuperAdminAvailableAsync(int currentUserId)
+    private async Task<string?> ValidateSelfOrLastAdminChangeAsync(User user, string actionVerb, int? callerUserId)
     {
-        var (superAdmins, _) = await _userRepository.GetPagedUsersAsync(null, "Active", "SuperAdmin", null, null, 1, 10);
-        return superAdmins.Any(u => u.Id != currentUserId);
+        if (callerUserId.HasValue && callerUserId.Value == user.Id)
+        {
+            return $"You cannot {actionVerb} your own active account.";
+        }
+
+        if (user.Roles.Contains("SuperAdmin", StringComparer.OrdinalIgnoreCase) &&
+            !await IsAnotherActiveRoleHolderAvailableAsync(user.Id, "SuperAdmin"))
+        {
+            return actionVerb == "delete"
+                ? "Cannot delete the last active Super Admin account."
+                : "Cannot deactivate or remove the last active Super Admin account.";
+        }
+
+        if (user.Roles.Contains("TenantAdmin", StringComparer.OrdinalIgnoreCase) &&
+            user.TenantId.HasValue &&
+            !await IsAnotherActiveRoleHolderAvailableAsync(user.Id, "TenantAdmin", user.TenantId.Value))
+        {
+            return $"Cannot {actionVerb} the last active Tenant Admin account for this tenant.";
+        }
+
+        return null;
+    }
+
+    private async Task<bool> IsAnotherActiveRoleHolderAvailableAsync(int currentUserId, string roleName, int? tenantId = null)
+    {
+        var (matches, _) = await _userRepository.GetPagedUsersAsync(null, "Active", roleName, tenantId, null, 1, 20);
+        return matches.Any(u => u.Id != currentUserId && u.Roles.Any(r => string.Equals(r, roleName, StringComparison.OrdinalIgnoreCase)));
     }
 
     private async Task<List<string>> ResolvePermissionsForRolesAsync(List<string> roleNames)
