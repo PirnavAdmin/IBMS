@@ -258,7 +258,7 @@ public class RoleRepository : IRoleRepository
 
         // Viewer
         await EnsureRoleWithPermissionsAsync("Viewer", "Read-only access across platform", perms =>
-            perms.Where(p => (p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit" and not "BackgroundJobs") || p.Code is "exportjobs.create").ToList());
+            perms.Where(p => p.Code.EndsWith(".view") && p.Module is not "Administration" and not "Audit" and not "BackgroundJobs" and not "ExportJobs").ToList());
 
         // Customer
         await EnsureRoleWithPermissionsAsync("Customer", "Client portal user with view access to their invoices and payments", perms =>

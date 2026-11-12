@@ -93,7 +93,14 @@ export const backgroundJobService = {
   async downloadExport(id) {
     try {
       const response = await apiClient.get(`${exportsBase}/${id}/download`, { responseType: 'blob' });
-      return response?.data ?? response;
+      const payload = response?.data ?? response;
+      if (payload && typeof payload === 'object' && !(typeof Blob !== 'undefined' && payload instanceof Blob) && payload.success === false) {
+        throw new Error(payload.message || 'Export file could not be downloaded.');
+      }
+      if (typeof Blob !== 'undefined' && payload instanceof Blob && /^text\/html(?:;|$)/i.test(payload.type || '')) {
+        throw new Error('The export service did not return a valid export file.');
+      }
+      return payload;
     } catch (error) {
       const blobData = error?.response?.data;
       if (blobData && typeof blobData.text === 'function') {
