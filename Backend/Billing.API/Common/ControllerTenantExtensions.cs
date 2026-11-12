@@ -13,21 +13,23 @@ public static class ControllerTenantExtensions
     ///    Any client-supplied X-Tenant-Id header is completely ignored to prevent privilege escalation.
     /// </summary>
     public static int? ResolveTenantId(this ControllerBase controller)
+        => ResolveTenantId(controller.User, controller.Request);
+
+    public static int? ResolveTenantId(ClaimsPrincipal? user, HttpRequest? request)
     {
-        var user = controller.User;
         if (user == null) return null;
 
         var isSuperAdmin = user.IsInRole("SuperAdmin");
 
         if (isSuperAdmin)
         {
-            var headers = controller.Request?.Headers;
+            var headers = request?.Headers;
             if (headers != null && headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
             {
                 return hId;
             }
 
-            var query = controller.Request?.Query;
+            var query = request?.Query;
             if (query != null && query.TryGetValue("tenantId", out var q) && int.TryParse(q, out var qId) && qId > 0)
             {
                 return qId;

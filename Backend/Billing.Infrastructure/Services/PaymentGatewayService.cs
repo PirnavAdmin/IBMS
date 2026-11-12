@@ -25,6 +25,7 @@ public class PaymentGatewayService : IPaymentGatewayService
     private readonly IPaymentLedgerService? _ledgerService;
     private readonly BillingDbContext? _dbContext;
     private readonly IConfiguration? _configuration;
+    private readonly ISecretEncryptionService? _secretEncryptionService;
     private readonly ILogger<PaymentGatewayService> _logger;
 
     public PaymentGatewayService(
@@ -34,7 +35,8 @@ public class PaymentGatewayService : IPaymentGatewayService
         ILogger<PaymentGatewayService> logger,
         IPaymentLedgerService? ledgerService = null,
         BillingDbContext? dbContext = null,
-        IConfiguration? configuration = null)
+        IConfiguration? configuration = null,
+        ISecretEncryptionService? secretEncryptionService = null)
     {
         _invoiceRepository = invoiceRepository;
         _paymentService = paymentService;
@@ -43,6 +45,7 @@ public class PaymentGatewayService : IPaymentGatewayService
         _ledgerService = ledgerService;
         _dbContext = dbContext;
         _configuration = configuration;
+        _secretEncryptionService = secretEncryptionService;
     }
 
     public async Task<ApiResponse<PaymentOrderDto>> CreateOrderAsync(int tenantId, CreatePaymentOrderRequest request)
@@ -729,6 +732,11 @@ public class PaymentGatewayService : IPaymentGatewayService
     private string? ProtectSecret(string? plainText)
     {
         if (string.IsNullOrWhiteSpace(plainText)) return null;
+        if (_secretEncryptionService != null)
+        {
+            return _secretEncryptionService.Protect(plainText);
+        }
+
         var plainBytes = Encoding.UTF8.GetBytes(plainText);
         var nonce = RandomNumberGenerator.GetBytes(12);
         var tag = new byte[16];
@@ -746,6 +754,11 @@ public class PaymentGatewayService : IPaymentGatewayService
     private string? UnprotectSecret(string? stored)
     {
         if (string.IsNullOrWhiteSpace(stored)) return null;
+        if (_secretEncryptionService != null)
+        {
+            return _secretEncryptionService.Unprotect(stored);
+        }
+
         const string prefix = "enc:v1:";
         if (!stored.StartsWith(prefix, StringComparison.Ordinal)) return stored;
         try

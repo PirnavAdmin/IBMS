@@ -34,6 +34,10 @@ public class WebhookDelivery
 
     public string? FailureReason { get; set; }
 
+    public string? LockedByInstance { get; set; }
+
+    public DateTime? LockedUntilUtc { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public DateTime? DeliveredAtUtc { get; set; }

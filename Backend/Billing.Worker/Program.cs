@@ -1,12 +1,16 @@
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Application.Services;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
+using Billing.Infrastructure.Security;
 using Billing.Infrastructure.Services;
 using Billing.Worker;
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+AesSecretEncryptionService.ValidateHostConfiguration(builder.Configuration, builder.Environment);
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -30,6 +34,11 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
 builder.Services.AddSingleton<IQuotationPdfEngine, QuestPdfQuotationEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
+builder.Services.AddSingleton<ISecretEncryptionService, AesSecretEncryptionService>();
+builder.Services.AddSingleton(new WebhookSecurityOptions
+{
+    AllowLocalhostTargets = builder.Configuration.GetValue<bool>("Webhooks:AllowLocalhostTargets", builder.Environment.IsDevelopment())
+});
 builder.Services.AddSingleton<IWebhookSecurityService, WebhookSecurityService>();
 builder.Services.AddHttpClient<IWebhookDispatcher, WebhookDispatcher>();
 

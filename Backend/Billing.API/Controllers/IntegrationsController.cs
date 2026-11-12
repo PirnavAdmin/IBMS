@@ -1,3 +1,4 @@
+using Billing.API.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Webhook;
@@ -6,7 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
 
-[Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
+[Authorize]
+[RequireIntegrationAccess]
 [ApiController]
 [Route("api/v1/integrations")]
 [Consumes("application/json")]
@@ -100,12 +102,7 @@ public class IntegrationsController : ControllerBase
 
     private int GetTenantId()
     {
-        var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
-        if (int.TryParse(claim, out var tid) && tid > 0) return tid;
-
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
-            return hId;
-
-        return 1;
+        return this.ResolveTenantId()
+            ?? throw new UnauthorizedAccessException("Authenticated user does not belong to an active tenant.");
     }
 }

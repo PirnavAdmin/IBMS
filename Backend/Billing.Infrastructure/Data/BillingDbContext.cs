@@ -1023,7 +1023,7 @@ public class BillingDbContext : DbContext
             entity.HasKey(w => w.Id);
             entity.Property(w => w.Name).HasMaxLength(150).IsRequired();
             entity.Property(w => w.TargetUrl).HasMaxLength(1000).IsRequired();
-            entity.Property(w => w.SecretKey).HasMaxLength(128).IsRequired();
+            entity.Property(w => w.SecretKey).HasMaxLength(512).IsRequired();
             entity.Property(w => w.SubscribedEventsJson).HasColumnType("longtext");
             entity.Property(w => w.CustomHeadersJson).HasColumnType("longtext");
             entity.Property(w => w.PayloadFormat).HasMaxLength(50).HasDefaultValue("Standard").IsRequired();
@@ -1048,8 +1048,11 @@ public class BillingDbContext : DbContext
             entity.Property(d => d.AttemptNumber).HasDefaultValue(1);
             entity.Property(d => d.MaxAttempts).HasDefaultValue(5);
             entity.Property(d => d.FailureReason).HasMaxLength(1000);
+            entity.Property(d => d.LockedByInstance).HasMaxLength(100);
             entity.HasIndex(d => new { d.TenantId, d.WebhookId, d.Status });
             entity.HasIndex(d => new { d.TenantId, d.EventId });
+            entity.HasIndex(d => new { d.WebhookId, d.EventId }).IsUnique();
+            entity.HasIndex(d => new { d.Status, d.NextRetryUtc, d.LockedUntilUtc });
             entity.HasIndex(d => new { d.TenantId, d.CreatedAtUtc });
             entity.HasOne(d => d.Tenant).WithMany().HasForeignKey(d => d.TenantId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(d => d.Webhook).WithMany(w => w.Deliveries).HasForeignKey(d => d.WebhookId).OnDelete(DeleteBehavior.Cascade);
@@ -1065,8 +1068,10 @@ public class BillingDbContext : DbContext
             entity.Property(o => o.Status).HasMaxLength(32).HasDefaultValue("Pending").IsRequired();
             entity.Property(o => o.RetryCount).HasDefaultValue(0);
             entity.Property(o => o.Error).HasMaxLength(1000);
+            entity.Property(o => o.LockedByInstance).HasMaxLength(100);
             entity.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAtUtc });
-            entity.HasIndex(o => new { o.TenantId, o.EventId });
+            entity.HasIndex(o => new { o.Status, o.LockedUntilUtc, o.CreatedAtUtc });
+            entity.HasIndex(o => new { o.TenantId, o.EventId }).IsUnique();
             entity.HasOne(o => o.Tenant).WithMany().HasForeignKey(o => o.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 

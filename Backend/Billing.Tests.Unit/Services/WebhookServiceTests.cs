@@ -404,8 +404,8 @@ public class WebhookServiceTests
         Assert.Equal("Slack Channel Webhook", result.Data.Name);
         Assert.Equal("Slack", result.Data.PayloadFormat);
         Assert.Equal(2, result.Data.CustomHeaders.Count);
-        Assert.Equal("Bearer test-slack-token", result.Data.CustomHeaders["Authorization"]);
-        Assert.Equal("test-key-123", result.Data.CustomHeaders["x-api-key"]);
+        Assert.Equal("Bear****oken", result.Data.CustomHeaders["Authorization"]);
+        Assert.Equal("test****-123", result.Data.CustomHeaders["x-api-key"]);
     }
 
     [Fact]
@@ -442,6 +442,6 @@ public class WebhookServiceTests
         Assert.True(result.Success);
         Assert.Equal("Custom", result.Data!.PayloadFormat);
         Assert.Equal("{\"client_name\":\"{{customer}}\",\"event\":\"{{event}}\"}", result.Data.CustomTemplate);
-        Assert.Equal("Bearer new-token", result.Data.CustomHeaders["Authorization"]);
+        Assert.Equal("Bear****oken", result.Data.CustomHeaders["Authorization"]);
     }
 }
