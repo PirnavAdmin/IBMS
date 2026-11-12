@@ -79,11 +79,11 @@ export const creditLineAmounts = (item, quantity = item.quantity) => {
     const baseAmount = invoiceTax == null ? net / (1 + taxRate / 100) : net - invoiceTax;
     const tax = invoiceTax == null ? roundCurrency(net - baseAmount) : invoiceTax;
     const subtotal = roundCurrency(Math.max(0, net - tax));
-    return { subtotal, tax, total: net };
+    return { subtotal, tax, total: net, discount };
   }
   const subtotal = net;
   const tax = invoiceTax == null ? roundCurrency(subtotal * taxRate / 100) : invoiceTax;
-  return { subtotal, tax, total: roundCurrency(subtotal + tax) };
+  return { subtotal, tax, total: roundCurrency(subtotal + tax), discount };
 };
 
 export const validateInvoiceTaxAmount = (item, currency = 'INR') => {
