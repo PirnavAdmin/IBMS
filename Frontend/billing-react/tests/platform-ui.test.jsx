@@ -360,40 +360,86 @@ test('PlatformTenantDetails displays tenant role counts, role-wise user breakdow
   }
 });
 
-test('PlatformDashboard shows pending approval banner only when pendingUserApprovals > 0 and PlatformUsers approves pending accounts',async()=>{
-  const originals={dashboard:api.dashboard,users:api.users,tenants:api.tenants,roles:api.roles,approveUser:api.approveUser};
+test('PlatformDashboard shows pending approval banner only when pendingUserApprovals > 0 and PlatformTenants approves pending tenant registrations',async()=>{
+  const originals={dashboard:api.dashboard,users:api.users,tenants:api.tenants,roles:api.roles,approveUser:api.approveUser,createTenant:api.createTenant,assignTenant:api.assignTenant};
   api.dashboard=async()=>({totalTenants:2,pendingUserApprovals:2,recentTenants:[],recentAdminEvents:[]});
   const dash=await mount(<PlatformDashboard/>);
   try{
-    assert.match(dash.host.textContent,/2 self-registered accounts awaiting SuperAdmin permission/);
-    assert.ok(dash.host.querySelector('a[href="/platform/users?tab=approvals"]'));
+    assert.match(dash.host.textContent,/2 self-registered tenants awaiting SuperAdmin approval/);
+    assert.ok(dash.host.querySelector('a[href="/platform/tenants?tab=approvals"]'));
   }finally{await dash.close();}
 
   let approveCall=null;
+  api.tenants=async()=>({items:[{id:1,name:'Default Company',tenantCode:'default',status:'Active'}],totalCount:1,pageNumber:1,pageSize:20});
   api.users=async p=>p?.status==='PendingApproval'
-    ?{items:[{id:77,name:'Sita Devi',email:'sita@acme.test',roles:['Customer'],tenantId:1,tenantName:'Default Organization',status:'PendingApproval',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:20}
+    ?{items:[{id:77,name:'Sita Devi',email:'sita@acme.test',roles:['TenantAdmin'],tenantId:12,tenantCode:'sita-logistics',tenantName:'Sita Logistics',status:'PendingApproval',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:20}
     :{items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin'],status:'Active',tenantId:null}],totalCount:1,pageNumber:1,pageSize:20};
-  api.tenants=async()=>({items:[{id:1,name:'Default Organization',tenantCode:'default'}],totalCount:1,pageNumber:1,pageSize:100});
-  api.roles=async()=>[{name:'SuperAdmin'},{name:'Customer'},{name:'Accountant'}];
-  api.approveUser=async(id,payload)=>{approveCall={id,payload};return{id,status:'Active'};};
+  api.roles=async()=>[{name:'SuperAdmin'}];
+  api.approveUser=async(id,payload)=>{approveCall={id,payload};return{id,tenantId:12,status:'Active'};};
 
-  const v=await mount(<PlatformUsers/>);
+  const usersView=await mount(<PlatformUsers/>);
   try{
-    const approvalsTab=[...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Account Approvals'));
+    assert.equal(usersView.host.querySelector('[role="tab"]'),null);
+  }finally{await usersView.close();}
+
+  const v=await mount(<PlatformTenants/>);
+  try{
+    const approvalsTab=[...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Pending Approvals'));
     assert.ok(approvalsTab);
     await click(approvalsTab);
     await act(async()=>new Promise(r=>setTimeout(r,40)));
-    assert.match(v.host.textContent,/sita@acme\.test/);
+    assert.match(v.host.textContent,/Sita Logistics/);
     assert.match(v.host.textContent,/Pending Approval/);
-    const actionBtn=v.host.querySelector('[aria-label="Actions for Sita Devi"]');
+    const actionBtn=v.host.querySelector('[aria-label="Actions for Sita Logistics"]');
     await click(actionBtn);
-    const approveItem=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Account'));
+    const approveItem=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant'));
     await click(approveItem);
-    await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
+    const dialog=document.querySelector('[role="dialog"]');
+    assert.doesNotMatch(dialog.textContent,/Assign Tenant/);
+    assert.match(dialog.textContent,/Company Name/);
+    assert.match(dialog.textContent,/Permission Role/);
+    const inputs=[...dialog.querySelectorAll('input')];
+    const companyInput=inputs.find(inp=>inp.value==='Sita Logistics');
+    const roleHiddenInput=inputs.find(inp=>inp.value==='TenantAdmin');
+    assert.ok(companyInput);
+    assert.equal(companyInput.disabled,true);
+    assert.ok(roleHiddenInput);
+    assert.equal(roleHiddenInput.disabled,true);
+    await act(async()=>Simulate.submit(dialog.querySelector('form')));
     assert.equal(approveCall.id,77);
-    assert.equal(approveCall.payload.tenantId,1);
-    assert.deepEqual(approveCall.payload.roles,['Customer']);
+    assert.equal(approveCall.payload.tenantId,12);
+    assert.equal(approveCall.payload.companyName,'Sita Logistics');
+    assert.deepEqual(approveCall.payload.roles,['TenantAdmin']);
   }finally{
+    await v.close();
+    Object.assign(api,originals);
+  }
+});
+
+test('PlatformTenants creates and assigns tenant fallback when backend approval returns default tenantId <= 1',async()=>{
+  const originals={users:api.users,tenants:api.tenants,approveUser:api.approveUser,createTenant:api.createTenant,assignTenant:api.assignTenant};
+  localStorage.setItem('billing_pending_company_names',JSON.stringify({'kiran@demo.test':'Kiran Enterprises'}));
+  let createdPayload=null, assignedPayload=null;
+  api.tenants=async()=>({items:[],totalCount:0,pageNumber:1,pageSize:20});
+  api.users=async()=>({items:[{id:88,name:'Kiran',email:'kiran@demo.test',roles:['TenantAdmin'],tenantId:1,tenantName:'Default Organization',status:'PendingApproval',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:20});
+  api.approveUser=async id=>({id,tenantId:1,status:'Active'});
+  api.createTenant=async payload=>{createdPayload=payload;return{id:99,name:payload.name,tenantCode:payload.tenantCode};};
+  api.assignTenant=async(id,payload)=>{assignedPayload={id,payload};return{id,tenantId:payload.tenantId};};
+
+  const v=await mount(<PlatformTenants/>);
+  try{
+    await click([...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Pending Approvals')));
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+    assert.match(v.host.textContent,/Kiran Enterprises/);
+    await click(v.host.querySelector('[aria-label="Actions for Kiran Enterprises"]'));
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant')));
+    await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
+    assert.equal(createdPayload.name,'Kiran Enterprises');
+    assert.equal(createdPayload.companyEmail,'kiran@demo.test');
+    assert.equal(assignedPayload.id,88);
+    assert.equal(assignedPayload.payload.tenantId,99);
+  }finally{
+    localStorage.removeItem('billing_pending_company_names');
     await v.close();
     Object.assign(api,originals);
   }

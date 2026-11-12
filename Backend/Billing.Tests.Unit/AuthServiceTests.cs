@@ -481,6 +481,7 @@ public class AuthServiceTests
         var response = await _authService.Register(new RegisterRequest
         {
             Name = "New User",
+            CompanyName = "Acme Ventures",
             Email = "unverified.user@example.com",
             Password = "Password@123",
             ConfirmPassword = "Password@123"
@@ -504,6 +505,7 @@ public class AuthServiceTests
         var registerResponse = await _authService.Register(new RegisterRequest
         {
             Name = "Pending User",
+            CompanyName = "Acme Ventures",
             Email = email,
             Password = "Password@123",
             ConfirmPassword = "Password@123"
@@ -516,6 +518,9 @@ public class AuthServiceTests
         var savedUser = await _userRepository.GetByEmailAsync(email);
         Assert.NotNull(savedUser);
         Assert.Equal("PendingApproval", savedUser!.Status);
+        Assert.Contains("TenantAdmin", savedUser.Roles);
+        Assert.Equal("Acme Ventures", savedUser.Tenant?.Name);
+        Assert.Equal("PendingApproval", savedUser.Tenant?.Status);
         Assert.False(savedUser.IsActive);
 
         // Login must be blocked while PendingApproval
@@ -527,8 +532,9 @@ public class AuthServiceTests
         Assert.False(blockedLogin.Success);
         Assert.Contains("SuperAdmin approval", blockedLogin.Message, StringComparison.OrdinalIgnoreCase);
 
-        // Once SuperAdmin activates/approves the user, login succeeds
+        // Once SuperAdmin activates/approves user and tenant, login succeeds
         savedUser.Status = "Active";
+        if (savedUser.Tenant != null) savedUser.Tenant.Status = "Active";
         await _userRepository.UpdateAsync(savedUser);
 
         var approvedLogin = await _authService.Login(new LoginRequest

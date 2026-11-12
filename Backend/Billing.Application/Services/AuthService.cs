@@ -216,7 +216,14 @@ public class AuthService
 
         errors.AddRange(ValidateName(request.Name));
 
-
+        if (string.IsNullOrWhiteSpace(request.CompanyName))
+        {
+            errors.Add("Company name is required");
+        }
+        else if (request.CompanyName.Trim().Length < 2)
+        {
+            errors.Add("Company name must be at least 2 characters");
+        }
 
         // Collect Email validation errors
 
@@ -316,6 +323,26 @@ public class AuthService
 
 
 
+        var trimmedCompanyName = request.CompanyName.Trim();
+        int? assignedTenantId = 1;
+        Tenant? pendingTenant = null;
+
+        if (_tenantRepository != null && !string.IsNullOrWhiteSpace(trimmedCompanyName))
+        {
+            var tenantCode = await GenerateUniqueTenantCodeAsync(trimmedCompanyName);
+            pendingTenant = new Tenant
+            {
+                Name = trimmedCompanyName,
+                TenantCode = tenantCode,
+                CompanyEmail = email,
+                Status = "PendingApproval",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            await _tenantRepository.CreateAsync(pendingTenant);
+            assignedTenantId = pendingTenant.Id > 0 ? pendingTenant.Id : null;
+        }
+
         var user = new User
 
         {
@@ -330,13 +357,13 @@ public class AuthService
 
                 BCrypt.Net.BCrypt.HashPassword(request.Password),
 
-            TenantId = 1,
+            TenantId = assignedTenantId,
 
             ApplicationId = _jwtSettings.ApplicationId,
 
             IdentityType = "SelfRegistered",
 
-            Roles = new List<string> { "Customer" },
+            Roles = new List<string> { "TenantAdmin" },
 
             Permissions = new List<string> { "billing.view", "billing.create" },
 
@@ -367,6 +394,29 @@ public class AuthService
 
         };
 
+    }
+
+    private async Task<string> GenerateUniqueTenantCodeAsync(string companyName)
+    {
+        var baseSlug = Regex.Replace(companyName.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        if (string.IsNullOrWhiteSpace(baseSlug) || baseSlug.Length < 2)
+        {
+            baseSlug = "company";
+        }
+        if (baseSlug.Length > 52)
+        {
+            baseSlug = baseSlug[..52].TrimEnd('-');
+        }
+
+        var candidate = baseSlug;
+        var suffix = 2;
+        while (_tenantRepository != null && await _tenantRepository.ExistsByCodeAsync(candidate))
+        {
+            candidate = $"{baseSlug}-{suffix}";
+            suffix++;
+        }
+
+        return candidate;
     }
 
 
