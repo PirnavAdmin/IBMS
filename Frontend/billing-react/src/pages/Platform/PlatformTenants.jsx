@@ -221,7 +221,6 @@ export function PlatformTenants() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState(params.get('tab') === 'approvals' ? 'approvals' : 'directory');
-  const [creating, setCreating] = useState(params.get('create') === '1');
   const [statusEditor, setStatusEditor] = useState(null);
   const search = useSearchDebounce(filters.search);
   const query = usePlatformQuery('tenants', { ...filters, search }, signal => api.tenants({ ...filters, search }, signal));
@@ -240,14 +239,7 @@ export function PlatformTenants() {
   return (
     <PlatformShell
       title="Tenant Management"
-      actions={
-        <>
-          <PlatformRefresh query={query} />
-          <Button variant="contained" disabled={query.isPending || query.isError} onClick={() => setCreating(true)}>
-            Create Tenant
-          </Button>
-        </>
-      }
+      actions={<PlatformRefresh query={query} />}
     >
       <div className="platform-users-tabs" role="tablist" aria-label="Tenant management sections">
         <button
@@ -300,7 +292,6 @@ export function PlatformTenants() {
         <PendingTenantApprovalsView onApproved={() => query.refetch()} />
       )}
 
-      {creating && <TenantEditor onClose={() => { setCreating(false); params.delete('create'); setParams(params, { replace: true }); }} onDone={r => navigate('/platform/tenants/' + r.id)} />}
       {statusEditor && <MutationDialog title={`Change Status: ${statusEditor.name}`} description="Suspending or deactivating a tenant terminates its active sessions and prevents users from logging in. Confirm the target status and provide an audit reason." initial={{ status: statusEditor.status || 'Active', reason: '' }} fields={[{ name: 'status', label: 'Status', required: true, options: ['Active', 'Suspended', 'Inactive'] }, { name: 'reason', label: 'Reason', required: true, minLength: 5, multiline: true }]} submit={v => api.tenantStatus(statusEditor.id, v)} onClose={() => setStatusEditor(null)} onDone={() => { setStatusEditor(null); query.refetch(); }} />}
     </PlatformShell>
   );

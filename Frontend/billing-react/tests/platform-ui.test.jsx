@@ -367,6 +367,7 @@ test('PlatformDashboard shows pending approval banner only when pendingUserAppro
   try{
     assert.match(dash.host.textContent,/2 self-registered tenants awaiting SuperAdmin approval/);
     assert.ok(dash.host.querySelector('a[href="/platform/tenants?tab=approvals"]'));
+    assert.doesNotMatch(dash.host.textContent,/Create Tenant/);
   }finally{await dash.close();}
 
   let approveCall=null;
@@ -384,6 +385,7 @@ test('PlatformDashboard shows pending approval banner only when pendingUserAppro
 
   const v=await mount(<PlatformTenants/>);
   try{
+    assert.doesNotMatch(v.host.textContent,/Create Tenant/);
     const approvalsTab=[...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Pending Approvals'));
     assert.ok(approvalsTab);
     await click(approvalsTab);
