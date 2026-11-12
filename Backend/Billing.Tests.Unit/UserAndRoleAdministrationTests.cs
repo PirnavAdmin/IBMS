@@ -353,4 +353,31 @@ public class UserAndRoleAdministrationTests
         Assert.Contains("billing.view", user.Permissions);
         Assert.Contains("invoices.manage", user.Permissions);
     }
+
+    [Fact]
+    public async Task DeleteOrDeactivateUser_SelfOrLastTenantAdmin_IsBlocked()
+    {
+        var (_, _, tenantAdmin) = await _userService.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "Only Tenant Admin",
+            Email = "only-admin@tenant2.test",
+            Password = "Password@123",
+            TenantId = 2,
+            Roles = new List<string> { "TenantAdmin" }
+        });
+
+        Assert.NotNull(tenantAdmin);
+
+        var (selfDeleteSuccess, selfDeleteMessage) = await _userService.DeleteUserAsync(tenantAdmin!.Id, callerUserId: tenantAdmin.Id);
+        Assert.False(selfDeleteSuccess);
+        Assert.Contains("own active account", selfDeleteMessage);
+
+        var (selfDeactivateSuccess, selfDeactivateMessage) = await _userService.UpdateUserStatusAsync(tenantAdmin.Id, "Inactive", callerUserId: tenantAdmin.Id);
+        Assert.False(selfDeactivateSuccess);
+        Assert.Contains("own active account", selfDeactivateMessage);
+
+        var (lastAdminDeleteSuccess, lastAdminDeleteMessage) = await _userService.DeleteUserAsync(tenantAdmin.Id, callerUserId: 999);
+        Assert.False(lastAdminDeleteSuccess);
+        Assert.Contains("last active Tenant Admin", lastAdminDeleteMessage);
+    }
 }

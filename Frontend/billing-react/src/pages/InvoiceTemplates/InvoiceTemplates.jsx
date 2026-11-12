@@ -52,6 +52,65 @@ const currencySymbol = (currency = 'INR') => {
   try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((part) => part.type === 'currency')?.value || currency; }
   catch { return currency; }
 };
+const formatAmountNumber = (amount) => {
+  const numeric = Number(amount);
+  return Number.isFinite(numeric)
+    ? numeric.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '0.00';
+};
+const indianWords = (num) => {
+  const n = Math.floor(Math.max(0, Number(num) || 0));
+  if (n === 0) return 'Zero';
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const belowThousand = (v) => (v < 20 ? ones[v] : v < 100 ? `${tens[Math.floor(v / 10)]}${v % 10 ? ' ' + ones[v % 10] : ''}` : `${ones[Math.floor(v / 100)]} Hundred${v % 100 ? ' ' + belowThousand(v % 100) : ''}`);
+  const join = (v, div, unit) => `${indianWords(Math.floor(v / div))} ${unit}${v % div ? ' ' + indianWords(v % div) : ''}`;
+  return n >= 10000000 ? join(n, 10000000, 'Crore') : n >= 100000 ? join(n, 100000, 'Lakh') : n >= 1000 ? join(n, 1000, 'Thousand') : belowThousand(n);
+};
+const formatAmountInWords = (amount, currency = 'INR') => {
+  const normalized = Math.round(Math.max(0, Number(amount) || 0) * 100) / 100;
+  let whole = Math.trunc(normalized);
+  let fraction = Math.round((normalized - whole) * 100);
+  if (fraction >= 100) { whole += 1; fraction -= 100; }
+  const isInr = String(currency || 'INR').trim().toUpperCase() === 'INR';
+  const prefix = isInr ? 'Rupees' : String(currency || 'INR').trim().toUpperCase();
+  const fractionLabel = isInr ? 'Paise' : 'Cents';
+  return fraction > 0
+    ? `${prefix} ${indianWords(whole)} and ${indianWords(fraction)} ${fractionLabel} Only`
+    : `${prefix} ${indianWords(whole)} Only`;
+};
+const buildPreviewTaxBreakdowns = (invoice) => {
+  const totalTax = Number(invoice?.taxAmount) || 0;
+  if (totalTax <= 0) return [];
+  const items = invoice?.items || [];
+  const ratedItems = items.filter((item) => Number(item.taxRate) > 0 && Number(item.taxAmount) > 0);
+  if (ratedItems.length > 0) {
+    const map = new Map();
+    ratedItems.forEach((item) => {
+      const rate = Number(item.taxRate);
+      const halfRate = rate / 2;
+      const itemTax = Number(item.taxAmount) || 0;
+      const taxable = Math.max(0, (Number(item.totalAmount) || 0) - itemTax);
+      const cgst = Math.round((itemTax / 2) * 100) / 100;
+      const sgst = Math.round((itemTax - cgst) * 100) / 100;
+      const cKey = `CGST:${halfRate}`;
+      const sKey = `SGST:${halfRate}`;
+      const prevC = map.get(cKey) || { taxName: 'CGST', ratePercent: halfRate, taxableAmount: 0, taxAmount: 0 };
+      const prevS = map.get(sKey) || { taxName: 'SGST', ratePercent: halfRate, taxableAmount: 0, taxAmount: 0 };
+      map.set(cKey, { ...prevC, taxableAmount: prevC.taxableAmount + taxable, taxAmount: prevC.taxAmount + cgst });
+      map.set(sKey, { ...prevS, taxableAmount: prevS.taxableAmount + taxable, taxAmount: prevS.taxAmount + sgst });
+    });
+    return Array.from(map.values());
+  }
+  const taxable = Math.max(0, (Number(invoice?.subtotal) || 0) - (Number(invoice?.discountAmount) || 0));
+  const rate = taxable > 0 ? Math.round(((totalTax / taxable) * 100) * 100) / 100 : 0;
+  const cgst = Math.round((totalTax / 2) * 100) / 100;
+  const sgst = Math.round((totalTax - cgst) * 100) / 100;
+  return [
+    { taxName: 'CGST', ratePercent: rate / 2, taxableAmount: taxable, taxAmount: cgst },
+    { taxName: 'SGST', ratePercent: rate / 2, taxableAmount: taxable, taxAmount: sgst },
+  ];
+};
 const invoiceSnapshotFromInvoice = (invoice) => ({
   invoiceId: invoice.id,
   invoiceNumber: invoice.invoiceNumber || 'Draft #' + invoice.id,
@@ -60,8 +119,12 @@ const invoiceSnapshotFromInvoice = (invoice) => ({
   status: invoice.status || 'Draft',
   currency: invoice.currency || 'INR',
   currencySymbol: currencySymbol(invoice.currency || 'INR'),
+  reference: invoice.reference || null,
+  notes: invoice.notes || null,
+  termsAndConditions: invoice.termsAndConditions || null,
+  roundingAmount: Number(invoice.roundingAmount) || 0,
   customer: { customerId: invoice.customerId || invoice.customer?.id || 0, customerName: invoice.customer?.name || 'Customer', customerCode: invoice.customer?.customerCode || null, email: invoice.customer?.email || null, phone: invoice.customer?.phone || null, taxId: invoice.customer?.taxId || null, billingAddress: customerAddress(invoice.customer) },
-  items: (invoice.items || []).map((item) => ({ itemId: item.id || 0, itemName: item.description || 'Invoice item', description: item.description || null, hsnSacCode: item.hsnsac || item.hsnSac || null, quantity: Number(item.quantity) || 0, unit: 'Unit', unitPrice: Number(item.unitPrice) || 0, discountAmount: Number(item.discountAmount) || 0, taxRatePercent: Number(item.taxRate) || 0, taxAmount: Number(item.taxAmount) || 0, lineTotal: Number(item.totalAmount) || 0 })),
+  items: (invoice.items || []).map((item) => ({ itemId: item.id || 0, itemName: item.description || 'Invoice item', description: item.description || null, hsnSacCode: item.hsnsac || item.hsnSac || null, quantity: Number(item.quantity) || 0, unit: 'Unit', unitPrice: Number(item.unitPrice) || 0, discountType: item.discountType || null, discountRate: item.discountRate != null ? Number(item.discountRate) : null, discountAmount: Number(item.discountAmount) || 0, taxType: item.taxType || null, taxRatePercent: Number(item.taxRate) || 0, taxAmount: Number(item.taxAmount) || 0, lineTotal: Number(item.totalAmount) || 0 })),
   subtotal: Number(invoice.subtotal) || 0,
   totalDiscount: Number(invoice.discountAmount) || 0,
   totalTax: Number(invoice.taxAmount) || 0,
@@ -69,6 +132,8 @@ const invoiceSnapshotFromInvoice = (invoice) => ({
   grandTotal: Number(invoice.totalAmount) || 0,
   amountPaid: Number(invoice.paidAmount) || 0,
   balanceDue: Number(invoice.balanceAmount) || 0,
+  taxBreakdowns: buildPreviewTaxBreakdowns(invoice),
+  additionalCharges: Number(invoice.chargesAmount) > 0 ? [{ chargeName: 'Other Charges', amount: Number(invoice.chargesAmount) }] : [],
 });
 const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const version = preferActiveVersion
@@ -690,18 +755,30 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
   const sections = { ...DEFAULT_SECTIONS, ...config.sections };
   const isRealInvoice = Boolean(invoice);
   const currency = invoice?.currency || 'INR';
+  const symbol = currencySymbol(currency);
   const items = invoice?.items || [];
   const customer = invoice?.customer || {};
-  const columns = [
-    ...(isPirnavStandardLayout ? [{ key: 'itemNumber', title: 'Item #' }] : []),
-    { key: 'description', title: 'Description' },
-    ...(sections.quantity ? [{ key: 'quantity', title: 'Qty' }] : []),
-    ...(sections.unitPrice ? [{ key: 'unitPrice', title: 'Unit price' }] : []),
-    ...(sections.discount ? [{ key: 'discount', title: 'Discount' }] : []),
-    ...(sections.tax ? [{ key: 'tax', title: 'Tax' }] : []),
-    ...(sections.lineTotals ? [{ key: 'amount', title: 'Amount' }] : []),
-  ];
-  const sampleRows = isRealInvoice ? items : Array.from({ length: long ? 14 : 2 }, (_, index) => index);
+  const isPirnavStandardV2 = isPirnavStandardLayout && !isCorner;
+  const columns = isPirnavStandardV2
+    ? [
+      { key: 'itemNumber', title: 'Item #' },
+      { key: 'description', title: 'Description' },
+      ...(sections.quantity ? [{ key: 'quantity', title: 'Qty' }] : []),
+      ...(sections.unitPrice ? [{ key: 'unitPrice', title: `Unit Price (${symbol})` }] : []),
+      ...(sections.discount ? [{ key: 'discount', title: `Discount (${symbol})` }] : []),
+      ...(sections.tax ? [{ key: 'tax', title: 'Tax (%)' }] : []),
+      ...(sections.lineTotals ? [{ key: 'amount', title: `Amount (${symbol})` }] : []),
+    ]
+    : [
+      ...(isPirnavStandardLayout ? [{ key: 'itemNumber', title: 'Item #' }] : []),
+      { key: 'description', title: 'Description' },
+      ...(sections.quantity ? [{ key: 'quantity', title: 'Qty' }] : []),
+      ...(sections.unitPrice ? [{ key: 'unitPrice', title: 'Unit price' }] : []),
+      ...(sections.discount ? [{ key: 'discount', title: 'Discount' }] : []),
+      ...(sections.tax ? [{ key: 'tax', title: 'Tax' }] : []),
+      ...(sections.lineTotals ? [{ key: 'amount', title: 'Amount' }] : []),
+    ];
+  const sampleRows = isRealInvoice ? items : Array.from({ length: long ? 14 : isPirnavStandardV2 ? 1 : 2 }, (_, index) => index);
   const companyAddress = config.address || '42 Example Road, Sample City';
   const previewCompanyAddress = isPirnavStandardLayout
     ? companyAddress.replace(/,\s*(Telangana\b)/i, ',\n$1')
@@ -716,9 +793,16 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
   const locationStart = companyAddress.search(/Hyderabad\b/i);
   const footerLocation = locationStart >= 0 ? companyAddress.slice(locationStart).trim() : companyAddress;
   const footerContact = [config.company, footerLocation, config.email, config.phone].filter(Boolean).join(' | ');
+  const pirnavTaxBreakdowns = isRealInvoice
+    ? buildPreviewTaxBreakdowns(invoice)
+    : [
+      { taxName: 'CGST', ratePercent: 6, taxAmount: 299.94 },
+      { taxName: 'SGST', ratePercent: 6, taxAmount: 299.94 },
+    ];
+  const effectiveTerms = (isRealInvoice && invoice?.termsAndConditions) || config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.';
 
   const renderTableRows = () => (
-    isRealInvoice && !items.length ? <tr><td colSpan={columns.length} className="sample-empty-row">This invoice has no line items.</td></tr> : sampleRows.map((item, index) => <Fragment key={isRealInvoice ? item.id || index : 'sample-fragment-' + item}>{!isRealInvoice && long && item === 7 && <tr className="sample-page-marker"><td colSpan={columns.length}>Page 1 boundary · Page 2 continues below; the column heading repeats</td></tr>}<tr>{isPirnavStandardLayout && <td>{index + 1}</td>}<td>{isRealInvoice ? item.description || 'Invoice item' : item === 0 ? 'Representative service item with a longer description' : 'Sample invoice line item ' + (item + 1) + ' with description wrapping'}</td>{sections.quantity && <td>{isRealInvoice ? item.quantity : item + 1}</td>}{sections.unitPrice && <td>{isRealInvoice ? previewMoney(item.unitPrice, currency) : '₹500.00'}</td>}{sections.discount && <td>{isRealInvoice ? previewMoney(item.discountAmount, currency) : 'Sample'}</td>}{sections.tax && <td>{isRealInvoice ? previewMoney(item.taxAmount, currency) : 'Sample'}</td>}{sections.lineTotals && <td>{isRealInvoice ? previewMoney(item.totalAmount, currency) : '₹500.00'}</td>}</tr></Fragment>)
+    isRealInvoice && !items.length ? <tr><td colSpan={columns.length} className="sample-empty-row">This invoice has no line items.</td></tr> : sampleRows.map((item, index) => <Fragment key={isRealInvoice ? item.id || index : 'sample-fragment-' + item}>{!isRealInvoice && long && item === 7 && <tr className="sample-page-marker"><td colSpan={columns.length}>Page 1 boundary · Page 2 continues below; the column heading repeats</td></tr>}<tr>{isPirnavStandardLayout && <td>{index + 1}</td>}<td>{isRealInvoice ? <strong>{item.description || 'Invoice item'}</strong> : isPirnavStandardV2 ? <strong>{item === 0 ? 'Smart Device / Service Subscription' : 'Sample invoice line item ' + (item + 1)}</strong> : item === 0 ? 'Representative service item with a longer description' : 'Sample invoice line item ' + (item + 1) + ' with description wrapping'}</td>{sections.quantity && <td>{isRealInvoice ? item.quantity : isPirnavStandardV2 ? 1 : item + 1}</td>}{sections.unitPrice && <td>{isRealInvoice ? (isPirnavStandardV2 ? formatAmountNumber(item.unitPrice) : previewMoney(item.unitPrice, currency)) : (isPirnavStandardV2 ? '4,999.00' : '₹500.00')}</td>}{sections.discount && <td>{isRealInvoice ? (isPirnavStandardV2 ? formatAmountNumber(item.discountAmount) : previewMoney(item.discountAmount, currency)) : (isPirnavStandardV2 ? '0.00' : 'Sample')}</td>}{sections.tax && <td>{isRealInvoice ? (isPirnavStandardV2 ? `${Number(item.taxRate) || 0}%` : previewMoney(item.taxAmount, currency)) : (isPirnavStandardV2 ? '12%' : 'Sample')}</td>}{sections.lineTotals && <td>{isRealInvoice ? previewMoney(item.totalAmount, currency) : (isPirnavStandardV2 ? '₹5,598.88' : '₹500.00')}</td>}</tr></Fragment>)
   );
 
   if (isCorner) {
@@ -788,9 +872,9 @@ function SampleInvoicePreview({ style, config = {}, invoice = null, long = false
   // Standard Invoice Layout
   return <article className={'invoice-sample style-' + style.toLowerCase() + (isPirnavStandardLayout ? ' pirnav-standard-layout' : '')} style={{ '--template-primary': primary, '--template-secondary': secondary }} aria-label={style + (isRealInvoice ? ' invoice layout' : ' sample invoice layout')}>
     <div className="sample-brand"><div className={'sample-identity' + (isPirnavStandardLayout ? '' : ' position-' + (config.logoPosition || 'left'))}>{!isPirnavStandardLayout && config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo sample" style={{ width: config.logoWidth || 96 }} />}<div><strong>{config.company || 'Sample Company Ltd.'}</strong>{config.header && <span>{config.header}</span>}<span className="sample-company-address">{previewCompanyAddress}</span><span>{previewContact || 'billing@example.test · +00 000 000 0000'}</span>{isPirnavStandardLayout && config.website && <span>{config.website}</span>}</div></div>{isPirnavStandardLayout ? <div className="sample-logo-right">{config.logoUrl && <img onError={() => {}} src={config.logoUrl} alt="Selected company logo" />}</div> : <div className="sample-title"><span>INVOICE</span>{sections.invoiceNumber && <b>{invoice?.invoiceNumber || 'INV-SAMPLE-001'}</b>}</div>}</div>
-    <div className="sample-meta">{sections.customer && <div><small>{isPirnavStandardLayout ? 'Bill To:' : 'BILL TO'}</small><strong>{customer.name || 'Sample Customer Ltd.'}</strong><span>{customer.email || 'accounts@example.test'}</span><span>{customerAddress(customer) || '100 Market Street, Sample City'}</span></div>}<div>{sections.invoiceDate && <span><b>Invoice date</b> {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '30 Sep 2026'}</span>}{sections.dueDate && <span><b>Due date</b> {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</span>}</div></div>
+    <div className="sample-meta">{sections.customer && <div><small>{isPirnavStandardLayout ? 'Bill To:' : 'BILL TO'}</small><strong>{customer.name || 'Sample Customer Ltd.'}</strong>{isPirnavStandardV2 && customer.customerCode && <span>Customer Code: {customer.customerCode}</span>}<span>{customerAddress(customer) || '100 Market Street, Sample City'}</span>{customer.email && <span>{isPirnavStandardV2 ? `Email: ${customer.email}` : customer.email}</span>}{!customer.email && <span>{isPirnavStandardV2 ? 'Email: accounts@example.test' : 'accounts@example.test'}</span>}</div>}<div>{isPirnavStandardV2 && <span><b>Invoice #:</b> {invoice?.invoiceNumber || 'INV-SAMPLE-001'}</span>}{sections.invoiceDate && <span><b>Invoice date:</b> {isRealInvoice ? formatPreviewDate(invoice.invoiceDate) : '10 Nov 2026'}</span>}{isPirnavStandardV2 ? <><span><b>Customer Code:</b> {customer.customerCode || 'CUST-001'}</span><span><b>Currency:</b> {currency}</span><span><b>Status:</b> {invoice?.status || 'Issued'}</span></> : sections.dueDate && <span><b>Due date</b> {isRealInvoice ? formatPreviewDate(invoice.dueDate) : '30 Oct 2026'}</span>}</div></div>
     {sections.items && <table className="sample-lines"><thead><tr>{columns.map((column) => <th key={column.key}>{column.title}</th>)}</tr></thead><tbody>{renderTableRows()}</tbody></table>}
-    <div className="sample-bottom">{sections.totals && <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>}<div className="sample-payment-terms">{config.bankDetails && <div className="sample-payment-details"><b>Payment details</b><p className="sample-copy">{config.bankDetails}</p></div>}<div className="sample-terms"><b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{config.terms || 'Sample terms are shown for layout only. Add longer terms in the editor to inspect wrapping.'}</p></div></div></div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
+    <div className="sample-bottom">{sections.totals && (isPirnavStandardV2 ? <div className="sample-totals"><span>Sub Total <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹4,999.00'}</b></span><span>Total Discount <b>{isRealInvoice ? previewMoney(invoice.discountAmount || 0, currency) : '₹0.00'}</b></span><span>Taxable Amount <b>{isRealInvoice ? previewMoney(Math.max(0, (Number(invoice.subtotal) || 0) - (Number(invoice.discountAmount) || 0)), currency) : '₹4,999.00'}</b></span>{pirnavTaxBreakdowns.map((tax) => <span key={`${tax.taxName}-${tax.ratePercent}`}>{tax.taxName} ({tax.ratePercent}%) <b>{previewMoney(tax.taxAmount, currency)}</b></span>)}{isRealInvoice && Number(invoice.chargesAmount) > 0 && <span>Other Charges <b>{previewMoney(invoice.chargesAmount, currency)}</b></span>}<span style={{ color: primary, fontWeight: 700 }}>Total Amount <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹5,598.88'}</b></span><span style={{ color: '#2E8B3D' }}>Amount Paid <b>{isRealInvoice ? previewMoney(invoice.paidAmount || 0, currency) : '₹0.00'}</b></span><span className="sample-total">Balance Due <b>{isRealInvoice ? previewMoney(invoice.balanceAmount ?? invoice.totalAmount, currency) : '₹5,598.88'}</b></span></div> : <div className="sample-totals"><span>Subtotal <b>{isRealInvoice ? previewMoney(invoice.subtotal, currency) : '₹1,250.00'}</b></span>{isRealInvoice && Number(invoice.discountAmount) > 0 && <span>Discount <b>{previewMoney(invoice.discountAmount, currency)}</b></span>}<span>Tax <b>{isRealInvoice ? previewMoney(invoice.taxAmount, currency) : '₹225.00'}</b></span><span className="sample-total">Total <b>{isRealInvoice ? previewMoney(invoice.totalAmount, currency) : '₹1,475.00'}</b></span></div>)}<div className="sample-payment-terms">{isPirnavStandardV2 && <div className="sample-amount-words"><b>Amount in Words</b><p>{formatAmountInWords(isRealInvoice ? invoice.totalAmount : 5598.88, currency)}</p></div>}{!isPirnavStandardV2 && config.bankDetails && <div className="sample-payment-details"><b>Payment details</b><p className="sample-copy">{config.bankDetails}</p></div>}{isRealInvoice && invoice?.notes && <div className="sample-terms" style={{ marginBottom: 12 }}><b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>Notes</b><p className="sample-copy">{invoice.notes}</p></div>}<div className="sample-terms"><b className={isPirnavStandardLayout ? 'sample-terms-heading' : ''}>{isPirnavStandardLayout ? 'Terms & Conditions' : 'Terms and conditions'}</b><p className="sample-copy">{effectiveTerms}</p></div></div></div>{isPirnavStandardLayout && <div className="sample-pirnav-signoff"><strong>{thankYouNote}</strong><span>{systemNote}</span></div>}<footer className={isPirnavStandardLayout ? 'sample-pirnav-footer' : ''}>{isPirnavStandardLayout ? <><span className="sample-pirnav-company-footer">{footerContact}</span><span>{thankYouNote}</span></> : footerNote}</footer>
   </article>;
 }
 

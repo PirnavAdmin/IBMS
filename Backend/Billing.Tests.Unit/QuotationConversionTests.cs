@@ -100,4 +100,70 @@ public class QuotationConversionTests
         _mockUow.Verify(u => u.RollbackTransactionAsync(), Times.Once);
         _mockUow.Verify(u => u.CommitTransactionAsync(), Times.Never);
     }
+
+    [Fact]
+    public async Task ConvertToInvoice_CopiesAllQuotationAndCustomerFieldsIncludingCurrencyAndSortOrder()
+    {
+        var q = new Quotation
+        {
+            Id = 12,
+            TenantId = 1,
+            QuoteNumber = "QT-2026-11-0012",
+            Status = QuotationStatus.Approved,
+            CustomerId = 100,
+            Customer = new Customer { Id = 100, Name = "Global Buyer", Currency = "usd" },
+            ValidUntil = new DateTime(2026, 12, 15),
+            Subtotal = 4999m,
+            DiscountAmount = 100m,
+            TaxAmount = 587.88m,
+            ChargesAmount = 50m,
+            TotalAmount = 5536.88m,
+            Notes = "Urgent fulfillment",
+            TermsAndConditions = "Net 15 terms",
+            Items = new List<QuotationItem>
+            {
+                new()
+                {
+                    ProductId = 5,
+                    Description = "Noise Smart Watch",
+                    Quantity = 1m,
+                    UnitPrice = 4999m,
+                    DiscountType = "Fixed",
+                    DiscountRate = 100m,
+                    DiscountAmount = 100m,
+                    TaxType = "Exclusive",
+                    TaxRate = 12m,
+                    TaxAmount = 587.88m,
+                    TotalAmount = 5486.88m,
+                    HSNSAC = "8517"
+                }
+            }
+        };
+
+        _mockQuotationRepo.Setup(r => r.GetByIdForUpdateAsync(12, 1)).ReturnsAsync(q);
+        _mockNumberGen.Setup(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), 1))
+            .ReturnsAsync(ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto { GeneratedNumber = "INV-2026-11-0050" }));
+
+        Invoice? capturedInvoice = null;
+        _mockInvoiceRepo.Setup(r => r.AddAsync(It.IsAny<Invoice>()))
+            .Callback<Invoice>(inv => capturedInvoice = inv)
+            .ReturnsAsync(new Invoice { Id = 777 });
+
+        var result = await _service.ConvertToInvoiceAsync(12, 1, "user1");
+
+        Assert.True(result.Success);
+        Assert.NotNull(capturedInvoice);
+        Assert.Equal("USD", capturedInvoice!.Currency);
+        Assert.Equal(0m, capturedInvoice.RoundingAmount);
+        Assert.Equal("QT-2026-11-0012", capturedInvoice.Reference);
+        Assert.Equal("Urgent fulfillment", capturedInvoice.Notes);
+        Assert.Equal("Net 15 terms", capturedInvoice.TermsAndConditions);
+        var item = Assert.Single(capturedInvoice.Items);
+        Assert.Equal(1, item.SortOrder);
+        Assert.Equal("8517", item.HSNSAC);
+        Assert.Equal("Fixed", item.DiscountType);
+        Assert.Equal(100m, item.DiscountRate);
+        Assert.Equal(12m, item.TaxRate);
+        Assert.Equal(587.88m, item.TaxAmount);
+    }
 }

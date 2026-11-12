@@ -1259,7 +1259,7 @@ export function InvoiceDetails() {
           </p>
           <p style={{ margin: "0 0 14px", color: "var(--text-secondary)", fontSize: "14px" }}>
             {includePayOnlineButton
-              ? "The generated invoice PDF and online payment link will be sent to the customer."
+              ? "The generated invoice PDF and Click Here to Pay Online email button will be sent to the customer."
               : "The generated invoice PDF will be sent to the customer without an online payment link or button."}
           </p>
 
@@ -1277,18 +1277,18 @@ export function InvoiceDetails() {
           }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 700, color: "#35271F" }}>
-                Include Pay Now Online button
+                Include Click Here to Pay Online button
               </Typography>
               <Typography variant="caption" sx={{ color: "#7E6B5C", display: "block" }}>
                 {includePayOnlineButton
-                  ? "Email and PDF will include the online payment link and policy options."
-                  : "Online payment link and payment policy options are disabled for this send."}
+                  ? "Email and reminders will include the Click Here to Pay Online button and policy options."
+                  : "Online payment button and payment policy options are disabled for this send."}
               </Typography>
             </Box>
             <Switch
               checked={includePayOnlineButton}
               onChange={(e) => setIncludePayOnlineButton(e.target.checked)}
-              inputProps={{ "aria-label": "Include Pay Now Online button" }}
+              inputProps={{ "aria-label": "Include Click Here to Pay Online button" }}
               sx={{
                 "& .MuiSwitch-switchBase.Mui-checked": { color: "#65442E" },
                 "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#65442E" },

@@ -300,7 +300,7 @@ export function ReminderSettings() {
           <section className="settings-panel settings-full">
             <Alert severity="info">
               <strong>Online Payment Link Sync:</strong> Every reminder email automatically respects the{' '}
-              <strong>Include Pay Now Online button</strong> choice selected when the invoice was sent — invoices sent with online payment ON keep the button in reminders, and invoices sent with it OFF omit the Pay Now button in reminders too.
+              <strong>Include Click Here to Pay Online button</strong> choice selected when the invoice was sent — invoices sent with online payment ON keep the button in reminders, and invoices sent with it OFF omit the Click Here to Pay Online button in reminders too.
             </Alert>
             {saveError && (
               <Alert severity="error" sx={{ mt: 2 }}>

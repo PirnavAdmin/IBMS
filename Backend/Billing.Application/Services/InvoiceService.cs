@@ -19,6 +19,7 @@ public class InvoiceService : IInvoiceService
     private readonly IOutboxService? _outboxService;
     private readonly INotificationLogRepository? _notificationLogRepository;
     private readonly INotificationService? _notificationService;
+    private readonly IQuotationRepository? _quotationRepository;
 
     public InvoiceService(
         IInvoiceRepository invoiceRepository,
@@ -31,7 +32,8 @@ public class InvoiceService : IInvoiceService
         IInvoiceTemplateService templateService,
         IOutboxService? outboxService = null,
         INotificationLogRepository? notificationLogRepository = null,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IQuotationRepository? quotationRepository = null)
     {
         _invoiceRepository = invoiceRepository;
         _numberGenerationService = numberGenerationService;
@@ -44,6 +46,7 @@ public class InvoiceService : IInvoiceService
         _outboxService = outboxService;
         _notificationLogRepository = notificationLogRepository;
         _notificationService = notificationService;
+        _quotationRepository = quotationRepository;
     }
 
     private async Task RecalculateInvoiceTotalsAsync(Invoice invoice, int tenantId)
@@ -65,7 +68,7 @@ public class InvoiceService : IInvoiceService
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
                 LineDiscountType = !string.IsNullOrWhiteSpace(i.DiscountType) ? i.DiscountType : "Percentage",
-                LineDiscountValue = i.DiscountRate,
+                LineDiscountValue = i.DiscountRate ?? (string.Equals(i.DiscountType, "Fixed", StringComparison.OrdinalIgnoreCase) && i.DiscountAmount > 0m ? i.DiscountAmount : null),
                 TaxRatePercent = i.TaxRate,
                 IsTaxInclusive = string.Equals(i.TaxType, "Inclusive", StringComparison.OrdinalIgnoreCase)
             }).ToList(),
@@ -83,10 +86,11 @@ public class InvoiceService : IInvoiceService
             invoice.DiscountAmount = calc.TotalLineDiscounts + calc.InvoiceDiscountAmount;
             invoice.TaxAmount = calc.TotalTaxes;
             invoice.ChargesAmount = calc.ChargesTotal + calc.TaxOnChargesTotal;
-            
-            var roundedTotal = Math.Round(calc.GrandTotal, 0, MidpointRounding.AwayFromZero);
-            invoice.RoundingAmount = roundedTotal - calc.GrandTotal;
-            invoice.TotalAmount = roundedTotal;
+
+            // Keep exact 2-decimal paise/cents precision instead of whole-rupee rounding
+            var exactTotal = Math.Round(calc.GrandTotal, 2, MidpointRounding.AwayFromZero);
+            invoice.RoundingAmount = 0m;
+            invoice.TotalAmount = exactTotal;
 
             if (invoice.Status == "Draft")
             {
@@ -388,10 +392,11 @@ public class InvoiceService : IInvoiceService
         if (invoice.Status == "Draft" || invoice.Status == "Cancelled" || invoice.Status == "Voided") 
             return ApiResponse<bool>.Fail("Invoice cannot be delivered in its current state.");
 
+        var hydratedFromQuotation = await HydrateInvoiceFromLinkedQuotationAsync(invoice, tenantId);
         var payOnlineChoiceChanged = invoice.IncludePayOnlineButton != includePayOnlineButton;
         invoice.IncludePayOnlineButton = includePayOnlineButton;
 
-        if ((includePayOnlineButton && allowPartialPayments.HasValue) || payOnlineChoiceChanged)
+        if ((includePayOnlineButton && allowPartialPayments.HasValue) || payOnlineChoiceChanged || hydratedFromQuotation)
         {
             if (includePayOnlineButton && allowPartialPayments.HasValue)
             {
@@ -553,6 +558,126 @@ public class InvoiceService : IInvoiceService
         }
 
         return ApiResponse<bool>.Ok(true, "Invoice delivered successfully.");
+    }
+
+    private async Task<bool> HydrateInvoiceFromLinkedQuotationAsync(Invoice invoice, int tenantId)
+    {
+        if (!invoice.QuotationId.HasValue || _quotationRepository == null)
+        {
+            return false;
+        }
+
+        var quotation = await _quotationRepository.GetByIdAsync(invoice.QuotationId.Value, tenantId);
+        if (quotation == null)
+        {
+            return false;
+        }
+
+        var changed = false;
+
+        if (string.IsNullOrWhiteSpace(invoice.Reference) && !string.IsNullOrWhiteSpace(quotation.QuoteNumber))
+        {
+            invoice.Reference = quotation.QuoteNumber;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(invoice.Notes) && !string.IsNullOrWhiteSpace(quotation.Notes))
+        {
+            invoice.Notes = quotation.Notes;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(invoice.TermsAndConditions) && !string.IsNullOrWhiteSpace(quotation.TermsAndConditions))
+        {
+            invoice.TermsAndConditions = quotation.TermsAndConditions;
+            changed = true;
+        }
+
+        var customerCurrency = quotation.Customer?.Currency?.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(invoice.Currency) && !string.IsNullOrWhiteSpace(customerCurrency))
+        {
+            invoice.Currency = customerCurrency;
+            changed = true;
+        }
+
+        if (invoice.Items.Count == 0 && quotation.Items.Count > 0)
+        {
+            var index = 1;
+            foreach (var qItem in quotation.Items)
+            {
+                invoice.Items.Add(new InvoiceItem
+                {
+                    InvoiceId = invoice.Id,
+                    ProductId = qItem.ProductId,
+                    Description = qItem.Description,
+                    Quantity = qItem.Quantity,
+                    UnitPrice = qItem.UnitPrice,
+                    DiscountType = qItem.DiscountType,
+                    DiscountRate = qItem.DiscountRate,
+                    DiscountAmount = qItem.DiscountAmount,
+                    TaxType = qItem.TaxType,
+                    TaxRate = qItem.TaxRate,
+                    TaxAmount = qItem.TaxAmount,
+                    TotalAmount = qItem.TotalAmount,
+                    HSNSAC = qItem.HSNSAC,
+                    SortOrder = index++
+                });
+            }
+
+            invoice.Subtotal = quotation.Subtotal;
+            invoice.DiscountAmount = quotation.DiscountAmount;
+            invoice.TaxAmount = quotation.TaxAmount;
+            invoice.ChargesAmount = quotation.ChargesAmount;
+            invoice.TotalAmount = quotation.TotalAmount;
+            invoice.BalanceAmount = Math.Max(0m, quotation.TotalAmount - invoice.PaidAmount);
+            changed = true;
+        }
+        else if (invoice.Items.Count > 0 && quotation.Items.Count > 0)
+        {
+            var invItems = invoice.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).ToList();
+            var qItems = quotation.Items.ToList();
+            for (var i = 0; i < invItems.Count && i < qItems.Count; i++)
+            {
+                var invItem = invItems[i];
+                var qItem = qItems[i];
+                if (invItem.ProductId != qItem.ProductId && !string.Equals(invItem.Description, qItem.Description, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(invItem.HSNSAC) && !string.IsNullOrWhiteSpace(qItem.HSNSAC))
+                {
+                    invItem.HSNSAC = qItem.HSNSAC;
+                    changed = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(invItem.DiscountType) && !string.IsNullOrWhiteSpace(qItem.DiscountType))
+                {
+                    invItem.DiscountType = qItem.DiscountType;
+                    changed = true;
+                }
+
+                if (!invItem.DiscountRate.HasValue && qItem.DiscountRate.HasValue)
+                {
+                    invItem.DiscountRate = qItem.DiscountRate;
+                    changed = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(invItem.TaxType) && !string.IsNullOrWhiteSpace(qItem.TaxType))
+                {
+                    invItem.TaxType = qItem.TaxType;
+                    changed = true;
+                }
+
+                if (!invItem.TaxRate.HasValue && qItem.TaxRate.HasValue)
+                {
+                    invItem.TaxRate = qItem.TaxRate;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
     }
 }
 

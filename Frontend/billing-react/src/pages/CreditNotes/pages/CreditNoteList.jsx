@@ -118,7 +118,7 @@ export function CreditNoteList() {
       <Breadcrumbs className="cn-breadcrumbs" aria-label="Breadcrumb"><span>Billing</span><span>Credit Notes</span></Breadcrumbs>
       <header className="cn-page-heading">
         <div><span className="cn-eyebrow">CREDITS &amp; REFUNDS</span><h1>Credit Notes</h1><p>Manage invoice credits, approvals and customer refunds.</p></div>
-        <div className="cn-heading-actions"><Button className="cn-list-print-button" variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button></div>
+        <div className="cn-heading-actions"><Button className="cn-list-print-button" variant="outlined" startIcon={<LocalPrintshopOutlined />} onClick={() => window.print()}>Print</Button><Button className="cn-create-note-button" variant="contained" startIcon={<Add />} onClick={() => navigate('/credit-notes/new')}>Create Credit Note</Button></div>
       </header>
 
 

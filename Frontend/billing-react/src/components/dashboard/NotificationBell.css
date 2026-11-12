@@ -23,7 +23,7 @@
 .notification-unread-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #9b5a30; }
 .notification-list p { margin: 6px 0; color: #67574a; line-height: 1.5; white-space: pre-wrap; }
 .notification-list time { color: #7b6c60; font-size: 11px; }
-.notification-item-actions, .notification-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.notification-item-actions, .notification-pagination, .notification-footer-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .notification-item-actions { margin-top: 9px; }
 .notification-footer { border-top: 1px solid #ebdfd2; }
 .notification-error, .notification-notice { padding: 8px 14px; margin: 0; line-height: 1.5; }

@@ -637,6 +637,25 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded Pirnav Gemini Modern template for tenant {TenantId}", geminiTenantId);
             }
+
+            // Keep existing default NotificationTemplate CTA text aligned with "Click Here to Pay Online".
+            var legacyInvoiceTemplates = await context.NotificationTemplates
+                .Where(t => t.EventType == "InvoiceSent"
+                            && t.CreatedBy == "System"
+                            && (t.BodyTemplate.Contains(">Pay Online Now</a>") || t.BodyTemplate.Contains(">Pay Now Online</a>")))
+                .ToListAsync();
+            if (legacyInvoiceTemplates.Count > 0)
+            {
+                foreach (var tpl in legacyInvoiceTemplates)
+                {
+                    tpl.BodyTemplate = tpl.BodyTemplate
+                        .Replace(">Pay Online Now</a>", ">Click Here to Pay Online</a>")
+                        .Replace(">Pay Now Online</a>", ">Click Here to Pay Online</a>");
+                    tpl.UpdatedAtUtc = DateTime.UtcNow;
+                }
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Updated {Count} default InvoiceSent notification templates to 'Click Here to Pay Online'", legacyInvoiceTemplates.Count);
+            }
         }
         catch (Exception ex)
         {

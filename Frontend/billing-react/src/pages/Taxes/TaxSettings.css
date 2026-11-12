@@ -57,7 +57,7 @@
 .tax-settings-page .tax-error { color: #b74a45; font-size: 13px; }
 .tax-table-container { overflow-x: auto; }
 .tax-table { width: 100%; min-width: 1050px; border-collapse: collapse; text-align: left; font-size: 13px; }
-.tax-table th, .tax-table td { padding: 5px 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; line-height: 1.25; }
+.tax-table th, .tax-table td { padding: 5px 10px; border-bottom: 1px solid #eee7df; font-size: 12.5px; line-height: 1.25; }
 .tax-table thead th { background: #efe2d6; color: var(--coffee-dark); font-size: 11px; padding: 6px 10px; white-space: nowrap; }
 .tax-table tbody tr:hover { background: #f5ede5; }
 .tax-status { display: inline-block; border-radius: 5px; padding: 4px 8px; font-size: 12px; font-weight: 600; }

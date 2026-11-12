@@ -357,6 +357,11 @@ public class InvoiceSnapshotDto
     public string CurrencySymbol { get; set; } = "₹";
     public string DocumentType { get; set; } = "Invoice";
     public bool IncludePayOnlineLink { get; set; } = true;
+    public string? Reference { get; set; }
+    public string? Notes { get; set; }
+    public string? TermsAndConditions { get; set; }
+    public decimal RoundingAmount { get; set; }
+    public bool IsInterState { get; set; }
     public string DocumentTitle => string.IsNullOrWhiteSpace(DocumentType) ? "INVOICE" : DocumentType.ToUpperInvariant();
     public string DocumentNumberLabel => DocumentType switch
     {
@@ -414,7 +419,10 @@ public class InvoiceItemSnapshotDto
     public decimal Quantity { get; set; }
     public string Unit { get; set; } = "Unit";
     public decimal UnitPrice { get; set; }
+    public string? DiscountType { get; set; }
+    public decimal? DiscountRate { get; set; }
     public decimal DiscountAmount { get; set; }
+    public string? TaxType { get; set; }
     public decimal TaxRatePercent { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal LineTotal { get; set; }

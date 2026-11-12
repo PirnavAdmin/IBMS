@@ -21,6 +21,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
     private readonly IInvoicePdfEngine _pdfEngine;
     private readonly IDocumentStorageService _storageService;
     private readonly IAuditLogRepository? _auditLogRepo;
+    private readonly ITaxRepository? _taxRepository;
+    private readonly IQuotationRepository? _quotationRepository;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -35,7 +37,9 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         IInvoiceRepository invoiceRepository,
         IInvoicePdfEngine pdfEngine,
         IDocumentStorageService storageService,
-        IAuditLogRepository? auditLogRepo = null)
+        IAuditLogRepository? auditLogRepo = null,
+        ITaxRepository? taxRepository = null,
+        IQuotationRepository? quotationRepository = null)
     {
         _templateRepository = templateRepository;
         _snapshotRepository = snapshotRepository;
@@ -44,6 +48,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         _pdfEngine = pdfEngine;
         _storageService = storageService;
         _auditLogRepo = auditLogRepo;
+        _taxRepository = taxRepository;
+        _quotationRepository = quotationRepository;
     }
 
     public async Task<PagedResult<InvoiceTemplateDto>> GetTemplatesAsync(TemplateFilterRequest filter, int tenantId, CancellationToken ct = default)
@@ -507,7 +513,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         }
 
         template ??= await _templateRepository.GetDefaultTemplateAsync(tenantId)
-                     ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, DomainStatus.Active, 1, 1)).Items.FirstOrDefault();
+                     ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, DomainStatus.Active, 1, 1)).Items?.FirstOrDefault();
 
         TemplateVersion? version = null;
         if (template != null)
@@ -525,8 +531,19 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
         if (snapshot != null)
         {
-            snapshotDto = JsonSerializer.Deserialize<InvoiceSnapshotDto>(snapshot.SnapshotDataJson, JsonOpts)
-                          ?? BuildSnapshotDto(invoice);
+            if (request.ForceRegenerate)
+            {
+                snapshotDto = await BuildSnapshotDtoAsync(invoice, tenantId);
+                snapshotDto.IncludePayOnlineLink = request.IncludePayOnlineLink ?? invoice.IncludePayOnlineButton;
+                snapshot.SnapshotDataJson = JsonSerializer.Serialize(snapshotDto, JsonOpts);
+                refreshSnapshotTemplate = true;
+            }
+            else
+            {
+                snapshotDto = JsonSerializer.Deserialize<InvoiceSnapshotDto>(snapshot.SnapshotDataJson, JsonOpts)
+                              ?? await BuildSnapshotDtoAsync(invoice, tenantId);
+            }
+
             if ((request.ForceRegenerate || request.OverrideTemplateId.HasValue) && version != null)
             {
                 versionDto = MapVersionToDto(version);
@@ -539,20 +556,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 versionDto = JsonSerializer.Deserialize<TemplateVersionDto>(snapshot.TemplateConfigJson, JsonOpts)
                              ?? (version != null ? MapVersionToDto(version) : BuildDefaultVersionDto());
             }
-
-            if (request.ForceRegenerate)
-            {
-                snapshotDto.AmountPaid = invoice.PaidAmount;
-                snapshotDto.BalanceDue = invoice.BalanceAmount;
-                snapshotDto.Status = invoice.Status.ToString();
-                snapshotDto.IncludePayOnlineLink = request.IncludePayOnlineLink ?? invoice.IncludePayOnlineButton;
-                snapshot.SnapshotDataJson = JsonSerializer.Serialize(snapshotDto, JsonOpts);
-                refreshSnapshotTemplate = true;
-            }
         }
         else
         {
-            snapshotDto = BuildSnapshotDto(invoice);
+            snapshotDto = await BuildSnapshotDtoAsync(invoice, tenantId);
             snapshotDto.IncludePayOnlineLink = request.IncludePayOnlineLink ?? invoice.IncludePayOnlineButton;
             versionDto = version != null ? MapVersionToDto(version) : BuildDefaultVersionDto();
 
@@ -741,9 +748,56 @@ public class InvoiceTemplateService : IInvoiceTemplateService
 
     #region Helpers & Mappers
 
-    private static InvoiceSnapshotDto BuildSnapshotDto(Invoice invoice)
+    private async Task<InvoiceSnapshotDto> BuildSnapshotDtoAsync(Invoice invoice, int tenantId)
     {
-        var customer = invoice.Customer;
+        var sourceQuotation = invoice.QuotationId.HasValue && _quotationRepository != null
+            ? await _quotationRepository.GetByIdAsync(invoice.QuotationId.Value, tenantId)
+            : null;
+
+        var customer = invoice.Customer ?? sourceQuotation?.Customer;
+        var currency = !string.IsNullOrWhiteSpace(invoice.Currency)
+            ? invoice.GetCurrency()
+            : (!string.IsNullOrWhiteSpace(customer?.Currency) ? customer.Currency.Trim().ToUpperInvariant() : "INR");
+        var billingAddress = FormatCustomerBillingAddress(customer);
+
+        var orderedItems = (invoice.Items?.Count > 0
+                ? invoice.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Select(i => new InvoiceItemSnapshotDto
+                {
+                    ItemId = i.Id,
+                    ItemName = !string.IsNullOrWhiteSpace(i.Product?.Name) ? i.Product.Name : (!string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item"),
+                    Description = i.Description ?? i.Product?.Description,
+                    HsnSacCode = i.HSNSAC,
+                    Quantity = i.Quantity,
+                    Unit = i.Product?.Unit ?? "Unit",
+                    UnitPrice = i.UnitPrice,
+                    DiscountType = i.DiscountType,
+                    DiscountRate = i.DiscountRate,
+                    DiscountAmount = i.DiscountAmount,
+                    TaxType = i.TaxType,
+                    TaxRatePercent = i.TaxRate ?? 0m,
+                    TaxAmount = i.TaxAmount,
+                    LineTotal = i.TotalAmount
+                }).ToList()
+                : sourceQuotation?.Items.Select(q => new InvoiceItemSnapshotDto
+                {
+                    ItemId = q.Id,
+                    ItemName = !string.IsNullOrWhiteSpace(q.Product?.Name) ? q.Product.Name : (!string.IsNullOrWhiteSpace(q.Description) ? q.Description : "Product Item"),
+                    Description = q.Description ?? q.Product?.Description,
+                    HsnSacCode = q.HSNSAC,
+                    Quantity = q.Quantity,
+                    Unit = q.Product?.Unit ?? "Unit",
+                    UnitPrice = q.UnitPrice,
+                    DiscountType = q.DiscountType,
+                    DiscountRate = q.DiscountRate,
+                    DiscountAmount = q.DiscountAmount,
+                    TaxType = q.TaxType,
+                    TaxRatePercent = q.TaxRate ?? 0m,
+                    TaxAmount = q.TaxAmount,
+                    LineTotal = q.TotalAmount
+                }).ToList()) ?? new List<InvoiceItemSnapshotDto>();
+
+        var (taxBreakdowns, isInterState) = await BuildTaxBreakdownsAsync(invoice, tenantId);
+
         return new InvoiceSnapshotDto
         {
             InvoiceId = invoice.Id,
@@ -752,8 +806,13 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             IssueDate = invoice.InvoiceDate,
             DueDate = invoice.DueDate ?? invoice.InvoiceDate.AddDays(30),
             Status = invoice.Status,
-            Currency = invoice.GetCurrency(),
-            CurrencySymbol = invoice.GetCurrency() == "USD" ? "$" : "₹",
+            Currency = currency,
+            CurrencySymbol = currency switch { "USD" => "$", "EUR" => "€", "GBP" => "£", _ => "₹" },
+            Reference = !string.IsNullOrWhiteSpace(invoice.Reference) ? invoice.Reference : sourceQuotation?.QuoteNumber,
+            Notes = !string.IsNullOrWhiteSpace(invoice.Notes) ? invoice.Notes : sourceQuotation?.Notes,
+            TermsAndConditions = !string.IsNullOrWhiteSpace(invoice.TermsAndConditions) ? invoice.TermsAndConditions : sourceQuotation?.TermsAndConditions,
+            RoundingAmount = invoice.RoundingAmount,
+            IsInterState = isInterState,
             Customer = new CustomerSnapshotDto
             {
                 CustomerId = invoice.CustomerId,
@@ -762,23 +821,10 @@ public class InvoiceTemplateService : IInvoiceTemplateService
                 Email = customer?.Email,
                 Phone = customer?.Phone,
                 TaxId = customer?.TaxId,
-                BillingAddress = customer?.Address,
-                ShippingAddress = customer?.Address
+                BillingAddress = billingAddress,
+                ShippingAddress = billingAddress
             },
-            Items = invoice.Items.Select(i => new InvoiceItemSnapshotDto
-            {
-                ItemId = i.Id,
-                ItemName = !string.IsNullOrWhiteSpace(i.Product?.Name) ? i.Product.Name : (!string.IsNullOrWhiteSpace(i.Description) ? i.Description : "Product Item"),
-                Description = i.Description ?? i.Product?.Description,
-                HsnSacCode = i.HSNSAC,
-                Quantity = i.Quantity,
-                Unit = i.Product?.Unit ?? "Unit",
-                UnitPrice = i.UnitPrice,
-                DiscountAmount = i.DiscountAmount,
-                TaxRatePercent = i.TaxRate ?? 0,
-                TaxAmount = i.TaxAmount,
-                LineTotal = i.TotalAmount
-            }).ToList(),
+            Items = orderedItems,
             Subtotal = invoice.Subtotal,
             TotalDiscount = invoice.DiscountAmount,
             TotalTax = invoice.TaxAmount,
@@ -786,20 +832,140 @@ public class InvoiceTemplateService : IInvoiceTemplateService
             GrandTotal = invoice.TotalAmount,
             AmountPaid = invoice.PaidAmount,
             BalanceDue = invoice.BalanceAmount,
-            TaxBreakdowns = new List<TaxBreakdownSnapshotDto>
-            {
-                new()
-                {
-                    TaxName = "GST",
-                    RatePercent = 18m,
-                    TaxableAmount = invoice.Subtotal - invoice.DiscountAmount,
-                    TaxAmount = invoice.TaxAmount
-                }
-            },
+            TaxBreakdowns = taxBreakdowns,
             AdditionalCharges = invoice.ChargesAmount > 0
-                ? new List<ChargeSnapshotDto> { new() { ChargeName = "Shipping & Handling", Amount = invoice.ChargesAmount } }
+                ? new List<ChargeSnapshotDto> { new() { ChargeName = "Other Charges", Amount = invoice.ChargesAmount } }
                 : new List<ChargeSnapshotDto>()
         };
+    }
+
+    private static string? FormatCustomerBillingAddress(Customer? customer)
+    {
+        if (customer == null) return null;
+
+        var parts = new[] { customer.Address, customer.City, customer.State, customer.PostalCode, customer.Country }
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => p!.Trim());
+
+        var result = new List<string>();
+        foreach (var part in parts)
+        {
+            if (!result.Any(existing => existing.Contains(part, StringComparison.OrdinalIgnoreCase)))
+            {
+                result.Add(part);
+            }
+        }
+
+        return result.Count > 0 ? string.Join(", ", result) : null;
+    }
+
+    private async Task<(List<TaxBreakdownSnapshotDto> Breakdowns, bool IsInterState)> BuildTaxBreakdownsAsync(Invoice invoice, int tenantId)
+    {
+        var isInterState = false;
+        if (_taxRepository != null)
+        {
+            var taxSetting = await _taxRepository.GetSettingsAsync(tenantId);
+            var sellerState = taxSetting?.State?.Trim();
+            var customerState = invoice.Customer?.State?.Trim();
+            isInterState = !string.IsNullOrWhiteSpace(sellerState)
+                           && !string.IsNullOrWhiteSpace(customerState)
+                           && !string.Equals(sellerState, customerState, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (invoice.TaxAmount <= 0m)
+        {
+            return (new List<TaxBreakdownSnapshotDto>(), isInterState);
+        }
+
+        var ratedItems = invoice.Items.Where(i => (i.TaxRate ?? 0m) > 0m).ToList();
+        if (ratedItems.Count > 0)
+        {
+            var itemTaxSum = ratedItems.Sum(i => i.TaxAmount);
+            if (itemTaxSum > 0m)
+            {
+                var groups = new Dictionary<(string Name, decimal Rate), (decimal Taxable, decimal Amount)>();
+                foreach (var item in ratedItems)
+                {
+                    var rate = item.TaxRate!.Value;
+                    var itemTaxable = Math.Round(Math.Max(0m, item.TotalAmount - item.TaxAmount), 2, MidpointRounding.AwayFromZero);
+                    if (isInterState)
+                    {
+                        var key = ("IGST", rate);
+                        groups[key] = groups.TryGetValue(key, out var cur)
+                            ? (cur.Taxable + itemTaxable, cur.Amount + item.TaxAmount)
+                            : (itemTaxable, item.TaxAmount);
+                    }
+                    else
+                    {
+                        var halfRate = rate / 2m;
+                        var cgstAmount = Math.Round(item.TaxAmount / 2m, 2, MidpointRounding.AwayFromZero);
+                        var sgstAmount = item.TaxAmount - cgstAmount;
+                        var cgstKey = ("CGST", halfRate);
+                        var sgstKey = ("SGST", halfRate);
+                        groups[cgstKey] = groups.TryGetValue(cgstKey, out var curC)
+                            ? (curC.Taxable + itemTaxable, curC.Amount + cgstAmount)
+                            : (itemTaxable, cgstAmount);
+                        groups[sgstKey] = groups.TryGetValue(sgstKey, out var curS)
+                            ? (curS.Taxable + itemTaxable, curS.Amount + sgstAmount)
+                            : (itemTaxable, sgstAmount);
+                    }
+                }
+
+                var taxDelta = invoice.TaxAmount - itemTaxSum;
+                if (taxDelta != 0m && groups.Count > 0)
+                {
+                    // Reconcile any invoice-level tax delta (e.g. charge taxes or rounding) onto the existing bucket(s).
+                    var firstRate = ratedItems[0].TaxRate!.Value;
+                    if (isInterState)
+                    {
+                        var key = ("IGST", firstRate);
+                        var cur = groups[key];
+                        groups[key] = (cur.Taxable, cur.Amount + taxDelta);
+                    }
+                    else
+                    {
+                        var halfRate = firstRate / 2m;
+                        var cgstDelta = Math.Round(taxDelta / 2m, 2, MidpointRounding.AwayFromZero);
+                        var sgstDelta = taxDelta - cgstDelta;
+                        var curC = groups[("CGST", halfRate)];
+                        var curS = groups[("SGST", halfRate)];
+                        groups[("CGST", halfRate)] = (curC.Taxable, curC.Amount + cgstDelta);
+                        groups[("SGST", halfRate)] = (curS.Taxable, curS.Amount + sgstDelta);
+                    }
+                }
+
+                var list = groups.Select(kvp => new TaxBreakdownSnapshotDto
+                {
+                    TaxName = kvp.Key.Name,
+                    RatePercent = kvp.Key.Rate,
+                    TaxableAmount = kvp.Value.Taxable,
+                    TaxAmount = kvp.Value.Amount
+                }).ToList();
+
+                return (list, isInterState);
+            }
+        }
+
+        var taxableAmount = Math.Max(0m, invoice.Subtotal - invoice.DiscountAmount);
+        var inferredRate = taxableAmount > 0m
+            ? Math.Round((invoice.TaxAmount / taxableAmount) * 100m, 2, MidpointRounding.AwayFromZero)
+            : 0m;
+
+        if (isInterState)
+        {
+            return (new List<TaxBreakdownSnapshotDto>
+            {
+                new() { TaxName = "IGST", RatePercent = inferredRate, TaxableAmount = taxableAmount, TaxAmount = invoice.TaxAmount }
+            }, true);
+        }
+
+        var cgst = Math.Round(invoice.TaxAmount / 2m, 2, MidpointRounding.AwayFromZero);
+        var sgst = invoice.TaxAmount - cgst;
+        return (new List<TaxBreakdownSnapshotDto>
+        {
+            new() { TaxName = "CGST", RatePercent = inferredRate / 2m, TaxableAmount = taxableAmount, TaxAmount = cgst },
+            new() { TaxName = "SGST", RatePercent = inferredRate / 2m, TaxableAmount = taxableAmount, TaxAmount = sgst }
+        }, false);
     }
 
     private static TemplateVersionDto BuildDefaultVersionDto()

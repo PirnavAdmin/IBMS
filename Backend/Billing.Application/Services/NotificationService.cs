@@ -184,9 +184,9 @@ public class NotificationService : INotificationService
                 var partialPayButtonBlock = includePayOnlineButton
                     ? $@"
                     <div style='margin:24px 0;text-align:center;'>
-                        <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Pay Now ({currency} {invoice.BalanceAmount:N2})</a>
+                        <a href='{payLink}' style='background-color:#65442e;color:#ffffff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>Click Here to Pay Online ({currency} {invoice.BalanceAmount:N2})</a>
                     </div>
-                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. {(invoice.AllowPartialPayments ? "You can pay the remaining balance in full or enter another partial amount via the Pay Now button." : "Full payment of the remaining balance is required via this Pay Now link.")}</p>"
+                    <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the previously paid amount and remaining balance is attached. {(invoice.AllowPartialPayments ? "You can pay the remaining balance in full or enter another partial amount via the Click Here to Pay Online button." : "Full payment of the remaining balance is required via this Click Here to Pay Online link.")}</p>"
                     : @"
                     <p style='color:#64748b;font-size:13px;'>Your updated Tax Invoice PDF showing the current paid and remaining balance is attached for your records.</p>";
 
@@ -213,7 +213,7 @@ public class NotificationService : INotificationService
                 var payOnlineSection = includePayOnlineButton
                     ? $@"
                 <div style='margin:24px 0;'>
-                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Pay Now Online</a>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Click Here to Pay Online</a>
                 </div>
                 <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment online." : "Full payment of the remaining balance is required.")}</p>"
                     : string.Empty;
@@ -233,7 +233,7 @@ public class NotificationService : INotificationService
                 var payOnlineSection = includePayOnlineButton
                     ? $@"
                 <div style='margin:24px 0;'>
-                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Pay Now Online</a>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;'>&#128179; Click Here to Pay Online</a>
                 </div>
                 <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a partial amount via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice.")}</p>"
                     : string.Empty;
@@ -253,7 +253,7 @@ public class NotificationService : INotificationService
                 var payOnlineSection = includePayOnlineButton
                     ? $@"
                 <div style='margin:30px 0;'>
-                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Pay Now Online</a>
+                    <a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px;display:inline-block;box-shadow:0 4px 10px rgba(37,99,235,0.2);'>&#128179; Click Here to Pay Online</a>
                 </div>
                 <p style='color:#64748b;font-size:13px;'>{(invoice.AllowPartialPayments ? "You can pay in full or enter a custom amount for a partial payment via UPI, Credit/Debit Card, or Internet Banking." : "Please note: Full payment is required for this invoice via UPI, Credit/Debit Card, or Internet Banking.")}</p>"
                     : string.Empty;

@@ -42,14 +42,15 @@
 .app-layout.astra-layout .astra-sidebar .bd-sidebar-brand strong { min-width: 0; font-size: 11px; line-height: 1.3; white-space: normal; text-align: left; letter-spacing: -.02em; }
 .app-layout.astra-layout .astra-sidebar .bd-sidebar-brand strong span { color: #92634c; }
 .app-layout.astra-layout .astra-collapse {
-  position: static;
+  position: relative;
+  inset-inline-end: 2px;
   z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: 1px solid #d5c2af;
   border-radius: 8px;
