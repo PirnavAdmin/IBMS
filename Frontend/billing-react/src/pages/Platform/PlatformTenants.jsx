@@ -1,10 +1,12 @@
 import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { useRef, useState } from 'react';
 import { Button, TextField } from '@mui/material';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
+import SyncAltOutlined from '@mui/icons-material/SyncAltOutlined';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSearchDebounce } from '../../hooks/useSearchDebounce';
 import { platformService as api } from './platformService';
-import { PlatformStatus, PlatformShell, PlatformRefresh, QueryState, PlatformTable, Pager, SelectFilter, MutationDialog, usePlatformQuery, dateText } from './PlatformShared';
+import { RowActions, PlatformStatus, PlatformShell, PlatformRefresh, QueryState, PlatformTable, Pager, SelectFilter, MutationDialog, usePlatformQuery, dateText } from './PlatformShared';
 
 const fields = [
   {name:'name',label:'Company Name',required:true,minLength:2,maxLength:256},
@@ -47,7 +49,7 @@ export function PlatformTenants() {
   useNavbarSearch(filters.search,value=>change('search',value),'Search tenants');
   return <PlatformShell title="Tenant Management" actions={<><PlatformRefresh query={query}/><Button variant="contained" disabled={query.isPending || query.isError} onClick={()=>setCreating(true)}>Create Tenant</Button></>}>
     <div className="platform-filters"><TextField size="small" label="Search tenants" value={filters.search} onChange={e=>change('search',e.target.value)} /><SelectFilter label="Status" value={filters.status} options={['Active','Suspended','Inactive']} onChange={v=>change('status',v)} /></div>
-    <QueryState query={query} resource="tenants">{query.data && <><PlatformTable label="Tenant directory" rows={query.data.items} columns={[[ 'id','ID'],['tenantCode','Tenant Code'],['name','Company'],['companyEmail','Contact Email'],['status','Status',r=><PlatformStatus value={r.status}/>],['createdAtUtc','Created',r=>dateText(r.createdAtUtc)],['actions','Actions',r=><div style={{display:'inline-flex',gap:8}}><Button component={Link} to={'/platform/tenants/'+r.id} size="small">View details</Button><Button variant="outlined" size="small" onClick={()=>setStatusEditor(r)}>Change Status</Button></div>]]} /><Pager itemLabel="tenants" data={query.data} filters={filters} setFilters={setFilters}/></>}</QueryState>
+    <QueryState query={query} resource="tenants">{query.data && <><PlatformTable label="Tenant directory" rows={query.data.items} columns={[[ 'id','ID'],['tenantCode','Tenant Code'],['name','Company'],['companyEmail','Contact Email'],['status','Status',r=><PlatformStatus value={r.status}/>],['createdAtUtc','Created',r=>dateText(r.createdAtUtc)],['actions','Actions',r=><RowActions label={r.name || r.tenantCode || 'tenant'} items={[{label:'View details',icon:<VisibilityOutlined fontSize="small"/>,onClick:()=>navigate('/platform/tenants/'+r.id)},{label:'Change Status',icon:<SyncAltOutlined fontSize="small"/>,onClick:()=>setStatusEditor(r)}]}/>]]} /><Pager itemLabel="tenants" data={query.data} filters={filters} setFilters={setFilters}/></>}</QueryState>
     {creating && <TenantEditor onClose={()=>{setCreating(false);params.delete('create');setParams(params,{replace:true});}} onDone={r=>navigate('/platform/tenants/'+r.id)} />}
     {statusEditor && <MutationDialog title={`Change Status: ${statusEditor.name}`} description="Suspending or deactivating a tenant terminates its active sessions and prevents users from logging in. Confirm the target status and provide an audit reason." initial={{status:statusEditor.status || 'Active',reason:''}} fields={[{name:'status',label:'Status',required:true,options:['Active','Suspended','Inactive']},{name:'reason',label:'Reason',required:true,minLength:5,multiline:true}]} submit={v=>api.tenantStatus(statusEditor.id,v)} onClose={()=>setStatusEditor(null)} onDone={()=>{setStatusEditor(null);query.refetch();}} />}
   </PlatformShell>;

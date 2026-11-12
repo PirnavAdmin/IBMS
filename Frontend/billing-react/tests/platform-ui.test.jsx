@@ -55,16 +55,17 @@ test('readable platform labels preserve backend values while formatting the disp
   assert.equal(dateText('invalid-date'),'—');
 });
 
-test('user row actions open a backend-role multiselect without writing on open or cancel',async()=>{
-  const originals={users:api.users,roles:api.roles,assignRoles:api.assignRoles};let writes=0;
+test('user row actions omit manage roles and open status editor without writing on open or cancel',async()=>{
+  const originals={users:api.users,roles:api.roles,userStatus:api.userStatus};let writes=0;
   api.users=async()=>({items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin'],status:'Active'}],totalCount:1,pageNumber:1,pageSize:20});
-  api.roles=async()=>[{name:'SuperAdmin'},{name:'TenantAdmin'}];api.assignRoles=async()=>{writes++;};
+  api.roles=async()=>[{name:'SuperAdmin'},{name:'TenantAdmin'}];api.userStatus=async()=>{writes++;};
   const v=await mount(<PlatformUsers/>);
   try{
     await click(v.host.querySelector('[aria-label="Actions for Platform Admin"]'));
-    const action=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent==='Manage Roles');assert.ok(action);await click(action);
-    const dialog=document.querySelector('[role="dialog"]');assert.ok(dialog.querySelector('[role="combobox"]'));
-    assert.equal(dialog.querySelector('input').value,'SuperAdmin');assert.equal(writes,0);
+    assert.equal([...document.querySelectorAll('[role="menuitem"]')].some(el=>el.textContent==='Manage Roles'),false);
+    const action=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent==='Change Status');assert.ok(action);await click(action);
+    const dialog=document.querySelector('[role="dialog"]');assert.ok(dialog);
+    assert.equal(writes,0);
     await click([...dialog.querySelectorAll('button')].find(el=>el.textContent==='Cancel'));assert.equal(writes,0);
   }finally{await v.close();Object.assign(api,originals);}
 });

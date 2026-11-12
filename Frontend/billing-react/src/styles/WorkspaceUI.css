@@ -6,7 +6,7 @@
   --ui-secondary: 13px;
   --ui-table: 13.5px;
   --ui-table-heading: 11.5px;
-  --ui-kpi: clamp(18px, 1.5vw, 23px);
+  --ui-kpi: clamp(17px, 1.15vw, 20px);
   --ui-heading-weight: 750;
   --ui-table-header-bg: #f5efe8;
   --ui-row-border: #f0e6dc;
@@ -101,7 +101,7 @@
 /* Ant's decorative vertical header dividers are not part of the Invoice style. */
 .app-layout .ibms-table-frame .ant-table-thead > tr > th::before { display: none; }
 @media (max-width: 600px) {
-  .app-layout { --ui-title: 26px; --ui-kpi: clamp(17px, 4.2vw, 22px); }
+  .app-layout { --ui-title: 26px; --ui-kpi: clamp(16px, 3.8vw, 19px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-layout .premium-stat-link { transition: none; }
@@ -370,18 +370,23 @@
     word-break: normal;
     overflow-wrap: normal;
   }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(1) { width: 9%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(2) { width: 14%; }
+  .app-layout .product-list-page .product-table > table thead :is(th, .MuiTableSortLabel-root) {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(1) { width: 12%; min-width: 130px; white-space: nowrap; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(2) { width: 15%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(3) { width: 7%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(4) { width: 12%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(5) { width: 5%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(4) { width: 11%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(5) { width: 6%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(6) { width: 10%; }
   .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(7) { width: 8%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(8) { width: 9%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(9) { width: 11%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(10) { width: 8%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(11) { width: 7%; }
-  .app-layout .product-list-page .product-table[data-table-scroll-header] .MuiTableSortLabel-root { max-width: 100%; white-space: normal; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(8) { width: 8%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(9) { width: 10%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(10) { width: 7%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] > table th:nth-child(11) { width: 6%; }
+  .app-layout .product-list-page .product-table[data-table-scroll-header] .MuiTableSortLabel-root { max-width: 100%; white-space: nowrap; flex-direction: row; }
   .app-layout .customers-page .customer-table:not(.is-inactive-view) > table {
     width: 100%;
     min-width: 1360px;

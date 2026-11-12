@@ -34,7 +34,8 @@
 .product-panel-heading .product-result-count { background: #f5efea; color: #5d4037; border: 1px solid #e8ddd7; border-radius: 20px; padding: 5px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .product-panel-heading h2 { font-size: 16px; margin: 0; }
 .product-panel-heading > span { color: #756763; font-size: 12px; }
-.product-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 190px 150px auto; gap: 14px; padding: 14px 16px; }
+.product-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) minmax(120px, 145px) minmax(170px, 210px) auto; gap: 12px; padding: 16px; align-items: center; }
+.product-filters .product-search .MuiFormHelperText-root { display: none !important; }
 .product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #8d6e63; }
 .product-table { max-width: 100%; overflow-x: auto; }
 .product-table table { min-width: 1080px; }

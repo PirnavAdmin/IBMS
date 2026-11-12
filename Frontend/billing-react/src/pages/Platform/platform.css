@@ -122,16 +122,86 @@
   width: 100%;
 }
 .platform-audit-filter-fields > .MuiTextField-root:first-of-type {
-  flex: 0 1 130px;
-  min-width: 110px;
+  flex: 0 1 140px;
+  min-width: 120px;
 }
 .platform-audit-filter-fields > .MuiTextField-root {
-  flex: 1 1 160px;
+  flex: 1 1 170px;
   min-width: 140px;
 }
+.platform-audit-filter-fields .MuiInputBase-root {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  background-color: #FFFFFF !important;
+}
+.platform-audit-filter-fields .MuiInputBase-input {
+  font-size: 13px;
+  color: #35231C;
+  padding: 8px 10px 8px 4px;
+}
+.platform-audit-filter-fields .MuiInputBase-input::placeholder {
+  color: #806b5b;
+  opacity: 0.9;
+}
+.platform-audit-adornment {
+  color: #8b6b55 !important;
+  margin-right: 4px !important;
+}
+.platform-audit-adornment svg {
+  font-size: 18px !important;
+}
 .platform-audit-filter-fields > .date-range-control {
-  flex: 1 1 230px;
-  min-width: 200px;
+  flex: 0 0 auto;
+  min-width: unset;
+  width: auto;
+}
+.platform-audit-filter-fields .date-range-filter.date-range-icon-only,
+.platform-filters .date-range-filter.date-range-icon-only,
+.platform-page .date-range-filter.date-range-icon-only {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid #dccab7 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+  color: #65442e !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.platform-audit-filter-fields .date-range-filter.date-range-icon-only:hover,
+.platform-filters .date-range-filter.date-range-icon-only:hover {
+  background: #f0e6da !important;
+  border-color: #ba9774 !important;
+  color: #35231C !important;
+}
+.platform-audit-filter-fields .date-range-filter.date-range-icon-only.has-dates,
+.platform-filters .date-range-filter.date-range-icon-only.has-dates {
+  background: #F4EBDD !important;
+  border-color: #8b451f !important;
+  color: #8b451f !important;
+}
+.platform-audit-filter-fields .date-range-filter.date-range-icon-only svg {
+  font-size: 20px !important;
+  color: inherit !important;
+}
+.platform-audit-filter-fields .date-range-filter.date-range-icon-only .date-range-label.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 .platform-audit-filter-actions {
   display: flex;
