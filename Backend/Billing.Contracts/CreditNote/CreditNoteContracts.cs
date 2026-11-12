@@ -259,6 +259,8 @@ public class InvoiceCreditableSummaryDto
     public decimal Subtotal { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal TaxAmount { get; set; }
+    public decimal ChargesAmount { get; set; }
+    public decimal RoundingAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal CreditedAmount { get; set; }
@@ -282,6 +284,7 @@ public class InvoiceCreditableLineItemDto
     public string? TaxType { get; set; }
     public decimal? TaxRate { get; set; }
     public decimal TaxAmount { get; set; }
+    public bool IsTaxInclusive { get; set; }
     public decimal TotalAmount { get; set; }
     public decimal PreviouslyCreditedAmount { get; set; }
     public decimal RemainingEligibleAmount { get; set; }

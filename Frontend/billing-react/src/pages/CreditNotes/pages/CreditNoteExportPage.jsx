@@ -12,7 +12,7 @@ import { creditNoteService } from '../services/creditNoteService';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-import { formatDate, formatDateTime, money } from '../utils/creditNoteCalculations';
+import { formatDate, formatDateTime, money, summarizeCreditTaxBreakdown } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
 const safeName = (value) => value.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').trim().replace(/\s+/g, '-') || 'credit-note';
@@ -60,6 +60,7 @@ export function CreditNoteExportPage() {
     ['Submitted', note.createdBy, note.createdAt], ['Approved', note.approvedBy, note.approvedAt],
     ['Rejected', note.rejectedBy, note.rejectedAt], ['Issued', note.issuedBy, note.issuedAt],
   ].filter(([, , date]) => date);
+  const { roundingAdjustment } = summarizeCreditTaxBreakdown(note);
 
   return <main className="cn-page cn-export-page">
     <Breadcrumbs className="cn-breadcrumbs"><Link to="/credit-notes">Credit Notes</Link><Link to={`/credit-notes/${id}`}>Credit Note Details</Link><span>Export PDF</span></Breadcrumbs>
@@ -69,7 +70,7 @@ export function CreditNoteExportPage() {
         <header className="cn-export-paper-header"><div><strong>IBMS</strong><small>Billing &amp; Credit Management</small></div><div><span>CREDIT NOTE</span><b>{note.number}</b><small>{formatDate(note.date)}</small></div></header>
         <div className="cn-export-parties"><section><small>Customer</small><strong>{note.customer}</strong>{note.email && <span>{note.email}</span>}<span>Customer ID: {note.customerId || '—'}</span></section><section><small>Original invoice</small><strong>{note.invoiceNumber}</strong><span>Invoice total: {money(note.invoiceTotal || 0, note.currency)}</span></section></div>
         <table className="cn-export-table"><thead><tr><th>Description</th><th>Code</th><th>Qty</th><th>Unit price</th><th>Tax</th><th>Total</th></tr></thead><tbody>{(note.items || []).map((item, index) => <tr key={`${item.id}-${index}`}><td>{item.description}</td><td>{item.code || '—'}</td><td>{item.quantity}</td><td>{money(item.unitPrice, note.currency)}</td><td>{item.taxRate}%</td><td>{money(item.totalAmount, note.currency)}</td></tr>)}</tbody></table>
-        <section className="cn-export-totals"><div><span>Credit subtotal</span><b>{money(note.subtotal, note.currency)}</b></div><div><span>Tax adjustment</span><b>{money(note.taxAmount, note.currency)}</b></div><div className="total"><span>Total credit</span><b>{money(note.total, note.currency)}</b></div></section>
+        <section className="cn-export-totals"><div><span>Credit subtotal</span><b>{money(note.subtotal, note.currency)}</b></div><div><span>Tax adjustment</span><b>{money(note.taxAmount, note.currency)}</b></div>{roundingAdjustment !== 0 && <div><span>Rounding adjustment</span><b>{money(roundingAdjustment, note.currency)}</b></div>}<div className="total"><span>Total credit</span><b>{money(note.total, note.currency)}</b></div></section>
         {note.reason && <section className="cn-export-note-section"><h3>Credit reason</h3><p>{note.reason}</p>{note.reasonNote && <p>{note.reasonNote}</p>}{note.reference && <small>Reference: {note.reference}</small>}</section>}
         {includeApprovals && approvalEvents.length > 0 && <section className="cn-export-note-section"><h3>Approval history</h3>{approvalEvents.map(([label, actor, date]) => <p key={label}>{label} · {actor || 'User unavailable'} · {formatDateTime(date)}</p>)}{note.rejectionReason && <p>Reason: {note.rejectionReason}</p>}</section>}
         {includeRefunds && <section className="cn-export-note-section"><h3>Refund summary</h3><p>Credit issued: {money(note.total, note.currency)} · Refunded: {money(note.refunded, note.currency)} · Remaining refundable: {money(note.remainingRefundable, note.currency)}</p>{(note.refundHistory || []).map((refund) => <p key={refund.id || refund.reference}>{refund.refundNumber || refund.reference || 'Refund'} · {formatDate(refund.date)} · {money(refund.amount, note.currency)}</p>)}</section>}

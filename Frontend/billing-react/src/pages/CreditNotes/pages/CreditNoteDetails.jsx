@@ -30,7 +30,7 @@ import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { InvoiceBillingLogo } from '../../../components/InvoiceBillingLogo';
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
-import { formatDate, formatDateTime, money, refundableBalance, roundCurrency, splitTaxAmount, validateRefundAmount } from '../utils/creditNoteCalculations';
+import { formatDate, formatDateTime, money, refundableBalance, summarizeCreditTaxBreakdown, validateRefundAmount } from '../utils/creditNoteCalculations';
 import '../styles/credit-notes.css';
 
 const actionLabels = { submit: 'Submit for approval', approve: 'Approve credit', reject: 'Reject credit', issue: 'Issue credit note', cancel: 'Cancel credit note', refund: 'Record refund' };
@@ -53,21 +53,7 @@ export function CreditNoteDetails() {
   const isPreview = location.pathname.endsWith('/preview');
   const balance = refundableBalance(note);
   const refundAmountValidation = validateRefundAmount(amount, balance);
-  const taxBreakdown = (note?.items || []).reduce((sum, item) => {
-    const taxable = roundCurrency(Math.max(0, Number(item.quantity || 0) * Number(item.unitPrice || 0) - Number(item.discountAmount || 0)));
-    const tax = item.taxAmount != null ? Number(item.taxAmount) : roundCurrency(taxable * Number(item.taxRate || 0) / 100);
-    const split = splitTaxAmount(tax, item.taxMode);
-    sum.taxable += taxable;
-    sum.cgst += split.cgst;
-    sum.sgst += split.sgst;
-    sum.igst += split.igst;
-    return sum;
-  }, { taxable: 0, cgst: 0, sgst: 0, igst: 0 });
-  taxBreakdown.taxable = roundCurrency(taxBreakdown.taxable);
-  taxBreakdown.cgst = roundCurrency(taxBreakdown.cgst);
-  taxBreakdown.sgst = roundCurrency(taxBreakdown.sgst);
-  taxBreakdown.igst = roundCurrency(taxBreakdown.igst);
-  const roundingAdjustment = note ? roundCurrency(Number(note.total || 0) - Number(note.subtotal || 0) - Number(note.taxAmount || 0)) : 0;
+  const { roundingAdjustment, ...taxBreakdown } = summarizeCreditTaxBreakdown(note);
 
   useEffect(() => {
     if (!query.isSuccess) return;
