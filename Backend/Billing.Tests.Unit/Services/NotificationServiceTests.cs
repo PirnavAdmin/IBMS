@@ -232,7 +232,7 @@ public class NotificationServiceTests
         _emailMock.Verify(e => e.SendEmailAsync(
             "neha@example.com",
             It.Is<string>(s => s.Contains("650.00") && s.Contains("INV-0055")),
-            It.Is<string>(b => b.Contains("Recently Paid") && b.Contains("Total Paid") && b.Contains("200.00") && b.Contains("350.00") && b.Contains("650.00") && b.Contains("allowPartial=1&source=reminder") && b.Contains("Pay Now")),
+            It.Is<string>(b => b.Contains("Recently Paid") && b.Contains("Total Paid") && b.Contains("200.00") && b.Contains("350.00") && b.Contains("650.00") && b.Contains("allowPartial=1&source=reminder") && b.Contains("Click Here to Pay Online")),
             samplePdf,
             "INV-0055-updated.pdf"), Times.Once);
     }
@@ -375,7 +375,7 @@ public class NotificationServiceTests
         _emailMock.Verify(e => e.SendEmailAsync(
             "raj@example.com",
             "Invoice INV-043 from Pirnav",
-            It.Is<string>(body => body.Contains("INV-043") && !body.Contains("Pay Now Online") && !body.Contains("/pay/43")),
+            It.Is<string>(body => body.Contains("INV-043") && !body.Contains("Click Here to Pay Online") && !body.Contains("Pay Now Online") && !body.Contains("/pay/43")),
             null,
             "INV-043.pdf"), Times.Once);
     }
@@ -403,7 +403,7 @@ public class NotificationServiceTests
         _emailMock.Verify(e => e.SendEmailAsync(
             "raj@example.com",
             "Invoice INV-043 from Pirnav",
-            It.Is<string>(body => body.Contains("Pay Now Online") && body.Contains("/pay/43?tenantId=2")),
+            It.Is<string>(body => body.Contains("Click Here to Pay Online") && body.Contains("/pay/43?tenantId=2")),
             null,
             "INV-043.pdf"), Times.Once);
     }
@@ -436,6 +436,7 @@ public class NotificationServiceTests
             It.Is<string>(s => s.Contains("1,200.00") && s.Contains("INV-058")),
             It.Is<string>(body =>
                 body.Contains("Partial payments are accepted") &&
+                !body.Contains("Click Here to Pay Online") &&
                 !body.Contains("Pay Now") &&
                 !body.Contains("/pay/58") &&
                 !body.Contains("Recently Paid")),

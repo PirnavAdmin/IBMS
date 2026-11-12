@@ -103,7 +103,7 @@ public class NotificationTemplateRepository : INotificationTemplateRepository
                 Name = "Default Invoice Delivery Dispatch",
                 Description = "Triggered when an invoice is sent directly to customer with PDF attached",
                 SubjectTemplate = "Invoice {{InvoiceNumber}} from {{CompanyName}}",
-                BodyTemplate = "<p>Dear {{CustomerName}},</p><p>Please find attached invoice <strong>{{InvoiceNumber}}</strong> for <strong>{{Currency}} {{TotalAmount}}</strong>.</p><p>Total Amount Due: <strong>{{Currency}} {{BalanceAmount}}</strong> payable by <strong>{{DueDate}}</strong>.</p><p><a href=\"{{PaymentLink}}\" style=\"display:inline-block;padding:10px 18px;background:#5A2508;color:#ffffff;text-decoration:none;border-radius:6px;\">Pay Online Now</a></p><p>If you have any questions, reach us at {{SupportEmail}}.</p><p>Thank you,<br>{{CompanyName}}</p>",
+                BodyTemplate = "<p>Dear {{CustomerName}},</p><p>Please find attached invoice <strong>{{InvoiceNumber}}</strong> for <strong>{{Currency}} {{TotalAmount}}</strong>.</p><p>Total Amount Due: <strong>{{Currency}} {{BalanceAmount}}</strong> payable by <strong>{{DueDate}}</strong>.</p><p><a href=\"{{PaymentLink}}\" style=\"display:inline-block;padding:10px 18px;background:#5A2508;color:#ffffff;text-decoration:none;border-radius:6px;\">Click Here to Pay Online</a></p><p>If you have any questions, reach us at {{SupportEmail}}.</p><p>Thank you,<br>{{CompanyName}}</p>",
                 IsActive = true,
                 CreatedBy = createdBy
             },

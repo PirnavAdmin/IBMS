@@ -360,4 +360,107 @@ public class InvoiceServiceTests
         notifMock.Verify(n => n.SendInvoiceNotificationAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<byte[]?>(), It.IsAny<string?>()), Times.Never);
         _emailMock.Verify(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<byte[]?>(), It.IsAny<string?>()), Times.Never);
     }
+
+    [Fact]
+    public async Task CreateDraftAsync_PreservesExactPaiseWithoutWholeRupeeRounding()
+    {
+        int tenantId = 1;
+        var invoice = new Invoice
+        {
+            TenantId = tenantId,
+            InvoiceDate = new DateTime(2026, 11, 10),
+            Items = new List<InvoiceItem>
+            {
+                new() { Description = "noise smart watch", Quantity = 1, UnitPrice = 4999m, TaxRate = 12m }
+            }
+        };
+
+        _calcEngineMock.Setup(c => c.CalculateAsync(It.IsAny<FinancialCalculationRequest>(), tenantId, It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(ApiResponse<FinancialCalculationResultDto>.Ok(new FinancialCalculationResultDto
+            {
+                GrossSubtotal = 4999m,
+                TotalTaxes = 599.88m,
+                GrandTotal = 5598.88m,
+                Items = new List<CalculatedFinancialLineDto>
+                {
+                    new() { TaxAmount = 599.88m, LineTotal = 5598.88m }
+                }
+            }));
+
+        _numberGenMock.Setup(n => n.GenerateNextNumberAsync(It.IsAny<GenerateNumberRequest>(), tenantId))
+            .ReturnsAsync(ApiResponse<GenerateNumberResponseDto>.Ok(new GenerateNumberResponseDto { GeneratedNumber = "INV-2026-11-000047" }));
+        _invoiceRepoMock.Setup(r => r.GetByInvoiceNumberAsync("INV-2026-11-000047", tenantId))
+            .ReturnsAsync((Invoice?)null);
+        _invoiceRepoMock.Setup(r => r.AddAsync(It.IsAny<Invoice>()))
+            .ReturnsAsync((Invoice inv) => inv);
+
+        var result = await _sut.CreateDraftAsync(invoice, tenantId, "Admin");
+
+        Assert.True(result.Success);
+        Assert.Equal(5598.88m, result.Data!.TotalAmount);
+        Assert.Equal(0m, result.Data.RoundingAmount);
+        Assert.Equal(5598.88m, result.Data.BalanceAmount);
+    }
+
+    [Fact]
+    public async Task DeliverInvoiceAsync_WithLinkedQuotation_HydratesMissingQuotationFieldsBeforePdfGeneration()
+    {
+        int invoiceId = 71;
+        int tenantId = 1;
+        var invoice = new Invoice
+        {
+            Id = invoiceId,
+            TenantId = tenantId,
+            QuotationId = 19,
+            InvoiceNumber = "INV-2026-11-000071",
+            Status = "Issued",
+            TotalAmount = 5598.88m,
+            BalanceAmount = 5598.88m,
+            Customer = new Customer { Id = 6, Name = "sanya solutions", Email = "sanya@example.com" },
+            Items = new List<InvoiceItem>
+            {
+                new() { ProductId = 11, Description = "noise smart watch", Quantity = 1m, UnitPrice = 4999m, TaxAmount = 599.88m, TotalAmount = 5598.88m }
+            }
+        };
+
+        var quotationRepoMock = new Mock<IQuotationRepository>();
+        quotationRepoMock.Setup(q => q.GetByIdAsync(19, tenantId)).ReturnsAsync(new Quotation
+        {
+            Id = 19,
+            QuoteNumber = "QT-2026-11-0019",
+            Notes = "From quotation notes",
+            TermsAndConditions = "From quotation terms",
+            Items = new List<QuotationItem>
+            {
+                new() { ProductId = 11, Description = "noise smart watch", Quantity = 1m, UnitPrice = 4999m, TaxType = "Exclusive", TaxRate = 12m, TaxAmount = 599.88m, TotalAmount = 5598.88m, HSNSAC = "8517" }
+            }
+        });
+
+        _invoiceRepoMock.Setup(r => r.GetByIdAsync(invoiceId, tenantId, default)).ReturnsAsync(invoice);
+        _templateMock.Setup(t => t.GenerateInvoicePdfAsync(It.IsAny<Billing.Contracts.InvoiceTemplate.GenerateInvoicePdfRequest>(), tenantId, It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Billing.Contracts.InvoiceTemplate.InvoicePdfResponse { InvoiceId = invoiceId });
+        _templateMock.Setup(t => t.GetInvoicePdfAsync(invoiceId, tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new byte[] { 1, 2, 3 }, "INV-2026-11-000071.pdf", "application/pdf"));
+
+        var sut = new InvoiceService(
+            _invoiceRepoMock.Object,
+            _numberGenMock.Object,
+            _calcEngineMock.Object,
+            _uowMock.Object,
+            _auditMock.Object,
+            _emailMock.Object,
+            _commMock.Object,
+            _templateMock.Object,
+            quotationRepository: quotationRepoMock.Object);
+
+        var result = await sut.DeliverInvoiceAsync(invoiceId, tenantId, "Admin");
+
+        Assert.True(result.Success);
+        Assert.Equal("QT-2026-11-0019", invoice.Reference);
+        Assert.Equal("From quotation notes", invoice.Notes);
+        Assert.Equal("From quotation terms", invoice.TermsAndConditions);
+        Assert.Equal("8517", invoice.Items.First().HSNSAC);
+        Assert.Equal(12m, invoice.Items.First().TaxRate);
+        _invoiceRepoMock.Verify(r => r.UpdateAsync(invoice, default), Times.AtLeastOnce);
+    }
 }
