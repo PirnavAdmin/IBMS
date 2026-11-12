@@ -638,8 +638,7 @@
   font: inherit;
   font-weight: 600;
   color: #795137;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
   cursor: pointer;
 }
 .platform-role-count-link:hover {
