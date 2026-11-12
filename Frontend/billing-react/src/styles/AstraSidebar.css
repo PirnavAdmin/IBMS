@@ -112,34 +112,37 @@
 .app-layout.astra-layout.sidebar-collapsed .astra-sidebar-header {
   height: 72px;
   min-height: 72px;
-  padding: 6px 0;
-  flex-direction: column;
-  justify-content: center;
+  padding: 6px 8px;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
   gap: 4px;
 }
 .app-layout.astra-layout.sidebar-collapsed .astra-sidebar .bd-sidebar-brand {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   height: auto;
-  width: 100%;
+  width: auto;
+  min-width: 0;
   justify-content: center;
   padding: 0;
 }
 .app-layout.astra-layout.sidebar-collapsed .astra-sidebar .bd-sidebar-brand > .ibms-logo {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  margin: 0 auto;
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  margin: 0;
 }
 .app-layout.astra-layout.sidebar-collapsed .astra-collapse {
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
+  position: static;
+  inset-inline-end: auto;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
-  margin: 0 auto;
+  margin: 0;
 }
 .app-layout.astra-layout.sidebar-collapsed .astra-collapse svg {
-  font-size: 17px;
+  font-size: 16px;
 }
 
 @media (min-width: 1180px) {
@@ -149,8 +152,8 @@
   .app-layout.astra-layout .app-layout-main .bd-header { height: var(--shell-header-height); min-height: var(--shell-header-height); flex: 0 0 var(--shell-header-height); padding-block: 10px; }
   .app-layout.astra-layout .bd-search { flex: 0 1 460px; width: min(460px, 52%); margin: 0; }
   .app-layout.astra-layout .bd-search input { font-size: 13px; }
-  .app-layout.astra-layout.sidebar-collapsed .astra-sidebar-header { padding-inline: 0; }
-  .app-layout.astra-layout.sidebar-collapsed .astra-menu-content { padding-inline: 8px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-sidebar-header { padding-inline: 8px; }
+  .app-layout.astra-layout.sidebar-collapsed .astra-menu-content { padding: 14px 8px 12px; }
   .app-layout.astra-layout > .app-layout-menu { display: none; }
   .app-layout.astra-layout .app-layout-main .bd-header { padding-left: 24px; }
   .app-layout.astra-layout.sidebar-collapsed .bd-sidebar-brand { padding-inline: 0; }

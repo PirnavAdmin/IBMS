@@ -110,7 +110,7 @@ export const DashboardSidebar = ({ activeItem, open, collapsed = false, mobile =
       <div className="astra-sidebar-header">
   
         <button type="button" className="bd-sidebar-brand" onClick={() => onNavigate(isPlatformAdmin(user) ? '/platform/dashboard' : '/dashboard')} aria-label="Go to dashboard">
-          <InvoiceBillingLogo size={36} tone={isPlatformAdmin(user) ? 'on-dark' : undefined} /><BrandName />
+          <InvoiceBillingLogo size={36} tone="on-dark" /><BrandName />
         </button>
         <button type="button" className="astra-collapse" onClick={onToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="astra-menu-content"><ChevronLeft /></button>
       </div>

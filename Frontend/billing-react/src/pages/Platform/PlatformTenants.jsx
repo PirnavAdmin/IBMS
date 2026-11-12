@@ -80,12 +80,13 @@ function PendingTenantApprovalsView({ onApproved }) {
   const pendingCompanyMap = (() => {
     try { return JSON.parse(localStorage.getItem('billing_pending_company_names') || '{}'); } catch { return {}; }
   })();
+  const isDefaultOrgName = name => /^default\s+(organization|company)$/i.test(String(name || '').trim());
   const resolveCompanyName = row => {
-    if (row?.tenantId > 1 && row?.tenantName) return row.tenantName;
+    if (row?.tenantId > 1 && row?.tenantName && !isDefaultOrgName(row.tenantName)) return row.tenantName;
     const mapped = row?.email ? pendingCompanyMap[String(row.email).trim().toLowerCase()] : '';
-    if (mapped) return mapped;
-    if (row?.tenantName && !/^default\s+(organization|company)$/i.test(row.tenantName.trim())) return row.tenantName;
-    return row?.tenantName || row?.tenantCode || '';
+    if (mapped && !isDefaultOrgName(mapped)) return mapped;
+    if (row?.tenantName && !isDefaultOrgName(row.tenantName)) return row.tenantName;
+    return '';
   };
   const slugifyTenantCode = name => {
     const clean = String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -164,7 +165,7 @@ function PendingTenantApprovalsView({ onApproved }) {
             note: '',
           }}
           fields={[
-            { name: 'companyName', label: 'Company Name', required: true, disabled: true },
+            { name: 'companyName', label: 'Company Name', required: true, minLength: 2, maxLength: 256, disabled: Boolean(selectedCompanyName) },
             { name: 'role', label: 'Permission Role', required: true, disabled: true, options: ['TenantAdmin'] },
             { name: 'note', label: 'Approval Note (optional)', maxLength: 500, multiline: true },
           ]}
@@ -238,7 +239,6 @@ export function PlatformTenants() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState(params.get('tab') === 'approvals' ? 'approvals' : 'directory');
-  const [creating, setCreating] = useState(params.get('create') === '1');
   const [statusEditor, setStatusEditor] = useState(null);
   const search = useSearchDebounce(filters.search);
   const query = usePlatformQuery('tenants', { ...filters, search }, signal => api.tenants({ ...filters, search }, signal));
@@ -257,14 +257,7 @@ export function PlatformTenants() {
   return (
     <PlatformShell
       title="Tenant Management"
-      actions={
-        <>
-          <PlatformRefresh query={query} />
-          <Button variant="contained" disabled={query.isPending || query.isError} onClick={() => setCreating(true)}>
-            Create Tenant
-          </Button>
-        </>
-      }
+      actions={<PlatformRefresh query={query} />}
     >
       <div className="platform-users-tabs" role="tablist" aria-label="Tenant management sections">
         <button
@@ -301,7 +294,6 @@ export function PlatformTenants() {
                   rows={query.data.items}
                   columns={[
                     ['id', 'ID'],
-                    ['tenantCode', 'Tenant Code'],
                     ['name', 'Company'],
                     ['companyEmail', 'Contact Email'],
                     ['status', 'Status', r => <PlatformStatus value={r.status} />],
@@ -318,7 +310,6 @@ export function PlatformTenants() {
         <PendingTenantApprovalsView onApproved={() => query.refetch()} />
       )}
 
-      {creating && <TenantEditor onClose={() => { setCreating(false); params.delete('create'); setParams(params, { replace: true }); }} onDone={r => navigate('/platform/tenants/' + r.id)} />}
       {statusEditor && <MutationDialog title={`Change Status: ${statusEditor.name}`} description="Suspending or deactivating a tenant terminates its active sessions and prevents users from logging in. Confirm the target status and provide an audit reason." initial={{ status: statusEditor.status || 'Active', reason: '' }} fields={[{ name: 'status', label: 'Status', required: true, options: ['Active', 'Suspended', 'Inactive'] }, { name: 'reason', label: 'Reason', required: true, minLength: 5, multiline: true }]} submit={v => api.tenantStatus(statusEditor.id, v)} onClose={() => setStatusEditor(null)} onDone={() => { setStatusEditor(null); query.refetch(); }} />}
     </PlatformShell>
   );
