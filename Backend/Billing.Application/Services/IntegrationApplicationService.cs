@@ -58,8 +58,9 @@ public class IntegrationApplicationService : IIntegrationApplicationService
         var defaultFlags = new Dictionary<string, bool>
         {
             ["allowWebhooks"] = true,
-            ["enableAutoSync"] = true,
-            ["readOnlyAccess"] = false
+            ["allowExcelSync"] = true,
+            ["allowAutoReplay"] = true,
+            ["syncInvoices"] = true
         };
 
         if (request.FeatureFlags != null)

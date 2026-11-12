@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Webhook;
@@ -14,17 +15,26 @@ public class WebhookService : IWebhookService
     private readonly IWebhookSecurityService _securityService;
     private readonly IWebhookDispatcher _dispatcher;
     private readonly ILogger<WebhookService> _logger;
+    private readonly ISecretEncryptionService? _encryptionService;
+    private readonly IIntegrationApplicationRepository? _applicationRepository;
+    private readonly WebhookSecurityOptions _securityOptions;
 
     public WebhookService(
         IWebhookRepository webhookRepository,
         IWebhookSecurityService securityService,
         IWebhookDispatcher dispatcher,
-        ILogger<WebhookService> logger)
+        ILogger<WebhookService> logger,
+        ISecretEncryptionService? encryptionService = null,
+        IIntegrationApplicationRepository? applicationRepository = null,
+        WebhookSecurityOptions? securityOptions = null)
     {
         _webhookRepository = webhookRepository;
         _securityService = securityService;
         _dispatcher = dispatcher;
         _logger = logger;
+        _encryptionService = encryptionService;
+        _applicationRepository = applicationRepository;
+        _securityOptions = securityOptions ?? new WebhookSecurityOptions();
     }
 
     public async Task<ApiResponse<PagedResult<WebhookDto>>> GetWebhooksAsync(WebhookQueryParameters query, int tenantId)
@@ -55,14 +65,30 @@ public class WebhookService : IWebhookService
         if (string.IsNullOrWhiteSpace(request.Name))
             return ApiResponse<WebhookDto>.Fail("Webhook name is required.");
 
-        if (string.IsNullOrWhiteSpace(request.TargetUrl) || 
-            !Uri.TryCreate(request.TargetUrl, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (!_securityService.IsValidDestinationUrl(request.TargetUrl, _securityOptions.AllowLocalhostTargets, out var urlError))
         {
-            return ApiResponse<WebhookDto>.Fail("A valid HTTP or HTTPS destination URL is required.");
+            return ApiResponse<WebhookDto>.Fail(urlError ?? "A valid HTTP or HTTPS destination URL is required.");
         }
 
-        var secretKey = _securityService.GenerateSecretKey();
+        if (request.ApplicationId.HasValue && _applicationRepository != null)
+        {
+            var app = await _applicationRepository.GetByIdAsync(request.ApplicationId.Value, tenantId);
+            if (app == null)
+            {
+                return ApiResponse<WebhookDto>.Fail("Associated integration application was not found.");
+            }
+            if (!IntegrationApplicationPolicy.IsWebhookExecutionAllowed(app, out var policyError))
+            {
+                return ApiResponse<WebhookDto>.Fail(policyError ?? "Associated integration application is not permitted to run webhooks.");
+            }
+        }
+
+        var rawSecretKey = _securityService.GenerateSecretKey();
+        var storedSecretKey = _encryptionService?.Protect(rawSecretKey) ?? rawSecretKey;
+        var rawHeadersJson = request.CustomHeaders != null ? JsonSerializer.Serialize(request.CustomHeaders) : "{}";
+        var storedHeadersJson = _encryptionService != null && rawHeadersJson != "{}"
+            ? (_encryptionService.Protect(rawHeadersJson) ?? rawHeadersJson)
+            : rawHeadersJson;
 
         var webhook = new Webhook
         {
@@ -70,9 +96,9 @@ public class WebhookService : IWebhookService
             ApplicationId = request.ApplicationId,
             Name = request.Name.Trim(),
             TargetUrl = request.TargetUrl.Trim(),
-            SecretKey = secretKey,
+            SecretKey = storedSecretKey,
             SubscribedEventsJson = JsonSerializer.Serialize(request.SubscribedEvents ?? new List<string> { "*" }),
-            CustomHeadersJson = request.CustomHeaders != null ? JsonSerializer.Serialize(request.CustomHeaders) : "{}",
+            CustomHeadersJson = storedHeadersJson,
             PayloadFormat = string.IsNullOrWhiteSpace(request.PayloadFormat) ? "Standard" : request.PayloadFormat.Trim(),
             CustomTemplateJson = request.CustomTemplate?.Trim(),
             Status = request.Status?.Trim() ?? "Active",
@@ -94,18 +120,59 @@ public class WebhookService : IWebhookService
         if (string.IsNullOrWhiteSpace(request.Name))
             return ApiResponse<WebhookDto>.Fail("Webhook name is required.");
 
-        if (string.IsNullOrWhiteSpace(request.TargetUrl) || 
-            !Uri.TryCreate(request.TargetUrl, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        if (!_securityService.IsValidDestinationUrl(request.TargetUrl, _securityOptions.AllowLocalhostTargets, out var urlError))
         {
-            return ApiResponse<WebhookDto>.Fail("A valid HTTP or HTTPS destination URL is required.");
+            return ApiResponse<WebhookDto>.Fail(urlError ?? "A valid HTTP or HTTPS destination URL is required.");
+        }
+
+        if (request.ApplicationId.HasValue && _applicationRepository != null)
+        {
+            var app = await _applicationRepository.GetByIdAsync(request.ApplicationId.Value, tenantId);
+            if (app == null)
+            {
+                return ApiResponse<WebhookDto>.Fail("Associated integration application was not found.");
+            }
+            if (!IntegrationApplicationPolicy.IsWebhookExecutionAllowed(app, out var policyError))
+            {
+                return ApiResponse<WebhookDto>.Fail(policyError ?? "Associated integration application is not permitted to run webhooks.");
+            }
         }
 
         webhook.Name = request.Name.Trim();
         webhook.TargetUrl = request.TargetUrl.Trim();
         webhook.ApplicationId = request.ApplicationId;
         webhook.SubscribedEventsJson = JsonSerializer.Serialize(request.SubscribedEvents ?? new List<string>());
-        webhook.CustomHeadersJson = request.CustomHeaders != null ? JsonSerializer.Serialize(request.CustomHeaders) : webhook.CustomHeadersJson;
+
+        if (request.CustomHeaders != null)
+        {
+            var existingPlainHeaders = DeserializeHeaders(UnprotectHeadersJson(webhook.CustomHeadersJson));
+            var mergedHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (k, v) in request.CustomHeaders)
+            {
+                if (string.IsNullOrWhiteSpace(k)) continue;
+                var key = k.Trim();
+                var val = v ?? string.Empty;
+
+                // Preserve stored secret header if client re-submitted the masked value unchanged
+                if (_securityService.IsSensitiveHeader(key) &&
+                    _securityService.IsMaskedValue(val) &&
+                    existingPlainHeaders.TryGetValue(key, out var existingVal))
+                {
+                    mergedHeaders[key] = existingVal;
+                }
+                else
+                {
+                    mergedHeaders[key] = val;
+                }
+            }
+
+            var rawMergedJson = JsonSerializer.Serialize(mergedHeaders);
+            webhook.CustomHeadersJson = _encryptionService != null && mergedHeaders.Count > 0
+                ? (_encryptionService.Protect(rawMergedJson) ?? rawMergedJson)
+                : rawMergedJson;
+        }
+
         webhook.PayloadFormat = string.IsNullOrWhiteSpace(request.PayloadFormat) ? webhook.PayloadFormat : request.PayloadFormat.Trim();
         webhook.CustomTemplateJson = request.CustomTemplate?.Trim();
         webhook.Status = request.Status?.Trim() ?? webhook.Status;
@@ -153,7 +220,7 @@ public class WebhookService : IWebhookService
             return ApiResponse<RotateSecretResponse>.Fail("Webhook not found.");
 
         var newSecret = _securityService.GenerateSecretKey();
-        webhook.SecretKey = newSecret;
+        webhook.SecretKey = _encryptionService?.Protect(newSecret) ?? newSecret;
         await _webhookRepository.UpdateAsync(webhook);
 
         _logger.LogInformation("Secret rotated for Webhook {WebhookId} by Tenant {TenantId}", id, tenantId);
@@ -206,7 +273,7 @@ public class WebhookService : IWebhookService
             Message = result.Status == "Success" ? "Ping delivered successfully." : result.FailureReason ?? "Ping failed.",
             LatencyMs = result.ExecutionDurationMs ?? 0,
             ResponseBody = result.ResponseBody,
-            RequestHeaders = result.RequestHeadersJson,
+            RequestHeaders = _securityService.RedactHeadersJson(result.RequestHeadersJson),
             RequestPayload = pingDelivery.PayloadJson
         };
 
@@ -222,12 +289,15 @@ public class WebhookService : IWebhookService
             new() { EventType = "invoice.sent", Category = "Invoices", Description = "Triggered when an invoice is sent to customer via email or channel.", SamplePayload = "{\"invoiceId\":101,\"recipient\":\"client@example.com\"}" },
             new() { EventType = "invoice.voided", Category = "Invoices", Description = "Triggered when an issued invoice is voided.", SamplePayload = "{\"invoiceId\":101,\"reason\":\"Data entry error\"}" },
             new() { EventType = "invoice.cancelled", Category = "Invoices", Description = "Triggered when an invoice is cancelled.", SamplePayload = "{\"invoiceId\":101}" },
-            new() { EventType = "payment.received", Category = "Payments", Description = "Triggered when a customer payment is recorded and allocated.", SamplePayload = "{\"paymentId\":55,\"paymentNumber\":\"PAY-2026-0010\",\"amount\":500.00,\"paymentMethod\":\"UPI\"}" },
+            new() { EventType = "invoice.overdue", Category = "Invoices", Description = "Triggered when an unpaid invoice passes its due date.", SamplePayload = "{\"invoiceId\":101,\"invoiceNumber\":\"INV-2026-0001\",\"status\":\"Overdue\"}" },
+            new() { EventType = "payment.created", Category = "Payments", Description = "Triggered when a pending or awaiting-clearing payment is recorded.", SamplePayload = "{\"paymentId\":55,\"paymentNumber\":\"PAY-2026-0010\",\"status\":\"Pending\"}" },
+            new() { EventType = "payment.received", Category = "Payments", Description = "Triggered when a customer payment is recorded and allocated.", SamplePayload = "{\"paymentId\":55,\"paymentNumber\":\"PAY-2026-0010\",\"invoiceNumber\":\"INV-2026-0001\",\"amount\":500.00,\"paymentStatus\":\"Completed\"}" },
             new() { EventType = "payment.failed", Category = "Payments", Description = "Triggered when a payment transaction fails.", SamplePayload = "{\"paymentId\":56,\"errorCode\":\"INSUFFICIENT_FUNDS\"}" },
-            new() { EventType = "payment.refunded", Category = "Payments", Description = "Triggered when a refund is processed on a payment.", SamplePayload = "{\"paymentId\":55,\"refundAmount\":100.00}" },
+            new() { EventType = "payment.refunded", Category = "Payments", Description = "Triggered when a refund or reversal is processed on a payment.", SamplePayload = "{\"paymentId\":55,\"paymentNumber\":\"PAY-2026-0010\",\"invoiceNumber\":\"INV-2026-0001\",\"amount\":100.00,\"paymentStatus\":\"Reversed\"}" },
             new() { EventType = "quotation.sent", Category = "Quotations", Description = "Triggered when a quotation is dispatched to a customer.", SamplePayload = "{\"quotationId\":12,\"quoteNumber\":\"QT-2026-0005\"}" },
-            new() { EventType = "quotation.approved", Category = "Quotations", Description = "Triggered when a quotation is approved by customer/management.", SamplePayload = "{\"quotationId\":12,\"approvedAtUtc\":\"2026-10-14T10:00:00Z\"}" },
-            new() { EventType = "quotation.converted", Category = "Quotations", Description = "Triggered when a quotation is converted into an official invoice.", SamplePayload = "{\"quotationId\":12,\"invoiceId\":102}" },
+            new() { EventType = "quotation.approved", Category = "Quotations", Description = "Triggered when a quotation is approved by customer/management.", SamplePayload = "{\"quotationId\":12,\"quoteNumber\":\"QT-2026-0005\",\"approvedAtUtc\":\"2026-10-14T10:00:00Z\"}" },
+            new() { EventType = "quotation.converted", Category = "Quotations", Description = "Triggered when a quotation is converted into an official invoice.", SamplePayload = "{\"quotationId\":12,\"quoteNumber\":\"QT-2026-0005\",\"invoiceId\":102,\"invoiceNumber\":\"INV-2026-0002\"}" },
+            new() { EventType = "quotation.cancelled", Category = "Quotations", Description = "Triggered when a quotation is cancelled or declined.", SamplePayload = "{\"quotationId\":12,\"quoteNumber\":\"QT-2026-0005\",\"decision\":\"Declined\"}" },
             new() { EventType = "credit_note.issued", Category = "Credit Notes", Description = "Triggered when a credit note is generated against an invoice.", SamplePayload = "{\"creditNoteId\":7,\"creditNoteNumber\":\"CN-2026-0002\",\"amount\":200.00}" },
             new() { EventType = "credit_note.applied", Category = "Credit Notes", Description = "Triggered when a credit note is applied to reduce an invoice balance.", SamplePayload = "{\"creditNoteId\":7,\"invoiceId\":101,\"amount\":200.00}" },
             new() { EventType = "credit_note.refunded", Category = "Credit Notes", Description = "Triggered when an amount is refunded from a credit note.", SamplePayload = "{\"creditNoteId\":7,\"refundAmount\":200.00}" },
@@ -248,18 +318,9 @@ public class WebhookService : IWebhookService
             events = new List<string>();
         }
 
-        Dictionary<string, string> headers = new();
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(webhook.CustomHeadersJson))
-            {
-                headers = JsonSerializer.Deserialize<Dictionary<string, string>>(webhook.CustomHeadersJson) ?? new();
-            }
-        }
-        catch
-        {
-            headers = new();
-        }
+        var plainHeaders = DeserializeHeaders(UnprotectHeadersJson(webhook.CustomHeadersJson));
+        var redactedHeaders = _securityService.RedactHeaders(plainHeaders);
+        var plainSecret = _encryptionService?.Unprotect(webhook.SecretKey) ?? webhook.SecretKey;
 
         return new WebhookDto
         {
@@ -269,9 +330,9 @@ public class WebhookService : IWebhookService
             ApplicationName = webhook.Application?.Name,
             Name = webhook.Name,
             TargetUrl = webhook.TargetUrl,
-            SecretKeyPreview = _securityService.MaskSecret(webhook.SecretKey),
+            SecretKeyPreview = _securityService.MaskSecret(plainSecret),
             SubscribedEvents = events,
-            CustomHeaders = headers,
+            CustomHeaders = redactedHeaders,
             PayloadFormat = string.IsNullOrWhiteSpace(webhook.PayloadFormat) ? "Standard" : webhook.PayloadFormat,
             CustomTemplate = webhook.CustomTemplateJson,
             Status = webhook.Status,
@@ -280,5 +341,24 @@ public class WebhookService : IWebhookService
             CreatedAtUtc = webhook.CreatedAtUtc,
             UpdatedAtUtc = webhook.UpdatedAtUtc
         };
+    }
+
+    private string? UnprotectHeadersJson(string? storedHeadersJson)
+    {
+        if (string.IsNullOrWhiteSpace(storedHeadersJson)) return storedHeadersJson;
+        return _encryptionService?.Unprotect(storedHeadersJson) ?? storedHeadersJson;
+    }
+
+    private static Dictionary<string, string> DeserializeHeaders(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
+        }
+        catch
+        {
+            return new();
+        }
     }
 }

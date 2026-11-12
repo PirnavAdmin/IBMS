@@ -419,16 +419,21 @@ public class PaymentService : IPaymentService
                 if (_outboxService != null)
                 {
                     var eventType = savedPayment.Status == PaymentStatus.Completed ? "payment.received" : "payment.created";
+                    var invoiceNumbers = FormatAllocatedInvoiceNumbers(savedPayment, loadedInvoices);
                     await _outboxService.PublishEventAsync(tenantId, eventType, new
                     {
                         PaymentId = savedPayment.Id,
                         PaymentNumber = savedPayment.PaymentNumber,
+                        InvoiceNumber = invoiceNumbers,
                         CustomerId = savedPayment.CustomerId,
+                        CustomerName = customer?.Name ?? customer?.CompanyName,
                         Amount = savedPayment.Amount,
                         AllocatedAmount = savedPayment.AllocatedAmount,
                         Currency = savedPayment.Currency,
                         Method = savedPayment.Method.ToString(),
                         Status = savedPayment.Status.ToString(),
+                        PaymentStatus = savedPayment.Status.ToString(),
+                        PaymentDate = savedPayment.PaymentDate,
                         CreatedAtUtc = nowUtc
                     });
                 }
@@ -741,13 +746,18 @@ public class PaymentService : IPaymentService
 
                     if (_outboxService != null)
                     {
+                        var invoiceNumbers = FormatAllocatedInvoiceNumbers(payment);
                         await _outboxService.PublishEventAsync(tenantId, "payment.refunded", new
                         {
                             PaymentId = payment.Id,
                             PaymentNumber = payment.PaymentNumber,
+                            InvoiceNumber = invoiceNumbers,
                             CustomerId = payment.CustomerId,
+                            CustomerName = payment.Customer?.Name ?? payment.Customer?.CompanyName,
                             Amount = payment.Amount,
                             Currency = payment.Currency,
+                            Status = payment.Status.ToString(),
+                            PaymentStatus = "Refunded",
                             Reason = trimmedReason,
                             ReversedBy = actor,
                             ReversedAtUtc = nowUtc
@@ -989,14 +999,18 @@ public class PaymentService : IPaymentService
                     if (_outboxService != null)
                     {
                         var eventType = targetStatus == PaymentStatus.Completed ? "payment.received" : "payment.failed";
+                        var invoiceNumbers = FormatAllocatedInvoiceNumbers(payment);
                         await _outboxService.PublishEventAsync(tenantId, eventType, new
                         {
                             PaymentId = payment.Id,
                             PaymentNumber = payment.PaymentNumber,
+                            InvoiceNumber = invoiceNumbers,
                             CustomerId = payment.CustomerId,
+                            CustomerName = payment.Customer?.Name ?? payment.Customer?.CompanyName,
                             Amount = payment.Amount,
                             Currency = payment.Currency,
                             Status = payment.Status.ToString(),
+                            PaymentStatus = payment.Status.ToString(),
                             ClearingStatus = payment.ClearingStatus,
                             CallbackStatus = payment.CallbackStatus,
                             TimestampUtc = nowUtc
@@ -1468,5 +1482,32 @@ public class PaymentService : IPaymentService
         {
             // Notification delivery failures must never break committed payment flows
         }
+    }
+
+    private static string? FormatAllocatedInvoiceNumbers(Payment payment, IReadOnlyDictionary<int, Invoice>? loadedInvoices = null)
+    {
+        if (payment.Allocations == null || payment.Allocations.Count == 0)
+        {
+            return null;
+        }
+
+        var numbers = payment.Allocations
+            .Where(a => !a.IsReversed)
+            .Select(a =>
+            {
+                if (!string.IsNullOrWhiteSpace(a.Invoice?.InvoiceNumber))
+                    return a.Invoice.InvoiceNumber;
+                if (loadedInvoices != null && loadedInvoices.TryGetValue(a.InvoiceId, out var inv) && !string.IsNullOrWhiteSpace(inv.InvoiceNumber))
+                    return inv.InvoiceNumber;
+                return null;
+            })
+            .Concat(payment.Allocations
+                .Where(a => a.IsReversed && !string.IsNullOrWhiteSpace(a.Invoice?.InvoiceNumber))
+                .Select(a => a.Invoice!.InvoiceNumber))
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return numbers.Count > 0 ? string.Join(", ", numbers) : null;
     }
 }
