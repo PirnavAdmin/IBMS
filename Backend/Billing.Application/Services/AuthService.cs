@@ -358,6 +358,7 @@ public class AuthService
                 BCrypt.Net.BCrypt.HashPassword(request.Password),
 
             TenantId = assignedTenantId,
+            Tenant = pendingTenant,
 
             ApplicationId = _jwtSettings.ApplicationId,
 

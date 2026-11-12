@@ -954,9 +954,12 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         else
         {
             if (!string.IsNullOrWhiteSpace(request?.CompanyName) &&
-                string.IsNullOrWhiteSpace(resolvedTenant.Name))
+                (string.IsNullOrWhiteSpace(resolvedTenant.Name) ||
+                 string.Equals(resolvedTenant.Name.Trim(), "Default Organization", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(resolvedTenant.Name.Trim(), "Default Company", StringComparison.OrdinalIgnoreCase)))
             {
                 resolvedTenant.Name = request.CompanyName.Trim();
+                resolvedTenant.UpdatedAtUtc = DateTime.UtcNow;
             }
 
             if (!resolvedTenant.IsActive)
@@ -1057,8 +1060,8 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             Username = updated.Username,
             Email = updated.Email,
             TenantId = updated.TenantId,
-            TenantCode = updated.Tenant?.TenantCode,
-            TenantName = updated.Tenant?.Name,
+            TenantCode = updated.Tenant?.TenantCode ?? resolvedTenant?.TenantCode,
+            TenantName = updated.Tenant?.Name ?? resolvedTenant?.Name,
             ApplicationId = updated.ApplicationId,
             Status = updated.Status,
             IsActive = updated.IsActive,

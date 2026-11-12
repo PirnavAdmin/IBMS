@@ -444,3 +444,32 @@ test('PlatformTenants creates and assigns tenant fallback when backend approval 
     Object.assign(api,originals);
   }
 });
+
+test('PlatformTenants omits Tenant Code column and leaves Default Organization company name editable for legacy pending users',async()=>{
+  const originals={tenants:api.tenants,users:api.users};
+  api.tenants=async()=>({items:[{id:9,tenantCode:'washington-technologies-9465',name:'Washington Technologies',companyEmail:'sandeep02.singampalli@gmail.com',status:'Active',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:10});
+  api.users=async()=>({items:[{id:91,tenantId:1,tenantName:'Default Organization',name:'Dharmesh',email:'dharmesh@washington.test',roles:['TenantAdmin'],status:'PendingApproval',isPendingApproval:true,createdAtUtc:'2026-11-12T10:05:00Z'}],totalCount:1,pageNumber:1,pageSize:10});
+  localStorage.removeItem('billing_pending_company_names');
+  localStorage.setItem('billing_auth_user',JSON.stringify(admin));
+  const v=await mount(<PlatformTenants/>);
+  try{
+    const headers=[...document.querySelectorAll('table th')].map(th=>th.textContent.trim());
+    assert.ok(headers.includes('Company'),'Expected Company header');
+    assert.equal(headers.includes('Tenant Code'),false,'Tenant Code column should be removed');
+
+    await click([...document.querySelectorAll('button,[role="tab"]')].find(el=>el.textContent.includes('Pending')));
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+    const kebab=document.querySelector('tbody tr button');
+    assert.ok(kebab,'Expected row action trigger');
+    await click(kebab);
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant')));
+    const companyInput=document.querySelector('[role="dialog"] input[type="text"]');
+    assert.ok(companyInput,'Expected company name input');
+    assert.equal(companyInput.value,'');
+    assert.equal(companyInput.disabled,false);
+  }finally{
+    localStorage.removeItem('billing_pending_company_names');
+    await v.close();
+    Object.assign(api,originals);
+  }
+});

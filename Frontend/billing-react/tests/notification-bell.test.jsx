@@ -381,3 +381,38 @@ test('bell keeps toolbar and footer fixed outside scrollable notification body a
     await view.close();
   }
 });
+
+test('DashboardHeader shows company name for tenant users, personal name for SuperAdmin, and preserves both in My Profile', async () => {
+  const tenantUser = { ...user, name: 'Dharmesh', tenantName: 'Washington Technologies', email: 'dharmesh@washington.test', roles: ['TenantAdmin'] };
+  localStorage.setItem('billing_auth_user', JSON.stringify(tenantUser));
+  const tenantView = await mount(<DashboardHeader onSignOut={() => {}} />);
+  try {
+    assert.equal(tenantView.host.querySelector('.bd-user-copy strong')?.textContent, 'Washington Technologies');
+    assert.equal(tenantView.host.querySelector('.bd-avatar')?.textContent, 'WT');
+
+    await click(tenantView.host.querySelector('[aria-label="Open profile menu"]'));
+    await settle();
+    const myProfileItem = [...document.querySelectorAll('[role="menuitem"]')].find(el => el.textContent.trim() === 'My Profile');
+    assert.ok(myProfileItem, 'Expected My Profile menu item');
+    await click(myProfileItem);
+    await settle();
+
+    const dialogText = document.querySelector('[aria-labelledby="account-profile-title"]')?.textContent || '';
+    assert.match(dialogText, /Dharmesh/);
+    assert.match(dialogText, /Washington Technologies/);
+  } finally {
+    await tenantView.close();
+    localStorage.removeItem('billing_auth_user');
+  }
+
+  const superAdminUser = { ...user, name: 'Platform Admin', tenantName: 'Default Organization', roles: ['SuperAdmin'] };
+  localStorage.setItem('billing_auth_user', JSON.stringify(superAdminUser));
+  const adminView = await mount(<DashboardHeader onSignOut={() => {}} />);
+  try {
+    assert.equal(adminView.host.querySelector('.bd-user-copy strong')?.textContent, 'Platform Admin');
+    assert.equal(adminView.host.querySelector('.bd-avatar')?.textContent, 'PA');
+  } finally {
+    await adminView.close();
+    localStorage.removeItem('billing_auth_user');
+  }
+});

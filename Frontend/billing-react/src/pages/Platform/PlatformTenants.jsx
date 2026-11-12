@@ -62,12 +62,13 @@ function PendingTenantApprovalsView({ onApproved }) {
   const pendingCompanyMap = (() => {
     try { return JSON.parse(localStorage.getItem('billing_pending_company_names') || '{}'); } catch { return {}; }
   })();
+  const isDefaultOrgName = name => /^default\s+(organization|company)$/i.test(String(name || '').trim());
   const resolveCompanyName = row => {
-    if (row?.tenantId > 1 && row?.tenantName) return row.tenantName;
+    if (row?.tenantId > 1 && row?.tenantName && !isDefaultOrgName(row.tenantName)) return row.tenantName;
     const mapped = row?.email ? pendingCompanyMap[String(row.email).trim().toLowerCase()] : '';
-    if (mapped) return mapped;
-    if (row?.tenantName && !/^default\s+(organization|company)$/i.test(row.tenantName.trim())) return row.tenantName;
-    return row?.tenantName || row?.tenantCode || '';
+    if (mapped && !isDefaultOrgName(mapped)) return mapped;
+    if (row?.tenantName && !isDefaultOrgName(row.tenantName)) return row.tenantName;
+    return '';
   };
   const slugifyTenantCode = name => {
     const clean = String(name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -146,7 +147,7 @@ function PendingTenantApprovalsView({ onApproved }) {
             note: '',
           }}
           fields={[
-            { name: 'companyName', label: 'Company Name', required: true, disabled: true },
+            { name: 'companyName', label: 'Company Name', required: true, minLength: 2, maxLength: 256, disabled: Boolean(selectedCompanyName) },
             { name: 'role', label: 'Permission Role', required: true, disabled: true, options: ['TenantAdmin'] },
             { name: 'note', label: 'Approval Note (optional)', maxLength: 500, multiline: true },
           ]}
@@ -283,7 +284,6 @@ export function PlatformTenants() {
                   rows={query.data.items}
                   columns={[
                     ['id', 'ID'],
-                    ['tenantCode', 'Tenant Code'],
                     ['name', 'Company'],
                     ['companyEmail', 'Contact Email'],
                     ['status', 'Status', r => <PlatformStatus value={r.status} />],
