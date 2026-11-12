@@ -59,18 +59,19 @@ public class PlatformAdministrationService : IPlatformAdministrationService
 
     public async Task<PlatformDashboardDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var totalTenants = await _context.Tenants.CountAsync(cancellationToken);
+        var totalTenants = await _context.Tenants.CountAsync(t => t.Status != "PendingApproval" && t.Status != "Rejected", cancellationToken);
         var activeTenants = await _context.Tenants.CountAsync(t => t.Status == "Active", cancellationToken);
         var suspendedTenants = await _context.Tenants.CountAsync(t => t.Status == "Suspended", cancellationToken);
         var inactiveTenants = await _context.Tenants.CountAsync(t => t.Status == "Inactive", cancellationToken);
 
-        var totalPlatformUsers = await _context.Users.CountAsync(cancellationToken);
+        var totalPlatformUsers = await _context.Users.CountAsync(u => u.Status != "PendingApproval" && u.Status != "Rejected", cancellationToken);
         var activePlatformUsers = await _context.Users.CountAsync(u => u.Status == "Active", cancellationToken);
         var pendingUserApprovals = await _context.Users.CountAsync(u => u.Status == "PendingApproval", cancellationToken);
 
         var recentTenantsRaw = await _context.Tenants
             .AsNoTracking()
             .Include(t => t.Users)
+            .Where(t => t.Status != "PendingApproval" && t.Status != "Rejected")
             .OrderByDescending(t => t.CreatedAtUtc)
             .Take(5)
             .ToListAsync(cancellationToken);
@@ -909,28 +910,81 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "User not found.", null, "NOT_FOUND");
         }
 
-        if (request?.TenantId is > 0)
+        Tenant? resolvedTenant = null;
+        if (request?.TenantId is > 1)
         {
-            var targetTenant = await _tenantRepository.GetByIdAsync(request.TenantId.Value);
-            if (targetTenant == null)
+            resolvedTenant = await _tenantRepository.GetByIdAsync(request.TenantId.Value);
+            if (resolvedTenant == null)
             {
                 return (false, "Target tenant not found.", null, "NOT_FOUND");
             }
-            user.TenantId = targetTenant.Id;
-            user.Tenant = targetTenant;
         }
-        else if (!user.TenantId.HasValue)
+        else if (user.TenantId is > 1)
         {
-            user.TenantId = 1;
+            resolvedTenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value);
         }
 
-        var assignedRoles = request?.Roles != null && request.Roles.Any(r => !string.IsNullOrWhiteSpace(r))
-            ? request.Roles.Select(r => r.Trim()).Where(r => !string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
-            : user.Roles.ToList();
-
-        if (!assignedRoles.Any())
+        if (resolvedTenant == null)
         {
-            assignedRoles = new List<string> { "Customer" };
+            var requestedCompany = !string.IsNullOrWhiteSpace(request?.CompanyName)
+                ? request.CompanyName.Trim()
+                : $"{user.Name.Trim()} Organization";
+            var baseSlug = Regex.Replace(requestedCompany.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (string.IsNullOrWhiteSpace(baseSlug) || baseSlug.Length < 2) baseSlug = "company";
+            if (baseSlug.Length > 52) baseSlug = baseSlug[..52].TrimEnd('-');
+            var tenantCode = baseSlug;
+            var suffix = 2;
+            while (await _tenantRepository.ExistsByCodeAsync(tenantCode))
+            {
+                tenantCode = $"{baseSlug}-{suffix}";
+                suffix++;
+            }
+
+            resolvedTenant = new Tenant
+            {
+                Name = requestedCompany,
+                TenantCode = tenantCode,
+                CompanyEmail = user.Email,
+                Status = "Active",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            await _tenantRepository.CreateAsync(resolvedTenant);
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(request?.CompanyName) &&
+                string.IsNullOrWhiteSpace(resolvedTenant.Name))
+            {
+                resolvedTenant.Name = request.CompanyName.Trim();
+            }
+
+            if (!resolvedTenant.IsActive)
+            {
+                resolvedTenant.Status = "Active";
+                resolvedTenant.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        user.TenantId = resolvedTenant.Id;
+        await _tenantProvisioningService.ProvisionTenantDefaultsAsync(resolvedTenant.Id, null, cancellationToken);
+
+        List<string> assignedRoles;
+        if (string.Equals(user.IdentityType, "SelfRegistered", StringComparison.OrdinalIgnoreCase))
+        {
+            assignedRoles = new List<string> { "TenantAdmin" };
+        }
+        else
+        {
+            assignedRoles = request?.Roles != null && request.Roles.Any(r => !string.IsNullOrWhiteSpace(r))
+                ? request.Roles.Select(r => r.Trim()).Where(r => !string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+                : new List<string> { "TenantAdmin" };
+
+            if (!assignedRoles.Any())
+            {
+                assignedRoles = new List<string> { "TenantAdmin" };
+            }
         }
 
         user.Roles = assignedRoles;
@@ -979,6 +1033,22 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         };
         await _auditLogRepository.AddAsync(audit, cancellationToken);
 
+        var tenantAudit = new AuditLog
+        {
+            TenantId = resolvedTenant.Id,
+            EntityName = "Tenant",
+            EntityId = resolvedTenant.Id.ToString(),
+            Action = "TenantApproved",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Tenant '{resolvedTenant.Name}' ({resolvedTenant.TenantCode}) approved and activated for owner '{user.Email}'."
+        };
+        await _auditLogRepository.AddAsync(tenantAudit, cancellationToken);
+
         var updated = await _userRepository.GetByIdAsync(id) ?? user;
         var dto = new PlatformUserDto
         {
@@ -1026,6 +1096,17 @@ public class PlatformAdministrationService : IPlatformAdministrationService
 
         await _userRepository.UpdateAsync(user);
         await _userSessionRepository.RevokeAllUserSessionsAsync(id, $"Registration rejected by SuperAdmin. {reason}".Trim());
+
+        if (user.TenantId is > 1)
+        {
+            var pendingTenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value);
+            if (pendingTenant != null && string.Equals(pendingTenant.Status, "PendingApproval", StringComparison.OrdinalIgnoreCase))
+            {
+                pendingTenant.Status = "Rejected";
+                pendingTenant.UpdatedAtUtc = DateTime.UtcNow;
+                await _tenantRepository.UpdateAsync(pendingTenant);
+            }
+        }
 
         var audit = new AuditLog
         {

@@ -18,7 +18,7 @@ export function usePlatformQuery(name, params, fetcher) {
   const user = useCurrentUser();
   return useQuery({ queryKey: [...platformScope(user), name, params], queryFn: ({ signal }) => fetcher(signal), retry: false, gcTime: 0 });
 }
-const descriptions = { 'Platform Dashboard': 'An overview of your organizations, administrators and recent activity.', 'Tenant Management': 'Manage organizations and their workspace access.', 'Platform Users': 'Manage platform administrators and pending account approvals.', 'Platform Audit Logs': 'Review administration activity across authorized workspaces.', 'Platform Settings': 'Manage platform preferences, access and security policies.' };
+const descriptions = { 'Platform Dashboard': 'An overview of your organizations, administrators and recent activity.', 'Tenant Management': 'Manage organizations, workspace access, and pending tenant approvals.', 'Platform Users': 'Manage platform administrator accounts and status.', 'Platform Audit Logs': 'Review administration activity across authorized workspaces.', 'Platform Settings': 'Manage platform preferences, access and security policies.' };
 export function PlatformShell({ title, actions, children }) {
   return <main className="platform-page"><header className="platform-heading"><div><p>PLATFORM ADMINISTRATION</p><h1>{title}</h1>{descriptions[title] && <span className="platform-description">{descriptions[title]}</span>}</div>{actions && <div className="platform-actions">{actions}</div>}</header>{children}</main>;
 }

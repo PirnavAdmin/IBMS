@@ -17,6 +17,7 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import PersonOutline from '@mui/icons-material/PersonOutline';
+import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import MailOutline from '@mui/icons-material/MailOutline';
 import LockOutlined from '@mui/icons-material/LockOutlined';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
@@ -66,6 +67,7 @@ export const Register = () => {
     resolver: yupResolver(registrationSchema),
     defaultValues: {
       fullName: '',
+      companyName: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -179,6 +181,7 @@ export const Register = () => {
       setApiError(null);
       const response = await authApi.register({
         name: formData.fullName,
+        companyName: formData.companyName,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
@@ -187,6 +190,12 @@ export const Register = () => {
       if (response?.success === false || response?.Success === false) {
         throw new Error(response.message || response.Message || 'Registration failed. Please check your details and try again.');
       }
+      try {
+        const key = 'billing_pending_company_names';
+        const stored = JSON.parse(localStorage.getItem(key) || '{}');
+        stored[formData.email.trim().toLowerCase()] = formData.companyName.trim();
+        localStorage.setItem(key, JSON.stringify(stored));
+      } catch {}
       setSubmittedEmail(formData.email.trim());
       setSuccessMessage(
         response?.message ||
@@ -319,6 +328,33 @@ export const Register = () => {
                       startAdornment: (
                         <InputAdornment position="start">
                           <PersonOutline fontSize="small" sx={{ color: '#7D6E66' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Box>
+
+                {/* Company Name */}
+                <Box>
+                  <label className="billing-auth-input-label" htmlFor="companyName">
+                    Company name<span className="billing-auth-required" aria-hidden="true"> *</span>
+                  </label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    id="companyName"
+                    autoComplete="organization"
+                    required
+                    placeholder="Your company name"
+                    disabled={isSubmitting || registering || isSuccess}
+                    {...register('companyName')}
+                    error={Boolean(errors.companyName)}
+                    helperText={errors.companyName?.message}
+                    className="billing-auth-input"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <BusinessOutlined fontSize="small" sx={{ color: '#7D6E66' }} />
                         </InputAdornment>
                       ),
                     }}
