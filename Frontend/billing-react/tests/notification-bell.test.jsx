@@ -315,3 +315,43 @@ test('invalid profile cannot save; failed save and cancel preserve the account',
     assert.equal(view.host.querySelector('.bd-user-copy strong').textContent, current.name);
   } finally { await view.close(); accountService.updateUser = original; accountService.getUser = originalGetUser; localStorage.removeItem('billing_auth_user'); }
 });
+
+test('delete button removes notification item and persists dismissal', async () => {
+  localStorage.removeItem('billing_inbox_dismissed_1_user-1');
+  const view = await mount(undefined, { unreadCount: async () => 1, list: async () => page([item]) });
+  try {
+    await open();
+    assert.ok(document.querySelector('.notification-list'));
+    const deleteBtn = button('Delete: Invoice due');
+    assert.ok(deleteBtn, 'Delete button should exist');
+    await click(deleteBtn);
+    await settle();
+    assert.match(document.querySelector('.notification-notice').textContent, /Notification deleted/);
+    assert.equal(document.querySelector('.notification-list'), null);
+    assert.match(document.querySelector('.notification-state').textContent, /no notifications yet/);
+    const dismissed = JSON.parse(localStorage.getItem('billing_inbox_dismissed_1_user-1'));
+    assert.ok(dismissed.includes('n1'));
+  } finally {
+    await view.close();
+    localStorage.removeItem('billing_inbox_dismissed_1_user-1');
+  }
+});
+
+test('clear all button clears all notifications from popup', async () => {
+  localStorage.removeItem('billing_inbox_clear_cutoff_1_user-1');
+  const view = await mount(undefined, { unreadCount: async () => 1, list: async () => page([item]) });
+  try {
+    await open();
+    const clearBtn = button('Clear all');
+    assert.ok(clearBtn, 'Clear all button should exist in footer');
+    await click(clearBtn);
+    await settle();
+    assert.match(document.querySelector('.notification-notice').textContent, /All notifications cleared/);
+    assert.equal(document.querySelector('.notification-list'), null);
+    assert.match(document.querySelector('.notification-state').textContent, /no notifications yet/);
+    assert.ok(localStorage.getItem('billing_inbox_clear_cutoff_1_user-1'));
+  } finally {
+    await view.close();
+    localStorage.removeItem('billing_inbox_clear_cutoff_1_user-1');
+  }
+});

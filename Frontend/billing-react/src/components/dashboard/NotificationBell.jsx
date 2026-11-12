@@ -8,6 +8,25 @@ import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 import { notificationDestination, notificationInboxService as inbox } from '../../services/notificationInboxService';
 import './NotificationBell.css';
 
+const loadDismissedIds = (tenant, userId) => {
+  if (typeof localStorage === 'undefined' || !userId || tenant === 'host') return new Set();
+  try {
+    const raw = localStorage.getItem(`billing_inbox_dismissed_${tenant}_${userId}`);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const loadClearCutoff = (tenant, userId) => {
+  if (typeof localStorage === 'undefined' || !userId || tenant === 'host') return null;
+  try {
+    return localStorage.getItem(`billing_inbox_clear_cutoff_${tenant}_${userId}`) || null;
+  } catch {
+    return null;
+  }
+};
+
 export function NotificationBell({ user }) {
   const id = useId();
   const trigger = useRef(null);
@@ -24,10 +43,19 @@ export function NotificationBell({ user }) {
   const client = useQueryClient();
   const tenant = user?.tenantId ?? user?.TenantId ?? user?.tenant_id ?? 'host';
   const userId = user?.userId ?? user?.UserId ?? user?.id;
+  const [dismissedIds, setDismissedIds] = useState(() => loadDismissedIds(tenant, userId));
+  const [clearCutoff, setClearCutoff] = useState(() => loadClearCutoff(tenant, userId));
   const scope = ['notification-inbox', tenant, userId];
   const enabled = userId != null && tenant !== 'host';
   useExclusiveDropdown(open, setOpen);
-  useEffect(() => { setOpen(false); setPageNumber(1); setError(''); setNotice(''); }, [tenant, userId]);
+  useEffect(() => {
+    setOpen(false);
+    setPageNumber(1);
+    setError('');
+    setNotice('');
+    setDismissedIds(loadDismissedIds(tenant, userId));
+    setClearCutoff(loadClearCutoff(tenant, userId));
+  }, [tenant, userId]);
   const count = useQuery({ queryKey: [...scope, 'count'], queryFn: ({ signal }) => {
     const manual = manualCountFetch.current; manualCountFetch.current = false;
     return inbox.unreadCount(signal, manual ? undefined : { backgroundPoll: true });
@@ -62,7 +90,54 @@ export function NotificationBell({ user }) {
     if (!item.isRead && !await mutate(() => inbox.markRead(item.id))) return;
     setOpen(false); navigate(destination);
   };
-  const unread = !count.isError ? count.data : undefined;
+  const deleteItem = async item => {
+    if (locked.current) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (!item.isRead) {
+        try { await inbox.markRead(item.id); } catch {}
+      }
+      const updated = new Set(dismissedIds);
+      updated.add(String(item.id));
+      setDismissedIds(updated);
+      try {
+        localStorage.setItem(`billing_inbox_dismissed_${tenant}_${userId}`, JSON.stringify([...updated]));
+      } catch {}
+      await client.invalidateQueries({ queryKey: scope });
+      setNotice('Notification deleted.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const clearAll = async () => {
+    if (locked.current) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (page?.snapshotAtUtc) {
+        try { await inbox.markAllRead(page.snapshotAtUtc); } catch {}
+      }
+      const cutoff = page?.snapshotAtUtc || new Date().toISOString();
+      setClearCutoff(cutoff);
+      try {
+        localStorage.setItem(`billing_inbox_clear_cutoff_${tenant}_${userId}`, cutoff);
+      } catch {}
+      await client.invalidateQueries({ queryKey: scope });
+      setNotice('All notifications cleared.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const visibleItems = (page?.items || []).filter(item => {
+    if (dismissedIds.has(String(item.id))) return false;
+    if (clearCutoff && new Date(item.createdAtUtc).getTime() <= new Date(clearCutoff).getTime()) return false;
+    return true;
+  });
+  const serverUnread = !count.isError ? count.data : undefined;
+  const unread = serverUnread != null
+    ? (clearCutoff && (!visibleItems.length || !visibleItems.some(item => !item.isRead))
+        ? 0
+        : Math.max(0, serverUnread - (page?.items || []).filter(item => !item.isRead && !visibleItems.some(v => String(v.id) === String(item.id))).length))
+    : undefined;
   return <>
     <button type="button" ref={trigger} className="notification-bell" aria-label={`Notifications${unread == null ? '' : `, ${unread} unread`}`}
       title="Notifications" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
@@ -84,16 +159,21 @@ export function NotificationBell({ user }) {
         {notice && <p role="status" className="notification-notice">{notice}</p>}
         {!enabled || list.isError ? <div className="notification-state" role="alert"><p>Notifications are unavailable right now. Please try again later.</p><button type="button" disabled={!enabled || list.isFetching} onClick={refresh}>Try again</button></div>
           : list.isPending ? <p className="notification-state" role="status">Loading notifications…</p>
-          : !page?.items.length ? <p className="notification-state" role="status">{unreadOnly ? 'No unread notifications.' : 'You have no notifications yet.'}</p>
-          : <ul className="notification-list">{page.items.map(item => <li key={item.id} className={item.isRead ? '' : 'is-unread'}>
+          : !visibleItems.length ? <p className="notification-state" role="status">{unreadOnly ? 'No unread notifications.' : 'You have no notifications yet.'}</p>
+          : <ul className="notification-list">{visibleItems.map(item => <li key={item.id} className={item.isRead ? '' : 'is-unread'}>
             <div className="notification-item-heading"><strong>{item.title}</strong>{!item.isRead && <span className="notification-unread-dot" aria-label="Unread" />}</div>
             <p>{item.message}</p><time dateTime={item.createdAtUtc}>{new Date(item.createdAtUtc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
             <div className="notification-item-actions">{notificationDestination(item.action, user) && <button type="button" disabled={busy} onClick={() => openItem(item)}>Open record</button>}
-              {!item.isRead && <button type="button" disabled={busy} onClick={() => mutate(() => inbox.markRead(item.id))}>Mark as read<span className="notification-sr-only">: {item.title}</span></button>}</div>
+              {!item.isRead && <button type="button" disabled={busy} onClick={() => mutate(() => inbox.markRead(item.id))}>Mark as read<span className="notification-sr-only">: {item.title}</span></button>}
+              <button type="button" disabled={busy} onClick={() => deleteItem(item)}>Delete<span className="notification-sr-only">: {item.title}</span></button></div>
           </li>)}</ul>}
         {page && !list.isError && <footer className="notification-footer">
-          <button type="button" disabled={busy || list.isFetching || !page.items.length || !(unread > 0 || page.items.some(item => !item.isRead))}
-            onClick={() => mutate(() => inbox.markAllRead(page.snapshotAtUtc))}>Mark all as read</button>
+          <div className="notification-footer-actions">
+            <button type="button" disabled={busy || list.isFetching || !visibleItems.length || !(unread > 0 || visibleItems.some(item => !item.isRead))}
+              onClick={() => mutate(() => inbox.markAllRead(page.snapshotAtUtc))}>Mark all as read</button>
+            <button type="button" disabled={busy || list.isFetching || !visibleItems.length}
+              onClick={clearAll}>Clear all</button>
+          </div>
           {pages > 1 && <div className="notification-pagination" aria-label="Notification pages"><button type="button" aria-label="Previous notification page" disabled={pageNumber === 1 || busy || list.isFetching} onClick={() => { manualListFetch.current = true; setPageNumber(value => value - 1); }}>Previous</button><span>{pageNumber} / {pages}</span><button type="button" aria-label="Next notification page" disabled={pageNumber >= pages || busy || list.isFetching} onClick={() => { manualListFetch.current = true; setPageNumber(value => value + 1); }}>Next</button></div>}
         </footer>}
       </section>
