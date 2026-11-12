@@ -355,3 +355,29 @@ test('clear all button clears all notifications from popup', async () => {
     localStorage.removeItem('billing_inbox_clear_cutoff_1_user-1');
   }
 });
+
+test('bell keeps toolbar and footer fixed outside scrollable notification body and shows transient toast when new notification arrives', async () => {
+  let countValue = 1;
+  const view = await mount(undefined, {
+    unreadCount: async () => countValue,
+    list: async () => page([{ id: 'n2', title: 'Payment received', message: '₹1,200 received from Acme.', createdAtUtc: '2026-11-12T10:00:00Z', isRead: false }]),
+  });
+  try {
+    await open();
+    assert.ok(document.querySelector('.notification-toolbar'));
+    assert.ok(document.querySelector('.notification-body .notification-list'));
+    assert.ok(document.querySelector('.notification-footer'));
+    assert.equal(document.querySelector('.notification-body .notification-toolbar'), null);
+    assert.equal(document.querySelector('.notification-body .notification-footer'), null);
+
+    // Simulate incoming new notification while polling updates unread count from 1 -> 2
+    countValue = 2;
+    await act(async () => { await view.client.invalidateQueries({ queryKey: ['notification-inbox', 1, 'user-1', 'count'] }); });
+    await settle();
+    const toast = document.querySelector('.notification-live-toast');
+    assert.ok(toast, 'Expected transient incoming notification toast');
+    assert.match(toast.textContent, /Payment received/);
+  } finally {
+    await view.close();
+  }
+});
