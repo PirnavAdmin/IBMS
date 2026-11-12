@@ -14,7 +14,25 @@ import { TenantOrganizationOverview } from './TenantOrganizationOverview';
 const fields = [
   { name: 'name', label: 'Company Name', required: true, minLength: 2, maxLength: 256 },
   { name: 'companyEmail', label: 'Contact Email', type: 'email', maxLength: 256 },
-  { name: 'phone', label: 'Phone', maxLength: 64 },
+  {
+    name: 'phone',
+    label: 'Phone',
+    type: 'tel',
+    onlyDigits: true,
+    maxLength: 10,
+    minLength: 10,
+    pattern: '[0-9]{10}',
+    placeholder: '10-digit mobile number',
+    helperText: 'Enter 10-digit mobile number',
+    validate: val => {
+      if (!val) return '';
+      const clean = String(val).trim();
+      if (!/^\d{10}$/.test(clean)) {
+        return 'Phone number must be exactly 10 digits.';
+      }
+      return '';
+    },
+  },
   { name: 'taxId', label: 'Tax ID', maxLength: 64 },
   { name: 'address', label: 'Address', multiline: true },
 ];

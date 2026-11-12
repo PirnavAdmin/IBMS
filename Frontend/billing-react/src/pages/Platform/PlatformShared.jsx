@@ -69,6 +69,17 @@ export function MutationDialog({ title, initial, fields, submit, onDone, onClose
   const session = useRef(localStorage.getItem('billing_auth_token')).current;
   const save = async event => {
     event.preventDefault(); if (lock.current) return; if (session !== localStorage.getItem('billing_auth_token')) { setError('Your session changed. Close this form and reopen it before saving.'); return; }
+    const validationErrors = {};
+    for (const f of fields) {
+      if (f.validate) {
+        const err = f.validate(values[f.name], values);
+        if (err) validationErrors[f.name] = err;
+      }
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      return;
+    }
     lock.current = true; setBusy(true); setError(''); setFieldErrors({});
     try { const result = await submit(values); if (session !== localStorage.getItem('billing_auth_token')) return; await client.invalidateQueries({ queryKey: ['platform'] }); onDone?.(result); onClose(); }
     catch (e) { if (session === localStorage.getItem('billing_auth_token')) { setError(platformError(e)); setFieldErrors(platformFieldErrors(e, fields)); } } finally { lock.current = false; setBusy(false); }
@@ -145,6 +156,6 @@ export function MutationDialog({ title, initial, fields, submit, onDone, onClose
         </div>
       );
     }
-    return <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name] || field.helperText} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => { const optVal = typeof option === 'object' ? option.value : option; const optLabel = typeof option === 'object' ? option.label : option; return <MenuItem key={String(optVal)} value={optVal}>{String(optLabel)}</MenuItem>; })}</TextField>;
+    return <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name] || field.helperText} placeholder={field.placeholder} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, inputMode: field.onlyDigits ? 'numeric' : undefined, step: field.type === 'number' ? 1 : undefined }} onChange={e => { let val = e.target.value; if (field.onlyDigits) { val = val.replace(/\D/g, ''); if (field.maxLength) val = val.slice(0, field.maxLength); } setValues(v => ({ ...v, [field.name]: val })); if (field.validate) { const err = field.validate(val, { ...values, [field.name]: val }); setFieldErrors(errors => ({ ...errors, [field.name]: err || undefined })); } else { setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); } }}>{field.options?.map(option => { const optVal = typeof option === 'object' ? option.value : option; const optLabel = typeof option === 'object' ? option.label : option; return <MenuItem key={String(optVal)} value={optVal}>{String(optLabel)}</MenuItem>; })}</TextField>;
   })}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
 }
