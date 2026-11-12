@@ -3,11 +3,17 @@
  * Confirmed via backend Swagger schemas
  */
 
-export const createRegisterRequest = ({ name, email, password, confirmPassword }) => ({
+export const createRegisterRequest = ({ name, companyName, email, password, confirmPassword, otp }) => ({
   name: name?.trim() || '',
+  companyName: companyName?.trim() || '',
   email: email?.trim() || '',
   password: password || '',
   confirmPassword: confirmPassword || '',
+  ...(otp ? { otp: String(otp).trim() } : {}),
+});
+
+export const createSendRegistrationOtpRequest = ({ email }) => ({
+  email: email?.trim() || '',
 });
 
 export const createLoginRequest = ({ email, password }) => ({

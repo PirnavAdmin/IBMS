@@ -1,3 +1,4 @@
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Webhook;
@@ -11,18 +12,21 @@ public class WebhookDeliveryService : IWebhookDeliveryService
     private readonly IWebhookDeliveryRepository _deliveryRepository;
     private readonly IWebhookRepository _webhookRepository;
     private readonly IWebhookDispatcher _dispatcher;
+    private readonly IWebhookSecurityService? _securityService;
     private readonly ILogger<WebhookDeliveryService> _logger;
 
     public WebhookDeliveryService(
         IWebhookDeliveryRepository deliveryRepository,
         IWebhookRepository webhookRepository,
         IWebhookDispatcher dispatcher,
-        ILogger<WebhookDeliveryService> logger)
+        ILogger<WebhookDeliveryService> logger,
+        IWebhookSecurityService? securityService = null)
     {
         _deliveryRepository = deliveryRepository;
         _webhookRepository = webhookRepository;
         _dispatcher = dispatcher;
         _logger = logger;
+        _securityService = securityService;
     }
 
     public async Task<ApiResponse<PagedResult<WebhookDeliveryDto>>> GetDeliveriesAsync(WebhookDeliveryQueryParameters query, int tenantId)
@@ -61,6 +65,9 @@ public class WebhookDeliveryService : IWebhookDeliveryService
         if (webhook.Status != "Active")
             return ApiResponse<ReplayDeliveryResponse>.Fail($"The webhook is currently {webhook.Status}. Please activate it before replaying.");
 
+        if (!IntegrationApplicationPolicy.IsWebhookExecutionAllowed(webhook.Application, out var policyReason))
+            return ApiResponse<ReplayDeliveryResponse>.Fail(policyReason ?? "Associated integration application is not active for webhooks.");
+
         _logger.LogInformation("Replaying WebhookDelivery {DeliveryId} for Tenant {TenantId}", deliveryId, tenantId);
 
         // Reset delivery state for replay
@@ -69,6 +76,8 @@ public class WebhookDeliveryService : IWebhookDeliveryService
         delivery.MaxAttempts = 5;
         delivery.NextRetryUtc = null;
         delivery.FailureReason = null;
+        delivery.LockedByInstance = null;
+        delivery.LockedUntilUtc = null;
 
         var result = await _dispatcher.DispatchDeliveryAsync(delivery, webhook);
 
@@ -84,8 +93,12 @@ public class WebhookDeliveryService : IWebhookDeliveryService
         return ApiResponse<ReplayDeliveryResponse>.Ok(response, response.Message);
     }
 
-    private static WebhookDeliveryDto MapToDto(WebhookDelivery delivery)
+    private WebhookDeliveryDto MapToDto(WebhookDelivery delivery)
     {
+        var redactedHeaders = _securityService != null
+            ? _securityService.RedactHeadersJson(delivery.RequestHeadersJson)
+            : delivery.RequestHeadersJson;
+
         return new WebhookDeliveryDto
         {
             Id = delivery.Id,
@@ -96,7 +109,7 @@ public class WebhookDeliveryService : IWebhookDeliveryService
             EventId = delivery.EventId,
             EventType = delivery.EventType,
             PayloadJson = delivery.PayloadJson,
-            RequestHeadersJson = delivery.RequestHeadersJson,
+            RequestHeadersJson = redactedHeaders,
             ResponseStatusCode = delivery.ResponseStatusCode,
             ResponseBody = delivery.ResponseBody,
             ExecutionDurationMs = delivery.ExecutionDurationMs,

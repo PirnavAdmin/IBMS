@@ -11,7 +11,7 @@ import { isPlatformAdmin, loginDestination, platformNavigation } from '../src/pa
 import { platformService as api, platformPage, platformError } from '../src/pages/Platform/platformService';
 import { PlatformRoute } from '../src/pages/Platform/PlatformRoute';
 import { DashboardSidebar } from '../src/components/dashboard/DashboardSidebar';
-import { PlatformTenants, TenantEditor } from '../src/pages/Platform/PlatformTenants';
+import { PlatformTenants, PlatformTenantDetails, TenantEditor } from '../src/pages/Platform/PlatformTenants';
 import { PlatformDashboard } from '../src/pages/Platform/PlatformDashboard';
 import { platformScope } from '../src/pages/Platform/PlatformShared';
 const admin={userId:90,tenantId:1,roles:['SuperAdmin']};
@@ -55,14 +55,16 @@ test('readable platform labels preserve backend values while formatting the disp
   assert.equal(dateText('invalid-date'),'—');
 });
 
-test('user row actions omit manage roles and open status editor without writing on open or cancel',async()=>{
+test('user row actions omit manage roles and assign tenant while displaying only SuperAdmin role',async()=>{
   const originals={users:api.users,roles:api.roles,userStatus:api.userStatus};let writes=0;
-  api.users=async()=>({items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin'],status:'Active'}],totalCount:1,pageNumber:1,pageSize:20});
+  api.users=async()=>({items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin','TenantAdmin'],status:'Active'}],totalCount:1,pageNumber:1,pageSize:20});
   api.roles=async()=>[{name:'SuperAdmin'},{name:'TenantAdmin'}];api.userStatus=async()=>{writes++;};
   const v=await mount(<PlatformUsers/>);
   try{
+    assert.match(v.host.querySelector('.platform-role-tags').textContent,/Super Admin/);
+    assert.doesNotMatch(v.host.querySelector('.platform-role-tags').textContent,/Tenant Admin/);
     await click(v.host.querySelector('[aria-label="Actions for Platform Admin"]'));
-    assert.equal([...document.querySelectorAll('[role="menuitem"]')].some(el=>el.textContent==='Manage Roles'),false);
+    assert.equal([...document.querySelectorAll('[role="menuitem"]')].some(el=>el.textContent==='Manage Roles'||el.textContent==='Assign Tenant'),false);
     const action=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent==='Change Status');assert.ok(action);await click(action);
     const dialog=document.querySelector('[role="dialog"]');assert.ok(dialog);
     assert.equal(writes,0);
@@ -260,4 +262,214 @@ test('tenant edit forwards the original full precision token and invalidates pla
   try{await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
     assert.equal(payload.expectedUpdatedAtUtc,stamp);assert.deepEqual(invalidations,[['platform']]);assert.equal(closed,true);
   }finally{await v.close();api.updateTenant=original;}
+});
+
+test('tenantUsers paginates and tenantRoles queries tenant roles excluding SuperAdmin',async()=>{
+  const original=apiClient.get;const calls=[];
+  apiClient.get=async(url,config)=>{
+    calls.push({url,params:config?.params});
+    if(url==='/api/v1/platform/users'){
+      const page=config?.params?.page||1;
+      const items=page===1?Array.from({length:100},(_,i)=>({id:i+1,name:`User ${i+1}`})):[{id:101,name:'User 101'}];
+      return {success:true,data:{items,totalCount:101,pageNumber:page,pageSize:100}};
+    }
+    if(url==='/api/Roles'){
+      return {success:true,data:[{id:1,name:'SuperAdmin',isSystemRole:true},{id:2,name:'Accountant',isSystemRole:true},{id:9,name:'FieldAuditor',tenantId:4,isSystemRole:false}]};
+    }
+    throw new Error(`Unexpected GET ${url}`);
+  };
+  try{
+    const users=await api.tenantUsers(4);
+    const roles=await api.tenantRoles(4);
+    assert.equal(users.length,101);
+    assert.equal(calls.filter(c=>c.url==='/api/v1/platform/users').length,2);
+    assert.equal(calls[0].params.tenantId,4);
+    assert.equal(calls[0].params.pageSize,100);
+    assert.equal(calls.find(c=>c.url==='/api/Roles').params.tenantId,4);
+    assert.deepEqual(roles.map(r=>r.name),['Accountant','FieldAuditor']);
+  }finally{apiClient.get=original;}
+});
+
+test('PlatformTenantDetails displays tenant role counts, role-wise user breakdown, and filters users by role',async()=>{
+  const originals={tenant:api.tenant,tenantUsers:api.tenantUsers,tenantRoles:api.tenantRoles};
+  api.tenant=async id=>({id:Number(id),tenantCode:'ACME',name:'Acme Corp',companyEmail:'acme@example.test',status:'Active',userCount:4,customerCount:12,createdAtUtc:'2026-10-01T10:00:00Z',updatedAtUtc:'2026-10-05T10:00:00Z',assignedAdmins:[]});
+  api.tenantUsers=async()=>[
+    {id:1,name:'Suresh Kumar',email:'suresh@acme.test',roles:['TenantAdmin'],status:'Active',createdAtUtc:'2026-10-02T10:00:00Z'},
+    {id:2,name:'Ramesh Rao',email:'ramesh@acme.test',roles:['Accountant'],status:'Active',createdAtUtc:'2026-10-03T10:00:00Z'},
+    {id:3,name:'Kavitha Devi',email:'kavitha@acme.test',roles:['Accountant'],status:'Inactive',createdAtUtc:'2026-10-04T10:00:00Z'},
+    {id:4,name:'Vikram Nair',email:'vikram@acme.test',roles:['FieldAuditor'],status:'Active',createdAtUtc:'2026-10-05T10:00:00Z'},
+  ];
+  api.tenantRoles=async()=>[
+    {id:2,name:'TenantAdmin',description:'Tenant administrator',tenantId:null,isSystemRole:true,permissions:['users.view','roles.manage']},
+    {id:5,name:'Accountant',description:'Handles ledger',tenantId:null,isSystemRole:true,permissions:['invoices.view']},
+    {id:12,name:'FieldAuditor',description:'Custom audit role',tenantId:4,isSystemRole:false,permissions:['audit.view','reports.view']},
+  ];
+  localStorage.setItem('billing_auth_user',JSON.stringify(admin));
+  const host=document.createElement('div');document.body.append(host);
+  const root=createRoot(host);
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
+  try{
+    await act(async()=>root.render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/platform/tenants/4']}>
+          <Routes>
+            <Route path="/platform/tenants/:id" element={<PlatformTenantDetails/>}/>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    ));
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+
+    const summary=host.querySelector('[aria-label="Tenant user and role summary"]');
+    assert.ok(summary);
+    const metrics=Object.fromEntries([...summary.querySelectorAll('.platform-metric')].map(el=>[el.querySelector('span').textContent,el.querySelector('strong').textContent]));
+    assert.equal(metrics['Total Users'],'4');
+    assert.equal(metrics['Active Users'],'3');
+    assert.equal(metrics['Total Roles'],'3');
+    assert.equal(metrics['Custom Roles Created'],'1');
+
+    const breakdown=host.querySelector('[aria-label="Users by role breakdown"]');
+    const chips=[...breakdown.querySelectorAll('.platform-role-filter-chip')];
+    const accountantChip=chips.find(c=>c.textContent.includes('Accountant'));
+    const customChip=chips.find(c=>c.textContent.includes('Field Auditor'));
+    assert.ok(accountantChip);
+    assert.equal(accountantChip.querySelector('strong').textContent,'2');
+    assert.ok(customChip);
+    assert.match(customChip.textContent,/Custom/);
+    assert.equal(customChip.querySelector('strong').textContent,'1');
+
+    const rolesDir=host.querySelector('[aria-label="Tenant roles directory"]');
+    assert.match(rolesDir.textContent,/Field Auditor/);
+    assert.match(rolesDir.textContent,/Custom audit role/);
+    assert.match(rolesDir.textContent,/2 permissions/);
+
+    const usersDir=host.querySelector('[aria-label="Tenant users directory"]');
+    assert.match(usersDir.textContent,/Suresh Kumar/);
+    assert.match(usersDir.textContent,/Ramesh Rao/);
+    assert.match(usersDir.textContent,/Kavitha Devi/);
+    assert.match(usersDir.textContent,/Vikram Nair/);
+
+    await click(accountantChip);
+    assert.match(usersDir.textContent,/Ramesh Rao/);
+    assert.match(usersDir.textContent,/Kavitha Devi/);
+    assert.doesNotMatch(usersDir.textContent,/Suresh Kumar/);
+    assert.doesNotMatch(usersDir.textContent,/Vikram Nair/);
+  }finally{
+    await act(async()=>root.unmount());host.remove();client.clear();localStorage.clear();
+    Object.assign(api,originals);
+  }
+});
+
+test('PlatformDashboard shows pending approval banner only when pendingUserApprovals > 0 and PlatformTenants approves pending tenant registrations',async()=>{
+  const originals={dashboard:api.dashboard,users:api.users,tenants:api.tenants,roles:api.roles,approveUser:api.approveUser,createTenant:api.createTenant,assignTenant:api.assignTenant};
+  api.dashboard=async()=>({totalTenants:2,pendingUserApprovals:2,recentTenants:[],recentAdminEvents:[]});
+  const dash=await mount(<PlatformDashboard/>);
+  try{
+    assert.match(dash.host.textContent,/2 self-registered tenants awaiting SuperAdmin approval/);
+    assert.ok(dash.host.querySelector('a[href="/platform/tenants?tab=approvals"]'));
+  }finally{await dash.close();}
+
+  let approveCall=null;
+  api.tenants=async()=>({items:[{id:1,name:'Default Company',tenantCode:'default',status:'Active'}],totalCount:1,pageNumber:1,pageSize:20});
+  api.users=async p=>p?.status==='PendingApproval'
+    ?{items:[{id:77,name:'Sita Devi',email:'sita@acme.test',roles:['TenantAdmin'],tenantId:12,tenantCode:'sita-logistics',tenantName:'Sita Logistics',status:'PendingApproval',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:20}
+    :{items:[{id:3,name:'Platform Admin',email:'admin@example.test',roles:['SuperAdmin'],status:'Active',tenantId:null}],totalCount:1,pageNumber:1,pageSize:20};
+  api.roles=async()=>[{name:'SuperAdmin'}];
+  api.approveUser=async(id,payload)=>{approveCall={id,payload};return{id,tenantId:12,status:'Active'};};
+
+  const usersView=await mount(<PlatformUsers/>);
+  try{
+    assert.equal(usersView.host.querySelector('[role="tab"]'),null);
+  }finally{await usersView.close();}
+
+  const v=await mount(<PlatformTenants/>);
+  try{
+    const approvalsTab=[...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Pending Approvals'));
+    assert.ok(approvalsTab);
+    await click(approvalsTab);
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+    assert.match(v.host.textContent,/Sita Logistics/);
+    assert.match(v.host.textContent,/Pending Approval/);
+    const actionBtn=v.host.querySelector('[aria-label="Actions for Sita Logistics"]');
+    await click(actionBtn);
+    const approveItem=[...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant'));
+    await click(approveItem);
+    const dialog=document.querySelector('[role="dialog"]');
+    assert.doesNotMatch(dialog.textContent,/Assign Tenant/);
+    assert.match(dialog.textContent,/Company Name/);
+    assert.match(dialog.textContent,/Permission Role/);
+    const inputs=[...dialog.querySelectorAll('input')];
+    const companyInput=inputs.find(inp=>inp.value==='Sita Logistics');
+    const roleHiddenInput=inputs.find(inp=>inp.value==='TenantAdmin');
+    assert.ok(companyInput);
+    assert.equal(companyInput.disabled,true);
+    assert.ok(roleHiddenInput);
+    assert.equal(roleHiddenInput.disabled,true);
+    await act(async()=>Simulate.submit(dialog.querySelector('form')));
+    assert.equal(approveCall.id,77);
+    assert.equal(approveCall.payload.tenantId,12);
+    assert.equal(approveCall.payload.companyName,'Sita Logistics');
+    assert.deepEqual(approveCall.payload.roles,['TenantAdmin']);
+  }finally{
+    await v.close();
+    Object.assign(api,originals);
+  }
+});
+
+test('PlatformTenants creates and assigns tenant fallback when backend approval returns default tenantId <= 1',async()=>{
+  const originals={users:api.users,tenants:api.tenants,approveUser:api.approveUser,createTenant:api.createTenant,assignTenant:api.assignTenant};
+  localStorage.setItem('billing_pending_company_names',JSON.stringify({'kiran@demo.test':'Kiran Enterprises'}));
+  let createdPayload=null, assignedPayload=null;
+  api.tenants=async()=>({items:[],totalCount:0,pageNumber:1,pageSize:20});
+  api.users=async()=>({items:[{id:88,name:'Kiran',email:'kiran@demo.test',roles:['TenantAdmin'],tenantId:1,tenantName:'Default Organization',status:'PendingApproval',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:20});
+  api.approveUser=async id=>({id,tenantId:1,status:'Active'});
+  api.createTenant=async payload=>{createdPayload=payload;return{id:99,name:payload.name,tenantCode:payload.tenantCode};};
+  api.assignTenant=async(id,payload)=>{assignedPayload={id,payload};return{id,tenantId:payload.tenantId};};
+
+  const v=await mount(<PlatformTenants/>);
+  try{
+    await click([...v.host.querySelectorAll('[role="tab"]')].find(el=>el.textContent.includes('Pending Approvals')));
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+    assert.match(v.host.textContent,/Kiran Enterprises/);
+    await click(v.host.querySelector('[aria-label="Actions for Kiran Enterprises"]'));
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant')));
+    await act(async()=>Simulate.submit(document.querySelector('[role="dialog"] form')));
+    assert.equal(createdPayload.name,'Kiran Enterprises');
+    assert.equal(createdPayload.companyEmail,'kiran@demo.test');
+    assert.equal(assignedPayload.id,88);
+    assert.equal(assignedPayload.payload.tenantId,99);
+  }finally{
+    localStorage.removeItem('billing_pending_company_names');
+    await v.close();
+    Object.assign(api,originals);
+  }
+});
+
+test('PlatformTenants omits Tenant Code column and leaves Default Organization company name editable for legacy pending users',async()=>{
+  const originals={tenants:api.tenants,users:api.users};
+  api.tenants=async()=>({items:[{id:9,tenantCode:'washington-technologies-9465',name:'Washington Technologies',companyEmail:'sandeep02.singampalli@gmail.com',status:'Active',createdAtUtc:'2026-11-12T10:00:00Z'}],totalCount:1,pageNumber:1,pageSize:10});
+  api.users=async()=>({items:[{id:91,tenantId:1,tenantName:'Default Organization',name:'Dharmesh',email:'dharmesh@washington.test',roles:['TenantAdmin'],status:'PendingApproval',isPendingApproval:true,createdAtUtc:'2026-11-12T10:05:00Z'}],totalCount:1,pageNumber:1,pageSize:10});
+  localStorage.removeItem('billing_pending_company_names');
+  localStorage.setItem('billing_auth_user',JSON.stringify(admin));
+  const v=await mount(<PlatformTenants/>);
+  try{
+    const headers=[...document.querySelectorAll('table th')].map(th=>th.textContent.trim());
+    assert.ok(headers.includes('Company'),'Expected Company header');
+    assert.equal(headers.includes('Tenant Code'),false,'Tenant Code column should be removed');
+
+    await click([...document.querySelectorAll('button,[role="tab"]')].find(el=>el.textContent.includes('Pending')));
+    await act(async()=>new Promise(r=>setTimeout(r,40)));
+    const kebab=document.querySelector('tbody tr button');
+    assert.ok(kebab,'Expected row action trigger');
+    await click(kebab);
+    await click([...document.querySelectorAll('[role="menuitem"]')].find(el=>el.textContent.includes('Approve Tenant')));
+    const companyInput=document.querySelector('[role="dialog"] input[type="text"]');
+    assert.ok(companyInput,'Expected company name input');
+    assert.equal(companyInput.value,'');
+    assert.equal(companyInput.disabled,false);
+  }finally{
+    localStorage.removeItem('billing_pending_company_names');
+    await v.close();
+    Object.assign(api,originals);
+  }
 });

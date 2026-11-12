@@ -59,17 +59,19 @@ public class PlatformAdministrationService : IPlatformAdministrationService
 
     public async Task<PlatformDashboardDto> GetDashboardSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var totalTenants = await _context.Tenants.CountAsync(cancellationToken);
+        var totalTenants = await _context.Tenants.CountAsync(t => t.Status != "PendingApproval" && t.Status != "Rejected", cancellationToken);
         var activeTenants = await _context.Tenants.CountAsync(t => t.Status == "Active", cancellationToken);
         var suspendedTenants = await _context.Tenants.CountAsync(t => t.Status == "Suspended", cancellationToken);
         var inactiveTenants = await _context.Tenants.CountAsync(t => t.Status == "Inactive", cancellationToken);
 
-        var totalPlatformUsers = await _context.Users.CountAsync(cancellationToken);
+        var totalPlatformUsers = await _context.Users.CountAsync(u => u.Status != "PendingApproval" && u.Status != "Rejected", cancellationToken);
         var activePlatformUsers = await _context.Users.CountAsync(u => u.Status == "Active", cancellationToken);
+        var pendingUserApprovals = await _context.Users.CountAsync(u => u.Status == "PendingApproval", cancellationToken);
 
         var recentTenantsRaw = await _context.Tenants
             .AsNoTracking()
             .Include(t => t.Users)
+            .Where(t => t.Status != "PendingApproval" && t.Status != "Rejected")
             .OrderByDescending(t => t.CreatedAtUtc)
             .Take(5)
             .ToListAsync(cancellationToken);
@@ -126,6 +128,7 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             InactiveTenants = inactiveTenants,
             TotalPlatformUsers = totalPlatformUsers,
             ActivePlatformUsers = activePlatformUsers,
+            PendingUserApprovals = pendingUserApprovals,
             RecentTenants = recentTenants,
             RecentAdminEvents = recentAdminEvents,
             TenantStatusDefinitions = definitions
@@ -700,10 +703,17 @@ public class PlatformAdministrationService : IPlatformAdministrationService
             return (false, "User not found.", "NOT_FOUND");
         }
 
-        var normalizedStatus = string.Equals(status, "Inactive", StringComparison.OrdinalIgnoreCase) ? "Inactive" : "Active";
+        var normalizedStatus = status?.Trim() switch
+        {
+            var s when string.Equals(s, "Inactive", StringComparison.OrdinalIgnoreCase) => "Inactive",
+            var s when string.Equals(s, "Suspended", StringComparison.OrdinalIgnoreCase) => "Suspended",
+            var s when string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase) => "Rejected",
+            var s when string.Equals(s, "PendingApproval", StringComparison.OrdinalIgnoreCase) => "PendingApproval",
+            _ => "Active"
+        };
 
         // Last SuperAdmin lockout protection
-        if (normalizedStatus == "Inactive" && user.Roles.Contains("SuperAdmin"))
+        if (!string.Equals(normalizedStatus, "Active", StringComparison.OrdinalIgnoreCase) && user.Roles.Contains("SuperAdmin"))
         {
             var otherActiveSuperAdmins = await _context.Users
                 .CountAsync(u => u.Id != id && u.Status == "Active" && u.RolesString.Contains("SuperAdmin"), cancellationToken);
@@ -890,6 +900,254 @@ public class PlatformAdministrationService : IPlatformAdministrationService
         };
 
         return (true, "User tenant and application assignment updated successfully.", dto, null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> ApproveUserRegistrationAsync(int id, ApproveUserRegistrationRequest? request, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+        {
+            return (false, "User not found.", null, "NOT_FOUND");
+        }
+
+        Tenant? resolvedTenant = null;
+        if (request?.TenantId is > 1)
+        {
+            resolvedTenant = await _tenantRepository.GetByIdAsync(request.TenantId.Value);
+            if (resolvedTenant == null)
+            {
+                return (false, "Target tenant not found.", null, "NOT_FOUND");
+            }
+        }
+        else if (user.TenantId is > 1)
+        {
+            resolvedTenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value);
+        }
+
+        if (resolvedTenant == null)
+        {
+            var requestedCompany = !string.IsNullOrWhiteSpace(request?.CompanyName)
+                ? request.CompanyName.Trim()
+                : $"{user.Name.Trim()} Organization";
+            var baseSlug = Regex.Replace(requestedCompany.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+            if (string.IsNullOrWhiteSpace(baseSlug) || baseSlug.Length < 2) baseSlug = "company";
+            if (baseSlug.Length > 52) baseSlug = baseSlug[..52].TrimEnd('-');
+            var tenantCode = baseSlug;
+            var suffix = 2;
+            while (await _tenantRepository.ExistsByCodeAsync(tenantCode))
+            {
+                tenantCode = $"{baseSlug}-{suffix}";
+                suffix++;
+            }
+
+            resolvedTenant = new Tenant
+            {
+                Name = requestedCompany,
+                TenantCode = tenantCode,
+                CompanyEmail = user.Email,
+                Status = "Active",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            };
+            await _tenantRepository.CreateAsync(resolvedTenant);
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(request?.CompanyName) &&
+                (string.IsNullOrWhiteSpace(resolvedTenant.Name) ||
+                 string.Equals(resolvedTenant.Name.Trim(), "Default Organization", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(resolvedTenant.Name.Trim(), "Default Company", StringComparison.OrdinalIgnoreCase)))
+            {
+                resolvedTenant.Name = request.CompanyName.Trim();
+                resolvedTenant.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
+            if (!resolvedTenant.IsActive)
+            {
+                resolvedTenant.Status = "Active";
+                resolvedTenant.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        user.TenantId = resolvedTenant.Id;
+        await _tenantProvisioningService.ProvisionTenantDefaultsAsync(resolvedTenant.Id, null, cancellationToken);
+
+        List<string> assignedRoles;
+        if (string.Equals(user.IdentityType, "SelfRegistered", StringComparison.OrdinalIgnoreCase))
+        {
+            assignedRoles = new List<string> { "TenantAdmin" };
+        }
+        else
+        {
+            assignedRoles = request?.Roles != null && request.Roles.Any(r => !string.IsNullOrWhiteSpace(r))
+                ? request.Roles.Select(r => r.Trim()).Where(r => !string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+                : new List<string> { "TenantAdmin" };
+
+            if (!assignedRoles.Any())
+            {
+                assignedRoles = new List<string> { "TenantAdmin" };
+            }
+        }
+
+        user.Roles = assignedRoles;
+
+        // Resolve role permissions from tenant/system roles
+        var tenantRoles = await _roleRepository.GetAllAsync(user.TenantId);
+        var matchedPermissions = tenantRoles
+            .Where(r => assignedRoles.Contains(r.Name, StringComparer.OrdinalIgnoreCase))
+            .SelectMany(r => r.RolePermissions.Where(rp => rp.Permission != null).Select(rp => rp.Permission!.Code))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (!matchedPermissions.Any())
+        {
+            if (assignedRoles.Any(r => string.Equals(r, "TenantAdmin", StringComparison.OrdinalIgnoreCase) || string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase)))
+            {
+                var allPerms = await _roleRepository.GetAllPermissionsAsync();
+                matchedPermissions = allPerms.Select(p => p.Code).Distinct().ToList();
+            }
+            else
+            {
+                matchedPermissions = new List<string> { "billing.view", "billing.create" };
+            }
+        }
+
+        user.Permissions = matchedPermissions;
+        user.Status = "Active";
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        var noteText = string.IsNullOrWhiteSpace(request?.Note) ? string.Empty : $" Note: {request.Note.Trim()}";
+        var audit = new AuditLog
+        {
+            TenantId = user.TenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserRegistrationApproved",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
+            Timestamp = DateTime.UtcNow,
+            Changes = $"SuperAdmin approved account '{user.Email}' with roles [{string.Join(", ", assignedRoles)}] under Tenant {user.TenantId}.{noteText}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var tenantAudit = new AuditLog
+        {
+            TenantId = resolvedTenant.Id,
+            EntityName = "Tenant",
+            EntityId = resolvedTenant.Id.ToString(),
+            Action = "TenantApproved",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
+            Timestamp = DateTime.UtcNow,
+            Changes = $"Tenant '{resolvedTenant.Name}' ({resolvedTenant.TenantCode}) approved and activated for owner '{user.Email}'."
+        };
+        await _auditLogRepository.AddAsync(tenantAudit, cancellationToken);
+
+        var updated = await _userRepository.GetByIdAsync(id) ?? user;
+        var dto = new PlatformUserDto
+        {
+            Id = updated.Id,
+            Name = updated.Name,
+            Username = updated.Username,
+            Email = updated.Email,
+            TenantId = updated.TenantId,
+            TenantCode = updated.Tenant?.TenantCode ?? resolvedTenant?.TenantCode,
+            TenantName = updated.Tenant?.Name ?? resolvedTenant?.Name,
+            ApplicationId = updated.ApplicationId,
+            Status = updated.Status,
+            IsActive = updated.IsActive,
+            IdentityType = updated.IdentityType,
+            Roles = updated.Roles,
+            Permissions = updated.Permissions,
+            CreatedAtUtc = updated.CreatedAtUtc,
+            UpdatedAtUtc = updated.UpdatedAtUtc
+        };
+
+        return (true, "Account approved and permission granted. The user can now sign in.", dto, null);
+    }
+
+    public async Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> RejectUserRegistrationAsync(int id, string? reason, string currentUserName, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(id);
+        if (user == null)
+        {
+            return (false, "User not found.", null, "NOT_FOUND");
+        }
+
+        if (user.Roles.Contains("SuperAdmin"))
+        {
+            var otherActiveSuperAdmins = await _context.Users
+                .CountAsync(u => u.Id != id && u.Status == "Active" && u.RolesString.Contains("SuperAdmin"), cancellationToken);
+
+            if (otherActiveSuperAdmins == 0)
+            {
+                return (false, "Cannot reject or disable the last active Super Admin account.", null, "LAST_SUPERADMIN_LOCKOUT_PROTECTION");
+            }
+        }
+
+        user.Status = "Rejected";
+        user.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+        await _userSessionRepository.RevokeAllUserSessionsAsync(id, $"Registration rejected by SuperAdmin. {reason}".Trim());
+
+        if (user.TenantId is > 1)
+        {
+            var pendingTenant = await _tenantRepository.GetByIdAsync(user.TenantId.Value);
+            if (pendingTenant != null && string.Equals(pendingTenant.Status, "PendingApproval", StringComparison.OrdinalIgnoreCase))
+            {
+                pendingTenant.Status = "Rejected";
+                pendingTenant.UpdatedAtUtc = DateTime.UtcNow;
+                await _tenantRepository.UpdateAsync(pendingTenant);
+            }
+        }
+
+        var audit = new AuditLog
+        {
+            TenantId = user.TenantId ?? 1,
+            EntityName = "User",
+            EntityId = user.Id.ToString(),
+            Action = "UserRegistrationRejected",
+            UserName = string.IsNullOrWhiteSpace(currentUserName) ? (_currentUserService?.UserName ?? "SuperAdmin") : currentUserName,
+            ActorUserId = _currentUserService?.UserId,
+            ActorRole = _currentUserService?.Role ?? "SuperAdmin",
+            CorrelationId = _currentUserService?.CorrelationId,
+            ResultStatus = "Success",
+            Timestamp = DateTime.UtcNow,
+            Changes = $"SuperAdmin declined registration for '{user.Email}'. Reason: {reason?.Trim() ?? "Not specified"}"
+        };
+        await _auditLogRepository.AddAsync(audit, cancellationToken);
+
+        var updated = await _userRepository.GetByIdAsync(id) ?? user;
+        var dto = new PlatformUserDto
+        {
+            Id = updated.Id,
+            Name = updated.Name,
+            Username = updated.Username,
+            Email = updated.Email,
+            TenantId = updated.TenantId,
+            TenantCode = updated.Tenant?.TenantCode,
+            TenantName = updated.Tenant?.Name,
+            ApplicationId = updated.ApplicationId,
+            Status = updated.Status,
+            IsActive = updated.IsActive,
+            IdentityType = updated.IdentityType,
+            Roles = updated.Roles,
+            Permissions = updated.Permissions,
+            CreatedAtUtc = updated.CreatedAtUtc,
+            UpdatedAtUtc = updated.UpdatedAtUtc
+        };
+
+        return (true, "Account request declined. Login access remains blocked.", dto, null);
     }
 
     #endregion

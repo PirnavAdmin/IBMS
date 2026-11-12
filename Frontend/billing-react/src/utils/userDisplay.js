@@ -3,6 +3,19 @@ export const getDisplayName = (user) => {
   return values.find((value) => typeof value === 'string' && value.trim())?.trim() || 'User';
 };
 
+export const getCompanyDisplayName = (user) => {
+  const values = [user?.tenantName, user?.TenantName, user?.companyName, user?.CompanyName];
+  return values.find((value) => typeof value === 'string' && value.trim())?.trim() || '';
+};
+
+export const getHeaderDisplayName = (user, isPlatform = false) => {
+  if (!isPlatform) {
+    const companyName = getCompanyDisplayName(user);
+    if (companyName) return companyName;
+  }
+  return getDisplayName(user);
+};
+
 export const getInitials = (userName) => {
   const parts = typeof userName === 'string' ? userName.trim().split(/\s+/).filter(Boolean) : [];
   if (!parts.length) return 'U';

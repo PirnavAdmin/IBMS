@@ -1004,8 +1004,12 @@ public class CreditNoteService : ICreditNoteService
                     CreditNoteId = creditNote.Id,
                     CreditNoteNumber = creditNote.CreditNoteNumber,
                     InvoiceId = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
                     CustomerId = creditNote.CustomerId,
+                    CustomerName = creditNote.Customer?.Name ?? creditNote.Customer?.CompanyName ?? invoice.Customer?.Name,
                     Amount = creditNote.TotalAmount,
+                    TotalAmount = creditNote.TotalAmount,
+                    PaymentStatus = "Credited",
                     IssuedBy = userDisplayName,
                     IssuedAtUtc = DateTime.UtcNow
                 });
@@ -1266,6 +1270,33 @@ public class CreditNoteService : ICreditNoteService
             await _unitOfWork.CommitTransactionAsync();
 
             var invoice = await _invoiceRepository.GetByIdAsync(creditNote.InvoiceId, tenantId, cancellationToken);
+
+            if (_outboxService != null)
+            {
+                try
+                {
+                    await _outboxService.PublishEventAsync(tenantId, "credit_note.refunded", new
+                    {
+                        CreditNoteId = creditNote.Id,
+                        CreditNoteNumber = creditNote.CreditNoteNumber,
+                        RefundNumber = savedRefund.RefundNumber,
+                        InvoiceId = creditNote.InvoiceId,
+                        InvoiceNumber = invoice?.InvoiceNumber,
+                        CustomerId = creditNote.CustomerId,
+                        CustomerName = creditNote.Customer?.Name ?? creditNote.Customer?.CompanyName ?? invoice?.Customer?.Name,
+                        Amount = savedRefund.RefundAmount,
+                        RefundAmount = savedRefund.RefundAmount,
+                        PaymentStatus = "Refunded",
+                        ProcessedBy = userDisplayName,
+                        RefundedAtUtc = DateTime.UtcNow
+                    });
+                }
+                catch
+                {
+                    // Event publishing must not revert committed refund
+                }
+            }
+
             var responseMessage = !string.IsNullOrWhiteSpace(normalizedRef)
                 ? "Refund transaction recorded with reference number; actual bank credit is subject to payment provider / bank settlement confirmation."
                 : "Refund recorded for manual verification; actual bank credit is subject to payment provider / bank confirmation.";

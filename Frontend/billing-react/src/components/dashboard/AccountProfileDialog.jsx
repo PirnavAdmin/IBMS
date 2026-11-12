@@ -3,7 +3,7 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextF
 import { authApi } from 'billing-api-client';
 import { userRoleAdministrationService } from '../../pages/UserRoleAdministration/userRoleAdministrationService';
 import { getCurrentUserRoles } from '../../utils/permissionUtils';
-import { getDisplayName } from '../../utils/userDisplay';
+import { getCompanyDisplayName, getDisplayName } from '../../utils/userDisplay';
 import { publishProfile } from '../../hooks/useCurrentUser';
 
 export function AccountProfileDialog({ user, role, onClose }) {
@@ -53,6 +53,7 @@ export function AccountProfileDialog({ user, role, onClose }) {
           <TextField required fullWidth label="Email" type="email" value={email} disabled={busy} inputProps={{ maxLength: 254 }} onChange={event => setEmail(event.target.value)} />
         </div> : <dl className="bd-account-details">
           <div><dt>Name</dt><dd>{getDisplayName(user)}</dd></div>
+          {getCompanyDisplayName(user) && <div><dt>Company</dt><dd>{getCompanyDisplayName(user)}</dd></div>}
           <div><dt>Email</dt><dd>{user?.email || user?.Email || 'Not available'}</dd></div>
           <div><dt>Role</dt><dd>{role}</dd></div>
         </dl>}

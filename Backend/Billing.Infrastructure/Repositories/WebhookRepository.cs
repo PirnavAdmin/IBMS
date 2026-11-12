@@ -26,6 +26,7 @@ public class WebhookRepository : IWebhookRepository
     public async Task<List<Webhook>> GetActiveByEventAsync(int tenantId, string eventType)
     {
         var activeWebhooks = await _dbContext.Webhooks
+            .Include(w => w.Application)
             .AsNoTracking()
             .Where(w => w.TenantId == tenantId && w.Status == "Active")
             .ToListAsync();

@@ -8,6 +8,7 @@ public class PlatformDashboardDto
     public int InactiveTenants { get; set; }
     public int TotalPlatformUsers { get; set; }
     public int ActivePlatformUsers { get; set; }
+    public int PendingUserApprovals { get; set; }
     public List<PlatformTenantSummaryDto> RecentTenants { get; set; } = new();
     public List<PlatformAuditEventSummaryDto> RecentAdminEvents { get; set; } = new();
     public Dictionary<string, string> TenantStatusDefinitions { get; set; } = new();

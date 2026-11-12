@@ -108,9 +108,12 @@ public class OverdueInvoiceJobService : IOverdueInvoiceJobService
                                 invoiceId = invoice.Id,
                                 invoiceNumber = invoice.InvoiceNumber,
                                 customerId = invoice.CustomerId,
+                                customerName = invoice.Customer?.Name ?? invoice.Customer?.CompanyName,
+                                totalAmount = invoice.TotalAmount,
                                 balanceAmount = invoice.BalanceAmount,
                                 dueDate = invoice.DueDate,
-                                status = "Overdue"
+                                status = "Overdue",
+                                paymentStatus = "Overdue"
                             });
                         }
                         catch (Exception ex)

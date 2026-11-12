@@ -3,6 +3,7 @@ import { transportErrorMessage } from './transportError.js';
 import { API_ENDPOINTS } from './endpoints.js';
 import {
   createRegisterRequest,
+  createSendRegistrationOtpRequest,
   createLoginRequest,
   createForgotPasswordRequest,
   createVerifyOtpRequest,
@@ -12,6 +13,25 @@ import {
 } from '../billing-contracts/index.js';
 
 export const authApi = {
+  sendRegistrationOtp: async (emailOrData) => {
+    try {
+      const data = typeof emailOrData === 'string' ? { email: emailOrData } : emailOrData;
+      const payload = createSendRegistrationOtpRequest(data);
+      return await apiClient.post(API_ENDPOINTS.AUTH.SEND_REGISTRATION_OTP, payload);
+    } catch (err) {
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Unable to send verification OTP. Please check your email.'));
+    }
+  },
+
+  verifyRegistrationOtp: async (data) => {
+    try {
+      const payload = createVerifyOtpRequest(data);
+      return await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_REGISTRATION_OTP, payload);
+    } catch (err) {
+      throw new Error(transportErrorMessage(err) || parseAuthError(err, 'Invalid or expired OTP code.'));
+    }
+  },
+
   register: async (data) => {
     try {
       const payload = createRegisterRequest(data);

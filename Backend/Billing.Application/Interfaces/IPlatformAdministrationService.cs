@@ -22,6 +22,8 @@ public interface IPlatformAdministrationService
     Task<(bool Success, string Message, string? ErrorCode)> UpdateUserStatusAsync(int id, string status, string? reason, string currentUserName, CancellationToken cancellationToken = default);
     Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> AssignUserRolesAsync(int id, List<string> roles, string currentUserName, CancellationToken cancellationToken = default);
     Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> AssignTenantAndAppAsync(int id, int? tenantId, string applicationId, string currentUserName, CancellationToken cancellationToken = default);
+    Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> ApproveUserRegistrationAsync(int id, ApproveUserRegistrationRequest? request, string currentUserName, CancellationToken cancellationToken = default);
+    Task<(bool Success, string Message, PlatformUserDto? User, string? ErrorCode)> RejectUserRegistrationAsync(int id, string? reason, string currentUserName, CancellationToken cancellationToken = default);
 
     // Platform Audit (BR-05)
     Task<PagedResult<PlatformAuditLogDto>> GetPlatformAuditLogsAsync(PlatformAuditFilterRequest filter, CancellationToken cancellationToken = default);

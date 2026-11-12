@@ -559,9 +559,11 @@ public class QuotationActionService : IQuotationActionService
             await _outboxService.PublishEventAsync(tenantId, "quotation.approved", new
             {
                 QuotationId = quotation.Id,
-                QuotationNumber = quotation.QuoteNumber,
+                QuoteNumber = quotation.QuoteNumber,
                 CustomerId = quotation.CustomerId,
+                CustomerName = quotation.Customer?.Name ?? quotation.Customer?.CompanyName,
                 TotalAmount = quotation.TotalAmount,
+                Currency = string.IsNullOrWhiteSpace(quotation.Customer?.Currency) ? "INR" : quotation.Customer.Currency.Trim().ToUpperInvariant(),
                 ApprovedBy = approverId,
                 ApprovedAtUtc = DateTime.UtcNow
             });
@@ -712,7 +714,9 @@ public class QuotationActionService : IQuotationActionService
                         InvoiceId = savedInvoice.Id,
                         InvoiceNumber = savedInvoice.InvoiceNumber,
                         CustomerId = quotation.CustomerId,
+                        CustomerName = quotation.Customer?.Name ?? quotation.Customer?.CompanyName,
                         TotalAmount = quotation.TotalAmount,
+                        Currency = savedInvoice.GetCurrency(),
                         ConvertedAtUtc = DateTime.UtcNow
                     });
                 }
@@ -821,7 +825,9 @@ public class QuotationActionService : IQuotationActionService
                     QuotationId = quotation.Id,
                     QuoteNumber = quotation.QuoteNumber,
                     CustomerId = quotation.CustomerId,
-                    CustomerName = quotation.Customer?.Name,
+                    CustomerName = quotation.Customer?.Name ?? quotation.Customer?.CompanyName,
+                    TotalAmount = quotation.TotalAmount,
+                    Currency = string.IsNullOrWhiteSpace(quotation.Customer?.Currency) ? "INR" : quotation.Customer.Currency.Trim().ToUpperInvariant(),
                     Decision = decisionText,
                     RespondedAtUtc = now
                 });

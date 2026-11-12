@@ -19,6 +19,7 @@ public class WebhookDeliveryRepository : IWebhookDeliveryRepository
     {
         return await _dbContext.WebhookDeliveries
             .Include(d => d.Webhook)
+            .ThenInclude(w => w!.Application)
             .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId);
     }
 
@@ -70,15 +71,95 @@ public class WebhookDeliveryRepository : IWebhookDeliveryRepository
 
     public async Task<List<WebhookDelivery>> GetPendingRetriesAsync(int batchSize = 50)
     {
+        var now = DateTime.UtcNow;
         return await _dbContext.WebhookDeliveries
             .Include(d => d.Webhook)
+            .ThenInclude(w => w!.Application)
             .Where(d => d.Status == "Retrying"
                         && d.NextRetryUtc.HasValue
-                        && d.NextRetryUtc <= DateTime.UtcNow
-                        && d.AttemptNumber < d.MaxAttempts)
+                        && d.NextRetryUtc <= now
+                        && d.AttemptNumber < d.MaxAttempts
+                        && (!d.LockedUntilUtc.HasValue || d.LockedUntilUtc <= now))
             .OrderBy(d => d.NextRetryUtc)
             .Take(batchSize)
             .ToListAsync();
+    }
+
+    public async Task<List<WebhookDelivery>> ClaimPendingRetriesAsync(
+        string instanceId,
+        TimeSpan leaseDuration,
+        int batchSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var leaseUntil = now.Add(leaseDuration);
+
+        var candidateIds = await _dbContext.WebhookDeliveries
+            .Where(d => d.Status == "Retrying"
+                        && d.NextRetryUtc.HasValue
+                        && d.NextRetryUtc <= now
+                        && d.AttemptNumber < d.MaxAttempts
+                        && (!d.LockedUntilUtc.HasValue || d.LockedUntilUtc <= now))
+            .OrderBy(d => d.NextRetryUtc)
+            .Take(batchSize)
+            .Select(d => d.Id)
+            .ToListAsync(cancellationToken);
+
+        if (candidateIds.Count == 0)
+        {
+            return new List<WebhookDelivery>();
+        }
+
+        if (_dbContext.Database.IsRelational())
+        {
+            var claimedCount = await _dbContext.WebhookDeliveries
+                .Where(d => candidateIds.Contains(d.Id)
+                            && d.Status == "Retrying"
+                            && d.NextRetryUtc.HasValue
+                            && d.NextRetryUtc <= now
+                            && d.AttemptNumber < d.MaxAttempts
+                            && (!d.LockedUntilUtc.HasValue || d.LockedUntilUtc <= now))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(d => d.LockedByInstance, instanceId)
+                    .SetProperty(d => d.LockedUntilUtc, leaseUntil),
+                    cancellationToken);
+
+            if (claimedCount == 0)
+            {
+                return new List<WebhookDelivery>();
+            }
+
+            return await _dbContext.WebhookDeliveries
+                .Include(d => d.Webhook)
+                .ThenInclude(w => w!.Application)
+                .Where(d => candidateIds.Contains(d.Id)
+                            && d.LockedByInstance == instanceId
+                            && d.Status == "Retrying")
+                .OrderBy(d => d.NextRetryUtc)
+                .ToListAsync(cancellationToken);
+        }
+
+        var candidates = await _dbContext.WebhookDeliveries
+            .Include(d => d.Webhook)
+            .ThenInclude(w => w!.Application)
+            .Where(d => candidateIds.Contains(d.Id)
+                        && d.Status == "Retrying"
+                        && (!d.LockedUntilUtc.HasValue || d.LockedUntilUtc <= now))
+            .OrderBy(d => d.NextRetryUtc)
+            .ToListAsync(cancellationToken);
+
+        foreach (var item in candidates)
+        {
+            item.LockedByInstance = instanceId;
+            item.LockedUntilUtc = leaseUntil;
+        }
+
+        if (candidates.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return candidates;
     }
 
     public async Task<WebhookDelivery> AddAsync(WebhookDelivery delivery)

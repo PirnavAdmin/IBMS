@@ -943,6 +943,19 @@ export const Login = () => {
             </Alert>
           )}
 
+          {!apiError && authStep === 'login' && location.state?.pendingApproval && (
+            <Alert
+              severity="info"
+              sx={{
+                mb: 2,
+                borderRadius: 2,
+                py: 0.5,
+              }}
+            >
+              Account created for {location.state?.registeredEmail || 'your email'}. SuperAdmin permission is required before you can sign in.
+            </Alert>
+          )}
+
           {/* ==================================================
               RECOVERY ERROR
           ================================================== */}

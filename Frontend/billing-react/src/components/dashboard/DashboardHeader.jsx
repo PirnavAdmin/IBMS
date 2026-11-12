@@ -8,7 +8,7 @@ import DialogActions from '@mui/material/DialogActions';
 import { NotificationBell } from './NotificationBell';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { AccountProfileDialog } from './AccountProfileDialog';
-import { getDisplayName, getInitials } from '../../utils/userDisplay';
+import { getHeaderDisplayName, getInitials } from '../../utils/userDisplay';
 import { useId, useRef, useState } from 'react';
 import { searchInputError } from '../../utils/search';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
@@ -59,8 +59,9 @@ export const DashboardHeader = ({ searchQuery, onSearch, onSignOut, onMenu, sear
   const clearSearch = () => { onSearch?.(''); searchRef.current?.focus(); };
   useExclusiveDropdown(menuOpen, setMenuOpen);
   const user = useCurrentUser();
-  const displayName = getDisplayName(user);
-  const role = (Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
+  const platformAdmin = isPlatformAdmin(user);
+  const displayName = getHeaderDisplayName(user, platformAdmin);
+  const role = (platformAdmin ? 'SuperAdmin' : Array.isArray(user?.roles) ? user.roles.join(', ') : user?.role) || 'Signed in';
   const canViewSettings = hasPermission(['settings.view', 'settings.manage'], user);
   return <><header className={`bd-header${onSearch ? '' : ' bd-header-profile-only'}`}>
     {onMenu && <button className="bd-mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu /></button>}

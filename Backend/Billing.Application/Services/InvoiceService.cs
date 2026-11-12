@@ -296,6 +296,7 @@ public class InvoiceService : IInvoiceService
                     Currency = invoice.GetCurrency(),
                     DueDate = invoice.DueDate,
                     Status = invoice.Status,
+                    PaymentStatus = DeriveInvoicePaymentStatus(invoice),
                     IssuedAtUtc = DateTime.UtcNow
                 });
             }
@@ -339,6 +340,11 @@ public class InvoiceService : IInvoiceService
                 InvoiceId = invoice.Id,
                 InvoiceNumber = invoice.InvoiceNumber,
                 CustomerId = invoice.CustomerId,
+                CustomerName = invoice.Customer?.Name ?? invoice.Customer?.CompanyName,
+                TotalAmount = invoice.TotalAmount,
+                Currency = invoice.GetCurrency(),
+                Status = invoice.Status,
+                PaymentStatus = DeriveInvoicePaymentStatus(invoice),
                 Reason = reason,
                 CancelledAtUtc = DateTime.UtcNow
             });
@@ -374,6 +380,11 @@ public class InvoiceService : IInvoiceService
                 InvoiceId = invoice.Id,
                 InvoiceNumber = invoice.InvoiceNumber,
                 CustomerId = invoice.CustomerId,
+                CustomerName = invoice.Customer?.Name ?? invoice.Customer?.CompanyName,
+                TotalAmount = invoice.TotalAmount,
+                Currency = invoice.GetCurrency(),
+                Status = invoice.Status,
+                PaymentStatus = DeriveInvoicePaymentStatus(invoice),
                 Reason = reason,
                 VoidedAtUtc = DateTime.UtcNow
             });
@@ -552,6 +563,12 @@ public class InvoiceService : IInvoiceService
                 InvoiceId = invoice.Id,
                 InvoiceNumber = invoice.InvoiceNumber,
                 CustomerId = invoice.CustomerId,
+                CustomerName = invoice.Customer?.Name ?? invoice.Customer?.CompanyName,
+                TotalAmount = invoice.TotalAmount,
+                BalanceAmount = invoice.BalanceAmount,
+                Currency = invoice.GetCurrency(),
+                Status = invoice.Status,
+                PaymentStatus = DeriveInvoicePaymentStatus(invoice),
                 Recipient = invoice.Customer.Email,
                 SentAtUtc = DateTime.UtcNow
             });
@@ -678,6 +695,22 @@ public class InvoiceService : IInvoiceService
         }
 
         return changed;
+    }
+
+    private static string DeriveInvoicePaymentStatus(Invoice invoice)
+    {
+        if (string.Equals(invoice.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+            return "Paid";
+        if (string.Equals(invoice.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(invoice.Status, "Voided", StringComparison.OrdinalIgnoreCase))
+            return invoice.Status;
+        if (invoice.BalanceAmount <= 0 && invoice.TotalAmount > 0)
+            return "Paid";
+        if (invoice.PaidAmount > 0 && invoice.BalanceAmount > 0)
+            return "PartiallyPaid";
+        if (string.Equals(invoice.Status, "Overdue", StringComparison.OrdinalIgnoreCase))
+            return "Overdue";
+        return "Unpaid";
     }
 }
 

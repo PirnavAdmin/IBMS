@@ -224,6 +224,50 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    // SEND REGISTRATION EMAIL VERIFICATION OTP
+    [HttpPost("send-registration-otp")]
+    public async Task<IActionResult> SendRegistrationOtp([FromBody] SendRegistrationOtpRequest request)
+    {
+        var (success, message, otp) = await _authService.SendRegistrationOtpAsync(request.Email);
+        if (!success || string.IsNullOrWhiteSpace(otp))
+        {
+            return BadRequest(new { success = false, message });
+        }
+
+        await _emailService.SendEmailAsync(
+            request.Email.Trim(),
+            "IBMS Email Verification OTP",
+            $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Verify your email address</h2><p style=\"color:#574840;\">Use the 6-digit verification code below to verify your email on the Create Account page:</p><div style=\"font-size:28px;font-weight:700;letter-spacing:6px;color:#795137;background:#F9F5EF;padding:12px 18px;border-radius:8px;text-align:center;margin:16px 0;\">{otp}</div><p style=\"color:#7D6E66;font-size:13px;margin-bottom:0;\">This OTP expires in 10 minutes. Note: After your account is created, SuperAdmin approval is required before your first sign in.</p></div>"
+        );
+
+        return Ok(new
+        {
+            success = true,
+            message = "Verification OTP sent to your email address."
+        });
+    }
+
+    // VERIFY REGISTRATION EMAIL OTP
+    [HttpPost("verify-registration-otp")]
+    public IActionResult VerifyRegistrationOtp([FromBody] VerifyOtpRequest request)
+    {
+        var isValid = _authService.VerifyRegistrationOtp(request.Email, request.Otp);
+        if (!isValid)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "Invalid or expired OTP code."
+            });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = "Email verified successfully."
+        });
+    }
+
     // REGISTER
     [HttpPost("register")]
     public async Task<IActionResult> Register(
@@ -234,6 +278,19 @@ public class AuthController : ControllerBase
         if (!response.Success)
         {
             return BadRequest(response);
+        }
+
+        try
+        {
+            await _emailService.SendEmailAsync(
+                request.Email.Trim(),
+                "IBMS Account Created — Pending SuperAdmin Approval",
+                $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Account Created Successfully</h2><p style=\"color:#574840;\">Hi {System.Net.WebUtility.HtmlEncode(request.Name.Trim())}, your email address has been verified and your account has been registered.</p><p style=\"color:#35231C;font-weight:600;background:#F9F5EF;padding:12px 14px;border-radius:8px;border-left:4px solid #795137;\">SuperAdmin approval is required before you can log in. Once a SuperAdmin grants permission to your account, you will be able to sign in.</p></div>"
+            );
+        }
+        catch
+        {
+            // Non-blocking notification email; registration record is already persisted.
         }
 
         return Ok(response);

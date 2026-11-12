@@ -18,7 +18,7 @@ export function usePlatformQuery(name, params, fetcher) {
   const user = useCurrentUser();
   return useQuery({ queryKey: [...platformScope(user), name, params], queryFn: ({ signal }) => fetcher(signal), retry: false, gcTime: 0 });
 }
-const descriptions = { 'Platform Dashboard': 'An overview of your organizations, administrators and recent activity.', 'Tenant Management': 'Manage organizations and their workspace access.', 'Platform Users': 'Manage administrator accounts, roles and tenant assignments.', 'Platform Audit Logs': 'Review administration activity across authorized workspaces.', 'Platform Settings': 'Manage platform preferences, access and security policies.' };
+const descriptions = { 'Platform Dashboard': 'An overview of your organizations, administrators and recent activity.', 'Tenant Management': 'Manage organizations, workspace access, and pending tenant approvals.', 'Platform Users': 'Manage platform administrator accounts and status.', 'Platform Audit Logs': 'Review administration activity across authorized workspaces.', 'Platform Settings': 'Manage platform preferences, access and security policies.' };
 export function PlatformShell({ title, actions, children }) {
   return <main className="platform-page"><header className="platform-heading"><div><p>PLATFORM ADMINISTRATION</p><h1>{title}</h1>{descriptions[title] && <span className="platform-description">{descriptions[title]}</span>}</div>{actions && <div className="platform-actions">{actions}</div>}</header>{children}</main>;
 }
@@ -44,7 +44,7 @@ export function platformMatches(record, search) {
   return values.flat().some(value => ['string','number','boolean'].includes(typeof value) && (String(value).toLocaleLowerCase().includes(term) || readableLabel(String(value)).toLocaleLowerCase().includes(term)));
 }
 export function PlatformStatus({ value }) {
-  const tone = { Active:'active', Success:'active', Suspended:'warning', Inactive:'muted', Failed:'danger' }[value] || 'muted';
+  const tone = { Active:'active', Success:'active', PendingApproval:'warning', Suspended:'warning', Inactive:'muted', Rejected:'danger', Failed:'danger' }[value] || 'muted';
   return <span className={'platform-status platform-status-' + tone}><i aria-hidden="true" />{readableLabel(value) || '—'}</span>;
 }
 export function PlatformRefresh({ query }) { return <Button variant="outlined" startIcon={<RefreshOutlined/>} disabled={query.isFetching} onClick={()=>query.refetch()}>Refresh</Button>; }
@@ -60,7 +60,7 @@ export function Pager({ data, filters, setFilters, audit = false, itemLabel = 'r
   return <WorkspacePagination itemLabel={itemLabel} page={filters[key]} pageSize={filters.pageSize} totalCount={data.totalCount} onPageChange={page => setFilters(f => ({ ...f, [key]: page }))} onPageSizeChange={pageSize => setFilters(f => ({ ...f, pageSize, [key]: 1 }))} />;
 }
 export function SelectFilter({ label, value, options, onChange }) {
-  return <TextField select size="small" InputLabelProps={{shrink:true}} SelectProps={{displayEmpty:true}} label={label} value={value || ''} onChange={e => onChange(e.target.value)}><MenuItem value="">All {label.toLowerCase() === 'status' ? 'statuses' : label.toLowerCase()}</MenuItem>{options.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>;
+  return <TextField select size="small" InputLabelProps={{shrink:true}} SelectProps={{displayEmpty:true}} label={label} value={value || ''} onChange={e => onChange(e.target.value)}><MenuItem value="">All {label.toLowerCase() === 'status' ? 'statuses' : `${label.toLowerCase()}s`}</MenuItem>{options.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>;
 }
 export function MutationDialog({ title, initial, fields, submit, onDone, onClose, description }) {
   const [values, setValues] = useState(initial);
@@ -80,6 +80,7 @@ export function MutationDialog({ title, initial, fields, submit, onDone, onClose
       return (
         <div key={field.name} style={field.colSpan === 2 || field.fullWidth ? { gridColumn: '1 / -1' } : undefined}>
           <Autocomplete
+            fullWidth
             multiple={Boolean(field.multiple)}
             size="small"
             id={`platform-field-${field.name}`}
@@ -144,6 +145,6 @@ export function MutationDialog({ title, initial, fields, submit, onDone, onClose
         </div>
       );
     }
-    return <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name] || field.helperText} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => <MenuItem key={String(option)} value={option}>{String(option)}</MenuItem>)}</TextField>;
+    return <TextField key={field.name} label={field.label} error={Boolean(fieldErrors[field.name])} helperText={fieldErrors[field.name] || field.helperText} value={values[field.name] ?? ''} required={field.required} disabled={busy || field.disabled} type={field.type || 'text'} select={Boolean(field.options)} SelectProps={field.multiple ? { multiple:true } : undefined} multiline={field.multiline} inputProps={{ min: field.min, max: field.max, minLength: field.minLength, maxLength: field.maxLength, pattern: field.pattern, step: field.type === 'number' ? 1 : undefined }} onChange={e => { setValues(v => ({ ...v, [field.name]: e.target.value })); setFieldErrors(errors => ({ ...errors, [field.name]: undefined })); }}>{field.options?.map(option => { const optVal = typeof option === 'object' ? option.value : option; const optLabel = typeof option === 'object' ? option.label : option; return <MenuItem key={String(optVal)} value={optVal}>{String(optLabel)}</MenuItem>; })}</TextField>;
   })}</div></DialogContent><DialogActions><Button type="button" disabled={busy} onClick={onClose}>Cancel</Button><Button type="submit" variant="contained" disabled={busy}>{busy ? 'Saving…' : 'Confirm and save'}</Button></DialogActions></form></Dialog>;
 }

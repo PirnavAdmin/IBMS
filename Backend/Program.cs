@@ -10,6 +10,7 @@ using Billing.Application.Services;
 using Billing.Contracts.Platform;
 using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
+using Billing.Infrastructure.Security;
 using Billing.Infrastructure.Services;
 using Billing.Infrastructure.BackgroundJobs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -188,6 +189,12 @@ builder.Services.AddScoped<IPlatformAdministrationService, PlatformAdministratio
 // ============================================================
 // Webhook & Integration Services (Module 15)
 // ============================================================
+AesSecretEncryptionService.ValidateHostConfiguration(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton<ISecretEncryptionService, AesSecretEncryptionService>();
+builder.Services.AddSingleton(new WebhookSecurityOptions
+{
+    AllowLocalhostTargets = builder.Configuration.GetValue<bool>("Webhooks:AllowLocalhostTargets", builder.Environment.IsDevelopment())
+});
 builder.Services.AddSingleton<IWebhookSecurityService, WebhookSecurityService>();
 builder.Services.AddHttpClient<IWebhookDispatcher, WebhookDispatcher>();
 builder.Services.AddScoped<IOutboxService, OutboxService>();

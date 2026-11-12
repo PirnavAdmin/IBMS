@@ -475,6 +475,77 @@ public class AuthServiceTests
         Assert.Equal(twentyMinutesAgo, rotatedSession.LastActivityAtUtc);
     }
 
+    [Fact]
+    public async Task Register_WithoutEmailOtpVerification_Fails()
+    {
+        var response = await _authService.Register(new RegisterRequest
+        {
+            Name = "New User",
+            CompanyName = "Acme Ventures",
+            Email = "unverified.user@example.com",
+            Password = "Password@123",
+            ConfirmPassword = "Password@123"
+        });
+
+        Assert.False(response.Success);
+        Assert.Contains("verify your email", response.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Register_WithVerifiedOtp_CreatesPendingApprovalAccountAndBlocksLoginUntilApproved()
+    {
+        const string email = "pending.user@example.com";
+        var (otpSuccess, _, otp) = await _authService.SendRegistrationOtpAsync(email);
+        Assert.True(otpSuccess);
+        Assert.False(string.IsNullOrWhiteSpace(otp));
+
+        var otpVerified = _authService.VerifyRegistrationOtp(email, otp!);
+        Assert.True(otpVerified);
+
+        var registerResponse = await _authService.Register(new RegisterRequest
+        {
+            Name = "Pending User",
+            CompanyName = "Acme Ventures",
+            Email = email,
+            Password = "Password@123",
+            ConfirmPassword = "Password@123"
+        });
+
+        Assert.True(registerResponse.Success);
+        Assert.Contains("SuperAdmin", registerResponse.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(registerResponse.AccessToken);
+
+        var savedUser = await _userRepository.GetByEmailAsync(email);
+        Assert.NotNull(savedUser);
+        Assert.Equal("PendingApproval", savedUser!.Status);
+        Assert.Contains("TenantAdmin", savedUser.Roles);
+        Assert.Equal("Acme Ventures", savedUser.Tenant?.Name);
+        Assert.Equal("PendingApproval", savedUser.Tenant?.Status);
+        Assert.False(savedUser.IsActive);
+
+        // Login must be blocked while PendingApproval
+        var blockedLogin = await _authService.Login(new LoginRequest
+        {
+            Email = email,
+            Password = "Password@123"
+        });
+        Assert.False(blockedLogin.Success);
+        Assert.Contains("SuperAdmin approval", blockedLogin.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Once SuperAdmin activates/approves user and tenant, login succeeds
+        savedUser.Status = "Active";
+        if (savedUser.Tenant != null) savedUser.Tenant.Status = "Active";
+        await _userRepository.UpdateAsync(savedUser);
+
+        var approvedLogin = await _authService.Login(new LoginRequest
+        {
+            Email = email,
+            Password = "Password@123"
+        });
+        Assert.True(approvedLogin.Success);
+        Assert.NotNull(approvedLogin.AccessToken);
+    }
+
     private sealed class SessionTestBuilder
     {
         private DateTime _createdAt = DateTime.UtcNow;

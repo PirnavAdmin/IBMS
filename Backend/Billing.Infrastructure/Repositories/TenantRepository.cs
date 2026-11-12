@@ -72,6 +72,10 @@ public class TenantRepository : ITenantRepository
             var normalizedStatus = status.Trim().ToLower();
             query = query.Where(t => t.Status.ToLower() == normalizedStatus);
         }
+        else
+        {
+            query = query.Where(t => t.Status != "PendingApproval" && t.Status != "Rejected");
+        }
 
         var totalCount = await query.CountAsync();
 
