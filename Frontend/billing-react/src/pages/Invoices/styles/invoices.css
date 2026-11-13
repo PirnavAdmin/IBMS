@@ -226,14 +226,102 @@
   margin: 22px 0 26px;
 }
 
+.invoice-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 12px 2px;
+}
+
+.invoice-summary-header h2,
 .invoice-summary-group h2 {
   font-size: 12.5px;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--secondary);
-  margin: 0 0 12px 2px;
+  margin: 0;
 }
+
+.invoice-currency-control {
+  position: relative;
+  min-width: 140px;
+}
+
+.invoice-currency-select.MuiOutlinedInput-root {
+  height: 36px;
+  min-height: 36px;
+  border-radius: 8px;
+  background: #faf4ed !important;
+  color: #594330;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.invoice-currency-select .MuiSelect-select {
+  box-sizing: border-box;
+  min-height: 0;
+  padding: 8px 32px 8px 12px !important;
+  line-height: 18px;
+  color: #594330;
+  display: flex;
+  align-items: center;
+}
+
+.invoice-currency-select .MuiOutlinedInput-notchedOutline {
+  border-color: #decfbb !important;
+}
+
+.invoice-currency-select:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #ba9774 !important;
+}
+
+.invoice-currency-select.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 1px !important;
+  border-color: #795137 !important;
+}
+
+.invoice-currency-select .MuiSelect-icon {
+  color: #7b6756;
+  font-size: 18px;
+  right: 8px;
+}
+
+.invoice-currency-menu.MuiPaper-root {
+  max-height: min(280px, calc(100dvh - 16px));
+  border: 1px solid var(--dropdown-border, #dcc6af);
+  border-radius: 8px;
+  background: var(--dropdown-surface, #fffdf9) !important;
+  box-shadow: 0 8px 24px #4e331f26;
+}
+
+.invoice-currency-menu .MuiMenuItem-root {
+  min-height: 36px;
+  font-size: 13px;
+  color: #35271F;
+}
+
+.invoice-currency-menu .MuiMenuItem-root:hover,
+.invoice-currency-menu .MuiMenuItem-root.Mui-focusVisible {
+  background: #F9F1E6 !important;
+  color: #4B2E1E !important;
+}
+
+.invoice-currency-menu .MuiMenuItem-root.Mui-selected {
+  background: #F0E2D0 !important;
+  color: #4B2E1E !important;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .invoice-summary-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
 
 .invoice-summary-grid {
   display: grid;
