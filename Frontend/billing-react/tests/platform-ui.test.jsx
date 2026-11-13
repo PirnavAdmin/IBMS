@@ -47,6 +47,48 @@ test('tenant creation normalizes optional fields and preserves one idempotency k
   } finally {await v.close();api.createTenant=original;}
 });
 
+test('tenant creation restricts phone to 10 digits and validates complete number', async () => {
+  const original = api.createTenant;
+  let payload;
+  api.createTenant = async value => { payload = value; return { id: 8 }; };
+  const v = await mount(<TenantEditor onClose={() => {}} />);
+  try {
+    const nameInput = document.querySelector('[role="dialog"] input[required]:not([pattern])');
+    const codeInput = document.querySelector('[role="dialog"] input[pattern]');
+    const phoneInput = document.querySelector('[role="dialog"] input[type="tel"]');
+    assert.ok(phoneInput, 'Phone input should exist with type="tel"');
+
+    await act(async () => {
+      Simulate.change(nameInput, { target: { value: 'Acme Corp' } });
+      Simulate.change(codeInput, { target: { value: 'ACME' } });
+      Simulate.change(phoneInput, { target: { value: '98397843743hjsdjsdfkdsfjksd' } });
+    });
+
+    assert.equal(phoneInput.value, '9839784374');
+
+    await act(async () => {
+      Simulate.change(phoneInput, { target: { value: '98397843' } });
+    });
+    assert.match(document.querySelector('[role="dialog"]').textContent, /Phone number must be exactly 10 digits/);
+
+    await act(async () => {
+      Simulate.submit(document.querySelector('[role="dialog"] form'));
+    });
+    assert.equal(payload, undefined, 'Submission should be blocked on invalid phone number');
+
+    await act(async () => {
+      Simulate.change(phoneInput, { target: { value: '9876543210' } });
+    });
+    await act(async () => {
+      Simulate.submit(document.querySelector('[role="dialog"] form'));
+    });
+    assert.equal(payload.phone, '9876543210');
+  } finally {
+    await v.close();
+    api.createTenant = original;
+  }
+});
+
 test('readable platform labels preserve backend values while formatting the display', async()=>{
   const { readableLabel, dateText }=await import('../src/pages/Platform/PlatformShared');
   assert.equal(readableLabel('TenantCreated'),'Tenant Created');

@@ -2,17 +2,19 @@ import { useNavbarSearch } from '../../hooks/useNavbarSearch';
 import { searchInputError } from '../../utils/search';
 import { SearchField } from '../../components/SearchField';
 import { FilterSelectField } from '../../components/FilterSelectField';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import Alert from '@mui/material/Alert';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import InputAdornment from '@mui/material/InputAdornment';
 import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Add from '@mui/icons-material/Add';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
 import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import Refresh from '@mui/icons-material/Refresh';
 import RestartAlt from '@mui/icons-material/RestartAlt';
@@ -22,7 +24,8 @@ import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./services/invoiceService";
 import { downloadInvoiceCsv } from './services/invoiceExport';
-import { billingCurrencyGroups } from '../../utils/currencies';
+import { billingCurrencyGroups, CURRENCY_CODES, getCurrencySymbol } from '../../utils/currencies';
+import { useRegionalSettings } from '../../services/regionalSettingsService';
 import { InvoiceActions } from "./components/InvoiceActions";
 import { WorkspacePagination } from "../../components/WorkspacePagination";
 import { InvoiceDateRangeFilter } from "./components/InvoiceDateRangeFilter";
@@ -105,6 +108,21 @@ export function InvoiceList() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
+  const { selectedCountries = [] } = useRegionalSettings();
+
+  const enabledCurrencies = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    for (const country of selectedCountries) {
+      const code = String(country?.currency || '').trim().toUpperCase();
+      if (!code || seen.has(code) || !CURRENCY_CODES.includes(code)) continue;
+      seen.add(code);
+      const symbol = country.currencySymbol || getCurrencySymbol(code);
+      const label = symbol && symbol !== code ? `${code} (${symbol})` : code;
+      result.push({ code, label });
+    }
+    return result;
+  }, [selectedCountries]);
   const searchError = searchInputError(search);
   const querySearch = useDebounced((search).trim());
   const customerTerm = useDebounced(customerSearch);
@@ -132,6 +150,27 @@ export function InvoiceList() {
     retry: false,
     staleTime: 0,
   });
+  const currencyOptions = useMemo(() => {
+    if (enabledCurrencies.length > 0) {
+      if (filters.currency && !enabledCurrencies.some(c => c.code === filters.currency)) {
+        const symbol = getCurrencySymbol(filters.currency);
+        const label = symbol && symbol !== filters.currency ? `${filters.currency} (${symbol})` : filters.currency;
+        return [{ code: filters.currency, label }, ...enabledCurrencies];
+      }
+      return enabledCurrencies;
+    }
+    const summaryCodes = billingCurrencyGroups(summary.data || []).map(g => g.currency).filter(Boolean);
+    const fallbackCodes = summaryCodes.length > 0 ? [...new Set(summaryCodes)] : ['INR'];
+    return fallbackCodes.map(code => {
+      const symbol = getCurrencySymbol(code);
+      return { code, label: symbol && symbol !== code ? `${code} (${symbol})` : code };
+    });
+  }, [enabledCurrencies, filters.currency, summary.data]);
+
+  const defaultCurrency = selectedCountries[0]?.currency || currencyOptions[0]?.code || 'INR';
+  const activeCurrency = filters.currency || defaultCurrency;
+  const selectValue = currencyOptions.some(o => o.code === activeCurrency) ? activeCurrency : (currencyOptions[0]?.code || activeCurrency);
+
   const customers = useQuery({
     queryKey: ["invoices", "customers", customerTerm],
     queryFn: () => invoiceService.customers(customerTerm),
@@ -218,20 +257,31 @@ export function InvoiceList() {
           You do not have permission to view invoices.
         </Alert>
       )}
-      {billingCurrencyGroups(user.permissions.view && !summary.isError ? summary.data || [] : []).map((group) => {
-        const totalInvoicedNum = Number(group.totalInvoiced) || 0;
-        const totalPaidNum = Number(group.totalPaid) || 0;
-        const totalOutstandingNum = Number(group.totalOutstanding) || 0;
-        const overdueAmountNum = Number(group.overdueAmount) || 0;
-        const overdueCountNum = Number(group.overdueCount) || 0;
-        const draftCountNum = Number(group.draftCount) || 0;
-        const draftAmountNum = Number(group.draftAmount) || 0;
+      {user.permissions.view && !summary.isError && (() => {
+        const summaryGroups = billingCurrencyGroups(summary.data || []);
+        const currentGroup = summaryGroups.find((g) => g.currency === activeCurrency) || {
+          currency: activeCurrency,
+          totalInvoiced: 0,
+          totalPaid: 0,
+          totalOutstanding: 0,
+          overdueAmount: 0,
+          overdueCount: 0,
+          draftCount: 0,
+          draftAmount: 0,
+        };
+        const totalInvoicedNum = Number(currentGroup.totalInvoiced) || 0;
+        const totalPaidNum = Number(currentGroup.totalPaid) || 0;
+        const totalOutstandingNum = Number(currentGroup.totalOutstanding) || 0;
+        const overdueAmountNum = Number(currentGroup.overdueAmount) || 0;
+        const overdueCountNum = Number(currentGroup.overdueCount) || 0;
+        const draftCountNum = Number(currentGroup.draftCount) || 0;
+        const draftAmountNum = Number(currentGroup.draftAmount) || 0;
         const totalPortfolio = totalInvoicedNum + draftAmountNum;
 
         const kpiCards = [
           {
             label: "Total Invoiced",
-            formattedValue: money(group.totalInvoiced, group.currency),
+            formattedValue: money(currentGroup.totalInvoiced, currentGroup.currency),
             paymentState: "Invoiced",
             statusFilter: "",
             icon: <ReceiptLongOutlined />,
@@ -240,7 +290,7 @@ export function InvoiceList() {
           },
           {
             label: "Total Paid",
-            formattedValue: money(group.totalPaid, group.currency),
+            formattedValue: money(currentGroup.totalPaid, currentGroup.currency),
             paymentState: "Paid",
             statusFilter: "",
             icon: <CheckCircleOutline />,
@@ -260,7 +310,7 @@ export function InvoiceList() {
           },
           {
             label: "Total Outstanding",
-            formattedValue: money(group.totalOutstanding, group.currency),
+            formattedValue: money(currentGroup.totalOutstanding, currentGroup.currency),
             paymentState: "Outstanding",
             statusFilter: "",
             icon: <HourglassEmptyOutlined />,
@@ -280,7 +330,7 @@ export function InvoiceList() {
           },
           {
             label: "Overdue Amount",
-            formattedValue: money(group.overdueAmount, group.currency),
+            formattedValue: money(currentGroup.overdueAmount, currentGroup.currency),
             countText: `${overdueCountNum} ${overdueCountNum === 1 ? "invoice" : "invoices"}`,
             paymentState: "Overdue",
             statusFilter: "",
@@ -299,7 +349,7 @@ export function InvoiceList() {
           },
           {
             label: "Draft Amount",
-            formattedValue: money(group.draftAmount, group.currency),
+            formattedValue: money(currentGroup.draftAmount, currentGroup.currency),
             countText: `${draftCountNum} ${draftCountNum === 1 ? "invoice" : "invoices"}`,
             paymentState: "",
             statusFilter: "Draft",
@@ -322,12 +372,47 @@ export function InvoiceList() {
 
         return (
           <section
-            key={group.currency}
             className="invoice-summary-group"
-            aria-label={`${group.currency} invoice summary`}
+            aria-label={`${currentGroup.currency} invoice summary`}
           >
-            <h2>{group.currency} / All invoices</h2>
-            <div className="invoice-summary-grid" tabIndex={0} role="region" aria-label={`${group.currency} invoice summary cards`}>
+            <div className="invoice-summary-header">
+              <h2>{currentGroup.currency ? `${currentGroup.currency} / All invoices` : "All invoices"}</h2>
+              <div className="invoice-currency-control">
+                <Select
+                  size="small"
+                  className="invoice-currency-select"
+                  value={selectValue}
+                  onChange={(event) => {
+                    const newCurrency = event.target.value;
+                    setFilters((previous) => ({
+                      ...previous,
+                      currency: newCurrency,
+                      page: 1,
+                    }));
+                  }}
+                  inputProps={{
+                    "aria-label": "Currency",
+                  }}
+                  IconComponent={KeyboardArrowDown}
+                  MenuProps={{
+                    PaperProps: {
+                      className: "invoice-currency-menu",
+                    },
+                    MenuListProps: {
+                      "aria-label": "Currency options",
+                    },
+                    marginThreshold: 8,
+                  }}
+                >
+                  {currencyOptions.map(({ code, label }) => (
+                    <MenuItem key={code} value={code}>
+                      {label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </div>
+            </div>
+            <div className="invoice-summary-grid" tabIndex={0} role="region" aria-label={`${currentGroup.currency} invoice summary cards`}>
               {kpiCards.map(
                 ({
                   label,
@@ -340,7 +425,7 @@ export function InvoiceList() {
                   progress,
                 }) => {
                   const isActive =
-                    filters.currency === group.currency &&
+                    filters.currency === currentGroup.currency &&
                     (label === "Total Invoiced"
                       ? filters.paymentState === "Invoiced" && !filters.status
                       : label === "Total Paid"
@@ -354,7 +439,8 @@ export function InvoiceList() {
                       : false);
 
                   return (
-                    <button aria-label={`Filter invoices by ${label} (${group.currency})`}
+                    <button
+                      aria-label={`Filter invoices by ${label} (${currentGroup.currency})`}
                       key={label}
                       type="button"
                       className={`invoice-summary-card invoice-kpi-circular-card ${tone} ${
@@ -363,13 +449,12 @@ export function InvoiceList() {
                       onClick={() =>
                         setFilters((previous) => ({
                           ...previous,
-                          currency: group.currency,
+                          currency: currentGroup.currency,
                           paymentState: paymentState || "",
                           status: statusFilter || "",
                           page: 1,
                         }))
                       }
-
                     >
                       <span className="invoice-kpi-label">{label}</span>
                       <KpiDonut percent={progress} icon={icon} />
@@ -389,7 +474,7 @@ export function InvoiceList() {
             </div>
           </section>
         );
-      })}
+      })()}
       <section className="invoice-panel invoice-list-panel">
         <div className="invoice-filters">
           <SearchField

@@ -81,6 +81,8 @@ public class BackgroundJobsController : ControllerBase
         return perms.Any(p =>
             string.Equals(p, "backgroundjobs.view", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(p, "backgroundjobs.manage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "settings.manage", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p, "integrations.manage", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(p, "all", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
     }
@@ -127,13 +129,17 @@ public class BackgroundJobsController : ControllerBase
             if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
                 return hId;
 
-            var superClaim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+            var superClaim = User.FindFirst("TenantId")?.Value
+                             ?? User.FindFirst("tenant_id")?.Value
+                             ?? User.FindFirst("tenantId")?.Value;
             if (int.TryParse(superClaim, out var stid) && stid > 0) return stid;
 
             return 1;
         }
 
-        var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+        var claim = User.FindFirst("TenantId")?.Value
+                    ?? User.FindFirst("tenant_id")?.Value
+                    ?? User.FindFirst("tenantId")?.Value;
         if (int.TryParse(claim, out var tid) && tid > 0) return tid;
 
         return null;
