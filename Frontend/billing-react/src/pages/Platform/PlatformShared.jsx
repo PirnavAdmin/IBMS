@@ -59,8 +59,25 @@ export function Pager({ data, filters, setFilters, audit = false, itemLabel = 'r
   const key = audit ? 'pageNumber' : 'page';
   return <WorkspacePagination itemLabel={itemLabel} page={filters[key]} pageSize={filters.pageSize} totalCount={data.totalCount} onPageChange={page => setFilters(f => ({ ...f, [key]: page }))} onPageSizeChange={pageSize => setFilters(f => ({ ...f, pageSize, [key]: 1 }))} />;
 }
-export function SelectFilter({ label, value, options, onChange }) {
-  return <TextField select size="small" InputLabelProps={{shrink:true}} SelectProps={{displayEmpty:true}} label={label} value={value || ''} onChange={e => onChange(e.target.value)}><MenuItem value="">All {label.toLowerCase() === 'status' ? 'statuses' : `${label.toLowerCase()}s`}</MenuItem>{options.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>;
+export function SelectFilter({ label, value, options, onChange, hideLabel = false }) {
+  const itemLabel = label ? (label.toLowerCase() === 'status' ? 'statuses' : `${label.toLowerCase()}s`) : 'statuses';
+  return (
+    <TextField
+      select
+      size="small"
+      InputLabelProps={hideLabel ? undefined : { shrink: true }}
+      SelectProps={{
+        displayEmpty: true,
+        inputProps: { 'aria-label': label ? `Filter by ${label.toLowerCase()}` : undefined },
+      }}
+      label={hideLabel ? undefined : label}
+      value={value || ''}
+      onChange={e => onChange(e.target.value)}
+    >
+      <MenuItem value="">All {itemLabel}</MenuItem>
+      {options.map(v => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+    </TextField>
+  );
 }
 export function MutationDialog({ title, initial, fields, submit, onDone, onClose, description }) {
   const [values, setValues] = useState(initial);

@@ -5,8 +5,8 @@
     --workspace-surface: #EAE4DA;
     --border: #E5DDD2;
     --text-secondary: #705A48;
-    --shell-sidebar: #422C21;
-    --shell-taupe: #FFF3E5;
+    --shell-sidebar: #35231C;
+    --shell-taupe: #D4C2B2;
     --shell-hover: rgba(255, 255, 255, 0.09);
     --shell-active: #CBA57B;
     --shell-icon: rgba(255, 255, 255, 0.12);
@@ -26,31 +26,41 @@
     --tenant-red-icon: #FFDCD5;
   }
 
-  .app-layout.astra-layout:not(.platform-layout) > .astra-sidebar { background: var(--shell-sidebar); color: #F7EFE6; border-right-color: #342118; box-shadow: 2px 0 14px rgba(53, 35, 28, 0.14); }
+  .app-layout.astra-layout:not(.platform-layout) > .astra-sidebar { background: #35231C; color: #FFFDF9; border-right-color: #2A1B15; box-shadow: 2px 0 14px rgba(53, 35, 28, 0.14); }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar-header { border-bottom-color: rgba(255, 255, 255, 0.12); }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-sidebar-brand { color: #FFFDF9; background: transparent; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-sidebar-brand strong span { color: #DFC3A6; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-collapse { background: #FFFDF9; border-color: rgba(255, 255, 255, 0.25); color: #35231C; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-collapse:hover { background: #FFFFFF; border-color: #CBA57B; color: #674730; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content { scrollbar-color: #7A5A46 #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-track { background: #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-thumb { background: #7A5A46; border-color: #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-active-pill { background: var(--shell-active); }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item { color: #F7EFE6; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-collapse {
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #35231C;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+  .app-layout.astra-layout:not(.platform-layout) .astra-collapse:hover {
+    background: #FDFBF8;
+    border-color: #CBA57B;
+    color: #795137;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  }
+  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content { scrollbar-color: #7A5A46 #35231C; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-track { background: #35231C; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-thumb { background: #7A5A46; border-color: #35231C; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-active-pill { background: #CBA57B; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item { color: #FFFDF9; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item > svg:not(.bd-nav-arrow) { background: var(--shell-icon); color: #F5E6D6; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item:hover { background: var(--shell-hover); color: #FFFFFF; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item:hover > svg:not(.bd-nav-arrow) { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active,
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; color: #2E1D15; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active > span { color: #2E1D15; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; color: #35231C; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active > span { color: #35231C; }
   .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #35231C; color: #FFFDF9; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle { color: #D8C2AE; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle.is-active { color: #F5DEC6; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle { color: #D4C2B2; }
+  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle.is-active { color: #FFFDF9; }
   .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle:is(:hover, [aria-expanded="true"]) { background: rgba(255, 255, 255, 0.08); color: #FFF8EF; }
-  .app-layout:not(.platform-layout) .astra-profile { background: #38241A; border-top-color: rgba(255, 255, 255, 0.12); color: #FFFDF9; }
-  .app-layout:not(.platform-layout) .astra-avatar { background: #CBA57B; border-color: #DFC19E; color: #2E1D15; }
+  .app-layout:not(.platform-layout) .astra-profile { background: #35231C; border-top-color: rgba(255, 255, 255, 0.12); color: #FFFDF9; }
+  .app-layout:not(.platform-layout) .astra-avatar { background: #CBA57B; border-color: #DFC19E; color: #35231C; }
   .app-layout:not(.platform-layout) .astra-profile-copy strong { color: #FFFDF9; }
-  .app-layout:not(.platform-layout) .astra-profile-copy small { color: #D6C0AD; }
+  .app-layout:not(.platform-layout) .astra-profile-copy small { color: #D4C2B2; }
   .app-layout:not(.platform-layout) .astra-signout { background: rgba(255, 255, 255, 0.1); color: #F7D8CE; }
   .app-layout:not(.platform-layout) .astra-signout:hover { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
 

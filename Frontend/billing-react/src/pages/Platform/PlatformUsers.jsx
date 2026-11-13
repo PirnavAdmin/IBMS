@@ -38,7 +38,7 @@ export function PlatformUsers() {
     >
       <div className="platform-filters">
         <TextField size="small" label="Search users" value={filters.search} onChange={e => change('search', e.target.value)} />
-        <SelectFilter label="Status" value={filters.status} options={['Active', 'Inactive', 'Suspended']} onChange={v => change('status', v)} />
+        <SelectFilter label="Status" hideLabel value={filters.status} options={['Active', 'Inactive', 'Suspended']} onChange={v => change('status', v)} />
       </div>
       {Boolean(query.data) && (roles.isError || roles.fetchStatus === 'paused') && <QueryState query={roles} resource="available roles" />}
       <QueryState query={usersQuery} resource="platform users">

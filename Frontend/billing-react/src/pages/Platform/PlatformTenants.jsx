@@ -266,7 +266,7 @@ export function PlatformTenants() {
         <>
           <div className="platform-filters">
             <TextField size="small" label="Search tenants" value={filters.search} onChange={e => change('search', e.target.value)} />
-            <SelectFilter label="Status" value={filters.status} options={['Active', 'Suspended', 'Inactive']} onChange={v => change('status', v)} />
+            <SelectFilter label="Status" hideLabel value={filters.status} options={['Active', 'Suspended', 'Inactive']} onChange={v => change('status', v)} />
           </div>
           <QueryState query={query} resource="tenants">
             {query.data && (
