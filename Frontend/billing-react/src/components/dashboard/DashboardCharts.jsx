@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ArrowForward from '@mui/icons-material/ArrowForward';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import Tooltip from '@mui/material/Tooltip';
 import { money } from '../../pages/Dashboard/dashboardModel';
 import { agingArc, agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
@@ -55,7 +56,7 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
         <div className="premium-trend-heading"><span>Monthly activity</span><small><i />Invoiced <i />Collected</small></div>
         <div className="premium-month-bars">{trend.map(row => <Tooltip key={row.label} {...chartTooltipProps} title={<>{row.label}<br />Invoiced: {money(row.invoiced, currency)}<br />Collected by payment date: {money(row.collected, currency)}</>}><div className="premium-month-column" tabIndex={0} aria-label={`${row.label}: invoiced ${money(row.invoiced, currency)}, collected by payment date ${money(row.collected, currency)}`}><div className="premium-month-bar-pair"><i style={{ height: `${Math.max(0, row.invoiced) / maximum * 100}%` }} /><i style={{ height: `${Math.max(0, row.collected) / maximum * 100}%` }} /></div><small>{row.label}</small></div></Tooltip>)}</div>
       </div>
-      <details className="premium-chart-data"><summary>Monthly breakdown</summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
+      <details className="premium-chart-data"><summary className="premium-disclosure-toggle"><span>Monthly breakdown</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
     </>}
   </article>;
 };
@@ -72,7 +73,7 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
   const detailRows = outstanding.filter(row => !selectedBucket || row.agingBucket === selectedBucket);
   const overdue = buckets.filter(row => !['Current', 'No due date'].includes(row.label)).reduce((sum, row) => sum + row.value, 0);
   const selectBucket = label => { setSelectedBucket(current => current === label ? null : label); setShowDetails(true); };
-  return <article className="premium-panel premium-aging-panel">
+  return <article className={`premium-panel premium-aging-panel${showDetails ? ' is-expanded' : ''}`}>
     <header><div><h2>Outstanding Aging</h2><p>Outstanding aging breakdown &middot; Current balances &middot; {currency}</p></div></header>
     {total === 0 ? <div className="premium-empty">No outstanding balances in this date range.</div> : <>
     <div className="premium-aging-insights"><span>Overdue balance <strong>{money(overdue, currency)}</strong></span><span>Invoices <strong>{outstanding.length}</strong></span></div>
@@ -90,7 +91,7 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
       </div>
       <div className="premium-aging-legend">{buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => <Tooltip key={row.label} {...chartTooltipProps} title={`${row.label}: ${money(row.value, currency)} · ${row.share.toFixed(1)}% of outstanding. ${outstanding.filter(invoice => invoice.agingBucket === row.label).length} open invoices. Select to view details.`}><button type="button" className={activeBucket?.label === row.label ? 'is-active' : ''} aria-pressed={selectedBucket === row.label} aria-controls={`${id}-details`} onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} onFocus={() => setHoveredBucket(row.label)} onBlur={() => setHoveredBucket(null)} onClick={() => selectBucket(row.label)}><span className="premium-aging-bucket"><i aria-hidden="true" style={{ background: row.color }} />{row.label}</span><small>{row.share.toFixed(1)}%</small><strong>{money(row.value, currency)}</strong><span className="premium-bucket-meter" aria-hidden="true"><i style={{ width: `${row.share}%`, background: row.color }} /></span></button></Tooltip>)}</div>
     </div>
-    <div className="premium-outstanding-details"><button type="button" className="premium-details-toggle" aria-expanded={showDetails} aria-controls={`${id}-details`} onClick={() => setShowDetails(current => !current)}>{showDetails ? 'Hide' : 'View'} outstanding details <span aria-hidden="true">{showDetails ? '−' : '+'}</span></button>
+    <div className="premium-outstanding-details"><button type="button" className={`premium-details-toggle premium-disclosure-toggle${showDetails ? ' is-open' : ''}`} aria-expanded={showDetails} aria-controls={`${id}-details`} onClick={() => setShowDetails(current => !current)}><span>{showDetails ? 'Hide' : 'View'} outstanding details</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></button>
       {showDetails && <div id={`${id}-details`}><div className="premium-details-heading"><strong>{selectedBucket || 'All outstanding invoices'} <small>({detailRows.length})</small></strong>{selectedBucket && <button type="button" onClick={() => setSelectedBucket(null)}>Show all</button>}</div>{detailRows.length ? <div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Invoice / Customer</th><th>Due date</th><th>Balance</th></tr></thead><tbody>{detailRows.map(row => <tr key={row.id}><td><Link to={`/invoices/${row.id}`}>{row.invoiceNumber || `Invoice #${row.id}`}</Link><small>{row.customerName || row.customer?.name || 'NA'}</small></td><td>{row.dueDate ? displayDate(row.dueDate) : 'No due date'}</td><td>{money(row.balanceAmount, currency)}</td></tr>)}</tbody></table></div> : <p className="premium-empty">No outstanding invoices in this bucket.</p>}</div>}
     </div>
     </>}

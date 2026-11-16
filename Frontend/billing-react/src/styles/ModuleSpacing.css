@@ -36,6 +36,12 @@
     padding: var(--module-page-block-padding) var(--module-page-gutter);
   }
 
+  /* Dashboard uses optimized vertical spacing to eliminate empty space between header and content */
+  .app-layout > .app-layout-main > .app-layout-content > .bd-shell.premium-dashboard > main.premium-main {
+    padding-top: 14px;
+    padding-bottom: 24px;
+  }
+
   /* Settings had a second centered wrapper that moved its visible page edges. */
   .app-layout > .app-layout-main > .app-layout-content > main.settings-page > :is(
     .settings-page-header,

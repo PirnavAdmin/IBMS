@@ -12,6 +12,7 @@ const sections = [
   ['/settings/notifications', 'Notifications'],
   ['/settings/reminders', 'Reminders'],
   ['/settings/countries', 'Countries'],
+  ['/settings/profile', 'Profile Settings'],
 ];
 
 export function SettingsWorkspace({ children }) {

@@ -5,31 +5,7 @@
 .platform-metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:16px;}.platform-table-wrap {overflow:auto;border:1px solid #dccab7;border-radius:12px;background:#FFFDF9;}.platform-table-wrap table {border-collapse:collapse;width:100%;min-width:780px;}.platform-table-wrap :is(th,td) {padding:5px 10px;text-align:left;border-bottom:1px solid #e8ddd1;word-break:normal;overflow-wrap:normal;}.platform-table-wrap th {background:#f3ede5;white-space:nowrap;}.platform-table-wrap td {max-width:360px;overflow-wrap:break-word;}.platform-form {display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-top:16px;}.platform-panel dl {display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;}.platform-panel dt {color:#6E5846;font-size:12.5px;font-weight:600;}.platform-panel dd {margin:5px 0;overflow-wrap:anywhere;font-size:13.5px;font-weight:600;color:#35231C;}.platform-detail-text {white-space:pre-wrap;overflow-wrap:anywhere;}
 @media(max-width:600px){.platform-page{padding:16px 12px}.platform-form{grid-template-columns:1fr}.platform-filters>*{width:100%;min-width:0}}
 
-.app-layout.platform-layout .astra-sidebar { background:#35231C; color:#FFFDF9; }
-.app-layout.platform-layout .astra-sidebar .bd-nav-item {color:#FFFDF9;}
-.app-layout.platform-layout .astra-active-pill {background:#CBA57B;}
-.app-layout.platform-layout .astra-sidebar .bd-nav-item.active {color:#35231C;}
-.app-layout.platform-layout .astra-sidebar .bd-sidebar-brand {color:#FFFDF9;background:transparent;}
-.app-layout.platform-layout .astra-sidebar-header { border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
-.app-layout.platform-layout .astra-sidebar .astra-collapse {
-  background: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #35231C;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-.app-layout.platform-layout .astra-sidebar .astra-collapse:hover {
-  background: #FDFBF8;
-  border-color: #CBA57B;
-  color: #795137;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
-}
-.app-layout.platform-layout .astra-sidebar .astra-profile {background:#35231C;color:#FFFDF9;}
-.app-layout.platform-layout .astra-profile-copy small {color:#D4C2B2;}
 .app-layout.platform-layout .app-layout-main .bd-header {background:#D4C2B2;}
-.app-layout.platform-layout .astra-sidebar .bd-nav-item.active svg {background:#35231C;color:#FFFDF9;}
-
-.app-layout.platform-layout .astra-sidebar .astra-profile-copy strong { color:#FFFDF9; }
-.app-layout.platform-layout .astra-sidebar .bd-nav-item.active > span { color:#35231C; }
 
 /* Platform content: shared shell, clearer hierarchy and compact administration controls. */
 .platform-page {max-width:1800px;margin-inline:auto;width:100%;box-sizing:border-box;padding:18px 20px;}
@@ -87,8 +63,6 @@
 .platform-role-tags .MuiChip-root, .platform-currency-tag {background:#FFE4BF;color:#75431C;}
 .platform-setting-toggle {background:#EEE2D5;color:#644A37;}
 .platform-setting-toggle.is-enabled {background:#D8F5DE;color:#22653B;}
-.app-layout.platform-layout .astra-active-pill {background:#F2C78A;}
-.app-layout.platform-layout .astra-sidebar .bd-nav-item:not(.active):hover {background:#684938;color:#FFF9F1;}
 
 .platform-query-error { margin-bottom:16px; overflow-wrap:anywhere; }.platform-query-error .MuiAlert-message {min-width:0;}.platform-query-error .MuiAlert-action {align-items:center;}.platform-query-error .MuiAlertTitle-root {font-size:15px;font-weight:650;}
 

@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import Alert from '@mui/material/Alert';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
 import InputAdornment from '@mui/material/InputAdornment';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -224,6 +226,52 @@ export function InvoiceList() {
       subtitle="Create, issue and manage customer invoices."
       actions={
         <>
+          <div className="invoice-currency-control">
+            <Select
+              id="invoice-currency-select"
+              size="small"
+              className="invoice-currency-select"
+              value={selectValue}
+              displayEmpty
+              renderValue={(selected) => {
+                const option = currencyOptions.find((c) => c.code === selected);
+                const text = option ? option.label : selected;
+                return (
+                  <span className="invoice-currency-inline-value">
+                    <span className="invoice-currency-prefix">Select Currency:</span>
+                    <strong className="invoice-currency-text">{text}</strong>
+                  </span>
+                );
+              }}
+              onChange={(event) => {
+                const newCurrency = event.target.value;
+                setFilters((previous) => ({
+                  ...previous,
+                  currency: newCurrency,
+                  page: 1,
+                }));
+              }}
+              inputProps={{
+                "aria-label": "Select Currency",
+              }}
+              IconComponent={KeyboardArrowDown}
+              MenuProps={{
+                PaperProps: {
+                  className: "invoice-currency-menu",
+                },
+                MenuListProps: {
+                  "aria-label": "Currency options",
+                },
+                marginThreshold: 8,
+              }}
+            >
+              {currencyOptions.map(({ code, label }) => (
+                <MenuItem key={code} value={code}>
+                  {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
           <Button variant="outlined" disabled={exporting || !user.permissions.view || Boolean(invalidDates) || Boolean(searchError)} onClick={exportCsv}>
             {exporting ? 'Exporting CSV...' : 'Export CSV'}
           </Button>
@@ -377,40 +425,6 @@ export function InvoiceList() {
           >
             <div className="invoice-summary-header">
               <h2>{currentGroup.currency ? `${currentGroup.currency} / All invoices` : "All invoices"}</h2>
-              <div className="invoice-currency-control">
-                <Select
-                  size="small"
-                  className="invoice-currency-select"
-                  value={selectValue}
-                  onChange={(event) => {
-                    const newCurrency = event.target.value;
-                    setFilters((previous) => ({
-                      ...previous,
-                      currency: newCurrency,
-                      page: 1,
-                    }));
-                  }}
-                  inputProps={{
-                    "aria-label": "Currency",
-                  }}
-                  IconComponent={KeyboardArrowDown}
-                  MenuProps={{
-                    PaperProps: {
-                      className: "invoice-currency-menu",
-                    },
-                    MenuListProps: {
-                      "aria-label": "Currency options",
-                    },
-                    marginThreshold: 8,
-                  }}
-                >
-                  {currencyOptions.map(({ code, label }) => (
-                    <MenuItem key={code} value={code}>
-                      {label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </div>
             </div>
             <div className="invoice-summary-grid" tabIndex={0} role="region" aria-label={`${currentGroup.currency} invoice summary cards`}>
               {kpiCards.map(
@@ -538,29 +552,6 @@ export function InvoiceList() {
               </MenuItem>
             ))}
           </FilterSelectField>
-          <Autocomplete
-            className="invoice-filter-customer"
-            size="small"
-            options={customers.data?.items || []}
-            filterOptions={(options) => options}
-            value={customer}
-            loading={customers.isFetching}
-            getOptionLabel={(option) => option.name}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            onInputChange={(_, value) => setCustomerSearch(value)}
-            onChange={(_, value) => {
-              setCustomer(value);
-              change("customerId", value?.id || "");
-            }}
-            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
-          />
-          <InvoiceDateRangeFilter
-            startDate={filters.startDate}
-            endDate={filters.endDate}
-            onApply={(dates) => setFilters((previous) => ({
-              ...previous, ...dates, page: 1,
-            }))}
-          />
           <FilterSelectField
             select
             size="small"
@@ -601,20 +592,45 @@ export function InvoiceList() {
               ),
             )}
           </FilterSelectField>
+          <Autocomplete
+            className="invoice-filter-customer"
+            size="small"
+            options={customers.data?.items || []}
+            filterOptions={(options) => options}
+            value={customer}
+            loading={customers.isFetching}
+            getOptionLabel={(option) => option.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            onInputChange={(_, value) => setCustomerSearch(value)}
+            onChange={(_, value) => {
+              setCustomer(value);
+              change("customerId", value?.id || "");
+            }}
+            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
+          />
+          <InvoiceDateRangeFilter
+            iconOnly={true}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+            onApply={(dates) => setFilters((previous) => ({
+              ...previous, ...dates, page: 1,
+            }))}
+          />
           <Button
             variant="outlined"
             size="small"
             className="invoice-filter-reset"
-            startIcon={<RestartAlt />}
+            title="Reset Filters"
+            aria-label="Reset Filters"
             onClick={() => {
               setFilters(initialFilters);
               setSearch("");
-              
               setCustomer(null);
               setCustomerSearch("");
             }}
           >
-            Reset Filters
+            <RestartAlt />
+            <span className="visually-hidden">Reset Filters</span>
           </Button>
         </div>
         {invalidDates && (
