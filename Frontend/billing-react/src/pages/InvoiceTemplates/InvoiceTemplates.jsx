@@ -27,6 +27,7 @@ import Add from '@mui/icons-material/Add';
 import ArrowBack from '@mui/icons-material/ArrowBack';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import ErrorOutline from '@mui/icons-material/ErrorOutline';
 import ImageOutlined from '@mui/icons-material/ImageOutlined';
@@ -164,7 +165,7 @@ const configFromTemplate = (template = {}, preferActiveVersion = false) => {
   const paymentMethod = storedMethod || (payment.upiId && !payment.bankName && !payment.accountNumber ? 'UPI' : payment.bankName || payment.accountNumber ? 'Bank Transfer' : '');
   const paymentDetails = storedDetails.filter((line) => !['Payment method: ', 'Branch: ', 'Payment provider: ', 'Secure payment link: ', 'Card payment instructions: ', 'Internet Banking: ', 'Supported Banks: ', 'NetBanking Banks: ', 'NetBanking instructions: ', 'Card Gateway: ', 'Card instructions: '].some((prefix) => line.startsWith(prefix))).join('\n');
   const templateName = template.name || template.Name || '';
-  const detectedDesign = layout.templateDesign || layout.TemplateDesign || (templateName.includes('Template 4') ? 'Corner' : 'Standard');
+  const detectedDesign = layout.templateDesign || layout.TemplateDesign || (templateName.toLowerCase().includes('wave') ? 'WaveClean' : templateName.includes('Template 4') ? 'Corner' : 'Standard');
   return { ...emptyConfig, name: templateName, description: template.description || template.Description || '', style: typeof (template.style ?? template.Style) === 'number' ? (STYLES[(template.style ?? template.Style) - 1] || 'Standard') : (template.style || template.Style || 'Standard'), company: company.companyName || company.company || '', address: company.addressLine1 || company.address || '', email: company.email || company.Email || '', phone: company.phone || company.Phone || '', website: company.website || company.Website || '', registration: company.registrationNumber || company.taxId || company.registration || '', primary: branding.primaryColor || branding.primary || emptyConfig.primary, secondary: branding.secondaryColor || branding.secondary || emptyConfig.secondary, logoName: branding.logoName || '', logoUrl: branding.logoUrl || '', logoPosition: branding.logoPosition || 'left', logoWidth: branding.logoWidth || 96, header: terms.headerText || terms.header || '', footer: terms.footerNote || terms.footer || '', paymentMethod, payment: payment.paymentNotes || payment.payment || '', accountHolderName: payment.accountHolderName || '', bankName: payment.bankName || '', accountNumber: payment.accountNumber || '', ifscCode: payment.ifscCode || '', branch, upiId: payment.upiId || '', netBankingEnabled, netBankingProvider, netBankingBanks, netBankingInstructions, paymentProvider: payment.paymentProvider || payment.PaymentProvider || paymentProvider, providerName, securePaymentLink, cardPaymentInstructions, paymentDetails, terms: terms.termsAndConditions || terms.terms || '', usePirnavStandardLayout: Boolean(layout.usePirnavStandardLayout || layout.UsePirnavStandardLayout), templateDesign: detectedDesign, sections: { ...DEFAULT_SECTIONS, ...(layout.sections || layout.Sections || {}) } };
 };
 const paymentDetailsText = (config) => [
@@ -181,7 +182,7 @@ const paymentDetailsText = (config) => [
   config.cardPaymentInstructions && `Card instructions: ${config.cardPaymentInstructions}`,
   config.paymentDetails
 ].filter(Boolean).join('\n');
-const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || null, sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, netBankingEnabled: config.netBankingEnabled !== false, netBankingProvider: config.netBankingProvider || 'Razorpay NetBanking', netBankingBanks: config.netBankingBanks || null, netBankingInstructions: config.netBankingInstructions || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
+const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), description: config.description || null, style: config.style, branding: { logoUrl: config.logoUrl || null, logoName: config.logoName || null, logoPosition: config.logoPosition, logoWidth: config.logoWidth, primaryColor: config.primary, secondaryColor: config.secondary }, companyDetails: { companyName: config.company, addressLine1: config.address, email: config.email || null, phone: config.phone || null, website: config.website || null }, layout: { usePirnavStandardLayout: config.templateDesign === 'WaveClean' ? false : Boolean(config.usePirnavStandardLayout), templateDesign: config.templateDesign || (config.name && config.name.toLowerCase().includes('wave') ? 'WaveClean' : null), sections: config.sections }, paymentInstructions: { paymentNotes: null, bankDetails: paymentDetailsText(config) || null, accountHolderName: config.accountHolderName || null, bankName: config.bankName || null, accountNumber: config.accountNumber || null, ifscCode: config.ifscCode || null, branch: config.branch || null, upiId: config.upiId || null, netBankingEnabled: config.netBankingEnabled !== false, netBankingProvider: config.netBankingProvider || 'Razorpay NetBanking', netBankingBanks: config.netBankingBanks || null, netBankingInstructions: config.netBankingInstructions || null, paymentProvider: config.paymentProvider || 'Razorpay', cardPaymentInstructions: config.cardPaymentInstructions || null }, terms: { headerText: config.header, footerNote: config.footer, termsAndConditions: config.terms }, sections: config.sections, ...extra });
 
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
@@ -213,7 +214,7 @@ function TemplatePage({ title, description, children, notice, actions, hideNavig
   </main>;
 }
 
-function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onView, onEdit, onDefault, onStatus }) {
+function TemplateActionsMenu({ template, isActive, isDraft, isDefault, isSystemTemplate, busy, onView, onEdit, onDefault, onStatus, onDelete }) {
   const [anchor, setAnchor] = useState(null);
   const menuId = `template-actions-${template.id ?? template.Id}`;
   const close = () => setAnchor(null);
@@ -230,6 +231,11 @@ function TemplateActionsMenu({ template, isActive, isDraft, isDefault, busy, onV
       <MenuItem onClick={() => select(onEdit)}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit</MenuItem>
       {isActive && !isDefault && <MenuItem disabled={busy} onClick={() => select(onDefault)}><ListItemIcon><StarOutline fontSize="small" /></ListItemIcon>Make default</MenuItem>}
       <MenuItem className={isActive ? 'is-destructive' : undefined} disabled={busy} onClick={() => select(onStatus)}><ListItemIcon>{isActive ? <ToggleOff fontSize="small" /> : <ToggleOn fontSize="small" />}</ListItemIcon>{isActive ? 'Deactivate' : 'Activate'}</MenuItem>
+      {!isSystemTemplate && !isDefault && (
+        <MenuItem className="is-destructive" disabled={busy} onClick={() => select(onDelete)}>
+          <ListItemIcon><DeleteOutline fontSize="small" color="error" /></ListItemIcon>Delete
+        </MenuItem>
+      )}
     </Menu>
   </div>;
 }
@@ -275,7 +281,7 @@ export async function analyzeAndVerifyInvoiceImage(file) {
         const totalPixels = sampleW * sampleH;
 
         let lightPixels = 0;
-        let sumR = 0, sumG = 0, sumB = 0;
+        let brandR = 0, brandG = 0, brandB = 0, brandPixels = 0;
 
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
@@ -283,16 +289,23 @@ export async function analyzeAndVerifyInvoiceImage(file) {
           const b = data[i + 2];
           const lum = 0.299 * r + 0.587 * g + 0.114 * b;
           if (lum > 195) lightPixels++;
-          sumR += r;
-          sumG += g;
-          sumB += b;
+
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const sat = max > 0 ? (max - min) / max : 0;
+          // Capture colorful brand pixels (accent banner, headers, logo)
+          if (sat > 0.22 && lum > 30 && lum < 220) {
+            brandR += r;
+            brandG += g;
+            brandB += b;
+            brandPixels++;
+          }
         }
 
         const lightPixelRatio = lightPixels / totalPixels;
-        const avgR = Math.round(sumR / totalPixels);
-        const avgG = Math.round(sumG / totalPixels);
-        const avgB = Math.round(sumB / totalPixels);
-        const dominantColor = `#${((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1)}`;
+        const dominantColor = brandPixels > 20
+          ? `#${((1 << 24) + (Math.round(brandR / brandPixels) << 16) + (Math.round(brandG / brandPixels) << 8) + Math.round(brandB / brandPixels)).toString(16).slice(1)}`
+          : '#137E88';
 
         let horizontalLineCount = 0;
         const startY = Math.floor(sampleH * 0.12);
@@ -522,20 +535,29 @@ function UploadCustomTemplateModal({ open, onClose, onSaved }) {
         style: templateStyle,
         activateImmediately: true,
         branding: {
-          logoUrl: result.previewUrl,
-          logoName: file?.name || 'template-image.png',
+          logoUrl: null,
+          logoName: null,
           logoPosition: 'left',
           logoWidth: 140,
           primaryColor: result.dominantColor || '#137E88',
           secondaryColor: '#F0F9FA',
         },
+        companyDetails: {
+          companyName: 'Your Company Name',
+          addressLine1: 'Your Business Address, City, Country, Postal',
+        },
         layout: {
           templateDesign: 'WaveClean',
           usePirnavStandardLayout: false,
-          showLogo: true,
+          showLogo: false,
           showTaxBreakdown: true,
           showPaymentInstructions: true,
           showTermsAndConditions: true,
+        },
+        terms: {
+          headerText: 'Invoice',
+          footerNote: 'Thank you for choosing us! This is a system-generated invoice.',
+          termsAndConditions: '1. Payment should be made within agreed terms.\n2. Please mention the invoice number in all payment references.'
         }
       };
 
@@ -565,11 +587,15 @@ function UploadCustomTemplateModal({ open, onClose, onSaved }) {
       style: templateStyle,
       description: `Custom uploaded template (Certified ${result.confidence}% confidence)`,
       templateDesign: 'WaveClean',
-      logoUrl: result.previewUrl,
-      logoName: file?.name || 'template-image.png',
+      logoUrl: '',
+      logoName: '',
       logoPosition: 'left',
       primary: result.dominantColor || '#137E88',
       secondary: '#F0F9FA',
+      company: 'Your Company Name',
+      address: 'Your Business Address, City, Country, Postal',
+      header: 'Invoice',
+      footer: 'Thank you for choosing us! This is a system-generated invoice.',
       usePirnavStandardLayout: false
     };
     handleClose();
@@ -756,6 +782,15 @@ export function InvoiceTemplates() {
   const [viewError, setViewError] = useState('');
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deletedSampleIds, setDeletedSampleIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('ibms_deleted_sample_templates') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const load = async () => {
     setLoading(true); setError(''); setLoadError('');
     try {
@@ -809,6 +844,33 @@ export function InvoiceTemplates() {
     } catch (requestError) { setError(asError(requestError)); }
     finally { setStatusBusyId(null); }
   };
+  const confirmDeleteTemplate = async () => {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    setError('');
+    try {
+      const isSample = deleteTarget.isSamplePreset || deleteTarget.id === 'wave-clean' || (typeof deleteTarget.id === 'string' && isNaN(Number(deleteTarget.id)));
+      if (isSample) {
+        setDeletedSampleIds((prev) => {
+          const next = [...prev, String(deleteTarget.id)];
+          try { localStorage.setItem('ibms_deleted_sample_templates', JSON.stringify(next)); } catch {}
+          return next;
+        });
+        setNotice(`Template "${deleteTarget.name || deleteTarget.Name || 'Template'}" deleted successfully.`);
+        setDeleteTarget(null);
+      } else {
+        const id = templateKey(deleteTarget);
+        await templateApi.delete(id);
+        setNotice(`Template "${deleteTarget.name || deleteTarget.Name || 'Template'}" deleted successfully.`);
+        setDeleteTarget(null);
+        await load();
+      }
+    } catch (requestError) {
+      setError(asError(requestError));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
   const openTemplatePreview = async (template) => {
     setViewLoading(true);
     setViewError('');
@@ -823,7 +885,7 @@ export function InvoiceTemplates() {
       setViewLoading(false);
     }
   };
-  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<div className="template-heading-actions"><Button variant="outlined" onClick={() => setTemplateGalleryOpen(true)}>Templates</Button><Button variant="outlined" startIcon={<CloudUploadOutlined />} onClick={() => setUploadModalOpen(true)}>Upload template</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button></div>}>
+  return <TemplatePage title="Invoice templates" description="Search and manage the invoice layouts available to your organization." actions={<div className="template-heading-actions"><Button variant="outlined" onClick={() => setTemplateGalleryOpen(true)}>Templates</Button><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/templates-branding/new')}>Create template</Button></div>}>
     <TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />{error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
     <section className="template-list-card" aria-labelledby="template-list-heading">
       <div className="template-section-title"><div><h2 id="template-list-heading">Templates</h2></div></div>
@@ -839,12 +901,15 @@ export function InvoiceTemplates() {
           <thead><tr><th scope="col">Template name</th><th scope="col">Style</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Last modified date</th><th scope="col">Last modified user</th><th scope="col" className="template-actions-heading">Actions</th></tr></thead>
           <tbody>{visibleTemplates.map((template) => {
             const id = templateKey(template);
+            const isSystem = template.createdBy === 'SystemSeed' || template.lastModifiedUser === 'SystemSeed' || template.updatedBy === 'SystemSeed';
             return <tr key={id}><td><span className="template-name-cell"><Link className="template-name-link" to={`/templates-branding/${id}/edit`}>{template.name || template.Name}</Link>{(template.isDefault || template.IsDefault) && <span className="template-default-badge">Default</span>}</span></td><td>{typeof template.style === 'number' ? STYLES[template.style - 1] : template.style}</td><td>{template.version || `v${template.currentVersionNumber}`}</td><td>{STATUS_LABELS[template.status] || template.status}</td><td>{formatDateTime(template.lastModifiedDate || template.lastModified || template.updatedAtUtc || template.createdAtUtc)}</td><td>{template.lastModifiedUser || template.updatedBy || template.createdBy}</td><td className="template-actions-cell"><TemplateActionsMenu
               template={template} isActive={isActiveTemplate(template)} isDraft={isDraftTemplate(template)} isDefault={isDefaultTemplate(template)}
-              busy={statusBusyId === id || defaultBusyId === id}
+              isSystemTemplate={isSystem}
+              busy={statusBusyId === id || defaultBusyId === id || (deleteBusy && deleteTarget && templateKey(deleteTarget) === id)}
               onView={() => openTemplatePreview(template)} onEdit={() => navigate(`/templates-branding/${id}/edit`)}
               onDefault={() => setDefaultTemplate(template)}
               onStatus={() => isDraftTemplate(template) ? activateDraftTemplate(template) : updateTemplateStatus(template)}
+              onDelete={() => setDeleteTarget(template)}
             /></td></tr>;
           })}{visibleTemplates.length === 0 && <tr><td colSpan="7"><div className="template-empty"><strong>{search || status || style ? 'No matching templates' : 'No templates available'}</strong></div></td></tr>}</tbody>
         </table>
@@ -877,6 +942,20 @@ export function InvoiceTemplates() {
         )}
       </DialogActions>
     </Dialog>
+    <Dialog open={Boolean(deleteTarget)} onClose={deleteBusy ? undefined : () => setDeleteTarget(null)} maxWidth="xs" fullWidth sx={{ zIndex: 1400 }}>
+      <DialogTitle>Delete Template</DialogTitle>
+      <DialogContent dividers>
+        <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5 }}>
+          Are you sure you want to delete template <strong>"{deleteTarget?.name || deleteTarget?.Name}"</strong>? This will archive the template and remove it from your organization.
+        </p>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteTarget(null)} disabled={deleteBusy}>Cancel</Button>
+        <Button variant="contained" color="error" onClick={confirmDeleteTemplate} disabled={deleteBusy}>
+          {deleteBusy ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
+        </Button>
+      </DialogActions>
+    </Dialog>
     <Dialog open={templateGalleryOpen} onClose={() => setTemplateGalleryOpen(false)} maxWidth="xl" fullWidth aria-labelledby="template-gallery-title">
       <DialogTitle id="template-gallery-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span>Choose an invoice template</span>
@@ -887,14 +966,102 @@ export function InvoiceTemplates() {
       <DialogContent dividers>
         <p className="template-gallery-intro">Pick a design to start with, or upload your existing company invoice layout. You can customize colors, logos, and sections before saving.</p>
         <div className="template-gallery-grid">
-          {SAMPLE_TEMPLATE_DESIGNS.map((design) => <article className="template-gallery-card" key={design.id}>
-            <div className="template-gallery-card-heading"><div><h3>{design.name}</h3><p>{design.description}</p></div><Chip label={design.config.style} size="small" /></div>
-            <div className="template-gallery-preview"><SampleInvoicePreview style={design.config.style} config={design.config} /></div>
-            <Button variant="contained" onClick={() => {
-              setTemplateGalleryOpen(false);
-              navigate('/templates-branding/new', { state: { config: design.config, creationFlow: true } });
-            }}>Use this template</Button>
-          </article>)}
+          {SAMPLE_TEMPLATE_DESIGNS.filter((d) => !deletedSampleIds.includes(String(d.id))).map((design) => (
+            <article className="template-gallery-card" key={design.id}>
+              <div className="template-gallery-card-heading">
+                <div>
+                  <h3>{design.name}</h3>
+                  <p>{design.description}</p>
+                </div>
+                <Chip label={design.isCustom ? 'Uploaded' : design.config.style} color={design.isCustom ? 'primary' : 'default'} size="small" />
+              </div>
+              <div className="template-gallery-preview">
+                <SampleInvoicePreview style={design.config.style} config={design.config} />
+              </div>
+              {design.canDelete ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', width: '100%', marginTop: '4px' }}>
+                  <Button
+                    variant="contained"
+                    sx={{ flex: 1 }}
+                    onClick={() => {
+                      setTemplateGalleryOpen(false);
+                      navigate('/templates-branding/new', { state: { config: design.config, creationFlow: true } });
+                    }}
+                  >
+                    Use this template
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteOutline />}
+                    onClick={() => setDeleteTarget({ ...design, isSamplePreset: true })}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    setTemplateGalleryOpen(false);
+                    navigate('/templates-branding/new', { state: { config: design.config, creationFlow: true } });
+                  }}
+                >
+                  Use this template
+                </Button>
+              )}
+            </article>
+          ))}
+
+          {templates
+            .filter((t) => {
+              const creator = t.createdBy || t.CreatedBy || '';
+              const modifier = t.lastModifiedUser || t.LastModifiedUser || '';
+              const updater = t.updatedBy || t.UpdatedBy || '';
+              const isSeed = creator === 'SystemSeed' || modifier === 'SystemSeed' || updater === 'SystemSeed';
+              return !isSeed;
+            })
+            .map((t) => {
+              const tConfig = configFromTemplate(t, true);
+              const id = templateKey(t);
+              const isDefault = isDefaultTemplate(t);
+              return (
+                <article className="template-gallery-card custom-uploaded-card" key={`uploaded-${id}`}>
+                  <div className="template-gallery-card-heading">
+                    <div>
+                      <h3>{t.name || t.Name}</h3>
+                      <p>{t.description || t.Description || 'Custom uploaded template'}</p>
+                    </div>
+                    <Chip label="Uploaded" color="secondary" size="small" />
+                  </div>
+                  <div className="template-gallery-preview">
+                    <SampleInvoicePreview style={tConfig.style} config={tConfig} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', width: '100%', marginTop: '4px' }}>
+                    <Button
+                      variant="contained"
+                      sx={{ flex: 1 }}
+                      onClick={() => {
+                        setTemplateGalleryOpen(false);
+                        navigate(`/templates-branding/${id}/edit`);
+                      }}
+                    >
+                      Use this template
+                    </Button>
+                    {!isDefault && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteOutline />}
+                        onClick={() => setDeleteTarget(t)}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
         </div>
       </DialogContent>
       <DialogActions><Button onClick={() => setTemplateGalleryOpen(false)}>Close</Button></DialogActions>
@@ -927,7 +1094,7 @@ const SAMPLE_TEMPLATE_DESIGNS = [
   { id: 'skyline-lilac', name: 'Skyline Lilac', description: 'Airy blue and lilac accents for modern client services.', config: { ...emptyConfig, name: 'Skyline Lilac', style: 'Standard', company: 'Skyline Studio', primary: '#5967A8', secondary: '#EEF0FA', logoPosition: 'right', usePirnavStandardLayout: false } },
   { id: 'espresso-cream', name: 'Espresso Cream', description: 'A warm, understated layout with a refined coffee-toned palette.', config: { ...emptyConfig, name: 'Espresso Cream', style: 'Compact', company: 'Roast & Ritual', primary: '#634331', secondary: '#F4EEE7', logoPosition: 'left', usePirnavStandardLayout: false } },
   { id: 'coral-clean', name: 'Coral Clean', description: 'Bright coral highlights in a clean, approachable invoice design.', config: { ...emptyConfig, name: 'Coral Clean', style: 'Standard', company: 'Coral Coast Studio', primary: '#C6534B', secondary: '#F9ECEA', logoPosition: 'right', usePirnavStandardLayout: false } },
-  { id: 'wave-clean', name: 'Wave Clean', description: 'Corporate Wave layout with a top accent bar, bold invoice header, clean table, and prominent totals.', config: { ...emptyConfig, name: 'Wave Clean', style: 'Professional', company: 'Your Company Name', primary: '#137E88', secondary: '#F0F9FA', logoPosition: 'left', templateDesign: 'WaveClean', usePirnavStandardLayout: false } },
+  { id: 'wave-clean', name: 'Wave Clean', description: 'Corporate Wave layout with a top accent bar, bold invoice header, clean table, and prominent totals.', canDelete: true, isCustom: true, config: { ...emptyConfig, name: 'Wave Clean', style: 'Professional', company: 'Your Company Name', primary: '#137E88', secondary: '#F0F9FA', logoPosition: 'left', templateDesign: 'WaveClean', usePirnavStandardLayout: false } },
 ];
 
 const validateContactField = (key, value) => {
@@ -1000,9 +1167,23 @@ function colorContrast(hex) {
 function BasicTemplateFields({ value, onChange, errors = {} }) {
   const text = (key) => ({ value: value[key], onChange: (event) => onChange(key, event.target.value) });
   return <>
-    <div className="template-fields"><TextField label="Template name" required error={Boolean(errors.name)} helperText={errors.name} {...text('name')} fullWidth />
+    <div className="template-fields">
+      <TextField label="Template name" required error={Boolean(errors.name)} helperText={errors.name} {...text('name')} fullWidth />
       <TextField label="Template style" select {...text('style')} fullWidth>{STYLES.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField>
-      <TextField label="Description (optional)" {...text('description')} multiline minRows={2} fullWidth /></div>
+      <TextField
+        label="Layout Design"
+        select
+        value={value.templateDesign || 'Standard'}
+        onChange={(event) => onChange('templateDesign', event.target.value)}
+        fullWidth
+        helperText="Choose invoice layout structure"
+      >
+        <MenuItem value="Standard">Standard Layout</MenuItem>
+        <MenuItem value="WaveClean">Wave Clean (Top Accent Bar, Bold Totals)</MenuItem>
+        <MenuItem value="Corner">Corner Badge Layout</MenuItem>
+      </TextField>
+      <TextField label="Description (optional)" {...text('description')} multiline minRows={2} fullWidth />
+    </div>
     <h3>Invoice sections (preview only)</h3><div className="template-section-toggles">{Object.entries({ invoiceNumber: 'Invoice number', invoiceDate: 'Invoice date', dueDate: 'Due date', customer: 'Customer details', items: 'Line items', quantity: 'Quantity', unitPrice: 'Unit price', discount: 'Discount', tax: 'Tax', totals: 'Overall totals' }).map(([key, label]) => <FormControlLabel key={key} control={<Checkbox checked={value.sections[key]} onChange={(event) => onChange('sections', { ...value.sections, [key]: event.target.checked })} />} label={label} />)}</div>
   </>;
 }
@@ -1112,6 +1293,17 @@ function EditorScreen({ mode }) {
   const hasFlowConfig = Boolean(location.state?.config);
   const update = (key, value) => setConfig((current) => ({ ...current, [key]: value }));
   useEffect(() => {
+    if (location.state?.config) {
+      const incoming = {
+        ...emptyConfig,
+        ...location.state.config,
+        sections: { ...DEFAULT_SECTIONS, ...(location.state.config.sections || {}) }
+      };
+      draft.clear();
+      setConfig(incoming);
+    }
+  }, [location.state?.config]);
+  useEffect(() => {
     if (!edit) return;
     if (hasFlowConfig) { setLoading(false); return; }
     setLoading(true); setLoadError('');
@@ -1170,6 +1362,15 @@ export function BrandingSettings() {
   const [notice, setNotice] = useState('');
   const creationFlow = location.state?.creationFlow === true;
   const [previewOpen, setPreviewOpen] = useState(false);
+  useEffect(() => {
+    if (location.state?.config) {
+      setConfig((current) => ({
+        ...current,
+        ...location.state.config,
+        sections: { ...DEFAULT_SECTIONS, ...(location.state.config.sections || current.sections || {}) }
+      }));
+    }
+  }, [location.state?.config]);
   const update = (key, value) => {
     if (key === 'accountNumber') value = value.replace(/\D/g, '');
     if (key === 'ifscCode') value = value.toUpperCase();
