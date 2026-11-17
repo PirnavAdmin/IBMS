@@ -418,7 +418,7 @@ export function InvoiceList() {
           <FilterSelectField
             select
             size="small"
-            label="Status"
+            inputProps={{ "aria-label": "Filter invoices by status" }}
             value={filters.status}
             onChange={(event) => change("status", event.target.value)}
             className="invoice-filter-status"
@@ -467,7 +467,7 @@ export function InvoiceList() {
               setCustomer(value);
               change("customerId", value?.id || "");
             }}
-            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
+            renderInput={(params) => <TextField {...params} size="small" placeholder="Customer" inputProps={{ ...params.inputProps, "aria-label": "Filter invoices by customer" }} />}
           />
           <InvoiceDateRangeFilter
             startDate={filters.startDate}
@@ -479,7 +479,7 @@ export function InvoiceList() {
           <FilterSelectField
             select
             size="small"
-            label="Payment state"
+            inputProps={{ "aria-label": "Filter invoices by payment state" }}
             value={filters.paymentState}
             onChange={(event) => change("paymentState", event.target.value)}
             className="invoice-filter-payment"

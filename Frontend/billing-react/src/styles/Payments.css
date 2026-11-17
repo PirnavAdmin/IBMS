@@ -24,7 +24,9 @@
 .payments-page .MuiOutlinedInput-root, .payment-dialog .MuiOutlinedInput-root { border-radius: 10px; background: var(--surface); font-size: 14px; }
 .payment-filters .MuiOutlinedInput-root { height: 42px; }
 .payment-filters .payment-search .MuiFormHelperText-root { display: none !important; }
-.payments-page .MuiInputLabel-root, .payment-dialog .MuiInputLabel-root { font-size: 14px; }
+.payments-page .MuiInputLabel-root, .payment-dialog .MuiInputLabel-root { display: none !important; }
+.payments-page .MuiOutlinedInput-notchedOutline legend,
+.payment-dialog .MuiOutlinedInput-notchedOutline legend { max-width: 0.01px !important; }
 .payments-page .MuiOutlinedInput-notchedOutline, .payment-dialog .MuiOutlinedInput-notchedOutline { border-color: var(--border); }
 .payments-page .MuiButton-root, .payment-dialog .MuiButton-root { text-transform: none; border-radius: 10px; font-weight: 600; padding: 9px 16px; color: var(--primary); }
 .payments-page .MuiButton-contained, .payment-dialog .MuiButton-contained { background: var(--primary); color: var(--surface); box-shadow: none; }

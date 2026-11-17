@@ -44,20 +44,20 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
   };
 
   return <div className="product-filters">
-    <SearchField className="product-search" label="Search products" placeholder="Name or code" size="small" value={search} onChange={event => onSearch(event.target.value)} InputProps={{
+    <SearchField className="product-search" placeholder="Name or code" size="small" inputProps={{ 'aria-label': 'Search products' }} value={search} onChange={event => onSearch(event.target.value)} InputProps={{
       startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
       endAdornment: search ? <InputAdornment position="end"><IconButton size="small" aria-label="Clear search" onClick={() => onSearch('')}><Close fontSize="small" /></IconButton></InputAdornment> : null,
     }} />
-    <FilterSelectField disabled={categoriesLoading} select SelectProps={categorySelectProps} label="Category" size="small" value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
+    <FilterSelectField disabled={categoriesLoading} select SelectProps={categorySelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by category' }} value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
       <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
     </FilterSelectField>
-    <FilterSelectField select SelectProps={statusSelectProps} label="Status" size="small" value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
+    <FilterSelectField select SelectProps={statusSelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by status' }} value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
       <MenuItem value={ALL_STATUSES}>All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </FilterSelectField>
     <TextField
       select
       SelectProps={sortSelectProps}
-      label="Sort By"
+      inputProps={{ 'aria-label': 'Sort products' }}
       size="small"
       value={sortValue}
       onChange={event => handleSortChange(event.target.value)}

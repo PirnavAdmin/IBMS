@@ -17,7 +17,7 @@ export function PaymentReversalContent({ reason, onChange, error, payment }) {
     ['Payment Number',payment?.paymentNumber],['Payment Amount',payment && money(payment.amount,payment.currency)],['Allocated Amount',payment && money(payment.allocatedAmount,payment.currency)],
     ['Affected Invoice',payment?.invoiceDisplay], ...((payment?.allocations || []).map(a => [`${a.invoiceNumber} Outstanding`,money(a.invoiceBalanceAmount,payment.currency)])),
   ]} /><Alert severity="warning">Reversing this payment will update the invoice paid and outstanding balance.</Alert>
-    <TextField fullWidth required multiline minRows={3} margin="normal" label="Reversal Reason" value={reason} onChange={onChange} error={Boolean(error)} helperText={error || '3 to 500 characters'} />
+    <TextField fullWidth required multiline minRows={3} margin="normal" placeholder="Reversal reason" inputProps={{ "aria-label": "Reversal reason" }} value={reason} onChange={onChange} error={Boolean(error)} helperText={error || '3 to 500 characters'} />
   </>;
 }
 export function PaymentReversal({ open, onClose, paymentId }) {

@@ -120,8 +120,9 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
 
   // Mask secrets via CSS instead of type="password" so browsers never autofill login credentials here.
   const maskedInputSx = showSecrets ? undefined : { '& input': { WebkitTextSecurity: 'disc' } };
-  const noAutofillProps = (name) => ({
+  const noAutofillProps = (name, label) => ({
     name,
+    'aria-label': label,
     autoComplete: 'off',
     'data-lpignore': 'true',
     'data-1p-ignore': 'true',
@@ -303,7 +304,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     value={testKeyId}
                     onChange={(e) => setTestKeyId(e.target.value)}
                     disabled={!canEdit}
-                    inputProps={noAutofillProps('rzp-test-key-id')}
+                    inputProps={noAutofillProps('rzp-test-key-id', 'Razorpay Test Key ID')}
                     helperText="Leave blank for built-in local IBMS sandbox"
                   />
                   <TextField
@@ -314,7 +315,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     value={testKeySecret}
                     onChange={(e) => { setTestKeySecret(e.target.value); setClearFlags((f) => ({ ...f, testSecret: false })); }}
                     disabled={!canEdit}
-                    inputProps={noAutofillProps('rzp-test-key-secret')}
+                    inputProps={noAutofillProps('rzp-test-key-secret', 'Razorpay Test Key Secret')}
                     sx={maskedInputSx}
                     InputProps={{
                       startAdornment: <InputAdornment position="start"><LockOutlined fontSize="small" /></InputAdornment>,
@@ -329,7 +330,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     value={testWebhookSecret}
                     onChange={(e) => { setTestWebhookSecret(e.target.value); setClearFlags((f) => ({ ...f, testWebhook: false })); }}
                     disabled={!canEdit}
-                    inputProps={noAutofillProps('rzp-test-wh-secret')}
+                    inputProps={noAutofillProps('rzp-test-wh-secret', 'Test Webhook Secret')}
                     sx={{ gridColumn: { sm: 'span 2' }, ...maskedInputSx }}
                   />
                 </Box>
@@ -349,7 +350,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     onChange={(e) => setLiveKeyId(e.target.value)}
                     disabled={!canEdit}
                     required={!isSandbox}
-                    inputProps={noAutofillProps('rzp-live-key-id')}
+                    inputProps={noAutofillProps('rzp-live-key-id', 'Razorpay Live Key ID')}
                   />
                   <TextField
                     size="small"
@@ -359,7 +360,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     value={liveKeySecret}
                     onChange={(e) => { setLiveKeySecret(e.target.value); setClearFlags((f) => ({ ...f, liveSecret: false })); }}
                     disabled={!canEdit}
-                    inputProps={noAutofillProps('rzp-live-key-secret')}
+                    inputProps={noAutofillProps('rzp-live-key-secret', 'Razorpay Live Key Secret')}
                     sx={maskedInputSx}
                     InputProps={{
                       startAdornment: <InputAdornment position="start"><LockOutlined fontSize="small" /></InputAdornment>,
@@ -374,7 +375,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                     value={liveWebhookSecret}
                     onChange={(e) => { setLiveWebhookSecret(e.target.value); setClearFlags((f) => ({ ...f, liveWebhook: false })); }}
                     disabled={!canEdit}
-                    inputProps={noAutofillProps('rzp-live-wh-secret')}
+                    inputProps={noAutofillProps('rzp-live-wh-secret', 'Live Webhook Secret')}
                     sx={{ gridColumn: { sm: 'span 2' }, ...maskedInputSx }}
                   />
                 </Box>
@@ -388,6 +389,7 @@ export function PaymentGatewaySettingsDialog({ open, onClose, onSaved }) {
                   <TextField
                     size="small"
                     fullWidth
+                    inputProps={{ "aria-label": "Webhook endpoint URL" }}
                     value={data?.webhookEndpointUrl || `${typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''}/api/v1/payments/gateway/webhook`}
                     InputProps={{ readOnly: true }}
                   />

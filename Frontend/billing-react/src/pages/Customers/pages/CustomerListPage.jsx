@@ -53,8 +53,8 @@ import {
   useCustomerSummary,
 } from "../hooks/useCustomers";
 
-import { useSearchCommit } from "../../../hooks/useSearchDebounce";
 import { customerCapabilities } from "../api/customerContract";
+import { useSearchCommit } from "../../../hooks/useSearchDebounce";
 import { DashboardErrorState } from "../../../components/dashboard/DashboardStates";
 import "../styles/customer-list.css";
 
@@ -132,13 +132,18 @@ const columns = [
 
 const SORT_OPTIONS = [
   { label: "Recently Added", sortBy: "createdAt", sortOrder: "desc" },
-  { label: "Alphabetical (A – Z)", sortBy: "name", sortOrder: "asc" },
-  { label: "Alphabetical (Z – A)", sortBy: "name", sortOrder: "desc" },
-  { label: "Customer Code (A – Z)", sortBy: "customerCode", sortOrder: "asc" },
-  { label: "Customer Code (Z – A)", sortBy: "customerCode", sortOrder: "desc" },
+  { label: "Alphabetical (A-Z)", sortBy: "name", sortOrder: "asc" },
+  { label: "Alphabetical (Z-A)", sortBy: "name", sortOrder: "desc" },
+  { label: "Customer Code (A-Z)", sortBy: "customerCode", sortOrder: "asc" },
+  { label: "Customer Code (Z-A)", sortBy: "customerCode", sortOrder: "desc" },
   { label: "First Added", sortBy: "id", sortOrder: "asc" },
   { label: "Last Added", sortBy: "id", sortOrder: "desc" },
 ];
+
+function getSortValue(sortBy, sortOrder) {
+  const match = SORT_OPTIONS.find((item) => item.sortBy === sortBy && item.sortOrder === sortOrder);
+  return match ? `${match.sortBy}:${match.sortOrder}` : "";
+}
 
 const ALLOWED_SORT_FIELDS = [
   "customerCode",
@@ -150,13 +155,6 @@ const ALLOWED_SORT_FIELDS = [
   "code",
   "updatedAt",
 ];
-
-function getSortValue(sortBy, sortOrder) {
-  const match = SORT_OPTIONS.find(
-    (o) => o.sortBy === sortBy && o.sortOrder === sortOrder
-  );
-  return match ? `${match.sortBy}:${match.sortOrder}` : "";
-}
 
 export const CustomerRowActions = ({
   customer,
@@ -277,12 +275,8 @@ export function CustomerListPage() {
       change({ sortBy: "", sortOrder: "", page: 1 });
       return;
     }
-    const option = SORT_OPTIONS.find(
-      (o) => `${o.sortBy}:${o.sortOrder}` === value
-    );
-    if (option) {
-      change({ sortBy: option.sortBy, sortOrder: option.sortOrder, page: 1 });
-    }
+    const option = SORT_OPTIONS.find((item) => `${item.sortBy}:${item.sortOrder}` === value);
+    if (option) change({ sortBy: option.sortBy, sortOrder: option.sortOrder, page: 1 });
   };
   const [search, setSearch] = useState(params.search);
   useNavbarSearch(search, setSearch, 'Search customers');
@@ -297,13 +291,9 @@ export function CustomerListPage() {
       },
       { replace: true }
     );
-  useEffect(() => {
-    setSearch(params.search);
-  }, [params.search]);
+  useEffect(() => setSearch(params.search), [params.search]);
   useSearchCommit(search.trim(), (nextSearch) => {
-    if (nextSearch !== params.search) {
-      change({ search: nextSearch, page: 1 });
-    }
+    if (nextSearch !== params.search) change({ search: nextSearch, page: 1 });
   });
   const query = useCustomers(params);
   const mutation = useCustomerStatus();
@@ -446,105 +436,38 @@ export function CustomerListPage() {
             size="small"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Name or code" searchHint="Search by customer name, code, email or mobile."
+            placeholder="Name or code"
+            searchHint="Search by customer name, code, email or mobile."
             inputProps={{ "aria-label": "Search customers" }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
           />
           <div className="customer-filter-row">
             {Object.entries(filterOptions).map(([key, option]) => (
               <TextField
                 select
                 size="small"
-                label={option.label}
                 key={key}
-                InputLabelProps={{ shrink: true }}
+                inputProps={{ "aria-label": `Filter customers by ${option.label.toLowerCase()}` }}
                 SelectProps={{ displayEmpty: true }}
                 value={params[key] || ""}
-                onChange={(event) =>
-                  change({ [key]: event.target.value, page: 1 })
-                }
+                onChange={(event) => change({ [key]: event.target.value, page: 1 })}
               >
                 <MenuItem value="">All</MenuItem>
-                {option.values.map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
+                {option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
               </TextField>
             ))}
-            <TextField
-              select
-              SelectProps={sortSelectProps}
-              label="Sort By"
-              size="small"
-              value={sortValue}
-              onChange={(event) => handleSortChange(event.target.value)}
-              className="customer-sort-select"
-            >
+            <TextField select SelectProps={sortSelectProps} inputProps={{ "aria-label": "Sort customers" }}
+              size="small" value={sortValue} onChange={(event) => handleSortChange(event.target.value)} className="customer-sort-select">
               <MenuItem value="">Sort By</MenuItem>
-              {SORT_OPTIONS.map((o) => (
-                <MenuItem
-                  key={`${o.sortBy}:${o.sortOrder}`}
-                  value={`${o.sortBy}:${o.sortOrder}`}
-                >
-                  {o.label}
-                </MenuItem>
-              ))}
+              {SORT_OPTIONS.map((option) => <MenuItem key={`${option.sortBy}:${option.sortOrder}`} value={`${option.sortBy}:${option.sortOrder}`}>{option.label}</MenuItem>)}
             </TextField>
-            <Button
-              onClick={reset}
-              disabled={!filtered && !search && !url.toString()}
-            >
-              Reset filters
-            </Button>
+            <Button onClick={reset} disabled={!filtered && !search && !url.toString()}>Reset filters</Button>
           </div>
-          {filtered && (
-            <div className="customer-filter-chips">
-              {params.sortBy && (
-                <Chip
-                  size="small"
-                  label={`Sort: ${
-                    SORT_OPTIONS.find(
-                      (o) =>
-                        o.sortBy === params.sortBy &&
-                        o.sortOrder === params.sortOrder
-                    )?.label || `${params.sortBy} (${params.sortOrder || "asc"})`
-                  }`}
-                  onDelete={() => {
-                    change({ sortBy: "", sortOrder: "", page: 1 });
-                  }}
-                />
-              )}
-              {params.search && (
-                <Chip
-                  size="small"
-                  label={`Search: ${params.search}`}
-                  onDelete={() => {
-                    setSearch("");
-                    change({ search: "", page: 1 });
-                  }}
-                />
-              )}
-              {Object.entries(filterOptions)
-                .filter(([key]) => params[key])
-                .map(([key, option]) => (
-                  <Chip
-                    key={key}
-                    size="small"
-                    label={`${option.label}: ${
-                      option.values.find(([v]) => v === params[key])?.[1]
-                    }`}
-                    onDelete={() => change({ [key]: "", page: 1 })}
-                  />
-                ))}
-            </div>
-          )}
+          {filtered && <div className="customer-filter-chips">
+            {params.sortBy && <Chip size="small" label={`Sort: ${SORT_OPTIONS.find((option) => option.sortBy === params.sortBy && option.sortOrder === params.sortOrder)?.label || `${params.sortBy} (${params.sortOrder || "asc"})`}`} onDelete={() => change({ sortBy: "", sortOrder: "", page: 1 })} />}
+            {params.search && <Chip size="small" label={`Search: ${params.search}`} onDelete={() => { setSearch(""); change({ search: "", page: 1 }); }} />}
+            {Object.entries(filterOptions).filter(([key]) => params[key]).map(([key, option]) => <Chip key={key} size="small" label={`${option.label}: ${option.values.find(([value]) => value === params[key])?.[1]}`} onDelete={() => change({ [key]: "", page: 1 })} />)}
+          </div>}
         </div>
         {query.isError ? (
           <DashboardErrorState
@@ -569,7 +492,7 @@ export function CustomerListPage() {
             </h2>
             <p>
               {filtered
-                ? "No customers match your current search or filters."
+                ? "No customers match the selected customer view."
                 : "Add your first customer to start billing."}
             </p>
             <Button
@@ -802,6 +725,7 @@ export function CustomerListPage() {
         </DialogActions>
       </Dialog>
       <Dialog
+        className="customer-deactivate-dialog"
         open={!!confirm}
         onClose={() => !mutation.isPending && setConfirm(null)}
         fullWidth
@@ -814,7 +738,7 @@ export function CustomerListPage() {
             The customer will become inactive. Existing invoices, payments and
             historical records will be preserved.
           </p>
-          <TextField autoFocus fullWidth required multiline minRows={2} margin="normal" label="Reason for deactivation" value={reason} inputProps={{ maxLength: 500 }} onChange={(event) => setReason(event.target.value)} />
+          <TextField autoFocus fullWidth required multiline minRows={2} margin="normal" placeholder="Reason for deactivation" value={reason} inputProps={{ maxLength: 500, "aria-label": "Reason for deactivation" }} onChange={(event) => setReason(event.target.value)} />
           {mutation.isError && (
             <Alert severity="error">
               Unable to update customer. {mutation.error?.message}

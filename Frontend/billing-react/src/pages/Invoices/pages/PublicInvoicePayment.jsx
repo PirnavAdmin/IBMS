@@ -857,7 +857,7 @@ export function PublicInvoicePayment() {
       py: { xs: 3, sm: 6 },
       px: { xs: 2, sm: 3 }
     }}>
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" className="invoice-public-payment-page">
         {/* Header Branding using official IBMS logo */}
         <Box sx={{ mb: 3.5, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <Box sx={{ width: { xs: 150, sm: 175 }, mx: 'auto', mb: 0.75 }}>
@@ -1136,7 +1136,8 @@ export function PublicInvoicePayment() {
                   fullWidth
                   size="small"
                   type="number"
-                  label="Amount to Pay (INR)"
+                  placeholder="Amount to pay (INR)"
+                  inputProps={{ min: 1, max: order.balanceAmount, step: 0.01, "aria-label": "Amount to pay (INR)" }}
                   value={isPartialAllowed ? payAmount : (order.balanceAmount || order.amount)}
                   onChange={(e) => {
                     if (isPartialAllowed) setPayAmount(e.target.value);
@@ -1146,7 +1147,6 @@ export function PublicInvoicePayment() {
                     readOnly: !isPartialAllowed,
                   }}
                   helperText={!isPartialAllowed ? "Full payment required. Partial payment is disabled for this invoice." : undefined}
-                  inputProps={{ min: 1, max: order.balanceAmount, step: 0.01 }}
                   sx={checkoutInputSx(!isPartialAllowed)}
                 />
 
@@ -1630,8 +1630,8 @@ export function PublicInvoicePayment() {
                         <TextField
                           fullWidth
                           size="small"
-                          label="Card Number"
                           placeholder="4532 8901 2345 6789"
+                          inputProps={{ maxLength: 19, "aria-label": "Card number" }}
                           value={cardNumber}
                           onChange={(e) => {
                             setCardNumber(formatCardNumber(e.target.value));
@@ -1641,7 +1641,6 @@ export function PublicInvoicePayment() {
                           }}
                           error={!!cardErrors.cardNumber}
                           helperText={cardErrors.cardNumber}
-                          inputProps={{ maxLength: 19 }}
                           InputProps={{
                             startAdornment: (
                               <InputAdornment position="start">
@@ -1671,8 +1670,8 @@ export function PublicInvoicePayment() {
                         <TextField
                           fullWidth
                           size="small"
-                          label="Cardholder Name"
                           placeholder="e.g. Sandeep Singampalli"
+                          inputProps={{ "aria-label": "Cardholder name" }}
                           value={cardHolder}
                           onChange={(e) => {
                             setCardHolder(e.target.value);
@@ -1688,8 +1687,8 @@ export function PublicInvoicePayment() {
                         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
                           <TextField
                             size="small"
-                            label="Expiry (MM/YY)"
                             placeholder="MM/YY"
+                            inputProps={{ maxLength: 5, "aria-label": "Expiry (MM/YY)" }}
                             value={cardExpiry}
                             onChange={(e) => {
                               setCardExpiry(formatExpiry(e.target.value));
@@ -1699,15 +1698,14 @@ export function PublicInvoicePayment() {
                             }}
                             error={!!cardErrors.cardExpiry}
                             helperText={cardErrors.cardExpiry}
-                            inputProps={{ maxLength: 5 }}
                             sx={checkoutInputSx()}
                           />
 
                           <TextField
                             size="small"
                             type="password"
-                            label="CVV / CVC"
-                            placeholder="•••"
+                            placeholder="CVV / CVC"
+                            inputProps={{ maxLength: 4, "aria-label": "CVV / CVC" }}
                             value={cardCvv}
                             onChange={(e) => {
                               setCardCvv(formatCvv(e.target.value));
@@ -1717,7 +1715,6 @@ export function PublicInvoicePayment() {
                             }}
                             error={!!cardErrors.cardCvv}
                             helperText={cardErrors.cardCvv}
-                            inputProps={{ maxLength: 4 }}
                             InputProps={{
                               startAdornment: (
                                 <InputAdornment position="start">
