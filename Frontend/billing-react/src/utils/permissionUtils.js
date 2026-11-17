@@ -53,11 +53,13 @@ export function hasPermission(requiredPermission, userObj = null) {
     !roles.some(r => ['superadmin', 'tenantadmin', 'admin', 'billingmanager', 'accountant', 'user'].includes(r));
 
   if (isRestrictedPortalRole) {
-    if (reqList.includes('backgroundjobs.view') || reqList.includes('backgroundjobs.manage')) {
+    if (
+      reqList.includes('backgroundjobs.view') ||
+      reqList.includes('backgroundjobs.manage') ||
+      reqList.includes('exportjobs.view') ||
+      reqList.includes('exportjobs.create')
+    ) {
       return false;
-    }
-    if (reqList.includes('exportjobs.view') || reqList.includes('exportjobs.create')) {
-      return userPerms.includes('exportjobs.view') || userPerms.includes('exportjobs.create');
     }
   }
 

@@ -59,3 +59,37 @@
 .date-range-inline-panel .date-range-actions { padding-top: 12px; border-top: 1px solid #eee7df; gap: 8px; }
 .date-range-inline-panel .date-range-actions .ant-btn { min-height: 36px; min-width: 76px; border-radius: 7px; font-weight: 600; }
 .date-range-inline-panel .date-range-error { font-size: 12px; line-height: 1.5; }
+
+/* Icon-only compact variant for filter bars */
+.app-layout button.date-range-filter.ant-btn.date-range-icon-only,
+button.date-range-filter.ant-btn.date-range-icon-only {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px;
+}
+
+.date-range-filter.date-range-icon-only .ant-btn-icon {
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

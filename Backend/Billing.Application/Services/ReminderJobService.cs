@@ -162,7 +162,7 @@ public class ReminderJobService : IReminderJobService
                     {
                         var sendResult = await DispatchInvoiceReminderAsync(invoice, tId, eventType);
 
-                        if (sendResult.Success)
+                        if (sendResult is { Success: true })
                         {
                             await _communicationRepository.AddAsync(new InvoiceCommunication
                             {

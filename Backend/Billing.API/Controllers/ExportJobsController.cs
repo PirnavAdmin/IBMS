@@ -69,7 +69,7 @@ public class ExportJobsController : ControllerBase
         }
 
         var result = await _exportJobService.GetExportJobAsync(id, tenantId.Value, cancellationToken);
-        if (!result.Success)
+        if (result == null || !result.Success)
         {
             return NotFound(result);
         }
@@ -123,20 +123,21 @@ public class ExportJobsController : ControllerBase
         }
 
         var jobInfo = await _exportJobService.GetExportJobAsync(id, tenantId.Value, cancellationToken);
-        if (jobInfo.Success && !CanAccessJobType(jobInfo.Data?.JobType))
+        if (jobInfo is { Success: true } && !CanAccessJobType(jobInfo.Data?.JobType))
         {
             return Forbid();
         }
 
         var result = await _exportJobService.DownloadExportFileAsync(id, tenantId.Value, cancellationToken);
 
-        if (!result.Success)
+        if (result == null || !result.Success)
         {
-            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            var message = result?.Message ?? "Export file could not be downloaded.";
+            if (message.Contains("not found", StringComparison.OrdinalIgnoreCase))
             {
-                return NotFound(ApiResponse<object>.Fail(result.Message));
+                return NotFound(ApiResponse<object>.Fail(message));
             }
-            return BadRequest(ApiResponse<object>.Fail(result.Message));
+            return BadRequest(ApiResponse<object>.Fail(message));
         }
 
         var (content, fileName, contentType) = result.Data;
@@ -173,12 +174,14 @@ public class ExportJobsController : ControllerBase
         }
 
         var perms = GetUserPermissions();
-        return perms.Any(p =>
-            string.Equals(p, "exportjobs.view", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(p, "exportjobs.create", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(p, "reports.export", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(p, "all", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(p, "*", StringComparison.OrdinalIgnoreCase));
+        if (HasAnyPermission(perms,
+                "exportjobs.view", "exportjobs.create", "reports.export",
+                "billing.view", "invoices.view", "reports.view", "all", "*"))
+        {
+            return true;
+        }
+
+        return AllSupportedJobTypes.Any(CanAccessJobType);
     }
 
     private bool CanAccessJobType(string? jobType)
@@ -208,7 +211,16 @@ public class ExportJobsController : ControllerBase
             return true;
         }
 
-        if (perms.Count > 0)
+        var hasEntityPerms = HasAnyPermission(perms,
+            "invoices.view", "invoices.manage",
+            "payments.view", "payments.manage",
+            "customers.view", "customers.manage",
+            "creditnotes.view", "creditnotes.manage",
+            "quotations.view", "quotations.manage",
+            "products.view", "products.manage",
+            "billing.view", "reports.view", "reports.export");
+
+        if (hasEntityPerms)
         {
             return canonical switch
             {
@@ -222,7 +234,7 @@ public class ExportJobsController : ControllerBase
             };
         }
 
-        // Role-only fallback when token does not carry explicit permissions array
+        // Role-only fallback or exportjobs.*-only permission set
         if (User.IsInRole("BillingManager") || User.IsInRole("User"))
         {
             return true;
@@ -233,7 +245,7 @@ public class ExportJobsController : ControllerBase
             return canonical is "Invoice" or "Payment" or "CreditNote" or "Quotation";
         }
 
-        return false;
+        return HasAnyPermission(perms, "exportjobs.view", "exportjobs.create");
     }
 
     private bool CanAccessAuditLogs()
@@ -267,13 +279,17 @@ public class ExportJobsController : ControllerBase
             if (Request?.Headers != null && Request.Headers.TryGetValue("X-Tenant-Id", out var h) && int.TryParse(h, out var hId) && hId > 0)
                 return hId;
 
-            var superClaim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+            var superClaim = User.FindFirst("TenantId")?.Value
+                             ?? User.FindFirst("tenant_id")?.Value
+                             ?? User.FindFirst("tenantId")?.Value;
             if (int.TryParse(superClaim, out var stid) && stid > 0) return stid;
 
             return 1;
         }
 
-        var claim = User.FindFirst("TenantId")?.Value ?? User.FindFirst("tenant_id")?.Value;
+        var claim = User.FindFirst("TenantId")?.Value
+                    ?? User.FindFirst("tenant_id")?.Value
+                    ?? User.FindFirst("tenantId")?.Value;
         if (int.TryParse(claim, out var tid) && tid > 0) return tid;
 
         return null;

@@ -1,15 +1,18 @@
 /* Tenant workspace palette. Platform administration keeps its own theme. */
 @media screen {
+  .app-layout {
+    --shell-sidebar: #35231C;
+    --shell-taupe: #D4C2B2;
+    --shell-hover: rgba(255, 255, 255, 0.09);
+    --shell-active: #CBA57B;
+    --shell-icon: rgba(255, 255, 255, 0.12);
+  }
+
   .app-layout:not(.platform-layout) {
     --workspace-secondary: #EAE4DA;
     --workspace-surface: #EAE4DA;
     --border: #E5DDD2;
     --text-secondary: #705A48;
-    --shell-sidebar: #422C21;
-    --shell-taupe: #FFF3E5;
-    --shell-hover: rgba(255, 255, 255, 0.09);
-    --shell-active: #CBA57B;
-    --shell-icon: rgba(255, 255, 255, 0.12);
     --action-primary: #674730;
     --action-hover: #503522;
     --tenant-green: #176A3A;
@@ -26,52 +29,81 @@
     --tenant-red-icon: #FFDCD5;
   }
 
-  .app-layout.astra-layout:not(.platform-layout) > .astra-sidebar { background: var(--shell-sidebar); color: #F7EFE6; border-right-color: #342118; box-shadow: 2px 0 14px rgba(53, 35, 28, 0.14); }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar-header { border-bottom-color: rgba(255, 255, 255, 0.12); }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-sidebar-brand { color: #FFFDF9; background: transparent; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-sidebar-brand strong span { color: #DFC3A6; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-collapse { background: #FFFDF9; border-color: rgba(255, 255, 255, 0.25); color: #35231C; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-collapse:hover { background: #FFFFFF; border-color: #CBA57B; color: #674730; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content { scrollbar-color: #7A5A46 #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-track { background: #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-menu-content::-webkit-scrollbar-thumb { background: #7A5A46; border-color: #422C21; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-active-pill { background: var(--shell-active); }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item { color: #F7EFE6; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item > svg:not(.bd-nav-arrow) { background: var(--shell-icon); color: #F5E6D6; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item:hover { background: var(--shell-hover); color: #FFFFFF; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item:hover > svg:not(.bd-nav-arrow) { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active,
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; color: #2E1D15; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active > span { color: #2E1D15; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-sidebar .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #35231C; color: #FFFDF9; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle { color: #D8C2AE; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle.is-active { color: #F5DEC6; }
-  .app-layout.astra-layout:not(.platform-layout) .astra-group-toggle:is(:hover, [aria-expanded="true"]) { background: rgba(255, 255, 255, 0.08); color: #FFF8EF; }
-  .app-layout:not(.platform-layout) .astra-profile { background: #38241A; border-top-color: rgba(255, 255, 255, 0.12); color: #FFFDF9; }
-  .app-layout:not(.platform-layout) .astra-avatar { background: #CBA57B; border-color: #DFC19E; color: #2E1D15; }
-  .app-layout:not(.platform-layout) .astra-profile-copy strong { color: #FFFDF9; }
-  .app-layout:not(.platform-layout) .astra-profile-copy small { color: #D6C0AD; }
-  .app-layout:not(.platform-layout) .astra-signout { background: rgba(255, 255, 255, 0.1); color: #F7D8CE; }
-  .app-layout:not(.platform-layout) .astra-signout:hover { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
+  .app-layout.astra-layout > .astra-sidebar { background: #35231C; color: #FFFDF9; border-right-color: #2A1B15; box-shadow: 2px 0 14px rgba(53, 35, 28, 0.14); }
+  .app-layout.astra-layout .astra-sidebar-header { border-bottom-color: rgba(255, 255, 255, 0.12); }
+  .app-layout.astra-layout .astra-sidebar .bd-sidebar-brand { color: #FFFDF9; background: transparent; }
+  .app-layout.astra-layout .astra-sidebar .bd-sidebar-brand strong span { color: #DFC3A6; }
+  .app-layout.astra-layout .astra-collapse {
+    background: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #35231C;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  }
+  .app-layout.astra-layout .astra-collapse:hover {
+    background: #FDFBF8;
+    border-color: #CBA57B;
+    color: #795137;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  }
+  .app-layout.astra-layout .astra-menu-content { scrollbar-color: #7A5A46 #35231C; }
+  .app-layout.astra-layout .astra-menu-content::-webkit-scrollbar-track { background: #35231C; }
+  .app-layout.astra-layout .astra-menu-content::-webkit-scrollbar-thumb { background: #7A5A46; border-color: #35231C; }
+  .app-layout.astra-layout .astra-active-pill { background: #CBA57B; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item { color: #FFFDF9; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item > svg:not(.bd-nav-arrow) { background: var(--shell-icon); color: #F5E6D6; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item:hover { background: var(--shell-hover); color: #FFFFFF; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item:hover > svg:not(.bd-nav-arrow) { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item.active,
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item.active:is(:hover, :active) { background: transparent; color: #35231C; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item.active > span { color: #35231C; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-item.active > svg:not(.bd-nav-arrow) { background: #35231C; color: #FFFDF9; }
+  .app-layout.astra-layout .astra-group-toggle { color: #D4C2B2; }
+  .app-layout.astra-layout .astra-group-toggle.is-active { color: #FFFDF9; }
+  .app-layout.astra-layout .astra-group-toggle:is(:hover, [aria-expanded="true"]) { background: rgba(255, 255, 255, 0.08); color: #FFF8EF; }
+  .app-layout.astra-layout .astra-sidebar .bd-nav-section > small { color: #D4C2B2; }
+  .app-layout.astra-layout .astra-profile { background: #35231C; border-top-color: rgba(255, 255, 255, 0.12); color: #FFFDF9; }
+  .app-layout.astra-layout .astra-avatar { background: #CBA57B; border-color: #DFC19E; color: #35231C; }
+  .app-layout.astra-layout .astra-profile-copy strong { color: #FFFDF9; }
+  .app-layout.astra-layout .astra-profile-copy small { color: #D4C2B2; }
+  .app-layout.astra-layout .astra-signout { background: rgba(255, 255, 255, 0.1); color: #F7D8CE; }
+  .app-layout.astra-layout .astra-signout:hover { background: rgba(255, 255, 255, 0.18); color: #FFFFFF; }
 
-  /* Brighter accents on light cards keep the amounts easy to read. */
-  .app-layout:not(.platform-layout) .premium-stat-invoiced { --stat-accent: #245FAD; --stat-icon: #D5E7FF; --stat-light: #F6F9FF; --stat-tint: #E3EEFF; }
-  .app-layout:not(.platform-layout) .premium-stat-paid { --stat-accent: var(--tenant-green); --stat-icon: var(--tenant-green-icon); --stat-light: var(--tenant-green-tint); --stat-tint: #DFF4E4; }
-  .app-layout:not(.platform-layout) .premium-stat-outstanding { --stat-accent: var(--tenant-amber); --stat-icon: var(--tenant-amber-icon); --stat-light: var(--tenant-amber-tint); --stat-tint: #FFF0C9; }
-  .app-layout:not(.platform-layout) .premium-stat-overdue { --stat-accent: var(--tenant-red); --stat-icon: var(--tenant-red-icon); --stat-light: var(--tenant-red-tint); --stat-tint: #FFE5DF; }
-  .app-layout:not(.platform-layout) .premium-stat-drafts { --stat-accent: var(--tenant-purple); --stat-icon: var(--tenant-purple-icon); --stat-light: var(--tenant-purple-tint); --stat-tint: #EEDFFC; }
-  .app-layout:not(.platform-layout) .premium-dashboard .premium-kpis .premium-stat { background: var(--stat-light); }
-  .app-layout:not(.platform-layout) .premium-dashboard .premium-stat > small { color: #705A48; }
-  .app-layout:not(.platform-layout) .premium-actions .premium-action-invoice i { background: #D5E7FF; color: #245FAD; }
+  /* Consistent visual hierarchy across summary cards: unified clean surface, balanced pastel badges */
+  .app-layout:not(.platform-layout) .premium-stat-invoiced { --stat-accent: #8A521C; --stat-icon: #F5EBE1; --stat-light: #FFFFFF; --stat-tint: #F8F3ED; }
+  .app-layout:not(.platform-layout) .premium-stat-paid { --stat-accent: #176A3A; --stat-icon: #E5F6EB; --stat-light: #FFFFFF; --stat-tint: #EEF8F1; }
+  .app-layout:not(.platform-layout) .premium-stat-outstanding { --stat-accent: #965C00; --stat-icon: #FFF2D6; --stat-light: #FFFFFF; --stat-tint: #FFF9ED; }
+  .app-layout:not(.platform-layout) .premium-stat-overdue { --stat-accent: #A63236; --stat-icon: #FFEBE9; --stat-light: #FFFFFF; --stat-tint: #FFF2F0; }
+  .app-layout:not(.platform-layout) .premium-stat-drafts { --stat-accent: #655482; --stat-icon: #F1EDF7; --stat-light: #FFFFFF; --stat-tint: #F6F3FA; }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-kpis .premium-stat {
+    background: #FFFFFF;
+    border-color: var(--dashboard-border, #E6DDD0);
+  }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-stat > div > span {
+    color: #705A48;
+  }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-stat > strong,
+  .app-layout:not(.platform-layout) .dashboard-kpi-value {
+    color: #35231C;
+  }
+  .app-layout:not(.platform-layout) .premium-stat-paid > strong,
+  .app-layout:not(.platform-layout) .premium-stat-paid .dashboard-kpi-value {
+    color: #176A3A;
+  }
+  .app-layout:not(.platform-layout) .premium-stat-overdue > strong,
+  .app-layout:not(.platform-layout) .premium-stat-overdue .dashboard-kpi-value {
+    color: #A63236;
+  }
+  .app-layout:not(.platform-layout) .premium-dashboard .premium-stat > small { color: #8A7563; }
+  .app-layout:not(.platform-layout) .premium-actions .premium-action-invoice i { background: #F5EBE1; color: #8A521C; }
   .app-layout:not(.platform-layout) .premium-actions .premium-action-payment i { background: var(--tenant-green-icon); color: var(--tenant-green); }
   .app-layout:not(.platform-layout) .premium-actions .premium-action-customer i { background: var(--tenant-amber-icon); color: var(--tenant-amber); }
   .app-layout:not(.platform-layout) .premium-actions .premium-action-product i { background: var(--tenant-purple-icon); color: var(--tenant-purple); }
   .app-layout:not(.platform-layout) .premium-actions .premium-action-credit i { background: var(--tenant-red-icon); color: var(--tenant-red); }
 
-  .app-layout:not(.platform-layout) .invoice-tone-sand { --kpi-card-bg: #FFFAF2; --kpi-accent: #9A521C; --kpi-label: #854316; --kpi-value: #70350E; }
-  .app-layout:not(.platform-layout) .invoice-tone-mint { --kpi-card-bg: var(--tenant-green-tint); --kpi-accent: #20884B; --kpi-label: var(--tenant-green); --kpi-value: #15562F; }
-  .app-layout:not(.platform-layout) .invoice-tone-amber { --kpi-card-bg: var(--tenant-amber-tint); --kpi-accent: #B86C08; --kpi-label: var(--tenant-amber); --kpi-value: #744305; }
-  .app-layout:not(.platform-layout) .invoice-tone-rose { --kpi-card-bg: var(--tenant-red-tint); --kpi-accent: #D53C44; --kpi-label: var(--tenant-red); --kpi-value: #8F292E; }
+  .app-layout:not(.platform-layout) .invoice-tone-sand { --kpi-card-bg: #FFFFFF; --kpi-accent: #9A521C; --kpi-label: #705A48; --kpi-value: #35231C; }
+  .app-layout:not(.platform-layout) .invoice-tone-mint { --kpi-card-bg: #FFFFFF; --kpi-accent: #176A3A; --kpi-label: #705A48; --kpi-value: #176A3A; }
+  .app-layout:not(.platform-layout) .invoice-tone-amber { --kpi-card-bg: #FFFFFF; --kpi-accent: #965C00; --kpi-label: #705A48; --kpi-value: #35231C; }
+  .app-layout:not(.platform-layout) .invoice-tone-rose { --kpi-card-bg: #FFFFFF; --kpi-accent: #A63236; --kpi-label: #705A48; --kpi-value: #A63236; }
 
   .app-layout:not(.platform-layout) :is(.tax-summary-total, .product-summary-card.tone-total) { --tenant-card-accent: #8A4D17; --tenant-card-tint: #FFFAF2; --tenant-card-icon: #FFE3B8; }
   .app-layout:not(.platform-layout) :is(.tax-summary-active, .product-summary-card.tone-active) { --tenant-card-accent: var(--tenant-green); --tenant-card-tint: var(--tenant-green-tint); --tenant-card-icon: var(--tenant-green-icon); }
@@ -92,5 +124,6 @@
   /* Preserve status meaning while replacing muddy grey/brown tints. */
   .app-layout:not(.platform-layout) :is(.premium-status.status-paid, .premium-status.status-completed, .payment-status[data-status="Completed"], .tax-status-active) { background: #DFF5E5; color: var(--tenant-green); border-color: #B8DFC5; }
   .app-layout:not(.platform-layout) :is(.premium-status.status-overdue, .premium-status.status-failed, .payment-status[data-status="Failed"]) { background: #FFE4DF; color: var(--tenant-red); border-color: #F2C1B8; }
-  .app-layout:not(.platform-layout) :is(.premium-status.status-draft, .premium-status.status-pending, .payment-status[data-status="Reversed"], .tax-status-inactive) { background: #EEE2FA; color: var(--tenant-purple); border-color: #D9C5ED; }
+  .app-layout:not(.platform-layout) :is(.premium-status.status-draft, .premium-status.status-pending, .premium-status.status-reversed, .payment-status[data-status="Reversed"], .tax-status-inactive) { background: #EEE2FA; color: var(--tenant-purple); border-color: #D9C5ED; }
+  .app-layout:not(.platform-layout) :is(.premium-status.status-partially-paid, .premium-status.status-sent) { background: #FFF3DD; color: #965C00; border-color: #F3DCB5; }
 }

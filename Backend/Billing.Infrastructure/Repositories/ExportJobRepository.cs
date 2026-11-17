@@ -26,7 +26,7 @@ public class ExportJobRepository : IExportJobRepository
     {
         var staleProcessingCutoff = DateTime.UtcNow.AddMinutes(-10);
         return await _context.ExportJobs
-            .Where(e => e.Status == "Pending" || (e.Status == "Processing" && e.StartedAtUtc.HasValue && e.StartedAtUtc.Value < staleProcessingCutoff))
+            .Where(e => e.Status == "Pending" || (e.Status == "Processing" && (!e.StartedAtUtc.HasValue || e.StartedAtUtc.Value < staleProcessingCutoff)))
             .OrderBy(e => e.CreatedAtUtc)
             .Take(limit)
             .ToListAsync(cancellationToken);

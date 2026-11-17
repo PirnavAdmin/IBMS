@@ -103,7 +103,7 @@ public class ExportJobService : IExportJobService
     public async Task<ApiResponse<PagedResult<ExportJobDto>>> GetExportJobsAsync(int tenantId, ExportJobFilterRequest filter, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(filter.JobType)) filter.JobType = NormalizeJobType(filter.JobType) ?? filter.JobType.Trim();
-        if (!string.IsNullOrWhiteSpace(filter.Status)) filter.Status = filter.Status.Trim();
+        if (!string.IsNullOrWhiteSpace(filter.Status)) filter.Status = NormalizeJobStatus(filter.Status);
         var paged = await _exportJobRepository.GetPagedAsync(tenantId, filter, cancellationToken);
         var items = filter.ExcludeAuditLogs
             ? paged.Items.Where(j => !string.Equals(j.JobType, "AuditLog", StringComparison.OrdinalIgnoreCase)).ToList()
@@ -503,7 +503,53 @@ public class ExportJobService : IExportJobService
             query = query.Where(i =>
                 (i.InvoiceNumber != null && i.InvoiceNumber.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
                 (i.Customer?.Name != null && i.Customer.Name.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
-                (i.Customer?.Email != null && i.Customer.Email.Contains(term, StringComparison.OrdinalIgnoreCase)));
+                (i.Customer?.Email != null && i.Customer.Email.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                (i.Reference != null && i.Reference.Contains(term, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.PaymentState))
+        {
+            var pState = filter.PaymentState.Trim().ToLowerInvariant();
+            query = pState switch
+            {
+                "paid" => query.Where(i => string.Equals(i.Status, "Paid", StringComparison.OrdinalIgnoreCase)),
+                "partially paid" => query.Where(i => string.Equals(i.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase)),
+                "unpaid" => query.Where(i => string.Equals(i.Status, "Issued", StringComparison.OrdinalIgnoreCase) && i.PaidAmount == 0),
+                "outstanding" => query.Where(i => i.GetEffectiveBalance() > 0 &&
+                    (string.Equals(i.Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(i.Status, "Partially Paid", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(i.Status, "Overdue", StringComparison.OrdinalIgnoreCase))),
+                "overdue" => query.Where(i => string.Equals(i.Status, "Overdue", StringComparison.OrdinalIgnoreCase) ||
+                    (i.GetEffectiveBalance() > 0 && i.DueDate.HasValue && i.DueDate.Value.Date < DateTime.UtcNow.Date)),
+                "invoiced" => query.Where(i => !string.Equals(i.Status, "Draft", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Cancelled", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Canceled", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Void", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(i.Status, "Voided", StringComparison.OrdinalIgnoreCase)),
+                _ => query
+            };
+        }
+
+        if (filter.MinOutstandingAmount.HasValue)
+            query = query.Where(i => i.BalanceAmount >= filter.MinOutstandingAmount.Value);
+        if (filter.MaxOutstandingAmount.HasValue)
+            query = query.Where(i => i.BalanceAmount <= filter.MaxOutstandingAmount.Value);
+        if (filter.MinTotalAmount.HasValue)
+            query = query.Where(i => i.TotalAmount >= filter.MinTotalAmount.Value);
+        if (filter.MaxTotalAmount.HasValue)
+            query = query.Where(i => i.TotalAmount <= filter.MaxTotalAmount.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.SortBy))
+        {
+            var isDesc = string.IsNullOrWhiteSpace(filter.SortOrder) || string.Equals(filter.SortOrder.Trim(), "desc", StringComparison.OrdinalIgnoreCase);
+            query = filter.SortBy.Trim().ToLowerInvariant() switch
+            {
+                "invoicenumber" => isDesc ? query.OrderByDescending(i => i.InvoiceNumber) : query.OrderBy(i => i.InvoiceNumber),
+                "totalamount" => isDesc ? query.OrderByDescending(i => i.TotalAmount) : query.OrderBy(i => i.TotalAmount),
+                "balanceamount" => isDesc ? query.OrderByDescending(i => i.BalanceAmount) : query.OrderBy(i => i.BalanceAmount),
+                "invoicedate" => isDesc ? query.OrderByDescending(i => i.InvoiceDate).ThenByDescending(i => i.Id) : query.OrderBy(i => i.InvoiceDate).ThenBy(i => i.Id),
+                _ => query
+            };
         }
 
         return query.ToList();
@@ -738,6 +784,15 @@ public class ExportJobService : IExportJobService
     };
 
     private static string? NormalizeJobType(string? rawJobType) => (rawJobType ?? "Invoice").Trim().Replace(" ", "").Replace("-", "").Replace("_", "").ToLowerInvariant() switch { "invoice" or "invoices" => "Invoice", "payment" or "payments" => "Payment", "customer" or "customers" => "Customer", "auditlog" or "auditlogs" => "AuditLog", "creditnote" or "creditnotes" => "CreditNote", "quotation" or "quotations" => "Quotation", "product" or "products" => "Product", _ => null };
+
+    private static string NormalizeJobStatus(string rawStatus) => rawStatus.Trim().ToLowerInvariant() switch
+    {
+        "pending" => "Pending",
+        "processing" => "Processing",
+        "completed" => "Completed",
+        "failed" => "Failed",
+        _ => rawStatus.Trim()
+    };
 
     private static ExportJobDto MapToDto(ExportJob job)
     {

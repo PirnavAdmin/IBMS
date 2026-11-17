@@ -6,6 +6,8 @@ import Snackbar from '@mui/material/Snackbar';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import NotificationsActiveOutlined from '@mui/icons-material/NotificationsActiveOutlined';
 import Close from '@mui/icons-material/Close';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import Check from '@mui/icons-material/Check';
 import { useExclusiveDropdown } from '../../hooks/useExclusiveDropdown';
 import { notificationDestination, notificationInboxService as inbox } from '../../services/notificationInboxService';
 import './NotificationBell.css';
@@ -226,13 +228,66 @@ export function NotificationBell({ user }) {
           {!enabled || list.isError ? <div className="notification-state" role="alert"><p>Notifications are unavailable right now. Please try again later.</p><button type="button" disabled={!enabled || list.isFetching} onClick={refresh}>Try again</button></div>
             : list.isPending ? <p className="notification-state" role="status">Loading notifications…</p>
             : !visibleItems.length ? <p className="notification-state" role="status">{unreadOnly ? 'No unread notifications.' : 'You have no notifications yet.'}</p>
-            : <ul className="notification-list">{visibleItems.map(item => <li key={item.id} className={item.isRead ? '' : 'is-unread'}>
-              <div className="notification-item-heading"><strong>{item.title}</strong>{!item.isRead && <span className="notification-unread-dot" aria-label="Unread" />}</div>
-              <p>{item.message}</p><time dateTime={item.createdAtUtc}>{new Date(item.createdAtUtc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
-              <div className="notification-item-actions">{notificationDestination(item.action, user) && <button type="button" disabled={busy} onClick={() => openItem(item)}>Open record</button>}
-                {!item.isRead && <button type="button" disabled={busy} onClick={() => mutate(() => inbox.markRead(item.id))}>Mark as read<span className="notification-sr-only">: {item.title}</span></button>}
-                <button type="button" disabled={busy} onClick={() => deleteItem(item)}>Delete<span className="notification-sr-only">: {item.title}</span></button></div>
-            </li>)}</ul>}
+            : <ul className="notification-list">{visibleItems.map(item => {
+                const destination = notificationDestination(item.action, user);
+                return (
+                  <li
+                    key={item.id}
+                    className={`notification-item ${item.isRead ? '' : 'is-unread'}${destination ? ' is-clickable' : ''}`}
+                    onClick={() => openItem(item)}
+                    role={destination ? 'button' : undefined}
+                    tabIndex={destination ? 0 : undefined}
+                    onKeyDown={destination ? event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); openItem(item); } } : undefined}
+                  >
+                    <div className="notification-item-top">
+                      <div className="notification-item-heading">
+                        {!item.isRead && <span className="notification-unread-dot" aria-label="Unread" />}
+                        <strong>{item.title}</strong>
+                      </div>
+                      <div className="notification-item-controls" onClick={event => event.stopPropagation()}>
+                        {!item.isRead && (
+                          <button
+                            type="button"
+                            className="notification-item-mark-read"
+                            disabled={busy}
+                            title="Mark as read"
+                            aria-label={`Mark as read: ${item.title}`}
+                            onClick={event => { event.stopPropagation(); mutate(() => inbox.markRead(item.id)); }}
+                          >
+                            <Check fontSize="small" aria-hidden="true" />
+                            <span className="notification-sr-only">Mark as read: {item.title}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="notification-item-delete"
+                          disabled={busy}
+                          title="Delete notification"
+                          aria-label={`Delete: ${item.title}`}
+                          onClick={event => { event.stopPropagation(); deleteItem(item); }}
+                        >
+                          <DeleteOutline fontSize="small" aria-hidden="true" />
+                          <span className="notification-sr-only">Delete: {item.title}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p>{item.message}</p>
+                    <div className="notification-item-meta">
+                      <time dateTime={item.createdAtUtc}>{new Date(item.createdAtUtc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</time>
+                    </div>
+                    {destination && (
+                      <button
+                        type="button"
+                        className="notification-sr-only"
+                        disabled={busy}
+                        onClick={event => { event.stopPropagation(); openItem(item); }}
+                      >
+                        Open record
+                      </button>
+                    )}
+                  </li>
+                );
+              })}</ul>}
         </div>
         {page && !list.isError && <footer className="notification-footer">
           <div className="notification-footer-actions">

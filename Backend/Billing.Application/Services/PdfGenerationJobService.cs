@@ -74,11 +74,11 @@ public class PdfGenerationJobService : IPdfGenerationJobService
                     var doc = await _documentRepository.GetByInvoiceIdAsync(invoice.Id, tId);
                     bool needsGeneration = false;
 
-                    if (doc == null || !string.Equals(doc.Status, "Generated", StringComparison.OrdinalIgnoreCase))
+                    if (doc == null || !string.Equals(doc.Status, "Generated", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(doc.StoragePath))
                     {
                         needsGeneration = true;
                     }
-                    else if (!string.IsNullOrWhiteSpace(doc.StoragePath))
+                    else
                     {
                         var exists = await _storageService.ExistsAsync(doc.StoragePath, tId, cancellationToken);
                         if (!exists)

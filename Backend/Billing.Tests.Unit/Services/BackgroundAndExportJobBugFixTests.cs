@@ -63,6 +63,21 @@ public class BackgroundAndExportJobBugFixTests
         controller.ControllerContext = new ControllerContext { HttpContext = standardUserContext };
 
         Assert.IsType<ForbidResult>(controller.GetJobStatuses());
+
+        // 4. Custom role with settings.manage or integrations.manage -> OkObjectResult
+        coordinator.Setup(c => c.GetAllJobStatuses(1))
+            .Returns(new List<BackgroundJobStatusDto>());
+
+        var customManagerContext = new DefaultHttpContext();
+        customManagerContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.Role, "Operator"),
+            new Claim("tenantId", "1"),
+            new Claim("permissions", "integrations.manage")
+        }, "TestAuth"));
+        controller.ControllerContext = new ControllerContext { HttpContext = customManagerContext };
+
+        Assert.IsType<OkObjectResult>(controller.GetJobStatuses());
     }
 
     [Fact]
@@ -140,6 +155,24 @@ public class BackgroundAndExportJobBugFixTests
         var customerRoleExport = await controller.QueueExportJob(
             new CreateExportJobRequest { JobType = "Invoice", ExportFormat = "CSV" });
         Assert.IsType<ForbidResult>(customerRoleExport);
+
+        // 6. Custom role (e.g. Operator) with invoices.view & customers.view -> allowed for Customer/Invoice, forbidden for Product
+        var operatorContext = new DefaultHttpContext();
+        operatorContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.Role, "Operator"),
+            new Claim("tenantId", "1"),
+            new Claim("permissions", "invoices.view,customers.view")
+        }, "TestAuth"));
+        controller.ControllerContext = new ControllerContext { HttpContext = operatorContext };
+
+        var operatorCustomerExport = await controller.QueueExportJob(
+            new CreateExportJobRequest { JobType = "Customer", ExportFormat = "CSV" });
+        Assert.IsType<AcceptedAtActionResult>(operatorCustomerExport);
+
+        var operatorProductExport = await controller.QueueExportJob(
+            new CreateExportJobRequest { JobType = "Product", ExportFormat = "CSV" });
+        Assert.IsType<ForbidResult>(operatorProductExport);
     }
 
     [Fact]

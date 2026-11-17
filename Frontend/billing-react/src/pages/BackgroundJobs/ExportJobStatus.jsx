@@ -57,15 +57,21 @@ export function exportJobAccess(response) {
     return true;
   }
   if (roles.some(role => ['customer', 'viewer'].includes(role))) {
-    return perms.some(perm => ['exportjobs.view', 'exportjobs.create', 'all', '*'].includes(perm));
+    return false;
   }
-  return perms.some(perm => ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view', 'all', '*'].includes(perm));
+  if (perms.some(perm => ['exportjobs.view', 'exportjobs.create', 'billing.view', 'invoices.view', 'reports.view', 'reports.export', 'all', '*'].includes(perm))) {
+    return true;
+  }
+  return jobTypes.some(option => canExportJobType(response, option.value));
 }
 
 export function canExportAuditLogs(response) {
   const { roles, perms } = parseRolesAndPerms(response);
   if (roles.some(role => ['tenantadmin', 'superadmin', 'admin', 'accountant'].includes(role))) {
     return true;
+  }
+  if (roles.some(role => ['customer', 'viewer'].includes(role))) {
+    return false;
   }
   return perms.some(perm => ['audit.view', 'audit.export', 'all', '*'].includes(perm));
 }
@@ -77,7 +83,20 @@ export function canExportJobType(response, type) {
       perms.some(perm => ['all', '*'].includes(perm))) {
     return true;
   }
-  if (perms.length > 0) {
+  if (roles.some(role => ['customer', 'viewer'].includes(role)) &&
+      !roles.some(role => ['billingmanager', 'accountant', 'user'].includes(role))) {
+    return false;
+  }
+  const entityPermKeys = [
+    'invoices.view', 'invoices.manage',
+    'payments.view', 'payments.manage',
+    'customers.view', 'customers.manage',
+    'creditnotes.view', 'creditnotes.manage',
+    'quotations.view', 'quotations.manage',
+    'products.view', 'products.manage',
+    'billing.view', 'reports.view', 'reports.export',
+  ];
+  if (perms.some(p => entityPermKeys.includes(p))) {
     const map = {
       Invoice: ['invoices.view', 'invoices.manage', 'billing.view', 'reports.view', 'reports.export'],
       Payment: ['payments.view', 'payments.manage', 'billing.view', 'reports.view', 'reports.export'],
@@ -92,7 +111,7 @@ export function canExportJobType(response, type) {
   if (roles.includes('accountant')) {
     return ['Invoice', 'Payment', 'CreditNote', 'Quotation'].includes(type);
   }
-  return false;
+  return perms.some(p => ['exportjobs.view', 'exportjobs.create'].includes(p));
 }
 
 export function ExportJobStatus() {
@@ -187,7 +206,12 @@ export function ExportJobStatus() {
           : <>
             <section className="export-job-create">
               <h2>Create an export</h2>
-              <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small">
+              <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small"
+                SelectProps={{ MenuProps: {
+                  anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                  transformOrigin: { vertical: 'top', horizontal: 'left' },
+                  PaperProps: { sx: { mt: '8px !important' } },
+                } }}>
                 {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
               </TextField>
               <TextField select label="Format" value={exportFormat} onChange={event => setExportFormat(event.target.value)} size="small">
@@ -205,7 +229,9 @@ export function ExportJobStatus() {
                     <MenuItem value="">All Statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                   </FilterSelectField>
-                  <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
+                  <FilterSelectField select size="small" label="Data" value={filterJobType}
+                    SelectProps={{ MenuProps: { anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: null, PaperProps: { sx: { maxHeight: 240, overflowY: 'auto' } } } }}
+                    onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
                     {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
                   </FilterSelectField>

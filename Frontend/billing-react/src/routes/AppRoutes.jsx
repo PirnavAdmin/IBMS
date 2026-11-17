@@ -39,6 +39,7 @@ const DiscountConfiguration = lazyPage(() => import('../pages/Settings/DiscountC
 const ChargesConfiguration = lazyPage(() => import('../pages/Settings/ChargesConfiguration'), 'ChargesConfiguration');
 const CountryConfiguration = lazyPage(() => import('../pages/Settings/CountryConfiguration'), 'CountryConfiguration');
 const ReminderSettings = lazyPage(() => import('../pages/Settings/ReminderSettings'), 'ReminderSettings');
+const ProfileSettings = lazyPage(() => import('../pages/Settings/ProfileSettings'), 'ProfileSettings');
 const Payments = lazyPage(() => import('../pages/Payments/Payments'), 'Payments');
 const RecordPayment = lazyPage(() => import('../pages/Payments/RecordPayment'), 'RecordPayment');
 const PaymentDetails = lazyPage(() => import('../pages/Payments/PaymentDetails'), 'PaymentDetails');
@@ -189,6 +190,8 @@ export const AppRoutes = () => (
       <Route path="/discounts" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/discount-configuration" element={<Navigate to="/settings/discounts" replace />} />
       <Route path="/settings/charges" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ChargesConfiguration /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/profile" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ProfileSettings /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/profile" element={<Navigate to="/settings/profile" replace />} />
     </Route>
 
     {/* Unknown Route */}

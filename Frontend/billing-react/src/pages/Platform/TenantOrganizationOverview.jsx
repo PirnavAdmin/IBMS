@@ -219,6 +219,7 @@ export function TenantOrganizationOverview({ tenantUserCount, usersQuery, rolesQ
           </TextField>
           <SelectFilter
             label="Status"
+            hideLabel
             value={userStatus}
             options={['Active', 'Inactive', 'Suspended']}
             onChange={value => { setUserStatus(value); setUserPage(1); }}
