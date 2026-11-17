@@ -82,8 +82,7 @@ function ProductSelect({ item, onSelect, error, disabled }) {
             {...params}
             size="small"
             required
-            label="Product / Service"
-            placeholder="Search products or services"
+            placeholder="Choose product or service"
             inputProps={{ ...params.inputProps, "aria-label": "Product / Service" }}
             error={Boolean(error)}
             helperText={error}
@@ -758,6 +757,18 @@ export function InvoiceForm() {
             <InvoiceState error={taxes.error} retry={() => taxes.refetch()} />
             <div className="invoice-table-scroll ibms-table-frame">
               <table className="invoice-table invoice-edit-table">
+                <colgroup>
+                  <col className="invoice-line-col-index" />
+                  <col className="invoice-line-col-product" />
+                  <col className="invoice-line-col-hsn" />
+                  <col className="invoice-line-col-quantity" />
+                  <col className="invoice-line-col-price" />
+                  <col className="invoice-line-col-discount" />
+                  <col className="invoice-line-col-tax-rate" />
+                  <col className="invoice-line-col-tax-amount" />
+                  <col className="invoice-line-col-total" />
+                  <col className="invoice-line-col-actions" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>#</th>
@@ -767,8 +778,8 @@ export function InvoiceForm() {
                     <th>Unit Price</th>
                     <th>Discount</th>
                     <th>Tax Rate</th>
-                    <th>Tax amount</th>
-                    <th>Line total</th>
+                    <th><span className="invoice-line-header-stack">Tax</span><span className="invoice-line-header-stack">Amount</span></th>
+                    <th><span className="invoice-line-header-stack">Line</span><span className="invoice-line-header-stack">Total</span></th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -793,8 +804,8 @@ export function InvoiceForm() {
                         />
                         <TextField
                           size="small"
-                          label="Description"
-                          placeholder="Optional item description"
+                          placeholder="Add item details (optional)"
+                          inputProps={{ "aria-label": "Description" }}
                           value={item.description}
                           onChange={(event) =>
                             changeItem(index, "description", event.target.value)
@@ -812,8 +823,7 @@ export function InvoiceForm() {
                       <td>
                         <TextField
                           size="small"
-                          label="HSN/SAC"
-                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ "aria-label": "HSN/SAC" }}
                           placeholder="e.g. 8471"
                           value={item.hsnsac || ""}
                           onChange={(event) =>
@@ -829,14 +839,12 @@ export function InvoiceForm() {
                           size="small"
                           required
                           type="number"
-                          label="Quantity"
-                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ min: 0.01, max: 999999, step: 0.0001, "aria-label": "Quantity" }}
                           placeholder="1"
                           value={item.quantity}
                           onChange={(event) =>
                             changeItem(index, "quantity", event.target.value)
                           }
-                          inputProps={{ min: 0.01, max: 999999, step: 0.0001 }}
                           error={Boolean(errors[`items.${index}.quantity`])}
                           helperText={errors[`items.${index}.quantity`]}
                         />
@@ -846,14 +854,12 @@ export function InvoiceForm() {
                           size="small"
                           required
                           type="number"
-                          label="Unit Price"
-                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ min: 0.01, step: 0.01, "aria-label": "Unit Price" }}
                           placeholder="0.00"
                           value={item.unitPrice}
                           onChange={(event) =>
                             changeItem(index, "unitPrice", event.target.value)
                           }
-                          inputProps={{ min: 0.01, step: 0.01 }}
                           error={Boolean(errors[`items.${index}.unitPrice`])}
                           helperText={errors[`items.${index}.unitPrice`]}
                         />
@@ -863,15 +869,14 @@ export function InvoiceForm() {
                           id={`invoice-line-discount-${index + 1}`}
                           size="small"
                           type="number"
-                          label="Discount"
                           placeholder="0"
-                          InputLabelProps={{ shrink: true }}
                           InputProps={{ readOnly: true, endAdornment: <InputAdornment position="end">{item.discountType === "Percentage" || !item.discountType ? "%" : form.currency || "Currency"}</InputAdornment> }}
                           value={item.discountRate ?? ""}
                           inputProps={{
                             min: 0,
                             max: item.discountType === "Percentage" ? 100 : 999999999,
                             step: 0.01,
+                            "aria-label": "Discount",
                           }}
                           error={Boolean(errors[`items.${index}.discountRate`])}
                           helperText={
@@ -886,10 +891,8 @@ export function InvoiceForm() {
                         <TextField
                           select
                           size="small"
-                          label="Tax Rate"
-                          SelectProps={{ displayEmpty: true, renderValue: (selected) => selected || "Tax rate" }}
+                          SelectProps={{ displayEmpty: true, renderValue: (selected) => selected || "Select a rate" }}
                           inputProps={{ "aria-label": "Tax rate" }}
-                          InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
                           value={

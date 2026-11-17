@@ -59,9 +59,9 @@
 
 .invoice-heading {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  gap: 20px;
+  gap: clamp(32px, 6vw, 96px);
   margin: 14px 0 24px;
 }
 
@@ -2369,52 +2369,27 @@
 .app-layout .ibms-table-frame .invoice-edit-table th {
   font-size: 11px;
   letter-spacing: .02em;
-  white-space: normal;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.25;
+  vertical-align: middle;
 }
+.invoice-edit-table .invoice-line-header-stack { display: block; }
 
 .app-layout .ibms-table-frame .invoice-edit-table td {
   vertical-align: top;
 }
 
-.invoice-edit-table :is(th, td):nth-child(1) {
-  width: 3%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(2) {
-  width: 23%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(3) {
-  width: 9%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(4) {
-  width: 7%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(5) {
-  width: 10%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(6) {
-  width: 10%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(7) {
-  width: 12%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(8) {
-  width: 10%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(9) {
-  width: 11%;
-}
-
-.invoice-edit-table :is(th, td):nth-child(10) {
-  width: 5%;
-}
+.invoice-edit-table .invoice-line-col-index { width: 3%; }
+.invoice-edit-table .invoice-line-col-product { width: 23%; }
+.invoice-edit-table .invoice-line-col-hsn { width: 9%; }
+.invoice-edit-table .invoice-line-col-quantity { width: 8%; }
+.invoice-edit-table .invoice-line-col-price { width: 9%; }
+.invoice-edit-table .invoice-line-col-discount { width: 9%; }
+.invoice-edit-table .invoice-line-col-tax-rate { width: 9%; }
+.invoice-edit-table .invoice-line-col-tax-amount { width: 11%; }
+.invoice-edit-table .invoice-line-col-total { width: 11%; }
+.invoice-edit-table .invoice-line-col-actions { width: 8%; }
 
 .app-layout .ibms-table-frame .invoice-edit-table :is(th, td):last-child {
   text-align: center;
@@ -2441,10 +2416,6 @@
 
 .invoice-edit-table .MuiFormHelperText-root {
   margin: 6px 0 0;
-}
-
-.invoice-edit-table td:nth-child(2)>.MuiTextField-root {
-  margin-top: 12px;
 }
 
 .invoice-edit-table .invoice-unit-badge {
