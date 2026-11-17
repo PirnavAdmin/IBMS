@@ -83,6 +83,8 @@ function ProductSelect({ item, onSelect, error, disabled }) {
             size="small"
             required
             label="Product / Service"
+            placeholder="Search products or services"
+            inputProps={{ ...params.inputProps, "aria-label": "Product / Service" }}
             error={Boolean(error)}
             helperText={error}
           />
@@ -489,13 +491,14 @@ export function InvoiceForm() {
   }
   const field = (key, label, type = "text", extra = {}) => (
     <TextField
-      label={label}
+      placeholder={extra.placeholder || label}
       type={type}
       value={form[key]}
       onChange={(event) => change(key, event.target.value)}
       error={Boolean(errors[key])}
       {...(type === "date" ? { InputLabelProps: { shrink: true } } : {})}
       {...extra}
+      inputProps={{ ...extra.inputProps, "aria-label": label }}
       helperText={errors[key] || extra.helperText}
     />
   );
@@ -568,8 +571,8 @@ export function InvoiceForm() {
                   <TextField
                     {...params}
                     required
-                    label="Customer"
                     placeholder="Search registered customer by name or company..."
+                    inputProps={{ ...params.inputProps, "aria-label": "Customer" }}
                     error={Boolean(errors.customerId)}
                     helperText={errors.customerId || "Select from registered active customers"}
                     InputProps={{
@@ -644,7 +647,7 @@ export function InvoiceForm() {
               <span className="invoice-subheading-hint">Dates, currency and legal reference</span>
             </div>
             <div className="invoice-form-grid invoice-details-grid">
-              <div className="invoice-number-card">
+              <div className="invoice-number-card" title="Advisory preview; assigned on issue">
                 <div className="invoice-number-card-top">
                   <span className="invoice-number-label">Invoice Number</span>
                   <span className="invoice-auto-tag">Auto-Generated</span>
@@ -657,6 +660,7 @@ export function InvoiceForm() {
               </div>
               <DateField
                 label="Invoice date"
+                placeholder="Invoice date (dd/mm/yyyy)"
                 required
                 value={form.invoiceDate}
                 onChange={handleInvoiceDateChange}
@@ -666,6 +670,7 @@ export function InvoiceForm() {
               />
               <DateField
                 label="Due date"
+                placeholder="Due date (dd/mm/yyyy)"
                 required
                 value={form.dueDate}
                 onChange={(val) => change("dueDate", val)}
@@ -676,9 +681,10 @@ export function InvoiceForm() {
               {selectedCurrencies.length > 0 ? (
                 <TextField
                   select
-                  size="small"
                   required
                   label="Currency"
+                  SelectProps={{ displayEmpty: true }}
+                  inputProps={{ "aria-label": "Currency" }}
                   disabled={busy || !editable}
                   value={form.currency || ""}
                   onChange={(event) => change("currency", event.target.value)}
@@ -881,7 +887,8 @@ export function InvoiceForm() {
                           select
                           size="small"
                           label="Tax Rate"
-                          SelectProps={{ displayEmpty: true }}
+                          SelectProps={{ displayEmpty: true, renderValue: (selected) => selected || "Tax rate" }}
+                          inputProps={{ "aria-label": "Tax rate" }}
                           InputLabelProps={{ shrink: true }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
@@ -1078,6 +1085,7 @@ export function InvoiceForm() {
                       select
                       fullWidth
                       label="Configured charge"
+                      inputProps={{ "aria-label": "Configured charge" }}
                       value={chargeId}
                       onChange={(event) => setChargeId(event.target.value)}
                       disabled={charges.isPending || Boolean(charges.error) || !editable}
@@ -1135,9 +1143,10 @@ export function InvoiceForm() {
                     </Button>
                   </div>
                   <TextField
-                    label="Additional Charges Total"
+                    placeholder="Additional Charges Total"
                     value={form.chargesAmount}
                     InputProps={{ readOnly: true }}
+                    inputProps={{ "aria-label": "Additional Charges Total" }}
                     helperText={`Total additional charges applied in ${form.currency}.`}
                   />
                 </div>

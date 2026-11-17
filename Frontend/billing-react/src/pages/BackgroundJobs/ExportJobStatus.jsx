@@ -206,7 +206,12 @@ export function ExportJobStatus() {
           : <>
             <section className="export-job-create">
               <h2>Create an export</h2>
-              <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small">
+              <TextField select label="Data" value={jobType} onChange={event => setJobType(event.target.value)} size="small"
+                SelectProps={{ MenuProps: {
+                  anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+                  transformOrigin: { vertical: 'top', horizontal: 'left' },
+                  PaperProps: { sx: { mt: '8px !important' } },
+                } }}>
                 {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
               </TextField>
               <TextField select label="Format" value={exportFormat} onChange={event => setExportFormat(event.target.value)} size="small">
@@ -224,7 +229,9 @@ export function ExportJobStatus() {
                     <MenuItem value="">All Statuses</MenuItem>
                     {statusOptions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                   </FilterSelectField>
-                  <FilterSelectField select size="small" label="Data" value={filterJobType} onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
+                  <FilterSelectField select size="small" label="Data" value={filterJobType}
+                    SelectProps={{ MenuProps: { anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: null, PaperProps: { sx: { maxHeight: 240, overflowY: 'auto' } } } }}
+                    onChange={event => { setFilterJobType(event.target.value); setPage(1); }}>
                     <MenuItem value="">All data</MenuItem>
                     {availableJobTypes.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
                   </FilterSelectField>

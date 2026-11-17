@@ -188,14 +188,18 @@
 }
 
 .invoice-page .MuiInputLabel-root {
-  font-size: 14px;
-  color: #635349;
-  font-weight: 550;
+  display: none !important;
 }
 
 .invoice-page .MuiInputLabel-root.Mui-focused {
-  color: var(--primary);
-  font-weight: 650;
+  display: none !important;
+}
+.invoice-page .MuiOutlinedInput-notchedOutline legend { max-width: 0.01px !important; }
+.invoice-public-payment-page .MuiInputLabel-root {
+  display: none !important;
+}
+.invoice-public-payment-page .MuiOutlinedInput-notchedOutline legend {
+  max-width: 0.01px !important;
 }
 
 /* Focus Ring */
@@ -1990,17 +1994,17 @@
   border-radius: 8px;
   padding: 8px 12px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 54px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 46px;
+  min-height: 46px;
   box-sizing: border-box;
 }
 
 .invoice-number-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 3px;
+  display: contents;
 }
 
 .invoice-number-label {
@@ -2030,17 +2034,18 @@
   font-size: 13.5px;
   font-weight: 750;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.invoice-number-label { order: 1; white-space: nowrap; }
+.invoice-auto-tag { order: 3; white-space: nowrap; }
+.invoice-number-card-body { order: 2; }
+
 .invoice-number-hint {
-  font-size: 10.5px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .invoice-details-grid {
@@ -2048,6 +2053,11 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   align-items: start;
+}
+
+.invoice-details-grid > .MuiTextField-root .MuiOutlinedInput-root,
+.invoice-details-grid .quote-date-picker .MuiOutlinedInput-root {
+  height: 46px;
 }
 
 @media (max-width: 1280px) {

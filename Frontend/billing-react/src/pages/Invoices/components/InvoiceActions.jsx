@@ -327,7 +327,8 @@ export function InvoiceActions({ invoice, permissions }) {
                 <TextField
                   fullWidth
                   required
-                  label="Reason"
+                  placeholder="Reason"
+                  inputProps={{ "aria-label": "Reason" }}
                   multiline
                   minRows={2}
                   value={reason}
