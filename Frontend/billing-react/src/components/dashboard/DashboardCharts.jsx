@@ -1,7 +1,6 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ArrowForward from '@mui/icons-material/ArrowForward';
-import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
 import Tooltip from '@mui/material/Tooltip';
 import { money } from '../../pages/Dashboard/dashboardModel';
 import { agingArc, agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
@@ -118,7 +117,7 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
           </Tooltip>
         ))}</div>
       </div>
-      <details className="premium-chart-data"><summary className="premium-disclosure-toggle"><span>Monthly breakdown</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
+      <details className="premium-chart-data"><summary className="premium-disclosure-toggle"><span>Monthly breakdown</span><span className="premium-toggle-arrow" aria-hidden="true" /></summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th scope="col">Month</th><th scope="col" align="right">Invoiced</th><th scope="col" align="right">Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
     </>}
   </article>;
 };
@@ -201,7 +200,7 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
         ))}
       </div>
     </div>
-    <div className="premium-outstanding-details"><button type="button" className={`premium-details-toggle premium-disclosure-toggle${showDetails ? ' is-open' : ''}`} aria-expanded={showDetails} aria-controls={`${id}-details`} onClick={() => setShowDetails(current => !current)}><span>{showDetails ? 'Hide' : 'View'} outstanding details</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></button>
+    <div className="premium-outstanding-details"><button type="button" className={`premium-details-toggle premium-disclosure-toggle${showDetails ? ' is-open' : ''}`} aria-expanded={showDetails} aria-controls={`${id}-details`} onClick={() => setShowDetails(current => !current)}><span>{showDetails ? 'Hide' : 'View'} outstanding details</span><span className="premium-toggle-arrow" aria-hidden="true" /></button>
       {showDetails && <div id={`${id}-details`}><div className="premium-details-heading"><strong>{selectedBucket || 'All outstanding invoices'} <small>({detailRows.length})</small></strong>{selectedBucket && <button type="button" onClick={() => setSelectedBucket(null)}>Show all</button>}</div>{detailRows.length ? <div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Invoice / Customer</th><th>Due date</th><th>Balance</th></tr></thead><tbody>{detailRows.map(row => <tr key={row.id}><td><Link to={`/invoices/${row.id}`}>{row.invoiceNumber || `Invoice #${row.id}`}</Link><small>{row.customerName || row.customer?.name || 'NA'}</small></td><td>{row.dueDate ? displayDate(row.dueDate) : 'No due date'}</td><td>{money(row.balanceAmount, currency)}</td></tr>)}</tbody></table></div> : <p className="premium-empty">No outstanding invoices in this bucket.</p>}</div>}
     </div>
     </>}
