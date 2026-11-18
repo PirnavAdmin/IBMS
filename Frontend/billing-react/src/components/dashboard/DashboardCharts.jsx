@@ -7,7 +7,47 @@ import { money } from '../../pages/Dashboard/dashboardModel';
 import { agingArc, agingRadial, outstandingInvoiceDetails, revenueAmounts, revenueCohort } from '../../pages/Dashboard/dashboardRadial';
 import { displayDate } from '../../utils/localDate';
 
-const chartTooltipProps = { arrow: true, enterTouchDelay: 0, disableInteractive: true, slotProps: { tooltip: { sx: { maxWidth: 280, fontSize: 12, lineHeight: 1.6, whiteSpace: 'normal', overflowWrap: 'anywhere', backgroundColor: '#633d28' } } } };
+const chartTooltipProps = {
+  arrow: true,
+  enterTouchDelay: 0,
+  disableInteractive: true,
+  slotProps: {
+    arrow: {
+      sx: {
+        color: '#633d28',
+      },
+    },
+    tooltip: {
+      sx: {
+        maxWidth: 290,
+        fontSize: 12,
+        lineHeight: 1.6,
+        whiteSpace: 'normal',
+        overflowWrap: 'anywhere',
+        backgroundColor: '#633d28',
+        color: '#ffffff',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.22)',
+      },
+    },
+  },
+};
+
+const AGING_BUCKET_DESCRIPTIONS = {
+  'Current': 'Invoices that are within agreed payment terms and not past their due date.',
+  '1-30 Days': 'Invoices overdue by 1 to 30 days past their due date.',
+  '31-60 Days': 'Invoices overdue by 31 to 60 days past their due date.',
+  '61-90 Days': 'Invoices overdue by 61 to 90 days past their due date.',
+  '90+ Days': 'Invoices overdue by more than 90 days requiring immediate collection attention.',
+  'No due date': 'Invoices without an assigned payment due date.',
+};
+
+const getAgingBucketDescription = (label) => {
+  if (!label) return 'Invoices that are within agreed payment terms and not past their due date.';
+  const normalized = label.replace('\u2013', '-');
+  return AGING_BUCKET_DESCRIPTIONS[normalized] || `Invoices categorized under ${label}.`;
+};
 
 const RingSurface = ({ className, radius }) => {
   const id = useId();
@@ -54,7 +94,29 @@ export const RevenueChart = ({ data, currency, summary, invoices = [] }) => {
 
       <div className="premium-monthly-trend" aria-label="Recent monthly revenue">
         <div className="premium-trend-heading"><span>Monthly activity</span><small><i />Invoiced <i />Collected</small></div>
-        <div className="premium-month-bars">{trend.map(row => <Tooltip key={row.label} {...chartTooltipProps} title={<>{row.label}<br />Invoiced: {money(row.invoiced, currency)}<br />Collected by payment date: {money(row.collected, currency)}</>}><div className="premium-month-column" tabIndex={0} aria-label={`${row.label}: invoiced ${money(row.invoiced, currency)}, collected by payment date ${money(row.collected, currency)}`}><div className="premium-month-bar-pair"><i style={{ height: `${Math.max(0, row.invoiced) / maximum * 100}%` }} /><i style={{ height: `${Math.max(0, row.collected) / maximum * 100}%` }} /></div><small>{row.label}</small></div></Tooltip>)}</div>
+        <div className="premium-month-bars">{trend.map(row => (
+          <Tooltip
+            key={row.label}
+            {...chartTooltipProps}
+            title={
+              <>
+                <strong>{row.label}</strong>
+                <br />
+                <span>Invoiced: {money(row.invoiced, currency)}</span>
+                <br />
+                <span>Collected: {money(row.collected, currency)} (by payment date)</span>
+              </>
+            }
+          >
+            <div className="premium-month-column" tabIndex={0} aria-label={`${row.label}: invoiced ${money(row.invoiced, currency)}, collected by payment date ${money(row.collected, currency)}`}>
+              <div className="premium-month-bar-pair">
+                <i style={{ height: `${Math.max(0, row.invoiced) / maximum * 100}%` }} />
+                <i style={{ height: `${Math.max(0, row.collected) / maximum * 100}%` }} />
+              </div>
+              <small>{row.label}</small>
+            </div>
+          </Tooltip>
+        ))}</div>
       </div>
       <details className="premium-chart-data"><summary className="premium-disclosure-toggle"><span>Monthly breakdown</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></summary><div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Month</th><th>Invoiced</th><th>Collected (payment dates)</th></tr></thead><tbody>{data.map(row => <tr key={row.label}><td>{row.label}</td><td>{money(row.invoiced, currency)}</td><td>{money(row.collected, currency)}</td></tr>)}</tbody></table></div></details>
     </>}
@@ -73,23 +135,71 @@ export const OutstandingAging = ({ data, currency, invoices = [] }) => {
   const detailRows = outstanding.filter(row => !selectedBucket || row.agingBucket === selectedBucket);
   const overdue = buckets.filter(row => !['Current', 'No due date'].includes(row.label)).reduce((sum, row) => sum + row.value, 0);
   const selectBucket = label => { setSelectedBucket(current => current === label ? null : label); setShowDetails(true); };
+
   return <article className={`premium-panel premium-aging-panel${showDetails ? ' is-expanded' : ''}`}>
     <header><div><h2>Outstanding Aging</h2><p>Outstanding aging breakdown &middot; Current balances &middot; {currency}</p></div></header>
     {total === 0 ? <div className="premium-empty">No outstanding balances in this date range.</div> : <>
     <div className="premium-aging-insights"><span>Overdue balance <strong>{money(overdue, currency)}</strong></span><span>Invoices <strong>{outstanding.length}</strong></span></div>
     <div className="premium-aging">
-      <div className="premium-aging-ring">
-        <svg viewBox="0 0 200 200" role="img" aria-labelledby={id}>
-          <title id={id}>{`Outstanding ${money(total, currency)}. ${segments.map(row => `${row.label}: ${money(row.value, currency)}, ${row.share.toFixed(1)}%`).join('; ')}`}</title>
+      <div
+        className="premium-aging-ring"
+        tabIndex={0}
+        aria-label={activeBucket ? `${activeBucket.label}: ${money(activeBucket.value, currency)}. ${activeBucket.share.toFixed(1)}% of outstanding.` : `Outstanding: ${money(total, currency)}. Total open invoices: ${outstanding.length}.`}
+      >
+        <svg viewBox="0 0 200 200" role="img" aria-label={`Outstanding aging breakdown. Total: ${money(total, currency)}`}>
           <RingSurface className="premium-aging-center" radius={94} />
 
           <circle className="premium-aging-track" cx="100" cy="100" r="79" />
-          <g transform="rotate(-90 100 100)">{segments.map(row => <path d={agingArc(row)} className={`premium-aging-segment ${activeBucket?.label === row.label ? 'is-active' : activeBucket ? 'is-dimmed' : ''}`} key={row.label} fill="none" stroke={row.color} strokeWidth="17" onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} role="button" tabIndex={0} aria-label={`${row.label}: ${money(row.value, currency)}`} aria-pressed={selectedBucket === row.label} onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); selectBucket(row.label); } }} onClick={() => selectBucket(row.label)} />)}</g>
-
+          <g transform="rotate(-90 100 100)">
+            {segments.map(row => (
+              <path
+                d={agingArc(row)}
+                className={`premium-aging-segment ${activeBucket?.label === row.label ? 'is-active' : activeBucket ? 'is-dimmed' : ''}`}
+                key={row.label}
+                fill="none"
+                stroke={row.color}
+                strokeWidth="17"
+                onMouseEnter={() => setHoveredBucket(row.label)}
+                onMouseLeave={() => setHoveredBucket(null)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${row.label}: ${money(row.value, currency)}`}
+                aria-pressed={selectedBucket === row.label}
+                onKeyDown={event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); selectBucket(row.label); } }}
+                onClick={() => selectBucket(row.label)}
+              />
+            ))}
+          </g>
         </svg>
-        <div className="premium-ring-value" aria-live="polite"><small>{activeBucket?.label || 'Outstanding'}</small><strong>{money(activeBucket?.value ?? total, currency)}</strong><span className="premium-current-share">{(activeBucket?.share ?? currentShare).toFixed(1)}% <small>{activeBucket ? 'of outstanding' : 'Current share'}</small></span></div>
+        <div className="premium-ring-value" aria-live="polite">
+          <small>{activeBucket?.label || 'Outstanding'}</small>
+          <strong>{money(activeBucket?.value ?? total, currency)}</strong>
+          <span className="premium-current-share">
+            {(activeBucket?.share ?? currentShare).toFixed(1)}% <small>{activeBucket ? 'of outstanding' : 'Current share'}</small>
+          </span>
+        </div>
       </div>
-      <div className="premium-aging-legend">{buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => <Tooltip key={row.label} {...chartTooltipProps} title={`${row.label}: ${money(row.value, currency)} · ${row.share.toFixed(1)}% of outstanding. ${outstanding.filter(invoice => invoice.agingBucket === row.label).length} open invoices. Select to view details.`}><button type="button" className={activeBucket?.label === row.label ? 'is-active' : ''} aria-pressed={selectedBucket === row.label} aria-controls={`${id}-details`} onMouseEnter={() => setHoveredBucket(row.label)} onMouseLeave={() => setHoveredBucket(null)} onFocus={() => setHoveredBucket(row.label)} onBlur={() => setHoveredBucket(null)} onClick={() => selectBucket(row.label)}><span className="premium-aging-bucket"><i aria-hidden="true" style={{ background: row.color }} />{row.label}</span><small>{row.share.toFixed(1)}%</small><strong>{money(row.value, currency)}</strong><span className="premium-bucket-meter" aria-hidden="true"><i style={{ width: `${row.share}%`, background: row.color }} /></span></button></Tooltip>)}</div>
+      <div className="premium-aging-legend">
+        {buckets.filter(row => row.label !== 'No due date' || row.value > 0).map(row => (
+          <button
+            key={row.label}
+            type="button"
+            className={activeBucket?.label === row.label ? 'is-active' : ''}
+            aria-pressed={selectedBucket === row.label}
+            aria-controls={`${id}-details`}
+            onMouseEnter={() => setHoveredBucket(row.label)}
+            onMouseLeave={() => setHoveredBucket(null)}
+            onFocus={() => setHoveredBucket(row.label)}
+            onBlur={() => setHoveredBucket(null)}
+            onClick={() => selectBucket(row.label)}
+          >
+            <span className="premium-aging-bucket"><i aria-hidden="true" style={{ background: row.color }} />{row.label}</span>
+            <small>{row.share.toFixed(1)}%</small>
+            <strong>{money(row.value, currency)}</strong>
+            <span className="premium-bucket-meter" aria-hidden="true"><i style={{ width: `${row.share}%`, background: row.color }} /></span>
+          </button>
+        ))}
+      </div>
     </div>
     <div className="premium-outstanding-details"><button type="button" className={`premium-details-toggle premium-disclosure-toggle${showDetails ? ' is-open' : ''}`} aria-expanded={showDetails} aria-controls={`${id}-details`} onClick={() => setShowDetails(current => !current)}><span>{showDetails ? 'Hide' : 'View'} outstanding details</span><KeyboardArrowDown className="premium-toggle-arrow" fontSize="small" aria-hidden="true" /></button>
       {showDetails && <div id={`${id}-details`}><div className="premium-details-heading"><strong>{selectedBucket || 'All outstanding invoices'} <small>({detailRows.length})</small></strong>{selectedBucket && <button type="button" onClick={() => setSelectedBucket(null)}>Show all</button>}</div>{detailRows.length ? <div className="premium-table-scroll ibms-table-frame"><table><thead><tr><th>Invoice / Customer</th><th>Due date</th><th>Balance</th></tr></thead><tbody>{detailRows.map(row => <tr key={row.id}><td><Link to={`/invoices/${row.id}`}>{row.invoiceNumber || `Invoice #${row.id}`}</Link><small>{row.customerName || row.customer?.name || 'NA'}</small></td><td>{row.dueDate ? displayDate(row.dueDate) : 'No due date'}</td><td>{money(row.balanceAmount, currency)}</td></tr>)}</tbody></table></div> : <p className="premium-empty">No outstanding invoices in this bucket.</p>}</div>}

@@ -13,6 +13,7 @@ import { DashboardFilters } from '../../components/dashboard/DashboardFilters';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { RevenueChart, OutstandingAging } from '../../components/dashboard/DashboardCharts';
 import { DashboardSkeleton } from '../../components/dashboard/DashboardStates';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { useDashboard } from '../../hooks/useDashboard';
 import { hasPermission } from '../../utils/permissionUtils';
 import { billingInsights, defaultDashboardFilters, filterDashboardRecords, money, selectDashboardCurrency } from './dashboardModel';
@@ -49,6 +50,30 @@ export const Dashboard = () => {
   const updateRecordsSearch = value => { setRecordsSearch(value); mainRef.current?.scrollTo({ top: 0 }); };
   const [filters, setFilters] = useState(defaultDashboardFilters);
   const { invoices, payments, invoicesAllowed, paymentsAllowed, isDateRangeInverted, refresh } = useDashboard(filters);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState('');
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshNotice('');
+    const startTime = Date.now();
+    try {
+      await refresh();
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 600) {
+        await new Promise(resolve => setTimeout(resolve, 600 - elapsed));
+      }
+      setRefreshCount(c => c + 1);
+      setRefreshNotice('Dashboard data refreshed successfully.');
+    } catch (err) {
+      setRefreshNotice(err?.message || 'Unable to refresh dashboard. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const user = authApi.getCurrentUser();
   const currencies = billingCurrencies([...(invoices.isError ? [] : invoices.data || []), ...(payments.isError ? [] : payments.data || [])]);
   const currency = selectDashboardCurrency(currencies, filters.currency || '');
@@ -69,19 +94,20 @@ export const Dashboard = () => {
   ].filter(action => hasPermission(action.permission, user));
   return <div className="bd-shell premium-dashboard"><DashboardHeader searchQuery={recordsSearch} onSearch={updateRecordsSearch} searchPlaceholder="Search billing records..." searchLabel="Search invoices, payments or customers" searchResultsId="dashboard-search-results" onSignOut={() => { authApi.logout(); navigate('/login'); }} /><main ref={mainRef} className="premium-main">
     <div className="premium-title"><div><span className="premium-eyebrow">BILLING OVERVIEW</span><h1>Billing Dashboard</h1><p>Invoiced, collected, outstanding and overdue amounts at a glance.</p></div></div>
-    <DashboardFilters currencies={currencies} currency={currency} values={filters} onChange={setFilters} onRefresh={refresh} isRefreshing={invoices.isFetching || payments.isFetching} />
+    <DashboardFilters currencies={currencies} currency={currency} values={filters} onChange={setFilters} onRefresh={handleRefresh} isRefreshing={isRefreshing || invoices.isFetching || payments.isFetching} />
     {isDateRangeInverted ? <Notice retry={() => setFilters(defaultDashboardFilters())} retryLabel="Reset dates">The selected date range is invalid: From Date ({filters.start}) cannot be later than To Date ({filters.end}). Please adjust your dates or reset the filter.</Notice> : recordsSearch.trim() ? <DashboardSearchResults invoices={invoices} payments={payments} invoicesAllowed={invoicesAllowed} paymentsAllowed={paymentsAllowed} currency={currency} searchQuery={recordsSearch} onClear={() => updateRecordsSearch('')} /> : <>
     {loading ? <DashboardSkeleton /> : <>
       {!invoicesAllowed ? <Notice>Invoice analytics are unavailable for your role.</Notice> : invoices.isError && <Notice retry={invoices.refetch}>Invoice data could not be loaded. {invoices.error.message}</Notice>}
       {!paymentsAllowed ? <Notice>Payment analytics are unavailable for your role.</Notice> : payments.isError && <Notice retry={payments.refetch}>Payment data could not be loaded. {payments.error.message}</Notice>}
-      {result.error && <Notice retry={refresh}>{result.error.message}</Notice>}
+      {result.error && <Notice retry={handleRefresh}>{result.error.message}</Notice>}
       {result.data && !result.error && <section className="premium-kpis" aria-label="Billing summary">{result.data.summary.map(stat => <StatCard key={stat.id} filters={filters} data={(stat.id === 'paid' ? paymentReady : invoiceReady) ? stat : { ...stat, value: null, meta: 'Source unavailable - retry above' }} />)}</section>}
       {!currency && (invoiceReady || paymentReady) && <div className="premium-empty premium-panel">No billing activity in this date range. Choose another range or create your first record.</div>}
     </>}
     {actions.length > 0 && <section className="premium-actions"><header><h2>Quick Actions</h2></header><div>{actions.map(action => { const Icon = action.icon; return <Link key={action.route} className={`dashboard-clickable-card premium-action-${action.tone}`} to={action.route}><i aria-hidden="true"><Icon /></i><strong>{action.title}</strong></Link>; })}</div></section>}
-    {!loading && result.data && !result.error && <><section className="premium-analytics">{invoiceReady && paymentReady ? <RevenueChart data={result.data.revenue} currency={currency} summary={result.data.summary} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Revenue Trend</h2></header><div className="premium-empty">Both invoice and payment sources are required for this comparison. Retry the unavailable source above.</div></article>}{invoiceReady ? <OutstandingAging key={`${currency}:${filters.start}:${filters.end}`} data={result.data.aging} currency={currency} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Outstanding Aging</h2></header><div className="premium-empty">Invoice balances are unavailable. Retry the invoice source above.</div></article>}</section></>}
+    {!loading && result.data && !result.error && <><section className="premium-analytics">{invoiceReady && paymentReady ? <RevenueChart data={result.data.revenue} currency={currency} summary={result.data.summary} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Revenue Trend</h2></header><div className="premium-empty">Both invoice and payment sources are required for this comparison. Retry the unavailable source above.</div></article>}{invoiceReady ? <OutstandingAging key={`${currency}:${filters.start}:${filters.end}:${refreshCount}`} data={result.data.aging} currency={currency} invoices={invoices.data} /> : <article className="premium-panel"><header><h2>Outstanding Aging</h2></header><div className="premium-empty">Invoice balances are unavailable. Retry the invoice source above.</div></article>}</section></>}
     {!loading && <section className="premium-details"><DashboardRecords title="Recent Payments" query={payments} allowed={paymentsAllowed} rows={result.data?.payments || []} type="payments" searchQuery={recordsSearch} /><DashboardRecords title="Recent Invoices" query={invoices} allowed={invoicesAllowed} rows={result.data?.invoices || []} type="invoices" searchQuery={recordsSearch} /></section>}
     </>}
+    <FeedbackSnackbar message={refreshNotice} onClose={() => setRefreshNotice('')} />
   </main></div>;
 };
 export default Dashboard;

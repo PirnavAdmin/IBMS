@@ -679,7 +679,11 @@ export const CustomerForm = ({
                         placeholder="e.g. Venkat Rao"
                         aria-invalid={Boolean(errors.name)}
                         aria-describedby={errors.name ? 'customer-name-err' : undefined}
-                        {...register('name')}
+                        {...register('name', {
+                          onChange: () => {
+                            trigger('name');
+                          },
+                        })}
                       />
                     </div>
                     {errors.name && (
