@@ -1093,29 +1093,6 @@ export const CustomerForm = ({
                   )}
                 </div>
 
-                <div className="cust-field">
-                  <label htmlFor="customer-payment-terms">Payment Terms</label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <ReceiptLongOutlined />
-                    </span>
-                    <input
-                      id="customer-payment-terms"
-                      type="text"
-                      maxLength={64}
-                      placeholder="e.g. Net 30, Due on Receipt"
-                      aria-invalid={Boolean(errors.paymentTerms)}
-                      aria-describedby={errors.paymentTerms ? 'customer-payment-terms-err' : undefined}
-                      {...register('paymentTerms')}
-                    />
-                  </div>
-                  {errors.paymentTerms && (
-                    <span id="customer-payment-terms-err" className="cust-field-error" role="alert">
-                      {errors.paymentTerms.message}
-                    </span>
-                  )}
-                </div>
-
               </div>
             )}
 
@@ -1291,10 +1268,6 @@ export const CustomerForm = ({
                           ? 'Not Applicable'
                           : '—'}
                       </span>
-                    </div>
-                    <div className="cust-review-row">
-                      <span className="cust-review-label">Payment Terms</span>
-                      <span className="cust-review-value">{watchedValues.paymentTerms || '—'}</span>
                     </div>
                   </div>
                 </div>
@@ -1474,3 +1447,4 @@ export const CustomerForm = ({
 };
 
 export default CustomerForm;
+

@@ -385,7 +385,7 @@ export const DEFAULT_CUSTOMER_VALUES = {
 export const STEP_FIELDS = {
   0: ['name', 'customerCode', 'companyName', 'customerType', 'status', 'currency'],
   1: ['email', 'phoneCountryCode', 'phone', 'website'],
-  2: ['taxRegistrationType', 'pan', 'gstin', 'paymentTerms', 'openingBalance'],
+  2: ['taxRegistrationType', 'pan', 'gstin', 'openingBalance'],
   3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling'],
   4: ['notes'],
 };
