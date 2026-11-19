@@ -387,7 +387,7 @@ public class BackgroundAndExportJobBugFixTests
             .ReturnsAsync(new List<NotificationLog>());
         logRepo.Setup(r => r.GetByIdAsync(88, TenantId)).ReturnsAsync(queuedLog);
 
-        emailService.Setup(e => e.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), null, null))
+        emailService.Setup(e => e.SendEmailForTenantAsync(TenantId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), null, null, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("SMTP down"));
 
         var job = new EmailNotificationJobService(logRepo.Object, tenantRepo.Object, emailService.Object, logger.Object);

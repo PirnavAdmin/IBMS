@@ -10,7 +10,7 @@ public class BillingDbContextFactory : IDesignTimeDbContextFactory<BillingDbCont
     {
         var connectionString =
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
-            "Server=localhost;Port=3306;Database=invoice;User=root;Password=root;";
+            "Server=localhost;Port=3306;Database=invoice;User=root;Password=Sandeep@21;";
 
         var optionsBuilder = new DbContextOptionsBuilder<BillingDbContext>();
 
