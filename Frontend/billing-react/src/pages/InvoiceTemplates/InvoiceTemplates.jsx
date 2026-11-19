@@ -784,6 +784,7 @@ export function InvoiceTemplates() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [deletedSampleIds, setDeletedSampleIds] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('ibms_deleted_sample_templates') || '[]');
@@ -801,7 +802,7 @@ export function InvoiceTemplates() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, [search, status, style, page]);
-  const visibleTemplates = useMemo(() => templates, [templates]);
+  const visibleTemplates = useMemo(() => templates.filter(t => t.status !== 4 && t.status !== 'Archived'), [templates]);
   const templateKey = (template) => template.id ?? template.Id;
   const isActiveTemplate = (template) => template.status === 2 || template.status === 'Active';
   const isDraftTemplate = (template) => template.status === 1 || template.status === 'Draft';
@@ -847,6 +848,7 @@ export function InvoiceTemplates() {
   const confirmDeleteTemplate = async () => {
     if (!deleteTarget) return;
     setDeleteBusy(true);
+    setDeleteError('');
     setError('');
     try {
       const isSample = deleteTarget.isSamplePreset || deleteTarget.id === 'wave-clean' || (typeof deleteTarget.id === 'string' && isNaN(Number(deleteTarget.id)));
@@ -866,7 +868,9 @@ export function InvoiceTemplates() {
         await load();
       }
     } catch (requestError) {
-      setError(asError(requestError));
+      const err = asError(requestError);
+      setDeleteError(err);
+      setError(err);
     } finally {
       setDeleteBusy(false);
     }
@@ -942,15 +946,16 @@ export function InvoiceTemplates() {
         )}
       </DialogActions>
     </Dialog>
-    <Dialog open={Boolean(deleteTarget)} onClose={deleteBusy ? undefined : () => setDeleteTarget(null)} maxWidth="xs" fullWidth sx={{ zIndex: 1400 }}>
+    <Dialog open={Boolean(deleteTarget)} onClose={deleteBusy ? undefined : () => { setDeleteTarget(null); setDeleteError(''); }} maxWidth="xs" fullWidth sx={{ zIndex: 1400 }}>
       <DialogTitle>Delete Template</DialogTitle>
       <DialogContent dividers>
+        {deleteError && <Alert severity="error" sx={{ mb: 2 }}>{deleteError}</Alert>}
         <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5 }}>
           Are you sure you want to delete template <strong>"{deleteTarget?.name || deleteTarget?.Name}"</strong>? This will archive the template and remove it from your organization.
         </p>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setDeleteTarget(null)} disabled={deleteBusy}>Cancel</Button>
+        <Button onClick={() => { setDeleteTarget(null); setDeleteError(''); }} disabled={deleteBusy}>Cancel</Button>
         <Button variant="contained" color="error" onClick={confirmDeleteTemplate} disabled={deleteBusy}>
           {deleteBusy ? <CircularProgress size={18} color="inherit" /> : 'Delete'}
         </Button>
@@ -994,7 +999,7 @@ export function InvoiceTemplates() {
                     variant="outlined"
                     color="error"
                     startIcon={<DeleteOutline />}
-                    onClick={() => setDeleteTarget({ ...design, isSamplePreset: true })}
+                    onClick={() => { setDeleteError(''); setDeleteTarget({ ...design, isSamplePreset: true }); }}
                   >
                     Delete
                   </Button>
@@ -1019,7 +1024,8 @@ export function InvoiceTemplates() {
               const modifier = t.lastModifiedUser || t.LastModifiedUser || '';
               const updater = t.updatedBy || t.UpdatedBy || '';
               const isSeed = creator === 'SystemSeed' || modifier === 'SystemSeed' || updater === 'SystemSeed';
-              return !isSeed;
+              const isArchived = t.status === 4 || t.status === 'Archived';
+              return !isSeed && !isArchived;
             })
             .map((t) => {
               const tConfig = configFromTemplate(t, true);
@@ -1053,7 +1059,7 @@ export function InvoiceTemplates() {
                         variant="outlined"
                         color="error"
                         startIcon={<DeleteOutline />}
-                        onClick={() => setDeleteTarget(t)}
+                        onClick={() => { setDeleteError(''); setDeleteTarget(t); }}
                       >
                         Delete
                       </Button>

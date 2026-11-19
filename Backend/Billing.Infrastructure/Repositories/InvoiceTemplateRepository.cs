@@ -89,6 +89,10 @@ public class InvoiceTemplateRepository : IInvoiceTemplateRepository
         {
             query = query.Where(t => t.Status == status.Value);
         }
+        else
+        {
+            query = query.Where(t => t.Status != TemplateStatus.Archived);
+        }
 
         var totalCount = await query.CountAsync();
 

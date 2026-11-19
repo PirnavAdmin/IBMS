@@ -11,6 +11,7 @@ const sections = [
   ['/settings/numbering', 'Invoice Numbering'],
   ['/settings/notifications', 'Notifications'],
   ['/settings/reminders', 'Reminders'],
+  ['/settings/email', 'Email Configuration'],
   ['/settings/countries', 'Countries'],
   ['/settings/profile', 'Profile Settings'],
 ];

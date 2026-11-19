@@ -225,11 +225,23 @@ public class PlatformUsersController : ControllerBase
             try
             {
                 var rolesLabel = updatedUser.Roles.Any() ? string.Join(", ", updatedUser.Roles) : "Customer";
-                await _emailService.SendEmailAsync(
-                    updatedUser.Email,
-                    "IBMS Account Approved — You Can Now Sign In",
-                    $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Account Access Approved</h2><p style=\"color:#574840;\">Hi {System.Net.WebUtility.HtmlEncode(updatedUser.Name)}, a SuperAdmin has approved your IBMS account with role(s): <strong>{System.Net.WebUtility.HtmlEncode(rolesLabel)}</strong>.</p><p style=\"color:#35231C;font-weight:600;\">You can now sign in using your registered email and password.</p></div>"
-                );
+                if (updatedUser.TenantId.HasValue && updatedUser.TenantId.Value > 0)
+                {
+                    await _emailService.SendEmailForTenantAsync(
+                        updatedUser.TenantId.Value,
+                        updatedUser.Email,
+                        "IBMS Account Approved — You Can Now Sign In",
+                        $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Account Access Approved</h2><p style=\"color:#574840;\">Hi {System.Net.WebUtility.HtmlEncode(updatedUser.Name)}, a SuperAdmin has approved your IBMS account with role(s): <strong>{System.Net.WebUtility.HtmlEncode(rolesLabel)}</strong>.</p><p style=\"color:#35231C;font-weight:600;\">You can now sign in using your registered email and password.</p></div>"
+                    );
+                }
+                else
+                {
+                    await _emailService.SendEmailAsync(
+                        updatedUser.Email,
+                        "IBMS Account Approved — You Can Now Sign In",
+                        $"<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:22px;border:1px solid #dccab7;border-radius:10px;background:#FFFDF9;\"><h2 style=\"color:#35231C;margin-top:0;\">Account Access Approved</h2><p style=\"color:#574840;\">Hi {System.Net.WebUtility.HtmlEncode(updatedUser.Name)}, a SuperAdmin has approved your IBMS account with role(s): <strong>{System.Net.WebUtility.HtmlEncode(rolesLabel)}</strong>.</p><p style=\"color:#35231C;font-weight:600;\">You can now sign in using your registered email and password.</p></div>"
+                    );
+                }
             }
             catch
             {

@@ -96,7 +96,7 @@ public class EmailNotificationJobService : IEmailNotificationJobService
 
                     try
                     {
-                        await _emailService.SendEmailAsync(log.Recipient, log.Subject, log.Message);
+                        await _emailService.SendEmailForTenantAsync(log.TenantId, log.Recipient, log.Subject, log.Message, null, null, cancellationToken);
 
                         log.Status = "Sent";
                         log.SentAtUtc = DateTime.UtcNow;
