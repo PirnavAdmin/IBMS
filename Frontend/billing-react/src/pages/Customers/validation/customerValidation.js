@@ -73,8 +73,8 @@ export const customerValidationSchema = yup.object({
       return !/\d/.test(val);
     })
     .matches(
-      /^[\p{L}\p{M}][\p{L}\p{M}\s.'’ʼ\-&,]*$/u,
-      'Customer name should contain only alphabetic characters and valid special characters'
+      /^[\p{L}\p{M}][\p{L}\p{M}\s'-]*$/u,
+      'Customer Name should not contain special characters'
     )
     .test('name-repetition', 'Customer name contains invalid repeated characters', (val) => {
       if (!val) return true;

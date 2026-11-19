@@ -15,6 +15,10 @@ public class CustomerService : ICustomerService
         @"^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$",
         RegexOptions.Compiled);
 
+    private static readonly Regex NameSpecialCharactersRegex = new(
+        @"[.,!@#$%^&*()_+=\[\]{};:""\\|<>?/~`]",
+        RegexOptions.Compiled);
+
     private static IEnumerable<Invoice> BillableInvoices(Customer customer) => customer.Invoices.Where(i =>
         i.TenantId == customer.TenantId && !new[] { "Draft", "Cancelled", "Void" }.Contains(i.Status, StringComparer.OrdinalIgnoreCase));
     private static decimal Outstanding(Customer customer) => BillableInvoices(customer).Sum(i => Math.Max(0, i.BalanceAmount));
@@ -551,6 +555,10 @@ public class CustomerService : ICustomerService
         {
             errors.Add("Customer name must not exceed 256 characters.");
         }
+        else if (NameSpecialCharactersRegex.IsMatch(request.Name))
+        {
+            errors.Add("Customer Name should not contain special characters.");
+        }
 
         if (string.IsNullOrWhiteSpace(request.Email))
         {
@@ -610,6 +618,10 @@ public class CustomerService : ICustomerService
             else if (request.Name.Trim().Length > 256)
             {
                 errors.Add("Customer name must not exceed 256 characters.");
+            }
+            else if (NameSpecialCharactersRegex.IsMatch(request.Name))
+            {
+                errors.Add("Customer Name should not contain special characters.");
             }
         }
 

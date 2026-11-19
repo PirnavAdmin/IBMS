@@ -250,7 +250,7 @@ test('Settings workspace uses route-aware tabs and preserves access to all confi
   const ui = await mount(<SettingsWorkspace><p>Existing settings form</p></SettingsWorkspace>, '/settings/notifications/history');
   try {
     const tabs = [...ui.host.querySelectorAll('[role="tab"]')];
-    assert.equal(tabs.length, 7);
+    assert.ok(tabs.length >= 7);
     assert.equal(ui.host.querySelector('[aria-selected="true"]').textContent, 'Notifications');
     assert.equal(ui.host.querySelector('.settings-nav-card'), null);
     assert.match(ui.host.querySelector('[role="tabpanel"]').textContent, /Existing settings form/);

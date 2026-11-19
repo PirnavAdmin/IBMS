@@ -108,6 +108,7 @@ export function InvoiceList() {
   const [customer, setCustomer] = useState(null);
   const exportLock = useRef(false);
   const [exporting, setExporting] = useState(false);
+  const [manualRefreshing, setManualRefreshing] = useState(false);
   const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
   const { selectedCountries = [] } = useRegionalSettings();
@@ -179,6 +180,16 @@ export function InvoiceList() {
     enabled: user.permissions.view,
     retry: false,
   });
+  const refreshing = manualRefreshing || list.isFetching || summary.isFetching;
+  const refreshInvoices = async () => {
+    if (!canLoadList || refreshing) return;
+    setManualRefreshing(true);
+    try {
+      await Promise.all([list.refetch(), summary.refetch()]);
+    } finally {
+      setManualRefreshing(false);
+    }
+  };
   const sort = (field) =>
     setFilters((previous) => ({
       ...previous,
@@ -277,14 +288,12 @@ export function InvoiceList() {
           </Button>
           <Button
             variant="outlined"
-            startIcon={<Refresh />}
-            onClick={() => {
-              if (canLoadList) list.refetch();
-              if (user.permissions.view) summary.refetch();
-            }}
-            disabled={list.isFetching || summary.isFetching || !canLoadList}
+            startIcon={<Refresh className={refreshing ? 'bd-spin' : undefined} />}
+            onClick={refreshInvoices}
+            disabled={refreshing || !canLoadList}
+            aria-busy={refreshing}
           >
-            Refresh
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
           {(user.permissions.create || user.permissions.canCreate || user.permissions.manage) && (
             <Button
