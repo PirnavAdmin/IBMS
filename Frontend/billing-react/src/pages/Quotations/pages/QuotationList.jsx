@@ -105,7 +105,7 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
      <div className="quote-filter-grid">
       <label>Status<ThemedSelect label="Status" value={filters.status} onChange={status=>setFilters({...filters,status})} options={['All','Draft','Sent','Approved','Cancelled','Converted'].map(v=>({value:v,label:v}))}/></label>
       <label>Customer<ThemedSelect label="Customer" value={filters.customer} onChange={customer=>setFilters({...filters,customer})} options={[{value:'',label:'All customers'},...customers.map(c=>({value:c.id,label:c.name}))]}/></label>
-      <DateRangeFilter confirmationMessage="Dates selected. Click Apply Filters to update quotations." startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => setFilters({ ...filters, from: startDate, to: endDate })} />
+      <DateRangeFilter iconOnly confirmationMessage="Dates selected. Click Apply Filters to update quotations." startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => setFilters({ ...filters, from: startDate, to: endDate })} />
       <label>Validity<ThemedSelect label="Validity" value={filters.validity} onChange={validity=>setFilters({...filters,validity})} options={['All','Active','Expiring Soon','Expired'].map(v=>({value:v,label:v}))}/></label>
       <label>Sort by<ThemedSelect label="Sort by" value={filters.sortBy} onChange={sortBy=>setFilters({...filters,sortBy})} options={[{value:'newest',label:'Newest to Oldest'},{value:'oldest',label:'Oldest to Newest'}]}/></label>
      </div>

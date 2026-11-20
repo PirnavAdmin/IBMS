@@ -148,6 +148,14 @@
   border-radius: 8px;
   font-size: 0.85rem;
 }
+.product-list-page .product-filters .MuiOutlinedInput-root,
+.product-list-page .product-filters .MuiInputBase-root:has(.MuiSelect-select),
+.product-list-page .product-filters .ibms-filter-select .MuiOutlinedInput-root {
+  background: var(--surface, #ffffff);
+}
+.product-list-page .product-filters .MuiOutlinedInput-notchedOutline {
+  border-color: var(--border, #eadfd2);
+}
 .product-list-page .product-filters .MuiInputLabel-root {
   font-size: 0.85rem;
 }

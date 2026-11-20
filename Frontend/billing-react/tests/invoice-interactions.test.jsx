@@ -729,16 +729,30 @@ test("Add/remove multiple item lines retains backend calculation display", async
       await flush(420);
       await click(button("Add Line"));
       assert.equal(
-        document.querySelectorAll('[aria-label^="Actions for line"]').length,
+        document.querySelectorAll('button[aria-label^="Remove line"]').length,
         2,
       );
-      assert.equal(document.querySelectorAll('[aria-label^="Move line"]').length, 0);
-      await click(document.querySelector('[aria-label="Actions for line 2"]'));
-      await click(document.querySelector('[role="menuitem"]'));
       assert.equal(
-        document.querySelectorAll('[aria-label^="Actions for line"]').length,
+        document.querySelectorAll('button[aria-label^="Move line"]').length,
+        4,
+      );
+      assert.equal(document.querySelector('button[aria-label="Move line 1 up"]').disabled, true);
+      assert.equal(document.querySelector('button[aria-label="Move line 1 down"]').disabled, false);
+      await click(document.querySelector('button[aria-label="Move line 1 down"]'));
+      await click(document.querySelector('button[aria-label="Remove line 2"]'));
+      assert.equal(
+        document.querySelectorAll('button[aria-label^="Remove line"]').length,
         1,
       );
+      assert.equal(document.querySelector('button[aria-label="Remove line 1"]').disabled, false);
+      await click(document.querySelector('button[aria-label="Remove line 1"]'));
+      assert.equal(
+        document.querySelectorAll('button[aria-label^="Remove line"]').length,
+        1,
+      );
+      const qtyInput = document.querySelector('input[aria-label="Quantity"]');
+      assert.equal(qtyInput.getAttribute("step"), "1");
+      assert.equal(qtyInput.getAttribute("min"), "1");
     } finally {
       await mounted.close();
     }

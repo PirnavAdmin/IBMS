@@ -5,18 +5,20 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import Add from '@mui/icons-material/Add';
 import ArrowBack from '@mui/icons-material/ArrowBack';
-import MoreVert from '@mui/icons-material/MoreVert';
+import ArrowDownward from '@mui/icons-material/ArrowDownward';
+import ArrowUpward from '@mui/icons-material/ArrowUpward';
 import DeleteOutline from '@mui/icons-material/DeleteOutline';
 import PersonOutline from '@mui/icons-material/PersonOutline';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import SaveOutlined from '@mui/icons-material/SaveOutlined';
 import Tag from '@mui/icons-material/Tag';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
+import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -114,7 +116,7 @@ export function InvoiceForm() {
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [lineMenu, setLineMenu] = useState(null);
+  const [feedback, setFeedback] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [chargeId, setChargeId] = useState("");
   const guard = useRef(createSubmissionGuard());
@@ -264,6 +266,41 @@ export function InvoiceForm() {
         i === index ? { ...item, [key]: value } : item,
       ),
     }));
+  };
+  const moveItem = (index, direction) => {
+    if (!editable || busy) return;
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= form.items.length) return;
+    setForm((previous) => {
+      const updated = [...previous.items];
+      const temp = updated[index];
+      updated[index] = updated[targetIndex];
+      updated[targetIndex] = temp;
+      return { ...previous, items: updated };
+    });
+    setFeedback(
+      direction < 0
+        ? `Line item ${index + 1} moved up`
+        : `Line item ${index + 1} moved down`
+    );
+  };
+  const removeLineItem = (index) => {
+    if (!editable || busy) return;
+    setForm((previous) => {
+      if (previous.items.length <= 1) {
+        return {
+          ...previous,
+          items: [blankItem()],
+        };
+      }
+      return {
+        ...previous,
+        items: previous.items.filter((_, i) => i !== index),
+      };
+    });
+    setFeedback(
+      form.items.length <= 1 ? "Line item cleared" : `Line item ${index + 1} removed`
+    );
   };
   const chooseCustomer = (value) => {
     change("customerId", value ? String(value.id) : "");
@@ -659,7 +696,6 @@ export function InvoiceForm() {
               </div>
               <DateField
                 label="Invoice date"
-                placeholder="Invoice date (dd/mm/yyyy)"
                 required
                 value={form.invoiceDate}
                 onChange={handleInvoiceDateChange}
@@ -669,7 +705,6 @@ export function InvoiceForm() {
               />
               <DateField
                 label="Due date"
-                placeholder="Due date (dd/mm/yyyy)"
                 required
                 value={form.dueDate}
                 onChange={(val) => change("dueDate", val)}
@@ -749,6 +784,7 @@ export function InvoiceForm() {
                     ...previous,
                     items: [...previous.items, blankItem()],
                   }));
+                  setFeedback("Line item added");
                 }}
               >
                 Add Line Item
@@ -839,7 +875,7 @@ export function InvoiceForm() {
                           size="small"
                           required
                           type="number"
-                          inputProps={{ min: 0.01, max: 999999, step: 0.0001, "aria-label": "Quantity" }}
+                          inputProps={{ min: 1, max: 999999, step: 1, "aria-label": "Quantity" }}
                           placeholder="1"
                           value={item.quantity}
                           onChange={(event) =>
@@ -891,7 +927,39 @@ export function InvoiceForm() {
                         <TextField
                           select
                           size="small"
-                          SelectProps={{ displayEmpty: true, renderValue: (selected) => selected || "Select a rate" }}
+                          className="invoice-tax-rate-select"
+                          SelectProps={{
+                            displayEmpty: true,
+                            renderValue: (selected) => {
+                              if (!selected) {
+                                return (
+                                  <span className="invoice-tax-rate-placeholder">
+                                    Select tax
+                                  </span>
+                                );
+                              }
+                              const [taxType, taxRate] = String(selected).split("|");
+                              const itemRateNum = Number(taxRate);
+                              const matched =
+                                rates.find(
+                                  (r) =>
+                                    Number(r.rate) === itemRateNum &&
+                                    (!taxType ||
+                                      String(r.taxType || r.type || "").toLowerCase() ===
+                                        String(taxType).toLowerCase()),
+                                ) || rates.find((r) => Number(r.rate) === itemRateNum);
+                              const label = matched?.name
+                                ? matched.name.includes("%")
+                                  ? matched.name
+                                  : `${matched.name} ${taxRate}%`
+                                : `${taxType || "GST"} ${taxRate}%`;
+                              return (
+                                <span className="invoice-tax-rate-value">
+                                  {label}
+                                </span>
+                              );
+                            },
+                          }}
                           inputProps={{ "aria-label": "Tax rate" }}
                           error={Boolean(errors[`items.${index}.taxRate`])}
                           helperText={errors[`items.${index}.taxRate`]}
@@ -981,47 +1049,78 @@ export function InvoiceForm() {
                           ? "N/A"
                           : money(freshCalculation.items[index].lineTotal, form.currency)}
                       </td>
-                      <td>
-                        <IconButton
-                          id={"invoice-line-actions-" + index}
-                          size="small"
-                          aria-label={"Actions for line " + (index + 1)}
-                          aria-haspopup="menu"
-                          aria-controls={lineMenu?.index === index ? "invoice-line-menu" : undefined}
-                          aria-expanded={lineMenu?.index === index ? "true" : undefined}
-                          disabled={busy || !editable || form.items.length === 1}
-                          onClick={(event) => setLineMenu({ anchor: event.currentTarget, index })}
-                        >
-                          <MoreVert fontSize="small" />
-                        </IconButton>
+                      <td className="invoice-line-actions-cell">
+                        <div className="invoice-line-actions-wrap">
+                          <Tooltip
+                            title={
+                              index === 0
+                                ? "First item cannot be moved up"
+                                : `Move line ${index + 1} up`
+                            }
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Move line ${index + 1} up`}
+                                disabled={busy || !editable || index === 0}
+                                onClick={() => moveItem(index, -1)}
+                                className="invoice-move-line-btn"
+                              >
+                                <ArrowUpward fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+
+                          <Tooltip
+                            title={
+                              index === form.items.length - 1
+                                ? "Last item cannot be moved down"
+                                : `Move line ${index + 1} down`
+                            }
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Move line ${index + 1} down`}
+                                disabled={
+                                  busy ||
+                                  !editable ||
+                                  index === form.items.length - 1
+                                }
+                                onClick={() => moveItem(index, 1)}
+                                className="invoice-move-line-btn"
+                              >
+                                <ArrowDownward fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+
+                          <Tooltip
+                            title={
+                              form.items.length <= 1
+                                ? "Clear line item details"
+                                : `Remove line ${index + 1}`
+                            }
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`Remove line ${index + 1}`}
+                                className="invoice-delete-line-btn"
+                                disabled={busy || !editable}
+                                onClick={() => removeLineItem(index)}
+                              >
+                                <DeleteOutline fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <Menu
-              id="invoice-line-menu"
-              anchorEl={lineMenu?.anchor}
-              open={Boolean(lineMenu)}
-              onClose={() => setLineMenu(null)}
-              MenuListProps={{ "aria-labelledby": lineMenu ? "invoice-line-actions-" + lineMenu.index : undefined }}
-            >
-              <MenuItem
-                disabled={busy || !editable || form.items.length === 1}
-                onClick={() => {
-                  const index = lineMenu.index;
-                  setLineMenu(null);
-                  setForm((previous) => ({
-                    ...previous,
-                    items: previous.items.filter((_, i) => i !== index),
-                  }));
-                }}
-                sx={{ color: "error.main", gap: 1 }}
-              >
-                <DeleteOutline fontSize="small" /> Remove line item
-              </MenuItem>
-            </Menu>
             {errors.items && <Alert severity="error">{errors.items}</Alert>}
           </section>
           <div className="invoice-form-bottom">
@@ -1224,6 +1323,7 @@ export function InvoiceForm() {
           </div>
         </fieldset>
       </form>
+      <FeedbackSnackbar message={feedback} onClose={() => setFeedback("")} />
     </InvoiceShell>
   );
 }

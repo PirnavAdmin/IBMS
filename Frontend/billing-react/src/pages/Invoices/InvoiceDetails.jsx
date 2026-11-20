@@ -1288,7 +1288,7 @@ export function InvoiceDetails() {
             <Switch
               checked={includePayOnlineButton}
               onChange={(e) => setIncludePayOnlineButton(e.target.checked)}
-              inputProps={{ "aria-label": "Include Click Here to Pay Online button" }}
+              inputProps={{ "aria-label": "Include Pay Now Online button", "title": "Include Click Here to Pay Online button" }}
               sx={{
                 "& .MuiSwitch-switchBase.Mui-checked": { color: "#65442E" },
                 "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { backgroundColor: "#65442E" },

@@ -21,9 +21,9 @@ function parsePhoneNumberFromString(value) {
 
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
-const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
-const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
-const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
+export const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
+export const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
+export const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
 const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
 
@@ -252,15 +252,32 @@ export const customerValidationSchema = yup.object({
       .max(32, 'Postal code must not exceed 32 characters')
       .test('billing-postal-format', 'Enter a valid postal code', function (val) {
         if (!val || val.trim() === '') return true;
-        if (this.parent.country === 'India')
-          return INDIA_PIN_REGEX.test(val.trim()) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
-        return POSTAL_REGEX.test(val.trim());
+        const trimmed = val.trim();
+        const country = String(this.parent?.country || '').trim();
+        const isIndia = !country || country.toLowerCase() === 'india';
+        if (isIndia) {
+          return INDIA_PIN_REGEX.test(trimmed) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
+        }
+        if (INDIA_PIN_REGEX.test(trimmed) && country.toLowerCase() !== 'india') {
+          return this.createError({ message: 'Selected country is inconsistent with the entered PIN code.' });
+        }
+        return POSTAL_REGEX.test(trimmed);
       }),
     country: yup
       .string()
       .trim()
       .required('Billing country is required')
-      .max(128, 'Country must not exceed 128 characters'),
+      .max(128, 'Country must not exceed 128 characters')
+      .test('billing-country-pin-consistency', 'Selected country is inconsistent with the entered PIN code.', function (val) {
+        if (!val || val.trim() === '') return true;
+        const postal = String(this.parent?.postalCode || '').trim();
+        if (!postal) return true;
+        const isIndia = val.trim().toLowerCase() === 'india';
+        if (!isIndia && INDIA_PIN_REGEX.test(postal)) {
+          return this.createError({ message: 'Selected country is inconsistent with the entered PIN code.' });
+        }
+        return true;
+      }),
   }).required(),
 
   // 5. Shipping Address
@@ -297,15 +314,32 @@ export const customerValidationSchema = yup.object({
           .max(32, 'Postal code must not exceed 32 characters')
           .test('shipping-postal-format', 'Enter a valid postal code', function (val) {
             if (!val || val.trim() === '') return true;
-            if (this.parent.country === 'India')
-              return INDIA_PIN_REGEX.test(val.trim()) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
-            return POSTAL_REGEX.test(val.trim());
+            const trimmed = val.trim();
+            const country = String(this.parent?.country || '').trim();
+            const isIndia = !country || country.toLowerCase() === 'india';
+            if (isIndia) {
+              return INDIA_PIN_REGEX.test(trimmed) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
+            }
+            if (INDIA_PIN_REGEX.test(trimmed) && country.toLowerCase() !== 'india') {
+              return this.createError({ message: 'Selected country is inconsistent with the entered PIN code.' });
+            }
+            return POSTAL_REGEX.test(trimmed);
           }),
         country: yup
           .string()
           .trim()
           .required('Shipping country is required')
-          .max(128, 'Country must not exceed 128 characters'),
+          .max(128, 'Country must not exceed 128 characters')
+          .test('shipping-country-pin-consistency', 'Selected country is inconsistent with the entered PIN code.', function (val) {
+            if (!val || val.trim() === '') return true;
+            const postal = String(this.parent?.postalCode || '').trim();
+            if (!postal) return true;
+            const isIndia = val.trim().toLowerCase() === 'india';
+            if (!isIndia && INDIA_PIN_REGEX.test(postal)) {
+              return this.createError({ message: 'Selected country is inconsistent with the entered PIN code.' });
+            }
+            return true;
+          }),
       }),
     otherwise: (schema) => schema.notRequired(),
   }),

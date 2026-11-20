@@ -1441,7 +1441,7 @@
 .quote-items-table{min-width:1180px}
 .quote-items-table th:nth-child(1),.quote-items-table td:nth-child(1){width:16%}
 .quote-items-table th:nth-child(2),.quote-items-table td:nth-child(2){width:30%}
-.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%}
+.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%;min-width:65px}
 .quote-items-table th:nth-child(4),.quote-items-table td:nth-child(4){width:10%}
 .quote-items-table th:nth-child(5),.quote-items-table td:nth-child(5){width:14%}
 .quote-items-table th:nth-child(6),.quote-items-table td:nth-child(6){width:14%}
@@ -1466,7 +1466,7 @@
 .quote-items-table td.quote-item-discount>input,.quote-items-table td>.quote-item-tax{box-sizing:border-box;width:100%;max-width:none}
 .quote-items-table th:nth-child(1),.quote-items-table td:nth-child(1){width:15%}
 .quote-items-table th:nth-child(2),.quote-items-table td:nth-child(2){width:27%}
-.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%}
+.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%;min-width:65px}
 .quote-items-table th:nth-child(4),.quote-items-table td:nth-child(4){width:10%}
 .quote-items-table th:nth-child(5),.quote-items-table td:nth-child(5){width:13%}
 .quote-items-table th:nth-child(6),.quote-items-table td:nth-child(6){width:12%}
@@ -1513,6 +1513,20 @@
 .quote-filter-dropdown .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
   min-width: 0;
   white-space: normal;
+}
+
+.quote-filter-dropdown .date-range-filter.date-range-icon-only {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.quote-filter-dropdown .date-range-filter.date-range-icon-only::after {
+  display: none !important;
 }
 
 /* Create/edit quotation: aligned sections and a compact financial summary. */

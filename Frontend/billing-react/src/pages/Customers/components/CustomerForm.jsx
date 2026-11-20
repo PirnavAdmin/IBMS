@@ -647,18 +647,22 @@ export const CustomerForm = ({
                   <p className="cust-step-subtitle">{currentStepData.subtitle}</p>
                 </div>
               </div>
-              <div className="cust-required-pill">
-                <InfoOutlined fontSize="small" />
-                <span>
-                  Fields marked with <strong className="cust-required">*</strong> are required
-                </span>
-              </div>
+              {currentStep < STEPS.length - 1 && (
+                <div className="cust-required-pill">
+                  <InfoOutlined fontSize="small" />
+                  <span>
+                    Fields marked with <strong className="cust-required">*</strong> are required
+                  </span>
+                </div>
+              )}
             </div>
 
-            <p className="cust-draft-notice" role="status">
-              Your entries are automatically kept as a draft for this app session, including when you go Back or Next.
-              {' '}The customer is saved only when you click {mode === 'edit' ? 'Save Changes' : 'Create Customer'}.
-            </p>
+            {currentStep < STEPS.length - 1 && (
+              <p className="cust-draft-notice" role="status">
+                Your entries are automatically kept as a draft for this app session, including when you go Back or Next.
+                {' '}The customer is saved only when you click {mode === 'edit' ? 'Save Changes' : 'Create Customer'}.
+              </p>
+            )}
 
             <div key={currentStep} className={`cust-step-panel slide-${slideDirection}`}>
               {/* STEP 0: Basic Information */}

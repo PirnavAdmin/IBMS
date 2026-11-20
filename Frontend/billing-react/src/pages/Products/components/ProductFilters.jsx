@@ -54,9 +54,9 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
     <FilterSelectField select SelectProps={statusSelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by status' }} value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
       <MenuItem value={ALL_STATUSES}>All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
     </FilterSelectField>
-    <TextField
+    <FilterSelectField
       select
-      SelectProps={sortSelectProps}
+      SelectProps={{ ...sortSelectProps, displayEmpty: true }}
       inputProps={{ 'aria-label': 'Sort products' }}
       size="small"
       value={sortValue}
@@ -67,7 +67,7 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       {SORT_OPTIONS.map(o => (
         <MenuItem key={`${o.sortBy}:${o.sortOrder}`} value={`${o.sortBy}:${o.sortOrder}`}>{o.label}</MenuItem>
       ))}
-    </TextField>
+    </FilterSelectField>
     <Button disabled={!active} onClick={onClear}>Clear Filters</Button>
   </div>;
 }

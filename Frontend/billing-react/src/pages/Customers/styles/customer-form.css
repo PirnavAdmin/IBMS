@@ -487,6 +487,9 @@
 /* Error State */
 .cust-field input[aria-invalid="true"],
 .cust-field textarea[aria-invalid="true"],
+.cust-field select[aria-invalid="true"],
+.cust-field .cust-themed-select[aria-invalid="true"] .MuiOutlinedInput-notchedOutline,
+.cust-field .cust-themed-select.Mui-error .MuiOutlinedInput-notchedOutline,
 .cust-field .has-error {
   border-color: var(--cust-error) !important;
 }
