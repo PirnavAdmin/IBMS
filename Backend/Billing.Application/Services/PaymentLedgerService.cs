@@ -41,10 +41,36 @@ public class PaymentLedgerService : IPaymentLedgerService
                 // Write with UTF-8 BOM so Excel opens it with perfect formatting and encoding
                 File.WriteAllText(_csvFilePath, header, new UTF8Encoding(true));
             }
+            else
+            {
+                MigrateLegacyRowsIfNecessary();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not initialize Payments_Ledger.csv file at {Path}", _csvFilePath);
+        }
+    }
+
+    private void MigrateLegacyRowsIfNecessary()
+    {
+        try
+        {
+            if (!File.Exists(_csvFilePath)) return;
+            var text = File.ReadAllText(_csvFilePath, Encoding.UTF8);
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, "(?m)^\"\\d{2}[-/]\\d{2}[-/]\\d{4}\\s+\\d{2}:\\d{2}:\\d{2}\""))
+            {
+                var migrated = System.Text.RegularExpressions.Regex.Replace(
+                    text,
+                    "(?m)^\"(\\d{2}[-/]\\d{2}[-/]\\d{4}\\s+\\d{2}:\\d{2}:\\d{2})\"",
+                    "=\"$1\""
+                );
+                File.WriteAllText(_csvFilePath, migrated, new UTF8Encoding(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to migrate legacy rows in {Path}", _csvFilePath);
         }
     }
 
@@ -57,9 +83,13 @@ public class PaymentLedgerService : IPaymentLedgerService
         {
             EnsureFileInitialized();
 
+            var formattedTimestamp = !string.IsNullOrEmpty(entry.TimestampIst) && entry.TimestampIst.StartsWith("=\"") && entry.TimestampIst.EndsWith("\"")
+                ? entry.TimestampIst
+                : $"=\"{entry.TimestampIst}\"";
+
             var line = string.Format(
-                "\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5:F2}\",\"{6:F2}\",\"{7:F2}\",\"{8}\",\"{9}\",\"{10}\",\"{11}\"\n",
-                EscapeCsv(entry.TimestampIst),
+                "{0},\"{1}\",\"{2}\",\"{3}\",\"{4}\",\"{5:F2}\",\"{6:F2}\",\"{7:F2}\",\"{8}\",\"{9}\",\"{10}\",\"{11}\"\n",
+                formattedTimestamp,
                 EscapeCsv(entry.InvoiceNumber),
                 EscapeCsv(entry.CustomerName),
                 EscapeCsv(entry.CustomerPhone),
@@ -95,7 +125,13 @@ public class PaymentLedgerService : IPaymentLedgerService
             EnsureFileInitialized();
             if (File.Exists(_csvFilePath))
             {
-                return await File.ReadAllBytesAsync(_csvFilePath);
+                var bytes = await File.ReadAllBytesAsync(_csvFilePath);
+                var preamble = Encoding.UTF8.GetPreamble();
+                if (bytes.Length >= preamble.Length && bytes.Take(preamble.Length).SequenceEqual(preamble))
+                {
+                    return bytes;
+                }
+                return preamble.Concat(bytes).ToArray();
             }
             return Encoding.UTF8.GetPreamble();
         }
@@ -119,7 +155,7 @@ public class PaymentLedgerService : IPaymentLedgerService
             foreach (var line in lines.Skip(1).Reverse().Take(limit))
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-                var cols = ParseCsvLine(line);
+                var cols = ParseCsvLine(line).Select(c => c.TrimStart('=').Trim('\"')).ToList();
                 if (cols.Count >= 11)
                 {
                     decimal.TryParse(cols[5], out var total);

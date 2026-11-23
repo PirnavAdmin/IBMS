@@ -971,4 +971,114 @@ public class BackgroundWorkerJobTests
         Assert.Equal(2, updated.Data.OverdueReminderIntervalDays);
         Assert.False(updated.Data.UpcomingDueReminderEnabled);
     }
+
+    [Theory]
+    [InlineData("Payment")]
+    [InlineData("Customer")]
+    [InlineData("AuditLog")]
+    [InlineData("CreditNote")]
+    [InlineData("Quotation")]
+    [InlineData("Product")]
+    public async Task ExportJobService_FormatsAllDatesAsExcelTextFormulas_ToPreventHashDisplay(string jobType)
+    {
+        var exportRepo = new Mock<IExportJobRepository>();
+        var invoiceRepo = new Mock<IInvoiceRepository>();
+        var paymentRepo = new Mock<IPaymentRepository>();
+        var customerRepo = new Mock<ICustomerRepository>();
+        var auditRepo = new Mock<IAuditLogRepository>();
+        var creditNoteRepo = new Mock<ICreditNoteRepository>();
+        var quotationRepo = new Mock<IQuotationRepository>();
+        var productRepo = new Mock<IProductRepository>();
+        var storage = new Mock<IDocumentStorageService>();
+        var logger = new Mock<ILogger<ExportJobService>>();
+
+        var job = new ExportJob { Id = 99, TenantId = TenantId, JobType = jobType, ExportFormat = "CSV", Status = "Pending" };
+        byte[]? generatedBytes = null;
+
+        exportRepo.Setup(r => r.AddAsync(It.IsAny<ExportJob>(), It.IsAny<CancellationToken>()))
+            .Callback<ExportJob, CancellationToken>((created, _) =>
+            {
+                job.JobType = created.JobType;
+                job.ExportFormat = created.ExportFormat;
+                job.Status = created.Status;
+            })
+            .ReturnsAsync(job);
+        exportRepo.Setup(r => r.GetPendingJobsAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExportJob> { job });
+        storage.Setup(s => s.SaveDocumentAsync(
+                It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<string>(), TenantId, It.IsAny<CancellationToken>()))
+            .Callback<byte[], string, string, int, CancellationToken>((content, _, _, _, _) => generatedBytes = content)
+            .ReturnsAsync("tenant_1/exports/data.csv");
+
+        var testDate = new DateTime(2026, 11, 23, 14, 30, 0, DateTimeKind.Utc);
+
+        paymentRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<PaymentListFilterRequest>()))
+            .ReturnsAsync(new PagedResult<Payment>
+            {
+                TotalCount = 1,
+                Items = new List<Payment>
+                {
+                    new() { Id = 1, PaymentNumber = "PAY-001", PaymentDate = testDate, Amount = 100m, Status = PaymentStatus.Completed }
+                }
+            });
+
+        customerRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<CustomerQueryParameters>()))
+            .ReturnsAsync((new List<Customer>
+            {
+                new() { Id = 1, CustomerCode = "CUST-001", Name = "Cust", Status = "Active", CreatedAtUtc = testDate }
+            }, 1));
+
+        auditRepo.Setup(r => r.GetFilteredPagedAsync(TenantId, It.IsAny<AuditLogFilterRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<AuditLog>
+            {
+                new() { Id = 1, Action = "Create", EntityName = "Invoice", EntityId = "1", UserName = "Admin", Timestamp = testDate }
+            }, 1));
+
+        creditNoteRepo.Setup(r => r.GetPagedAsync(TenantId, It.IsAny<CreditNoteFilterRequest>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<CreditNoteListItemDto>
+            {
+                TotalCount = 1,
+                Items = new List<CreditNoteListItemDto>
+                {
+                    new() { Id = 1, CreditNoteNumber = "CN-001", CreditDate = testDate, CreatedAtUtc = testDate }
+                }
+            });
+
+        quotationRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<QuotationListFilterRequest>()))
+            .ReturnsAsync((new List<Quotation>
+            {
+                new() { Id = 1, QuoteNumber = "QT-001", QuotationDate = testDate, ValidUntil = testDate.AddDays(7), CreatedAtUtc = testDate }
+            }, 1));
+
+        productRepo.Setup(r => r.GetPagedListAsync(TenantId, It.IsAny<ProductQueryParameters>()))
+            .ReturnsAsync((new List<Product>
+            {
+                new() { Id = 1, ProductCode = "PRD-001", Name = "Widget", CreatedAtUtc = testDate }
+            }, 1));
+
+        var service = new ExportJobService(
+            exportRepo.Object,
+            invoiceRepo.Object,
+            paymentRepo.Object,
+            customerRepo.Object,
+            auditRepo.Object,
+            storage.Object,
+            logger.Object,
+            creditNoteRepo.Object,
+            quotationRepo.Object,
+            productRepo.Object);
+
+        var queueResult = await service.QueueExportJobAsync(
+            new CreateExportJobRequest { JobType = jobType, ExportFormat = "CSV" }, TenantId, "Admin");
+        Assert.True(queueResult.Success);
+
+        var processResult = await service.ProcessPendingExportJobsAsync();
+        Assert.True(processResult.Success);
+        Assert.NotNull(generatedBytes);
+
+        var csvText = Encoding.UTF8.GetString(generatedBytes!);
+        // Verify that date values are wrapped in ="dd/MM/yyyy" or ="dd/MM/yyyy HH:mm:ss" and do NOT contain raw ISO dates
+        Assert.Contains("=\"", csvText);
+        Assert.DoesNotContain("2026-11-23", csvText);
+    }
 }
