@@ -46,7 +46,7 @@ export function CreditNoteList() {
   useNavbarSearch(searchInput, setSearchInput, 'Search credit notes');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [filterMenusOpenUpward, setFilterMenusOpenUpward] = useState(true);
   const [type, setType] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -87,6 +87,25 @@ export function CreditNoteList() {
   const selectedCreditValue = selectedSummaryItems.reduce((sum, note) => sum + Number(note.total || 0), 0);
   const selectedRefunded = selectedSummaryItems.reduce((sum, note) => sum + Number(note.refunded || 0), 0);
   const hasFilters = Boolean(searchInput || status || type || fromDate || toDate);
+  const openFilterMenu = (event) => {
+    const scrollViewport = event.currentTarget.closest('.app-layout-content');
+    const hasScrollableContent = scrollViewport && scrollViewport.scrollHeight > scrollViewport.clientHeight + 1;
+    const scrollTop = hasScrollableContent
+      ? scrollViewport.scrollTop
+      : Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
+    setFilterMenusOpenUpward(scrollTop <= 0);
+  };
+  const filterMenuProps = {
+    variant: 'menu',
+    anchorOrigin: filterMenusOpenUpward
+      ? { vertical: 'top', horizontal: 'left' }
+      : { vertical: 'bottom', horizontal: 'left' },
+    transformOrigin: filterMenusOpenUpward
+      ? { vertical: 'bottom', horizontal: 'left' }
+      : { vertical: 'top', horizontal: 'left' },
+    marginThreshold: 8,
+    PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } },
+  };
 
   const changeSort = (key) => {
     if (!sortable[key]) return;
@@ -133,9 +152,9 @@ export function CreditNoteList() {
         <div className="cn-list-heading"><div><h2>Credit note register</h2><p>Search and review credits linked to issued invoices.</p></div></div>
         <div className="cn-filter-bar">
           <TextField className="cn-search" size="small" placeholder="Search note number, customer, invoice, or reason" value={searchInput} onFocus={() => { if (searchInput) { setSearchInput(''); setSearch(''); setPage(0); } }} onChange={(event) => { setSearchInput(event.target.value); setPage(0); }} InputProps={{ startAdornment: <Search className="cn-search-icon" /> }} inputProps={{ 'aria-label': 'Search note number, customer, invoice, or reason', autoComplete: 'off', name: 'credit-note-register-search' }} />
-          <FilterSelectField select size="small" value={status} inputProps={{ 'aria-label': 'Filter credit notes by status' }} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: () => setStatusMenuOpen(true), onClose: () => setStatusMenuOpen(false), MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-status-options-menu', sx: { maxHeight: 240 } } } }}><MenuItem value="">All Statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
-          <FilterSelectField select size="small" value={type} inputProps={{ 'aria-label': 'Filter credit notes by type' }} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter"><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
-          <DateRangeFilter placement="topRight" startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
+          <FilterSelectField select size="small" value={status} inputProps={{ 'aria-label': 'Filter credit notes by status' }} onChange={(event) => { setStatus(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: openFilterMenu, MenuProps: filterMenuProps }}><MenuItem value="">All Statuses</MenuItem>{statuses.slice(1).map((item) => <MenuItem key={item} value={item}>{['Pending Approval', 'Partially Refunded'].includes(item) ? <span className="cn-status-filter-compact">{item}</span> : item}</MenuItem>)}</FilterSelectField>
+          <FilterSelectField select size="small" value={type} inputProps={{ 'aria-label': 'Filter credit notes by type' }} onChange={(event) => { setType(event.target.value); setPage(0); }} className="cn-status-filter" SelectProps={{ onOpen: openFilterMenu, MenuProps: filterMenuProps }}><MenuItem value="">All types</MenuItem><MenuItem value="Full">Full</MenuItem><MenuItem value="Partial">Partial</MenuItem></FilterSelectField>
+          <DateRangeFilter placement="bottomRight" popoverClassName="cn-date-range-popover" lockScroll scrollBasedPlacement startDate={fromDate} endDate={toDate} onApply={({ startDate, endDate }) => { setFromDate(startDate); setToDate(endDate); setPage(0); }} />
           {hasFilters && <Button className="cn-clear-filter" onClick={clearFilters}>Clear filters</Button>}
         </div>
         {!query.isPending && !query.isFetching && !query.isError && items.length === 0 ? (

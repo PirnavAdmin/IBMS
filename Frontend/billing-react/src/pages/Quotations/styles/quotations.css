@@ -32,6 +32,7 @@
 .quote-filter-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 5; width: min(680px, calc(100vw - 56px)); padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 14px 28px rgba(60, 37, 24, .16); }
 .quote-filter-dropdown .quote-filter-grid { grid-template-columns: repeat(3, minmax(145px, 1fr)); margin-bottom: 0; }
 .quote-filter-dropdown .quote-filter-buttons { justify-content: flex-end; margin-top: 14px; }
+.quote-filter-dropdown .quote-filter-back-button { margin-right: auto; }
 @media (max-width: 700px) { .quote-list-toolbar { grid-template-columns: 1fr; align-items: stretch; } .quote-list-toolbar .quote-search { max-width: none; } .quote-running-button, .quote-audit-menu > .quote-btn, .quote-filter-menu > .quote-btn { width: 100%; } .quote-audit-dropdown { left: auto; right: 0; width: min(300px, 100%); } .quote-filter-dropdown { left: 0; right: auto; width: 100%; } .quote-filter-dropdown .quote-filter-grid { grid-template-columns: 1fr; } }
 
 /* Quotation list search and compact action controls. */
