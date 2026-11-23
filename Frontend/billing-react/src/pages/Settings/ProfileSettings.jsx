@@ -13,6 +13,7 @@ import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import OpenInNewOutlined from '@mui/icons-material/OpenInNewOutlined';
 import { Link } from 'react-router-dom';
 import { authApi, templateApi } from 'billing-api-client';
+import { queryClient } from '../../queryClient';
 import { userRoleAdministrationService } from '../UserRoleAdministration/userRoleAdministrationService';
 import { getCurrentUserRoles } from '../../utils/permissionUtils';
 import { getCompanyDisplayName, getDisplayName, getInitials } from '../../utils/userDisplay';
@@ -105,11 +106,22 @@ export function ProfileSettings() {
   const [logoPosition, setLogoPosition] = useState('left');
   const [logoWidth, setLogoWidth] = useState(120);
 
+  const tenantKey = user?.tenantId ?? user?.tenant_id ?? user?.TenantId ?? 'current';
+
   useEffect(() => {
     let active = true;
+    const cached = queryClient.getQueryData(['company-branding', tenantKey]);
+    if (cached?.branding) {
+      setLogoUrl(cached.branding.logoUrl || '');
+      setLogoName(cached.branding.logoName || '');
+      setLogoPosition(cached.branding.logoPosition || 'left');
+      setLogoWidth(cached.branding.logoWidth || 120);
+    }
+
     templateApi.getCompanyBranding()
       .then(data => {
         if (!active) return;
+        queryClient.setQueryData(['company-branding', tenantKey], data);
         if (data?.branding) {
           setLogoUrl(data.branding.logoUrl || '');
           setLogoName(data.branding.logoName || '');
@@ -119,7 +131,7 @@ export function ProfileSettings() {
       })
       .catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [tenantKey]);
 
   const handleLogoUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -153,6 +165,7 @@ export function ProfileSettings() {
           logoWidth
         }
       });
+      queryClient.invalidateQueries({ queryKey: ['company-branding'] });
       setLogoNotice('Company logo uploaded and saved successfully.');
     } catch (err) {
       setLogoError(err.message || 'Failed to upload company logo.');
@@ -176,6 +189,7 @@ export function ProfileSettings() {
           logoWidth
         }
       });
+      queryClient.invalidateQueries({ queryKey: ['company-branding'] });
       setLogoNotice('Company logo removed successfully.');
     } catch (err) {
       setLogoError(err.message || 'Failed to remove company logo.');
@@ -197,6 +211,7 @@ export function ProfileSettings() {
           logoWidth
         }
       });
+      queryClient.invalidateQueries({ queryKey: ['company-branding'] });
       setLogoNotice('Company logo display settings saved successfully.');
     } catch (err) {
       setLogoError(err.message || 'Failed to save logo display settings.');

@@ -5,6 +5,7 @@ import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PlatformRoute, DashboardEntry } from '../pages/Platform/PlatformRoute';
 import { PermissionRoute } from './PermissionRoute';
+import { AppLayout } from '../layouts/AppLayout';
 
 // Keep the shell mounted while the selected page loads; unrelated modules stay unloaded.
 const lazyPage = (load, exportName) => {
@@ -27,7 +28,6 @@ const ForgotPassword = lazyPage(() => import('../pages/ForgotPassword/ForgotPass
 const VerifyOtp = lazyPage(() => import('../pages/VerifyOtp/VerifyOtp'), 'VerifyOtp');
 const ResetPassword = lazyPage(() => import('../pages/ResetPassword/ResetPassword'), 'ResetPassword');
 const Dashboard = lazyPage(() => import('../pages/Dashboard/Dashboard'), 'Dashboard');
-const AppLayout = lazyPage(() => import('../layouts/AppLayout'), 'AppLayout');
 const ModulePlaceholder = lazyPage(() => import('../pages/ModulePlaceholder/ModulePlaceholder'), 'ModulePlaceholder');
 const AuditActivity = lazyPage(() => import('../pages/AuditActivity/AuditActivity'), 'AuditActivity');
 const SettingsWorkspace = lazyPage(() => import('../pages/Settings/SettingsWorkspace'), 'SettingsWorkspace');
