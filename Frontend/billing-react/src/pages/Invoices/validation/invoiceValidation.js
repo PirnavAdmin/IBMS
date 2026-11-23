@@ -134,6 +134,12 @@ export function validateInvoice(form) {
     if (item.taxCategory && !item.taxType)
       errors[`items.${index}.taxRate`] =
         "Select a configured tax for this product's tax category.";
+    if (
+      item.hsnsac &&
+      !/^[0-9]{4,8}$/.test(String(item.hsnsac).trim())
+    ) {
+      errors[`items.${index}.hsnsac`] = "HSN/SAC must be 4 to 8 digits.";
+    }
     if (item.currency && form.currency && item.currency !== form.currency) {
       item.currency = form.currency;
     }

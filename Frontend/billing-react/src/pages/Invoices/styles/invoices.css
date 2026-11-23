@@ -810,23 +810,43 @@
   margin: 0;
 }
 
-.invoice-filters .date-range-filter.date-range-icon-only,
-.app-layout .invoice-filters button.date-range-filter.ant-btn.date-range-icon-only {
+.invoice-filters .date-range-filter,
+.app-layout .invoice-filters button.date-range-filter.ant-btn {
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
   height: 40px !important;
   min-height: 40px !important;
-  padding: 0 !important;
   border-radius: 8px;
+  border: 1px solid var(--border, #e4d8c8) !important;
+  background: #ffffff !important;
+  color: var(--text-primary, #35271F) !important;
+  padding: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-.invoice-filters .date-range-filter.date-range-icon-only svg {
+.invoice-filters .date-range-filter:hover,
+.app-layout .invoice-filters button.date-range-filter.ant-btn:hover {
+  background: #f5ebe0 !important;
+  border-color: #dfcdbb !important;
+}
+
+.invoice-filters .date-range-filter.has-dates,
+.app-layout .invoice-filters button.date-range-filter.ant-btn.has-dates {
+  border-color: var(--secondary, #7b6756) !important;
+  background: #fdf8f4 !important;
+}
+
+.invoice-filters .date-range-filter svg {
   font-size: 19px;
   color: var(--secondary, #7b6756);
+}
+
+.invoice-filters .date-range-filter.has-dates svg,
+.app-layout .invoice-filters button.date-range-filter.ant-btn.has-dates svg {
+  color: #b65a20 !important;
 }
 
 .invoice-filters .invoice-filter-reset,

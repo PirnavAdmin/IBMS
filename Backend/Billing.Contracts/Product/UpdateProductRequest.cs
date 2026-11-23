@@ -10,6 +10,7 @@ public class UpdateProductRequest
 
     [Required(ErrorMessage = "Product name is required.")]
     [StringLength(256, MinimumLength = 2, ErrorMessage = "Product name must be between 2 and 256 characters.")]
+    [RegularExpression(@"^[a-zA-Z0-9\s.,\-_/()'+]+$", ErrorMessage = "Product name can only contain letters, numbers, spaces, and standard characters (- _ . / ( ) ' +).")]
     public string Name { get; set; } = string.Empty;
 
     [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters.")]

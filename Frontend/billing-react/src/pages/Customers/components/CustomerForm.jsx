@@ -401,6 +401,48 @@ export const CustomerForm = ({
 
   const prevIsShippingSameRef = useRef(isShippingSameAsBilling);
 
+  // Focus contact tab and flag phone input when backend reports duplicate phone number
+  useEffect(() => {
+    if (submitError && /phone number/i.test(submitError)) {
+      setError('phone', {
+        type: 'manual',
+        message: 'This phone number is already associated with an existing customer.',
+      });
+      setCurrentStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [submitError, setError, setCurrentStep]);
+
+  const checkDuplicatePhone = useCallback(async (phoneVal, phoneCodeVal) => {
+    if (!phoneVal || !phoneVal.trim()) return false;
+    try {
+      const cleanedPhone = phoneVal.trim();
+      const fullPhone = cleanedPhone.startsWith('+')
+        ? cleanedPhone
+        : (phoneCodeVal ? `${phoneCodeVal} ${cleanedPhone}` : cleanedPhone);
+      const digits = cleanedPhone.replace(/\D/g, '');
+      const searchParam = digits.length >= 10 ? digits.slice(-10) : digits;
+      const res = await customerApi.getCustomers({ search: searchParam, pageSize: 50 });
+      const items = res?.items || (Array.isArray(res) ? res : []);
+      const duplicate = items.find((c) => {
+        const cId = c.id ?? c.Id;
+        const currentId = initialValues?.id ?? initialValues?.Id;
+        if (currentId && cId === currentId) return false;
+        return isDuplicatePhoneNumber(fullPhone, c.phone || c.Phone);
+      });
+      if (duplicate) {
+        setError('phone', {
+          type: 'manual',
+          message: 'This phone number is already associated with an existing customer.',
+        });
+        return true;
+      }
+    } catch {
+      // Proceed on network failure; backend will enforce uniqueness
+    }
+    return false;
+  }, [initialValues?.id, initialValues?.Id, setError]);
+
   // Synchronize shipping address whenever billing changes while "Same as Billing" is active
   // If user disables "Same as Billing", clear all shipping address fields so they can enter manually
   useEffect(() => {
@@ -443,6 +485,10 @@ export const CustomerForm = ({
     const fieldsToValidate = getStepValidationFields(currentStep);
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
+      if (currentStep === 1) {
+        const isDup = await checkDuplicatePhone(getValues('phone'), getValues('phoneCountryCode'));
+        if (isDup) return;
+      }
       setSlideDirection('forward');
       setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -470,6 +516,16 @@ export const CustomerForm = ({
         window.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       }
+      if (s === 1) {
+        const isDup = await checkDuplicatePhone(getValues('phone'), getValues('phoneCountryCode'));
+        if (isDup) {
+          allPassed = false;
+          setSlideDirection(1 > currentStep ? 'forward' : 'backward');
+          setCurrentStep(1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+        }
+      }
     }
     if (allPassed) {
       setSlideDirection('forward');
@@ -478,8 +534,15 @@ export const CustomerForm = ({
     }
   };
 
-  const handleValidSubmit = (data) => {
+  const handleValidSubmit = async (data) => {
     if (isSubmitting) return;
+
+    const isDup = await checkDuplicatePhone(data.phone, data.phoneCountryCode);
+    if (isDup) {
+      setCurrentStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     // Derive immutable effective shipping values without cross-object mutation
     const effectiveShipping = data.isShippingSameAsBilling
@@ -523,6 +586,7 @@ export const CustomerForm = ({
       customerCode: data.customerCode?.trim() || null,
       companyName: data.companyName?.trim() || null,
       customerType: normalizedCustomerType,
+      CustomerType: normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1),
       customerCategory: data.customerCategory?.trim() || 'Enterprise',
       status: normalizedStatus,
       isActive: isStatusActive,
@@ -897,6 +961,9 @@ export const CustomerForm = ({
                             const maxLen = currentPhoneConfig.max || 15;
                             const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, maxLen);
                             setValue('phone', digitsOnly, { shouldValidate: true, shouldDirty: true });
+                            if (errors.phone) {
+                              clearErrors('phone');
+                            }
                           },
                         })}
                         onKeyDown={(e) => {

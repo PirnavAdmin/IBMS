@@ -44,7 +44,11 @@ export function PaymentShell({ title, children, actions, subtitle }) {
         <small>Printed: {formatIndianDateTime(new Date())}</small>
       </div>
     </div>
-    <Breadcrumbs aria-label="Breadcrumb"><Link to="/payments">Payments</Link><span>{title}</span></Breadcrumbs>
+    {title === "Payment Management" ? (
+      <Breadcrumbs aria-label="Breadcrumb"><span>Billing</span><span>Payments</span></Breadcrumbs>
+    ) : (
+      <Breadcrumbs aria-label="Breadcrumb"><Link to="/payments">Payments</Link><span>{title}</span></Breadcrumbs>
+    )}
     <header className="payments-heading"><div><span className="payment-eyebrow">Billing workspace</span><h1>{title}</h1><p>{subtitle || ({ "Payment Management": "Record, track and manage customer payments.", "Record Payment": "Record a customer payment against an eligible invoice.", "Payment Details": "Review payment information, allocations and activity." }[title])}</p></div><div className="payment-actions">{actions}</div></header>{children}
   </main>;
 }

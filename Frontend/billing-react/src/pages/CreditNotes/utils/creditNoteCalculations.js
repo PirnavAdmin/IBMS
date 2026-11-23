@@ -240,3 +240,31 @@ export const refundableBalance = (note) => {
 export { displayDate as formatDate, displayDateTime as formatDateTime } from '../../../utils/localDate.js';
 
 export const eligibleCredit = (invoice) => roundCurrency(Math.max(0, Number(invoice?.remainingAmount ?? (Number(invoice?.total || 0) - Number(invoice?.previousCredits || 0)))));
+
+export const validateReasonDetails = (value) => {
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return { valid: false, error: 'Reason details are required (minimum 8 characters).' };
+  }
+  if (raw.length < 8) {
+    return { valid: false, error: 'Reason details must be at least 8 characters.' };
+  }
+  if (raw.length > 600) {
+    return { valid: false, error: 'Reason details cannot exceed 600 characters.' };
+  }
+  if (!/[a-zA-Z]{2,}/.test(raw)) {
+    return { valid: false, error: 'Reason details must contain meaningful text with letters.' };
+  }
+  if (/[\^~$\\|<>{}`]/.test(raw)) {
+    return { valid: false, error: 'Reason details contains unsupported special characters.' };
+  }
+  const normalized = raw.replace(/\.{2,3}/g, ' ').replace(/-{2}/g, ' ');
+  if (/[!@#$%^&*()_+=\-[\]{};':"\\|,.<>/?~`]{3,}/.test(normalized)) {
+    return { valid: false, error: 'Reason details contains excessive special characters.' };
+  }
+  const specialMatches = raw.match(/[^a-zA-Z0-9\s]/g) || [];
+  if (raw.length >= 8 && (specialMatches.length / raw.length) > 0.25) {
+    return { valid: false, error: 'Reason details contains too many special characters.' };
+  }
+  return { valid: true, error: '' };
+};

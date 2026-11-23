@@ -19,7 +19,7 @@ import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 import { creditNoteService } from '../services/creditNoteService';
-import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, money, reconcileFullCredit, roundCurrency, validateCreditQuantity } from '../utils/creditNoteCalculations';
+import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, money, reconcileFullCredit, roundCurrency, validateCreditQuantity, validateReasonDetails } from '../utils/creditNoteCalculations';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
@@ -101,7 +101,8 @@ export function CreditNoteForm() {
   const invoiceWarnings = useMemo(() => selectedItems
     .flatMap((item) => invoiceLineWarnings(item, selectedInvoice?.currency).map((warning, index) => ({ id: `${item.id}-${index}`, description: item.description, warning }))), [selectedItems, selectedInvoice?.currency]);
   const isEditing = Boolean(id);
-  const reasonStepValid = Boolean(reason && reasonNote.trim().length >= 8);
+  const reasonValidation = useMemo(() => validateReasonDetails(reasonNote), [reasonNote]);
+  const reasonStepValid = Boolean(reason && reasonValidation.valid);
 
   useEffect(() => {
     const note = noteQuery.data;
@@ -183,15 +184,18 @@ export function CreditNoteForm() {
       if (!selectedItems.length || totals.total <= 0) return setError('Select at least one credit line with a quantity greater than zero.');
       if (totals.total > eligibleAmount) return setError('Credit total exceeds the invoice’s remaining eligible credit. Reduce the selected quantities.');
     }
-    if (step === 2 && (!reason || reasonNote.trim().length < 8)) return setError('Choose a reason and enter at least 8 characters of supporting detail.');
+    if (step === 2) {
+      if (!reason) return setError('Choose a reason before continuing.');
+      if (!reasonValidation.valid) return setError(reasonValidation.error);
+    }
     setStep((current) => Math.min(current + 1, steps.length - 1));
   };
 
   const save = (submit) => {
     setError('');
-    if (!invoiceId || !reason || reasonNote.trim().length < 8 || hasQuantityErrors || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount) {
+    if (!invoiceId || !reason || !reasonValidation.valid || hasQuantityErrors || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount) {
       setStep(!invoiceId ? 0 : hasQuantityErrors || !selectedItems.length || totals.total > eligibleAmount ? 1 : 2);
-      setError(!invoiceId ? 'Choose an issued invoice.' : hasQuantityErrors ? 'Correct the invalid credit quantities.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount ? 'Credit total exceeds the remaining eligible amount.' : 'Add a reason and supporting detail before saving.');
+      setError(!invoiceId ? 'Choose an issued invoice.' : hasQuantityErrors ? 'Correct the invalid credit quantities.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount ? 'Credit total exceeds the remaining eligible amount.' : !reason ? 'Choose a reason before saving.' : reasonValidation.error);
       return;
     }
     mutation.mutate({ submit });
@@ -236,7 +240,7 @@ export function CreditNoteForm() {
           </div>}
 
           {step === 2 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><DescriptionOutlined /></span><div><h2>Reason &amp; supporting details</h2><p>Keep a clear audit explanation for the customer and finance team.</p></div></div>
-            <div className="cn-form-fields"><TextField select required inputProps={{ 'aria-label': 'Credit reason' }} value={reason} onChange={(event) => setReason(event.target.value)} error={Boolean(error && !reason)} helperText={error && !reason ? 'Select a reason.' : 'Choose the closest matching reason.'}>{reasons.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Internal reference (optional)" placeholder="e.g. RMA-2026-1048" value={reference} onChange={(event) => setReference(event.target.value)} className="cn-reference-field" /><TextField required multiline minRows={4} label="Reason details" placeholder="Describe what changed, why this credit is required, and any agreement with the customer." value={reasonNote} onChange={(event) => setReasonNote(event.target.value)} inputProps={{ maxLength: 600 }} helperText={`${reasonNote.length}/600 · minimum 8 characters`} className="cn-notes-field" /></div>
+            <div className="cn-form-fields"><TextField select required inputProps={{ 'aria-label': 'Credit reason' }} value={reason} onChange={(event) => setReason(event.target.value)} error={Boolean(error && !reason)} helperText={error && !reason ? 'Select a reason.' : 'Choose the closest matching reason.'}>{reasons.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Internal reference (optional)" placeholder="e.g. RMA-2026-1048" value={reference} onChange={(event) => setReference(event.target.value)} className="cn-reference-field" /><TextField required multiline minRows={4} label="Reason details" placeholder="Describe what changed, why this credit is required, and any agreement with the customer." value={reasonNote} onChange={(event) => { setReasonNote(event.target.value); if (error) setError(''); }} error={Boolean((reasonNote || (error && step === 2)) && !reasonValidation.valid)} helperText={reasonNote && !reasonValidation.valid ? reasonValidation.error : `${reasonNote.length}/600 · minimum 8 characters`} inputProps={{ maxLength: 600 }} className="cn-notes-field" /></div>
             <div className="cn-info-callout"><strong>Financial history stays traceable</strong><span>This creates a credit record linked to {selectedInvoice?.number || 'the invoice'}. It does not itself record a cash refund.</span></div>
           </div>}
 

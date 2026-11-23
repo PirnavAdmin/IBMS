@@ -144,6 +144,15 @@ public class CreditNoteService : ICreditNoteService
             return ApiResponse<CreditNoteDetailDto>.Fail("A valid credit reason is required.");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Notes))
+        {
+            var notesValidation = ValidateReasonNotes(request.Notes);
+            if (!notesValidation.IsValid)
+            {
+                return ApiResponse<CreditNoteDetailDto>.Fail(notesValidation.ErrorMessage);
+            }
+        }
+
         if (!IsSupportedCreditType(request.Type))
         {
             return ApiResponse<CreditNoteDetailDto>.Fail($"Unsupported credit note type '{request.Type}'. Supported types are 'Full' and 'Partial'.");
@@ -383,6 +392,15 @@ public class CreditNoteService : ICreditNoteService
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
             return ApiResponse<CreditNoteDetailDto>.Fail("A valid credit reason is required.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Notes))
+        {
+            var notesValidation = ValidateReasonNotes(request.Notes);
+            if (!notesValidation.IsValid)
+            {
+                return ApiResponse<CreditNoteDetailDto>.Fail(notesValidation.ErrorMessage);
+            }
         }
 
         if (!IsSupportedCreditType(request.Type))
@@ -1380,6 +1398,25 @@ public class CreditNoteService : ICreditNoteService
         }
 
         return null;
+    }
+
+    private static (bool IsValid, string ErrorMessage) ValidateReasonNotes(string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(notes)) return (true, string.Empty);
+        var trimmed = notes.Trim();
+        if (trimmed.Length < 8) return (false, "Reason details must be at least 8 characters.");
+        if (trimmed.Length > 1000) return (false, "Reason details cannot exceed 1000 characters.");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"[a-zA-Z]{2,}"))
+            return (false, "Reason details must contain meaningful text with letters.");
+        if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"[\^~$\\|<>{}`]"))
+            return (false, "Reason details contains unsupported special characters.");
+        var normalized = System.Text.RegularExpressions.Regex.Replace(trimmed, @"\.{2,3}|--", " ");
+        if (System.Text.RegularExpressions.Regex.IsMatch(normalized, @"[^\w\s]{3,}"))
+            return (false, "Reason details contains excessive special characters.");
+        var specialCount = trimmed.Count(c => !char.IsLetterOrDigit(c) && !char.IsWhiteSpace(c));
+        if (trimmed.Length >= 8 && (double)specialCount / trimmed.Length > 0.25)
+            return (false, "Reason details contains too many special characters.");
+        return (true, string.Empty);
     }
 
     private static bool IsSupportedCreditType(string? type) =>

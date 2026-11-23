@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { customerValidationSchema } from '../src/pages/Customers/validation/customerValidation.js';
+import { customerValidationSchema, isDuplicatePhoneNumber } from '../src/pages/Customers/validation/customerValidation.js';
 
 const phoneSchema = customerValidationSchema.pick(['phoneCountryCode', 'phone']);
 const validate = (phone, phoneCountryCode = '+91') => phoneSchema.validateSync({ phone, phoneCountryCode });
@@ -32,3 +32,32 @@ test('Other country rules are unchanged and do not inherit the Indian prefix res
   assert.throws(() => validate('21234567', '+971'), /requires 9 digits/);
   assert.equal(validate('1234556666', '').phone, '1234556666');
 });
+
+test('isDuplicatePhoneNumber accurately identifies matching and duplicate phone numbers', () => {
+  // Exact match
+  assert.equal(isDuplicatePhoneNumber('9854163322', '9854163322'), true);
+  assert.equal(isDuplicatePhoneNumber('+91 9854163322', '+91 9854163322'), true);
+
+  // National vs formatted with country code
+  assert.equal(isDuplicatePhoneNumber('9854163322', '+91 9854163322'), true);
+  assert.equal(isDuplicatePhoneNumber('+91 9854163322', '9854163322'), true);
+  assert.equal(isDuplicatePhoneNumber('+919854163322', '9854163322'), true);
+
+  // Formatted with dashes, spaces, parentheses
+  assert.equal(isDuplicatePhoneNumber('+91 (985) 416-3322', '9854163322'), true);
+  assert.equal(isDuplicatePhoneNumber('09854163322', '9854163322'), true);
+
+  // Different phone numbers
+  assert.equal(isDuplicatePhoneNumber('9854163322', '9854163323'), false);
+  assert.equal(isDuplicatePhoneNumber('+91 9854163322', '+91 9854163323'), false);
+
+  // Different country codes with explicit +
+  assert.equal(isDuplicatePhoneNumber('+1 9854163322', '+91 9854163322'), false);
+  assert.equal(isDuplicatePhoneNumber('+44 9854163322', '+91 9854163322'), false);
+
+  // Empty or invalid values
+  assert.equal(isDuplicatePhoneNumber('', '9854163322'), false);
+  assert.equal(isDuplicatePhoneNumber(null, '9854163322'), false);
+  assert.equal(isDuplicatePhoneNumber('9854163322', undefined), false);
+});
+

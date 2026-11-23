@@ -11,6 +11,8 @@ public interface ICustomerRepository
 
     Task<Customer?> GetByEmailAsync(string email, int? tenantId = null);
 
+    Task<Customer?> GetByPhoneAsync(string phone, int? tenantId = null);
+
     Task<Customer?> GetByCodeAsync(string customerCode, int? tenantId = null);
 
     Task<(List<Customer> Items, int TotalCount)> GetPagedListAsync(int? tenantId, CustomerQueryParameters query);

@@ -10,8 +10,30 @@
 .category-table .MuiTableCell-root:nth-child(5) { width: 10%; }
 .category-search-row { display: flex; justify-content: flex-start; padding: 16px; }
 .category-search { width: min(100%, 420px); }
-.category-search .MuiOutlinedInput-root { background: #fffdf9; }
+.category-search .MuiOutlinedInput-root { background: var(--surface, #fffdf9); }
 .category-search .MuiInputAdornment-root { color: #8a7767; }
+.category-search .MuiInputLabel-root {
+  color: #756763;
+  font-size: 0.85rem;
+}
+.category-search .MuiInputLabel-root.Mui-focused {
+  color: #8d6e63;
+}
+.category-search .MuiInputLabel-root.MuiInputLabel-shrink {
+  background: var(--surface, #fffdf9);
+  padding: 0 6px;
+  margin-left: -2px;
+  z-index: 2;
+  line-height: 1.2;
+}
+.category-search .MuiOutlinedInput-input:focus-visible,
+.category-search input:focus-visible {
+  outline: none !important;
+}
+.category-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #8d6e63;
+  border-width: 1.5px;
+}
 .category-pagination { min-height: 56px; border-top: 1px solid #eee6e1; color: #756763; }
 .category-pagination .MuiTablePagination-selectLabel,
 .category-pagination .MuiTablePagination-displayedRows { font-size: 12px; }

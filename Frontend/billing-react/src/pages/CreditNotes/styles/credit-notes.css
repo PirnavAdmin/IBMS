@@ -440,9 +440,16 @@ body:has(.cn-form-page) { overflow: hidden; }
 .cn-previous-credit-warning span { color: #876f54; }
 .cn-line-fully-credited { background: #f8f4ef; }
 .cn-fully-credited { color: #88796b; font-size: .66rem; font-weight: 750; }
-.cn-detail-tax-breakdown { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 18px; padding: 12px 5px 0; color: #817264; font-size: .7rem; }
-.cn-detail-tax-breakdown span { display: flex; gap: 7px; }
-.cn-detail-tax-breakdown strong { color: #59432d; font-variant-numeric: tabular-nums; }
+.cn-detail-summary-footer { margin-top: 12px; padding: 10px 14px; background: #fbf7f2; border: 1px solid #ede3d8; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; }
+.cn-detail-tax-breakdown { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px 24px; padding: 0 0 8px; border-bottom: 1px dashed #e4d7ca; color: #725f4f; font-size: .74rem; }
+.cn-detail-tax-breakdown .cn-tax-breakdown-item,
+.cn-detail-tax-breakdown span { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.cn-detail-tax-breakdown .cn-tax-breakdown-label { color: #8c7b6b; font-weight: 500; }
+.cn-detail-tax-breakdown strong,
+.cn-detail-tax-breakdown .cn-tax-breakdown-value { color: #4b2915; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cn-detail-summary-footer .cn-detail-total { display: flex; justify-content: flex-end; align-items: baseline; gap: 16px; padding: 0; color: #5c3f28; font-size: .88rem; font-weight: 600; }
+.cn-detail-summary-footer .cn-detail-total strong,
+.cn-detail-summary-footer .cn-detail-total .cn-detail-total-value { color: #41200d; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .cn-impact-preview { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; padding: 13px; border: 1px solid #ebdece; border-radius: 10px; background: #fffaf4; }
 .cn-impact-preview > strong { margin-bottom: 1px; color: #61432a; font-size: .76rem; }
 .cn-impact-preview > span { display: flex; justify-content: space-between; gap: 8px; color: #857667; font-size: .68rem; }
@@ -651,8 +658,16 @@ body:has(.cn-form-page) { overflow: hidden; }
   .cn-preview-page .cn-detail-table-wrap { overflow: visible !important; }
   .cn-preview-page .cn-detail-table-wrap .MuiTable-root { min-width: 0 !important; table-layout: fixed; }
   .cn-preview-page .MuiTableCell-root { padding: 3px 4px !important; font-size: 7px !important; }
-  .cn-preview-page .cn-detail-tax-breakdown { gap: 4px !important; padding-top: 5px !important; }
-  .cn-preview-page .cn-detail-total { padding-top: 5px !important; }
+  .cn-preview-page .cn-detail-summary-footer { margin-top: 6px !important; padding: 6px 10px !important; background: #faf7f2 !important; border: 1px solid #e2d5c7 !important; border-radius: 6px !important; break-inside: avoid !important; display: flex !important; flex-direction: column !important; gap: 4px !important; }
+  .cn-preview-page .cn-detail-tax-breakdown { display: flex !important; flex-wrap: wrap !important; justify-content: flex-end !important; align-items: center !important; gap: 4px 18px !important; padding: 0 0 4px !important; border-bottom: 1px dashed #ddd0c2 !important; font-size: 8px !important; color: #635242 !important; }
+  .cn-preview-page .cn-detail-tax-breakdown .cn-tax-breakdown-item,
+  .cn-preview-page .cn-detail-tax-breakdown span { display: inline-flex !important; align-items: center !important; gap: 6px !important; white-space: nowrap !important; }
+  .cn-preview-page .cn-detail-tax-breakdown .cn-tax-breakdown-label { color: #7b6a5a !important; }
+  .cn-preview-page .cn-detail-tax-breakdown strong,
+  .cn-preview-page .cn-detail-tax-breakdown .cn-tax-breakdown-value { color: #3b2210 !important; font-size: 8px !important; font-weight: 700 !important; }
+  .cn-preview-page .cn-detail-total { display: flex !important; justify-content: flex-end !important; align-items: baseline !important; gap: 12px !important; padding: 2px 0 0 !important; font-size: 9px !important; color: #4b2915 !important; }
+  .cn-preview-page .cn-detail-total strong,
+  .cn-preview-page .cn-detail-total .cn-detail-total-value { font-size: 10px !important; font-weight: 800 !important; color: #3b2210 !important; }
   .cn-export-page > :not(.cn-export-layout),.cn-export-options-card,.cn-export-panel-heading { display: none !important; }
   .cn-export-page,.cn-export-preview-panel,.cn-export-preview-stage { padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: #fff !important; box-shadow: none !important; }
   .cn-export-paper { width: 100% !important; min-height: 0 !important; padding: 0 !important; box-shadow: none !important; }

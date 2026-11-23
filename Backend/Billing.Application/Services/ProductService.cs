@@ -11,6 +11,14 @@ public class ProductService : IProductService
         @"^[A-Za-z0-9_-]{2,64}$",
         RegexOptions.Compiled);
 
+    private static readonly Regex ProductNameRegex = new(
+        @"^[a-zA-Z0-9\s.,\-_/()'+]+$",
+        RegexOptions.Compiled);
+
+    private static readonly Regex ConsecutiveSymbolsRegex = new(
+        @"[.,\-_/()'+]{2,}",
+        RegexOptions.Compiled);
+
     private readonly IProductRepository _productRepository;
     private readonly ITaxRepository? _taxRepository;
     private readonly ITaxCalculationService? _taxCalculationService;
@@ -394,6 +402,18 @@ public class ProductService : IProductService
         {
             errors.Add("Product name must be between 2 and 256 characters.");
         }
+        else if (!ProductNameRegex.IsMatch(request.Name.Trim()))
+        {
+            errors.Add("Product name can only contain letters, numbers, spaces, and standard characters (- _ . / ( ) ' +).");
+        }
+        else if (ConsecutiveSymbolsRegex.IsMatch(request.Name.Trim()))
+        {
+            errors.Add("Product name cannot contain consecutive special characters.");
+        }
+        else if (!Regex.IsMatch(request.Name.Trim(), @"[a-zA-Z0-9]"))
+        {
+            errors.Add("Product name must contain letters or numbers.");
+        }
 
         if (request.Price < 0)
         {
@@ -429,6 +449,18 @@ public class ProductService : IProductService
         else if (request.Name.Trim().Length < 2 || request.Name.Trim().Length > 256)
         {
             errors.Add("Product name must be between 2 and 256 characters.");
+        }
+        else if (!ProductNameRegex.IsMatch(request.Name.Trim()))
+        {
+            errors.Add("Product name can only contain letters, numbers, spaces, and standard characters (- _ . / ( ) ' +).");
+        }
+        else if (ConsecutiveSymbolsRegex.IsMatch(request.Name.Trim()))
+        {
+            errors.Add("Product name cannot contain consecutive special characters.");
+        }
+        else if (!Regex.IsMatch(request.Name.Trim(), @"[a-zA-Z0-9]"))
+        {
+            errors.Add("Product name must contain letters or numbers.");
         }
 
         if (request.Price < 0)

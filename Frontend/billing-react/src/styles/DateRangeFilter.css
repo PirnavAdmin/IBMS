@@ -23,8 +23,18 @@
 /* An opaque surface keeps date labels readable above page content. */
 .ant-popover .date-range-popover-content { background: #fff; box-shadow: 0 6px 20px rgba(69, 43, 29, .12); border: 1px solid #d5c6b5; border-radius: 12px; padding: 12px; }
 
-.date-range-control { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; gap: 6px; }
-.date-range-feedback { font-size: 12px; line-height: 1.45; color: #5e6545; overflow-wrap: anywhere; }
+.date-range-control { display: inline-flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.date-range-feedback {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
 .date-range-modal .date-range-form { width: 100%; box-sizing: border-box; padding: 8px 0 0; }
 .date-range-modal .ant-modal-content { border: 1px solid #d5c6b5; border-radius: 12px; }
 .date-range-control-inline .date-range-inline-panel { box-sizing: border-box; width: min(360px, calc(100vw - 40px)); max-width: 100%; min-height: 400px; margin-top: 8px; padding: 0; border: 1px solid #d5c6b5; border-radius: 12px; background: #fffdf9; color: #715238; box-shadow: 0 6px 20px rgba(69, 43, 29, .12); }
@@ -32,11 +42,11 @@
 .date-range-inline-panel .date-range-form { width: 100%; box-sizing: border-box; padding: 0; }
 .quote-filter-feedback { margin: 12px 0; color: var(--primary); font-size: 13px; }
 
-/* Keep both dates readable, including in narrow filter columns. */
+/* Keep both dates readable, in a single line within the filter field without wrapping */
 .app-layout .date-range-control { max-width: 100%; }
-.app-layout button.date-range-filter.ant-btn { max-width: 100%; height: auto; min-height: 40px; padding-block: 8px; white-space: normal; }
-.app-layout button.date-range-filter.ant-btn > .date-range-label { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 2px 0.35em; min-width: 0; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; text-align: left; }
-.date-range-label > span { white-space: nowrap; }
+.app-layout button.date-range-filter.ant-btn { max-width: 100%; height: 40px !important; min-height: 40px !important; padding: 0 14px; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; }
+.app-layout button.date-range-filter.ant-btn > .date-range-label { display: inline-flex !important; flex: 0 1 auto; flex-wrap: nowrap !important; align-items: center !important; justify-content: flex-start; gap: 4px; min-width: 0; white-space: nowrap !important; overflow: visible; line-height: 1.45; text-align: left; }
+.date-range-label > span { white-space: nowrap !important; }
 
 /* Anchored date dropdown, without a modal or dimmed page. */
 .date-range-popover .ant-popover-inner { padding: 0; overflow: hidden; border: 1px solid #dfd5cb; border-radius: 10px; background: #fffdf9; box-shadow: 0 8px 28px #35271f20; }

@@ -58,11 +58,29 @@ export function validateCustomerEdit(values) {
   if (website.length > 256)
     errors.website = "Website must not exceed 256 characters.";
   else if (website) {
-    try {
-      if (!["http:", "https:"].includes(new URL(website).protocol))
-        throw new Error();
-    } catch {
-      errors.website = "Enter a complete http:// or https:// website URL.";
+    if (
+      /[<>"'`\\^|{}\s]/.test(website) ||
+      !/^(https?:\/\/)?(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})(:\d{1,5})?(\/[a-zA-Z0-9\-._~%!$&'()*+,;=:@/?#]*)?$/i.test(website)
+    ) {
+      errors.website = "Please enter a valid website URL.";
+    } else {
+      try {
+        const urlToTest = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+        const parsed = new URL(urlToTest);
+        if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname || !parsed.hostname.includes(".")) {
+          throw new Error();
+        }
+        const labels = parsed.hostname.split(".");
+        if (labels.some((l) => !l || l.startsWith("-") || l.endsWith("-"))) {
+          throw new Error();
+        }
+        const tld = labels[labels.length - 1];
+        if (!/^[a-zA-Z]{2,}$/.test(tld)) {
+          throw new Error();
+        }
+      } catch {
+        errors.website = "Please enter a valid website URL.";
+      }
     }
   }
   return errors;

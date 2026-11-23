@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Contracts.Financial;
@@ -159,6 +160,10 @@ public class InvoiceService : IInvoiceService
         int order = 1;
         foreach (var item in invoice.Items)
         {
+            if (!string.IsNullOrWhiteSpace(item.HSNSAC) && !Regex.IsMatch(item.HSNSAC.Trim(), @"^[0-9]{4,8}$"))
+            {
+                return ApiResponse<Invoice>.Fail("Validation failed", "HSN/SAC code must be between 4 and 8 digits.");
+            }
             item.SortOrder = order++;
         }
 
@@ -197,6 +202,10 @@ public class InvoiceService : IInvoiceService
         int order = 1;
         foreach (var item in updatedInvoice.Items)
         {
+            if (!string.IsNullOrWhiteSpace(item.HSNSAC) && !Regex.IsMatch(item.HSNSAC.Trim(), @"^[0-9]{4,8}$"))
+            {
+                return ApiResponse<Invoice>.Fail("Validation failed", "HSN/SAC code must be between 4 and 8 digits.");
+            }
             existing.Items.Add(new InvoiceItem
             {
                 ProductId = item.ProductId,

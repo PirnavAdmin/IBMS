@@ -34,6 +34,7 @@ test('Payments list: real mapped row, controls, actions and server page totals',
  for(const value of ['Payment Management','Search payments','Date Range','Rows per page','QA-PAY-9','QA Customer','Actions for payment QA-PAY-9','21 payments']) assert.ok(html.includes(value),value);
  assert.match(html,/href="\/payments\/new"/);
  assert.doesNotMatch(html,/MuiTableCell-alignRight|MuiTableCell-alignCenter/);
+ assert.doesNotMatch(html, /<nav[^>]*aria-label="Breadcrumb"[^>]*>(?:(?!<\/nav>)[\s\S])*Payment Management/);
  const headings = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(match => match[1].replace(/<style\b[\s\S]*?<\/style>|<svg\b[\s\S]*?<\/svg>|<[^>]*>/g, '').trim());
  assert.deepEqual(headings, ['Payment Number / ID','Date','Customer','Invoice','Method','Amount','Status','Actions']);
 });

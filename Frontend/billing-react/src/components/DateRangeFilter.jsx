@@ -64,13 +64,13 @@ export function DateRangeFilter({ startDate = '', endDate = '', onApply, dropdow
     aria-label={'Date Range: ' + label} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
     title={startDate && endDate ? `${displayDate(startDate)} – ${displayDate(endDate)}` : 'Filter by date range'}
     onClick={inline ? () => changeOpen(!open) : undefined}>
-    <span className={`date-range-label${iconOnly ? ' visually-hidden' : ''}`}>{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true">–</span><span>{displayDate(endDate)}</span></> : label}</span>{!iconOnly && dropdownIcon}
+    <span className={`date-range-label${iconOnly ? ' visually-hidden' : ''}`}>{startDate && endDate ? <><span>{displayDate(startDate)}</span><span aria-hidden="true"> – </span><span>{displayDate(endDate)}</span></> : label}</span>{!iconOnly && dropdownIcon}
   </Button>;
   return <ConfigProvider theme={dateRangeTheme}>
     <div className={`date-range-control${inline ? ' date-range-control-inline' : ''}`}>
       {inline ? <>{trigger}{open && content}</> : <Popover open={open} trigger="click" placement={placement} content={content} destroyOnHidden zIndex={2000}
         classNames={{ root: 'date-range-popover' }} onOpenChange={changeOpen}>{trigger}</Popover>}
-      {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback" role="status">{notice.message}</span>}
+      {notice && notice.key === startDate + '|' + endDate && <span className="date-range-feedback visually-hidden" role="status">{notice.message}</span>}
     </div>
   </ConfigProvider>;
 }

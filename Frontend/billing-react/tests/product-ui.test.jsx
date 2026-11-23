@@ -10,6 +10,7 @@ import { ProductActionItems } from '../src/pages/Products/components/ProductActi
 import { ProductTable } from '../src/pages/Products/components/ProductTable';
 import { ProductPagination } from '../src/pages/Products/components/ProductPagination';
 import { ProductForm, getProductInitialValues } from '../src/pages/Products/components/ProductForm';
+import { ProductList } from '../src/pages/Products/ProductList';
 import { ProductDetails } from '../src/pages/Products/pages/ProductDetails';
 import { CategoryList } from '../src/pages/Products/pages/CategoryList';
 import { CategoryFormPage } from '../src/pages/Products/pages/CategoryFormPage';
@@ -265,4 +266,17 @@ test('PQA create type starts empty and saved Product/Service edit types stay sel
     assert.match(html, new RegExp(`<input\\b(?=[^>]*name="type")(?=[^>]*value="${type}")[^>]*>`));
     assert.doesNotMatch(html, /Select Type/);
   }
+});
+
+test('PQA breadcrumb: ProductList uses Billing / Products & Services, ProductDetails uses Products & Services link', () => {
+  const c = client();
+  c.setQueryData(['products', 'list', {}], { items: [], totalCount: 0 });
+  c.setQueryData(['catalog-summary'], { summary: {} });
+  c.setQueryData(['product-categories', 'active'], []);
+  c.setQueryData(['product', '7'], product);
+  const listHtml = render(<ProductList />, c, '/products');
+  assert.match(listHtml, /Billing/);
+  assert.doesNotMatch(listHtml, /Product List/);
+  const detailsHtml = render(<ProductDetails />, c, '/products/7');
+  assert.match(detailsHtml, /Products &amp; Services/);
 });

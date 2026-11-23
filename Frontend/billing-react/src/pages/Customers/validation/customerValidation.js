@@ -19,13 +19,38 @@ function parsePhoneNumberFromString(value) {
   };
 }
 
-const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+export const EMAIL_REGEX = /^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.(?:[a-zA-Z]{2,}|xn--[a-zA-Z0-9-]+)$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
 export const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
 export const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
 export const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
+export const STREET_ADDRESS_REGEX = /^[\p{L}\p{M}0-9\s,.\-/#':()]+$/u;
+export const CONSECUTIVE_ADDRESS_SYMBOLS_REGEX = /[,.\-/#':().]{2,}/;
+export const COMPANY_NAME_REGEX = /^[\p{L}\p{M}0-9\s.,&'\-()]+$/u;
+export const CONSECUTIVE_COMPANY_SYMBOLS_REGEX = /[.,&'\-()]{2,}/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
-const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
+export const URL_REGEX = /^(https?:\/\/)?(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})(:\d{1,5})?(\/[a-zA-Z0-9\-._~%!$&'()*+,;=:@/?#]*)?$/i;
+
+export function isValidWebsiteUrl(val) {
+  if (!val || val.trim() === '') return true;
+  const trimmed = val.trim();
+  if (/[<>"'`\\^|{}\s]/.test(trimmed)) return false;
+  if (!URL_REGEX.test(trimmed)) return false;
+
+  try {
+    const urlToTest = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const parsed = new URL(urlToTest);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    if (!parsed.hostname || !parsed.hostname.includes('.')) return false;
+    const labels = parsed.hostname.split('.');
+    if (labels.some((l) => !l || l.startsWith('-') || l.endsWith('-'))) return false;
+    const tld = labels[labels.length - 1];
+    if (!/^[a-zA-Z]{2,}$/.test(tld)) return false;
+  } catch {
+    return false;
+  }
+  return true;
+}
 
 export const COUNTRY_PHONE_CONFIG = {
   '+91': { country: 'India', code: 'IN', min: 10, max: 10, example: '98490 12345', label: '10 digits' },
@@ -89,6 +114,26 @@ export const customerValidationSchema = yup.object({
     .string()
     .trim()
     .max(256, 'Company name must not exceed 256 characters')
+    .test(
+      'company-min-length',
+      'Company name must be at least 2 characters',
+      val => !val || val.trim().length >= 2
+    )
+    .test(
+      'company-valid-chars',
+      "Company name can only contain letters, numbers, spaces, and standard characters (., &, ', -, ())",
+      val => !val || COMPANY_NAME_REGEX.test(val.trim())
+    )
+    .test(
+      'company-no-consecutive',
+      'Company name cannot contain consecutive special characters',
+      val => !val || !CONSECUTIVE_COMPANY_SYMBOLS_REGEX.test(val.trim())
+    )
+    .test(
+      'company-has-alphanumeric',
+      'Company name must contain letters or numbers',
+      val => !val || /[\p{L}0-9]/u.test(val.trim())
+    )
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
   status: yup
@@ -117,10 +162,10 @@ export const customerValidationSchema = yup.object({
     .trim()
     .required('Email address is required')
     .max(256, 'Email must not exceed 256 characters')
-    .matches(EMAIL_REGEX, 'Enter a valid email address')
+    .matches(EMAIL_REGEX, { message: 'Please enter a valid email address', excludeEmptyString: true })
     .test(
       'recognized-email-domain',
-      'Enter a valid email address with a valid domain',
+      'Please enter a valid email address with a valid domain',
       (val) => {
         if (!val || val.trim() === '') return true;
         return hasRecognizedEmailDomain(val.trim());
@@ -178,10 +223,7 @@ export const customerValidationSchema = yup.object({
     .string()
     .trim()
     .max(256, 'Website URL must not exceed 256 characters')
-    .test('website-url', 'Enter a valid website URL (e.g. https://example.com or www.example.com)', (val) => {
-      if (!val || val.trim() === '') return true;
-      return URL_REGEX.test(val.trim());
-    })
+    .test('website-url', 'Please enter a valid website URL.', (val) => isValidWebsiteUrl(val))
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
 
@@ -228,11 +270,42 @@ export const customerValidationSchema = yup.object({
       .string()
       .trim()
       .required('Billing street address is required')
-      .max(512, 'Street address must not exceed 512 characters'),
+      .min(3, 'Street address must be at least 3 characters')
+      .max(512, 'Street address must not exceed 512 characters')
+      .matches(
+        STREET_ADDRESS_REGEX,
+        'Please enter a valid street address. Unsupported special characters are not allowed.'
+      )
+      .test(
+        'billing-street-no-consecutive',
+        'Street address cannot contain consecutive special characters.',
+        (val) => !CONSECUTIVE_ADDRESS_SYMBOLS_REGEX.test(val || '')
+      )
+      .test(
+        'billing-street-has-alphanumeric',
+        'Street address must contain letters or numbers.',
+        (val) => /[\p{L}0-9]/u.test(val || '')
+      ),
     addressLine2: yup
       .string()
       .trim()
       .max(256, 'Address line 2 must not exceed 256 characters')
+      .test(
+        'billing-addr2-valid-chars',
+        'Please enter a valid address. Unsupported special characters are not allowed.',
+        (val) => {
+          if (!val || val.trim() === '') return true;
+          return STREET_ADDRESS_REGEX.test(val.trim());
+        }
+      )
+      .test(
+        'billing-addr2-no-consecutive',
+        'Address cannot contain consecutive special characters.',
+        (val) => {
+          if (!val || val.trim() === '') return true;
+          return !CONSECUTIVE_ADDRESS_SYMBOLS_REGEX.test(val.trim());
+        }
+      )
       .nullable()
       .transform((curr, orig) => (orig === '' ? null : curr)),
     city: yup
@@ -290,11 +363,42 @@ export const customerValidationSchema = yup.object({
           .string()
           .trim()
           .required('Shipping street address is required')
-          .max(512, 'Street address must not exceed 512 characters'),
+          .min(3, 'Street address must be at least 3 characters')
+          .max(512, 'Street address must not exceed 512 characters')
+          .matches(
+            STREET_ADDRESS_REGEX,
+            'Please enter a valid street address. Unsupported special characters are not allowed.'
+          )
+          .test(
+            'shipping-street-no-consecutive',
+            'Street address cannot contain consecutive special characters.',
+            (val) => !CONSECUTIVE_ADDRESS_SYMBOLS_REGEX.test(val || '')
+          )
+          .test(
+            'shipping-street-has-alphanumeric',
+            'Street address must contain letters or numbers.',
+            (val) => !val || /[\p{L}0-9]/u.test(val)
+          ),
         addressLine2: yup
           .string()
           .trim()
           .max(256, 'Address line 2 must not exceed 256 characters')
+          .test(
+            'shipping-addr2-valid-chars',
+            'Please enter a valid address. Unsupported special characters are not allowed.',
+            (val) => {
+              if (!val || val.trim() === '') return true;
+              return STREET_ADDRESS_REGEX.test(val.trim());
+            }
+          )
+          .test(
+            'shipping-addr2-no-consecutive',
+            'Address cannot contain consecutive special characters.',
+            (val) => {
+              if (!val || val.trim() === '') return true;
+              return !CONSECUTIVE_ADDRESS_SYMBOLS_REGEX.test(val.trim());
+            }
+          )
           .nullable()
           .transform((curr, orig) => (orig === '' ? null : curr)),
         city: yup
@@ -443,3 +547,29 @@ export const getNextCustomerCode = (existingItems = []) => {
   const nextNum = maxNum + 1;
   return `CUST-${String(nextNum).padStart(3, '0')}`;
 };
+
+export function isDuplicatePhoneNumber(inputPhone, existingPhone) {
+  if (!inputPhone || !existingPhone) return false;
+  const cleanInput = String(inputPhone).trim();
+  const cleanExisting = String(existingPhone).trim();
+  if (!cleanInput || !cleanExisting) return false;
+
+  if (cleanInput.toLowerCase() === cleanExisting.toLowerCase()) return true;
+
+  const inputDigits = cleanInput.replace(/\D/g, '');
+  const existingDigits = cleanExisting.replace(/\D/g, '');
+
+  if (!inputDigits || !existingDigits) return false;
+  if (inputDigits === existingDigits) return true;
+
+  const bothHavePlus = cleanInput.startsWith('+') && cleanExisting.startsWith('+');
+  if (bothHavePlus) return false;
+
+  if (inputDigits.length >= 10 && existingDigits.length >= 10) {
+    const inputLast10 = inputDigits.slice(-10);
+    const existingLast10 = existingDigits.slice(-10);
+    if (inputLast10 === existingLast10) return true;
+  }
+
+  return false;
+}

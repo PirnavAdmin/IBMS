@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Billing.Contracts;
@@ -51,6 +52,9 @@ public class ProductCategoryDto
 public class CreateCategoryRequest
 {
     /// <summary>Category name (Required, 2-128 characters, unique per tenant)</summary>
+    [Required(ErrorMessage = "Category name is required.")]
+    [StringLength(128, MinimumLength = 2, ErrorMessage = "Category name must be between 2 and 128 characters.")]
+    [RegularExpression(@"^[\p{L}\p{M}0-9\s&/\-']+$", ErrorMessage = "Special characters are not allowed except &, -, /, and '.")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Optional description of category contents or scope</summary>
@@ -66,6 +70,9 @@ public class CreateCategoryRequest
 public class UpdateCategoryRequest
 {
     /// <summary>Updated category name (Required, 2-128 characters, unique per tenant)</summary>
+    [Required(ErrorMessage = "Category name is required.")]
+    [StringLength(128, MinimumLength = 2, ErrorMessage = "Category name must be between 2 and 128 characters.")]
+    [RegularExpression(@"^[\p{L}\p{M}0-9\s&/\-']+$", ErrorMessage = "Special characters are not allowed except &, -, /, and '.")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Updated category description</summary>

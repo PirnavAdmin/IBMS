@@ -129,7 +129,7 @@
 }
 .product-list-page .product-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) minmax(120px, 145px) minmax(170px, 210px) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(170px, 210px) minmax(140px, 180px) minmax(120px, 145px) auto;
   align-items: center;
   padding: 16px;
   gap: 12px;

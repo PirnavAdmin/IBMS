@@ -47,7 +47,7 @@ export function ProductDetails() {
     } catch (error) { setExportError(error.message); }
   };
   return <main className="product-page">
-    <Breadcrumbs aria-label="Breadcrumb"><Link to="/products">Products</Link><span>{product?.productCode || 'Product Details'}</span></Breadcrumbs>
+    <Breadcrumbs aria-label="Breadcrumb"><Link to="/products">Products &amp; Services</Link><span>{product?.productCode || 'Product Details'}</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Product Details</h1><p>{product?.name || 'Product information, pricing and billing settings.'}</p></div><div className="product-row-actions"><Button variant="outlined" startIcon={<PictureAsPdfOutlined />} disabled={!product || query.isError || query.isPending} onClick={exportPdf}>Print / Export PDF</Button><Button component={Link} to="/products" variant="outlined" startIcon={<ArrowBack />}>Back to Products</Button>{product && <Button component={Link} to={`/products/${encodeURIComponent(id)}/edit`} variant="contained" startIcon={<EditOutlined />}>Edit Product</Button>}</div></header>
     {exportError && <Alert severity="error" onClose={() => setExportError('')}>{exportError}</Alert>}
     {query.isPending ? <section className="product-panel product-state" role="status"><CircularProgress size={32} /><p>Loading product details...</p></section>

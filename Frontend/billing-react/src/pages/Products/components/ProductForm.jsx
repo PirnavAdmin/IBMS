@@ -343,8 +343,26 @@ export function ProductForm({
               <label htmlFor="productPrice" className="product-field-label">
                 Unit Price ({currencySymbol}) <span className="product-field-required">*</span>
               </label>
-              <div className="product-input-group">
-                <span className="product-input-prefix">{currencySymbol}</span>
+              <div
+                className={`product-input-group ${errors.price ? 'has-error' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative' }}
+                onClick={() => document.getElementById('productPrice')?.focus()}
+              >
+                <span
+                  className="product-input-prefix"
+                  style={{
+                    position: 'static',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '0 8px 0 14px',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    lineHeight: 1,
+                  }}
+                >
+                  {currencySymbol}
+                </span>
                 <input
                   id="productPrice"
                   type="number"
@@ -352,6 +370,16 @@ export function ProductForm({
                   min="0"
                   placeholder="0.00"
                   className={`product-input has-prefix ${errors.price ? 'has-error' : ''}`}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    padding: '10px 14px 10px 0',
+                    width: '100%',
+                    minWidth: 0,
+                    flex: '1 1 auto',
+                    outline: 'none',
+                    boxShadow: 'none',
+                  }}
                   aria-invalid={Boolean(errors.price)}
                   aria-describedby={errors.price ? 'productPrice-err' : undefined}
                   {...register('price')}

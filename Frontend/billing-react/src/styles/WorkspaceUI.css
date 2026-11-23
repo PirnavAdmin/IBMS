@@ -187,7 +187,7 @@
 /* Keep range controls aligned with each module's existing filter bar. */
 .app-layout .audit-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(250px, 1fr); align-items: start; }
 @media (max-width: 1200px) { .app-layout .audit-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .app-layout .audit-filter-grid { grid-template-columns: 1fr; } .app-layout .date-range-filter { max-width: 100%; white-space: normal; height: auto; } }
+@media (max-width: 600px) { .app-layout .audit-filter-grid { grid-template-columns: 1fr; } .app-layout .date-range-filter { max-width: 100%; white-space: nowrap; height: 40px; } }
 
 @media (prefers-reduced-motion: reduce) { .app-layout .premium-stat-link:hover, .app-layout .premium-actions a:hover { transform: none; } }
 @media (max-width: 440px) { .app-layout .premium-kpis { grid-template-columns: 1fr; } }

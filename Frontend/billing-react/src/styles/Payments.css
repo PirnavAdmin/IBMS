@@ -25,7 +25,7 @@
 .payment-filters .payment-search { flex: 0 1 280px; width: 280px; min-width: 180px; max-width: 300px; }
 .payment-filters > .MuiTextField-root:not(.payment-search) { flex: 0 0 155px; width: 155px; min-width: 140px; }
 .payment-filters .payment-filter-actions { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
-.payments-page .payment-filter-actions .date-range-filter { grid-column: auto; width: auto; min-height: 42px; height: 42px; }
+.payments-page .payment-filter-actions .date-range-filter { grid-column: auto; width: auto; min-height: 42px; height: 42px; white-space: nowrap !important; }
 .payments-page .payment-filter-actions .date-range-filter.date-range-icon-only { width: 42px !important; min-width: 42px !important; max-width: 42px !important; min-height: 42px !important; height: 42px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
 .payments-page .payment-filters .payment-clear { width: 42px !important; min-width: 42px !important; max-width: 42px !important; min-height: 42px !important; height: 42px !important; padding: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 8px; }
 .payments-page .payment-filters .payment-clear svg { font-size: 20px; }

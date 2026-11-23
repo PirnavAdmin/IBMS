@@ -764,8 +764,14 @@
 }
 
 /* Settings sections share one tabbed workspace instead of navigation cards. */
-.settings-workspace { padding: 28px; min-width: 0; color: var(--text-primary, #35271f); }
-.settings-workspace-header { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+.settings-workspace {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  color: var(--text-primary, #35271f);
+  padding: 20px var(--module-page-gutter, clamp(12px, 1.1vw, 16px));
+}
+.settings-workspace-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .settings-workspace-icon { display: grid; place-items: center; flex: 0 0 52px; height: 52px; border-radius: 14px; background: #f5ece0; border: 1px solid #d7c4af; color: #795137; }
 .settings-workspace-icon svg { font-size: 29px; }
 .settings-workspace-header h1 { margin: 0; color: #35271f; font-size: clamp(23px, 2.2vw, 30px); font-weight: 750; letter-spacing: -.035em; line-height: 1.3; }
@@ -773,7 +779,7 @@
 .settings-workspace .settings-workspace-tabs {
   width: 100%;
   min-height: 48px;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
   padding: 4px;
   border: 1px solid #cbb7a3;
   border-radius: 12px;
@@ -810,14 +816,51 @@
   box-shadow: 0 1px 3px rgba(121, 81, 55, 0.25);
 }
 .settings-workspace-tabs .MuiTab-root:focus-visible { outline: 2px solid #795137; outline-offset: -3px; }
-.settings-workspace-content { min-width: 0; }
-.settings-workspace-content :is(.settings-page, .tax-settings-page, .notification-page, .notifications-page, .profile-settings-page) { padding: 0; min-height: 0; background: transparent; }
-.settings-workspace-content .tax-module { min-height: 0; height: auto; display: block; }
-.settings-workspace-content .settings-module-header { padding: 0 0 20px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.settings-workspace-content {
+  width: 100%;
+  min-width: 0;
+}
+.settings-workspace-content :is(.settings-page, .tax-settings-page, .notification-page, .notifications-page, .profile-settings-page, .country-config-page) {
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
+.settings-workspace-content .tax-module {
+  min-height: 0;
+  height: auto;
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.settings-workspace-content :is(.settings-page-header, .settings-module-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 16px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  box-sizing: border-box;
+}
 .settings-workspace-content .settings-module-header .settings-eyebrow,
 .settings-workspace-content .settings-back-button { display: none; }
 .settings-workspace-content .settings-page h1,
 .settings-workspace-content .tax-settings-page h1 { font-size: 22px; }
+.settings-workspace-content :is(.tax-summary-grid, .tax-card, .settings-layout, .settings-card-grid, .settings-full, .country-config-page, .profile-settings-card) {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
 
 /* Profile Settings in Workspace */
 .profile-settings-card {

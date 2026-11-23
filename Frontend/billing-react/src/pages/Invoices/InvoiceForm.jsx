@@ -859,12 +859,18 @@ export function InvoiceForm() {
                       <td>
                         <TextField
                           size="small"
-                          inputProps={{ "aria-label": "HSN/SAC" }}
-                          placeholder="e.g. 8471"
+                          InputProps={{ readOnly: true }}
+                          inputProps={{
+                            "aria-label": "HSN/SAC",
+                            readOnly: true,
+                            tabIndex: -1,
+                          }}
+                          placeholder={item.productId ? "N/A" : "Auto-filled"}
                           value={item.hsnsac || ""}
-                          onChange={(event) =>
-                            changeItem(index, "hsnsac", event.target.value)
-                          }
+                          disabled={busy || !editable}
+                          title="HSN/SAC is auto-populated from product catalog"
+                          error={Boolean(errors[`items.${index}.hsnsac`])}
+                          helperText={errors[`items.${index}.hsnsac`]}
                         />
                         {item.unit && (
                           <span className="invoice-unit-badge">{item.unit}</span>

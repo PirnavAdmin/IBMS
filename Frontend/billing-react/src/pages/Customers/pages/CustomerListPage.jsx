@@ -17,6 +17,7 @@ import {
 } from "react-router-dom";
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
@@ -336,9 +337,10 @@ export function CustomerListPage() {
     Object.keys(filterOptions).some((key) => !!params[key]);
   return (
     <main className="customers-page">
-      <nav className="customers-breadcrumb" aria-label="Breadcrumb">
+      <Breadcrumbs className="customers-breadcrumb" aria-label="Breadcrumb">
+        <span>Billing</span>
         <strong aria-current="page">Customers</strong>
-      </nav>
+      </Breadcrumbs>
       <header className="customers-heading">
         <div>
           <h1>Customers</h1>
@@ -584,7 +586,7 @@ export function CustomerListPage() {
                       </TableCell>
                       <TableCell data-label="Type">
                         <span className="customer-type">
-                          {(customer.customerType || "").trim() || "NA"}
+                          {(customer.customerType || customer.CustomerType || "").trim() || "NA"}
                         </span>
                       </TableCell>
                       <TableCell data-label="Customer">
