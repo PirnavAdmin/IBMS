@@ -584,11 +584,13 @@ public class ExportJobService : IExportJobService
         sb.AppendLine("Id,InvoiceNumber,Date,DueDate,CustomerName,CustomerEmail,Currency,Subtotal,DiscountAmount,TaxAmount,ChargesAmount,TotalAmount,PaidAmount,BalanceAmount,Status");
         foreach (var i in invoices)
         {
+            var dateStr = $"=\"{i.InvoiceDate:dd/MM/yyyy}\"";
+            var dueDateStr = i.DueDate.HasValue ? $"=\"{i.DueDate.Value:dd/MM/yyyy}\"" : "";
             sb.AppendLine(string.Join(",",
                 i.Id,
                 EscapeCsv(i.InvoiceNumber),
-                i.InvoiceDate.ToString("yyyy-MM-dd"),
-                i.DueDate?.ToString("yyyy-MM-dd") ?? "",
+                dateStr,
+                dueDateStr,
                 EscapeCsv(i.Customer?.Name ?? ""),
                 EscapeCsv(i.Customer?.Email ?? ""),
                 EscapeCsv(i.GetCurrency()),

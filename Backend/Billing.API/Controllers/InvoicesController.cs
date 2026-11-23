@@ -42,7 +42,10 @@ public class InvoicesController : ControllerBase
     }
 
     [HttpGet("export")]
-    public async Task<IActionResult> ExportInvoices([FromQuery] InvoiceFilterRequest filter, [FromQuery] string format = "csv")
+    public async Task<IActionResult> ExportInvoices(
+        [FromQuery] InvoiceFilterRequest filter,
+        [FromQuery] string format = "csv",
+        [FromQuery] string? dateFormat = null)
     {
         var tenantId = GetTenantId();
         if (!tenantId.HasValue) return Forbid();
@@ -81,16 +84,41 @@ public class InvoicesController : ControllerBase
             return Ok(ApiResponse<List<Invoice>>.Ok(paged.Items, "Export data generated."));
         }
 
+        var pattern = ResolveDatePattern(dateFormat);
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("InvoiceNumber,Date,DueDate,Customer,Status,Currency,Subtotal,DiscountAmount,TaxAmount,ChargesAmount,TotalAmount,PaidAmount,BalanceAmount");
         foreach (var inv in paged.Items)
         {
             var custName = inv.Customer?.Name?.Replace("\"", "\"\"") ?? "";
-            sb.AppendLine($"\"{inv.InvoiceNumber}\",\"{inv.InvoiceDate:yyyy-MM-dd}\",\"{inv.DueDate:yyyy-MM-dd}\",\"{custName}\",\"{inv.Status}\",\"{inv.Currency}\",{inv.Subtotal},{inv.DiscountAmount},{inv.TaxAmount},{inv.ChargesAmount},{inv.TotalAmount},{inv.PaidAmount},{inv.BalanceAmount}");
+            var dateStr = inv.InvoiceDate.ToString(pattern, System.Globalization.CultureInfo.InvariantCulture);
+            var dueDateStr = inv.DueDate.HasValue
+                ? inv.DueDate.Value.ToString(pattern, System.Globalization.CultureInfo.InvariantCulture)
+                : "";
+
+            var formattedDate = $"=\"{dateStr}\"";
+            var formattedDueDate = string.IsNullOrEmpty(dueDateStr) ? "\"\"" : $"=\"{dueDateStr}\"";
+
+            sb.AppendLine($"\"{inv.InvoiceNumber}\",{formattedDate},{formattedDueDate},\"{custName}\",\"{inv.Status}\",\"{inv.Currency}\",{inv.Subtotal},{inv.DiscountAmount},{inv.TaxAmount},{inv.ChargesAmount},{inv.TotalAmount},{inv.PaidAmount},{inv.BalanceAmount}");
         }
 
-        var fileBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-        return File(fileBytes, "text/csv", $"invoices_export_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+        var csvBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        var fileBytes = System.Text.Encoding.UTF8.GetPreamble().Concat(csvBytes).ToArray();
+        return File(fileBytes, "text/csv; charset=utf-8", $"invoices_export_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+    }
+
+    private static string ResolveDatePattern(string? dateFormat)
+    {
+        if (string.IsNullOrWhiteSpace(dateFormat))
+            return "dd/MM/yyyy";
+
+        var normalized = dateFormat.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "DD/MM/YYYY" or "DD-MM-YYYY" => "dd/MM/yyyy",
+            "MM/DD/YYYY" or "MM-DD-YYYY" => "MM/dd/yyyy",
+            "YYYY-MM-DD" or "YYYY/MM/DD" => "yyyy-MM-dd",
+            _ => "dd/MM/yyyy"
+        };
     }
 
     [HttpGet("summary")]
