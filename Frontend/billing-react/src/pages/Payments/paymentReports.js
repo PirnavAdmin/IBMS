@@ -12,7 +12,7 @@ const table = (columns, rows) => `<table><thead><tr>${columns.map(value => `<th>
   : `<tr><td colspan="${columns.length}">No records available.</td></tr>`}</tbody></table>`;
 
 // Match the Products & Services report: plain Arial, title, bordered tables.
-const document = (title, body, landscape = false) => `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>
+const document = (title, body, landscape = false, docTitle = '') => `<!doctype html><html><head><meta charset="utf-8"><title>${docTitle ? escapeHtml(docTitle) : ''}</title><style>
   @page{size:${landscape ? 'landscape' : 'A4'};margin:12mm}
   body{margin:0;background:white;color:#35231C;font:12px Arial,sans-serif}
   h1{font-size:20px;margin:0 0 12px;color:#633D28}h2{font-size:15px;margin:20px 0 10px}

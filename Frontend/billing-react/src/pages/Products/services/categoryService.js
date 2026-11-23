@@ -36,12 +36,26 @@ export function normalizeCategory(raw) {
     productCount: count != null && Number.isFinite(Number(count)) ? Number(count) : undefined };
 }
 
-export function validateCategory(values, categories, id) {
-  const name = values.name.trim();
+export const CATEGORY_NAME_REGEX = /^[\p{L}\p{M}0-9\s&/\-']+$/u;
+export const CONSECUTIVE_CATEGORY_SYMBOLS_REGEX = /[&/\-']{2,}/;
+
+export function validateCategory(values, categories = [], id) {
+  const name = String(values?.name || '').trim();
   if (!name) return 'Category Name is required.';
   if (name.length < 2 || name.length > 128) return 'Category Name must be between 2 and 128 characters.';
-  if (categories.some(category => String(category.id) !== String(id) && category.name.trim().toLowerCase() === name.toLowerCase())) return 'A category with this name already exists.';
-  if (!['Active', 'Inactive'].includes(values.status)) return 'Select a valid category status.';
+  if (!CATEGORY_NAME_REGEX.test(name)) {
+    return "Special characters are not allowed except &, -, /, and '.";
+  }
+  if (CONSECUTIVE_CATEGORY_SYMBOLS_REGEX.test(name)) {
+    return 'Category name cannot contain consecutive special characters.';
+  }
+  if (!/[\p{L}0-9]/u.test(name)) {
+    return 'Category name must contain letters or numbers.';
+  }
+  if (categories && categories.some(category => String(category.id) !== String(id) && category.name?.trim().toLowerCase() === name.toLowerCase())) {
+    return 'A category with this name already exists.';
+  }
+  if (!['Active', 'Inactive'].includes(values?.status)) return 'Select a valid category status.';
   return '';
 }
 

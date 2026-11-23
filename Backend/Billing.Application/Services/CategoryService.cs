@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
@@ -9,6 +10,14 @@ namespace Billing.Application.Services;
 /// </summary>
 public class CategoryService : ICategoryService
 {
+    private static readonly Regex CategoryNameRegex = new(
+        @"^[\p{L}\p{M}0-9\s&/\-']+$",
+        RegexOptions.Compiled);
+
+    private static readonly Regex ConsecutiveSymbolsRegex = new(
+        @"[&/\-']{2,}",
+        RegexOptions.Compiled);
+
     private readonly ICategoryRepository _categoryRepository;
 
     public CategoryService(ICategoryRepository categoryRepository)
@@ -104,6 +113,21 @@ public class CategoryService : ICategoryService
             return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name must be between 2 and 128 characters.");
         }
 
+        if (!CategoryNameRegex.IsMatch(name))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Special characters are not allowed except &, -, /, and '. ");
+        }
+
+        if (ConsecutiveSymbolsRegex.IsMatch(name))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name cannot contain consecutive special characters.");
+        }
+
+        if (!Regex.IsMatch(name, @"[\p{L}0-9]"))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name must contain letters or numbers.");
+        }
+
         var exists = await _categoryRepository.ExistsByNameAsync(name, tenantId);
         if (exists)
         {
@@ -144,6 +168,21 @@ public class CategoryService : ICategoryService
         if (name.Length < 2 || name.Length > 128)
         {
             return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name must be between 2 and 128 characters.");
+        }
+
+        if (!CategoryNameRegex.IsMatch(name))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Special characters are not allowed except &, -, /, and '. ");
+        }
+
+        if (ConsecutiveSymbolsRegex.IsMatch(name))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name cannot contain consecutive special characters.");
+        }
+
+        if (!Regex.IsMatch(name, @"[\p{L}0-9]"))
+        {
+            return ApiResponse<ProductCategoryDto>.Fail("Validation failed", "Category name must contain letters or numbers.");
         }
 
         var category = await _categoryRepository.GetByIdAsync(id, tenantId);

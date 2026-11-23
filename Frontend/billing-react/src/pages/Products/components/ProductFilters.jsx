@@ -48,15 +48,10 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
       endAdornment: search ? <InputAdornment position="end"><IconButton size="small" aria-label="Clear search" onClick={() => onSearch('')}><Close fontSize="small" /></IconButton></InputAdornment> : null,
     }} />
-    <FilterSelectField disabled={categoriesLoading} select SelectProps={categorySelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by category' }} value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
-      <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
-    </FilterSelectField>
-    <FilterSelectField select SelectProps={statusSelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by status' }} value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
-      <MenuItem value={ALL_STATUSES}>All Statuses</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
-    </FilterSelectField>
-    <TextField
+    <FilterSelectField
       select
-      SelectProps={sortSelectProps}
+      label="Sort By"
+      SelectProps={{ ...sortSelectProps, displayEmpty: true }}
       inputProps={{ 'aria-label': 'Sort products' }}
       size="small"
       value={sortValue}
@@ -67,7 +62,13 @@ export function ProductFilters({ search, onSearch, params, onChange, categories,
       {SORT_OPTIONS.map(o => (
         <MenuItem key={`${o.sortBy}:${o.sortOrder}`} value={`${o.sortBy}:${o.sortOrder}`}>{o.label}</MenuItem>
       ))}
-    </TextField>
+    </FilterSelectField>
+    <FilterSelectField label="Category" disabled={categoriesLoading} select SelectProps={categorySelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by category' }} value={params.category || ALL_CATEGORIES} onChange={event => onChange({ category: event.target.value === ALL_CATEGORIES ? '' : event.target.value })}>
+      <MenuItem value={ALL_CATEGORIES}>All Categories</MenuItem>{categories.map(category => <MenuItem key={category.id} value={String(category.id)}>{category.name}</MenuItem>)}
+    </FilterSelectField>
+    <FilterSelectField label="Status" select SelectProps={statusSelectProps} size="small" inputProps={{ 'aria-label': 'Filter products by status' }} value={params.status || ALL_STATUSES} onChange={event => onChange({ status: event.target.value === ALL_STATUSES ? '' : event.target.value })}>
+      <MenuItem value={ALL_STATUSES}>All Status</MenuItem><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem>
+    </FilterSelectField>
     <Button disabled={!active} onClick={onClear}>Clear Filters</Button>
   </div>;
 }

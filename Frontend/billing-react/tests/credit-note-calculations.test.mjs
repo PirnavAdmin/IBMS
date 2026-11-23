@@ -41,7 +41,7 @@ test('full credit without discount calculates subtotal, GST split, and total', (
 
 test('partial credit prorates line discount once and recalculates tax on the discounted amount', () => {
   const discounted = { ...line, quantity: 0.5, unitPrice: 100, discountAmount: 20, originalQuantity: 1, taxRate: 5 };
-  assert.deepEqual(creditLineAmounts(discounted), { subtotal: 40, tax: 2, total: 42 });
+  assert.deepEqual(creditLineAmounts(discounted), { subtotal: 40, tax: 2, total: 42, discount: 10 });
 });
 
 test('invoice and line totals use the supported line discount exactly once', () => {
@@ -61,23 +61,23 @@ test('supported exclusive tax rates calculate from discounted taxable subtotal',
 });
 
 test('inclusive tax extracts included tax from the entered total', () => {
-  assert.deepEqual(creditLineAmounts({ quantity: 1, unitPrice: 112, originalQuantity: 1, discountAmount: 0, taxRate: 12, taxType: 'GST Inclusive' }), { subtotal: 100, tax: 12, total: 112 });
+  assert.deepEqual(creditLineAmounts({ quantity: 1, unitPrice: 112, originalQuantity: 1, discountAmount: 0, taxRate: 12, taxType: 'GST Inclusive' }), { subtotal: 100, tax: 12, total: 112, discount: 0 });
 });
 
 test('invoice line tax is prorated by quantity and tax-inclusive/exclusive tax agrees with its rate', () => {
   const exclusive = { quantity: 2, originalQuantity: 2, unitPrice: 100, discountAmount: 10, taxRate: 10, taxType: 'GST Exclusive', taxAmount: 19 };
   assert.equal(validateInvoiceTaxAmount(exclusive), null);
-  assert.deepEqual(creditLineAmounts(exclusive, 1), { subtotal: 95, tax: 9.5, total: 104.5 });
+  assert.deepEqual(creditLineAmounts(exclusive, 1), { subtotal: 95, tax: 9.5, total: 104.5, discount: 5 });
 
   const inclusive = { quantity: 2, originalQuantity: 2, unitPrice: 112, discountAmount: 0, taxRate: 12, taxType: 'GST Inclusive', taxAmount: 24 };
   assert.equal(validateInvoiceTaxAmount(inclusive), null);
-  assert.deepEqual(creditLineAmounts(inclusive, 1), { subtotal: 100, tax: 12, total: 112 });
+  assert.deepEqual(creditLineAmounts(inclusive, 1), { subtotal: 100, tax: 12, total: 112, discount: 0 });
 });
 
 test('tax amount inconsistency raises a warning and calculation preserves invoice tax amount', () => {
   const inconsistent = { quantity: 2, originalQuantity: 2, unitPrice: 100, discountAmount: 0, taxRate: 10, taxType: 'GST Exclusive', taxAmount: 10 };
   assert.match(validateInvoiceTaxAmount(inconsistent), /does not match 10% tax/);
-  assert.deepEqual(creditLineAmounts(inconsistent), { subtotal: 200, tax: 10, total: 210 });
+  assert.deepEqual(creditLineAmounts(inconsistent), { subtotal: 200, tax: 10, total: 210, discount: 0 });
 });
 
 test('missing prior credit discount allocation is surfaced when remaining discounted quantities exist', () => {

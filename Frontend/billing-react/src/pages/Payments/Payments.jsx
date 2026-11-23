@@ -27,6 +27,7 @@ import LocalPrintshopOutlined from '@mui/icons-material/LocalPrintshopOutlined';
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import MoreVert from '@mui/icons-material/MoreVert';
+import RestartAlt from '@mui/icons-material/RestartAlt';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchCommit } from '../../hooks/useSearchDebounce';
@@ -143,8 +144,8 @@ export const Payments = () => {
       <SearchField size="small" className="payment-search" InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} inputProps={{ "aria-label": "Search payments by number or customer" }} placeholder="Number or customer" value={search} onChange={event => setSearch(event.target.value)} />
       <FilterSelectField size="small" select inputProps={{ "aria-label": "Filter payments by status" }} value={filters.status} onChange={event => change({ status: event.target.value })}><MenuItem value="">All Statuses</MenuItem>{PAYMENT_STATUSES.map(status => <MenuItem key={status} value={status}>{status}</MenuItem>)}</FilterSelectField>
       <FilterSelectField size="small" select inputProps={{ "aria-label": "Filter payments by method" }} value={filters.method} onChange={event => change({ method: event.target.value })}><MenuItem value="">All methods</MenuItem>{PAYMENT_METHODS.map(method => <MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</FilterSelectField>
-      <div className="payment-filter-actions"><DateRangeFilter startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => change({ from: startDate, to: endDate })} />
-      <Button className="payment-clear" variant="outlined" onClick={() => { setSearch(''); change({ search: '', currency: '', status: '', method: '', from: '', to: '', sortBy: 'createdAtUtc', sortOrder: 'desc' }); }}>Clear Filters</Button></div>
+      <div className="payment-filter-actions"><DateRangeFilter iconOnly startDate={filters.from} endDate={filters.to} onApply={({ startDate, endDate }) => change({ from: startDate, to: endDate })} />
+      <Button className="payment-clear" variant="outlined" aria-label="Clear filters" title="Clear filters" onClick={() => { setSearch(''); change({ search: '', currency: '', status: '', method: '', from: '', to: '', sortBy: 'createdAtUtc', sortOrder: 'desc' }); }}><RestartAlt /></Button></div>
     </div>
       {query.isFetching && !dateError && <PaymentState loading />}
       <TableContainer className="ibms-table-frame payment-list-table" tabIndex={0} role="region" aria-label="Payments table"><Table aria-label="Payments"><TableHead><TableRow>{columns.map(([key,label]) => <TableCell key={label} align="left" sortDirection={filters.sortBy === key ? filters.sortOrder : false}>{key ? <TableSortLabel active={filters.sortBy === key} direction={filters.sortBy === key ? filters.sortOrder : 'asc'} onClick={() => change({ sortBy: key, sortOrder: filters.sortBy === key && filters.sortOrder === 'asc' ? 'desc' : 'asc' })}>{label}</TableSortLabel> : label}</TableCell>)}</TableRow></TableHead>

@@ -1,0 +1,300 @@
+/* Tenant-Specific SMTP & Mail Sender Configuration Styles */
+
+.email-config-container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Common Card Base */
+.email-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Card Header */
+.email-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.email-card-header-titles h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.email-card-header-titles p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Pill Badges */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+.badge-configured {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.badge-not-configured {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-disabled {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badge-workspace-default {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.badge-active-sender {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Active Sender Top Section */
+.active-sender-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.active-sender-meta svg {
+  font-size: 1.05rem;
+  color: #3b82f6;
+}
+
+.active-sender-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.active-sender-identity h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.active-sender-identity .sender-email-text {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.active-sender-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sender-subtext-note {
+  font-size: 0.825rem;
+  color: #64748b;
+  margin: 12px 0 20px 0;
+  line-height: 1.5;
+}
+
+.active-sender-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.active-sender-actions .MuiButton-root {
+  text-transform: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  padding: 6px 18px;
+}
+
+/* Sender Details Section */
+.sender-details-section {
+  margin-top: 14px;
+}
+
+.sender-details-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 10px 0;
+}
+
+.sender-details-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sender-detail-capsule {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.825rem;
+}
+
+.sender-detail-capsule .detail-label {
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-size: 0.725rem;
+  text-transform: uppercase;
+}
+
+.sender-detail-capsule .detail-value {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.sender-footer-capsule {
+  padding: 10px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  color: #475569;
+}
+
+.sender-footer-capsule strong {
+  color: #0f172a;
+}
+
+/* Read-Only SMTP Data Grid (Image 1) */
+.smtp-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.smtp-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+.smtp-detail-row:hover {
+  background: #f1f5f9;
+}
+
+.smtp-detail-row .row-label {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.smtp-detail-row .row-value {
+  color: #0f172a;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+/* Edit Form Modal & Inline Form */
+.smtp-edit-dialog .MuiDialog-paper {
+  border-radius: 14px;
+  padding: 8px;
+  max-width: 620px;
+  width: 100%;
+}
+
+.smtp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.smtp-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.provider-preset-card {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.825rem;
+  color: #475569;
+}
+
+.provider-preset-card strong {
+  color: #0f172a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sender-details-strip {
+    grid-template-columns: 1fr;
+  }
+  .smtp-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .smtp-detail-row {
+    border-radius: 10px;
+  }
+  .active-sender-content {
+    flex-direction: column;
+  }
+}

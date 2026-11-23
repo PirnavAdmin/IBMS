@@ -59,6 +59,47 @@ public class CustomerRepository : ICustomerRepository
         return await query.FirstOrDefaultAsync();
     }
 
+    public async Task<Customer?> GetByPhoneAsync(string phone, int? tenantId = null)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return null;
+
+        var cleanPhone = phone.Trim();
+        var digits = new string(cleanPhone.Where(char.IsDigit).ToArray());
+
+        var query = _context.Customers
+            .Include(c => c.Addresses)
+            .Where(c => c.Phone != null && c.Phone != "");
+
+        if (tenantId.HasValue && tenantId.Value > 0)
+        {
+            query = query.Where(c => c.TenantId == tenantId.Value);
+        }
+
+        var candidates = await query.ToListAsync();
+        return candidates.FirstOrDefault(c =>
+        {
+            if (string.IsNullOrWhiteSpace(c.Phone)) return false;
+            var cPhone = c.Phone.Trim();
+            if (string.Equals(cPhone, cleanPhone, StringComparison.OrdinalIgnoreCase)) return true;
+
+            var cDigits = new string(cPhone.Where(char.IsDigit).ToArray());
+            if (string.IsNullOrEmpty(cDigits) || string.IsNullOrEmpty(digits)) return false;
+            if (cDigits == digits) return true;
+
+            var bothHavePlus = cleanPhone.StartsWith("+") && cPhone.StartsWith("+");
+            if (bothHavePlus) return false;
+
+            if (digits.Length >= 10 && cDigits.Length >= 10)
+            {
+                var last10A = digits.Substring(digits.Length - 10);
+                var last10B = cDigits.Substring(cDigits.Length - 10);
+                if (last10A == last10B) return true;
+            }
+
+            return false;
+        });
+    }
+
     public async Task<Customer?> GetByCodeAsync(string customerCode, int? tenantId = null)
     {
         var normalizedCode = customerCode.Trim().ToLowerInvariant();

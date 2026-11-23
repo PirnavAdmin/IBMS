@@ -314,9 +314,10 @@ public class InvoiceTemplatesController : ControllerBase
     }
 
     /// <summary>
-    /// Uploads a branding logo image (PNG, JPEG, WebP, max 2MB) for invoice templates.
+    /// Uploads a branding logo image (PNG, JPEG, WebP, max 2MB) for invoice templates and company branding.
     /// </summary>
     [HttpPost("logo-upload")]
+    [HttpPost("/api/v1/company/logo-upload")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<LogoUploadResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<LogoUploadResponse>), StatusCodes.Status400BadRequest)]
@@ -342,7 +343,15 @@ public class InvoiceTemplatesController : ControllerBase
         await file.CopyToAsync(memoryStream, ct);
         var bytes = memoryStream.ToArray();
 
-        var base64DataUri = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+        var contentType = extension switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".webp" => "image/webp",
+            _ => string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType
+        };
+
+        var base64DataUri = $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
 
         var response = new LogoUploadResponse
         {
@@ -352,6 +361,37 @@ public class InvoiceTemplatesController : ControllerBase
         };
 
         return Ok(ApiResponse<LogoUploadResponse>.Ok(response, "Logo uploaded successfully."));
+    }
+
+    /// <summary>
+    /// Retrieves current company branding and logo configuration for the active tenant.
+    /// </summary>
+    [HttpGet("company-branding")]
+    [HttpGet("/api/v1/company/branding")]
+    [ProducesResponseType(typeof(ApiResponse<CompanyBrandingDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCompanyBranding(CancellationToken ct)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var branding = await _templateService.GetCompanyBrandingAsync(tenantId.Value, ct);
+        return Ok(ApiResponse<CompanyBrandingDto>.Ok(branding, "Company branding retrieved successfully."));
+    }
+
+    /// <summary>
+    /// Updates company branding and logo configuration across the organization's default template.
+    /// </summary>
+    [HttpPut("company-branding")]
+    [HttpPut("/api/v1/company/branding")]
+    [ProducesResponseType(typeof(ApiResponse<CompanyBrandingDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateCompanyBranding([FromBody] UpdateCompanyBrandingRequest request, CancellationToken ct)
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue) return Forbid();
+
+        var user = GetUserName();
+        var branding = await _templateService.UpdateCompanyBrandingAsync(request, tenantId.Value, user, ct);
+        return Ok(ApiResponse<CompanyBrandingDto>.Ok(branding, "Company branding updated successfully."));
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ import { printCustomerList } from '../utils/customerReports';
 import { CustomerCardDetails } from "../components/CustomerCardDetails";
 import { CustomerEmailLink } from "../components/CustomerEmailLink";
 import { FeedbackSnackbar } from '../../../components/FeedbackSnackbar';
+import { FilterSelectField } from '../../../components/FilterSelectField';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
 import { useProductSelectProps } from '../../Products/components/ProductSelect';
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import {
 } from "react-router-dom";
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
@@ -89,15 +91,9 @@ const moneyWithCurrency = (value, currency) => {
   }
 };
 const filterOptions = {
-  status: {
-    label: "Customer status",
-    values: [
-      ["active", "Active"],
-      ["inactive", "Inactive"],
-    ],
-  },
   customerType: {
-    label: "Customer type",
+    label: "Customer Type",
+    allLabel: "All Types",
     values: [
       ["Individual", "Individual"],
       ["Business", "Business"],
@@ -105,7 +101,8 @@ const filterOptions = {
     ],
   },
   taxRegistration: {
-    label: "Tax registration",
+    label: "Tax Registration",
+    allLabel: "All Tax Registration",
     values: [
       ["Registered", "Registered"],
       ["Unregistered", "Unregistered"],
@@ -113,20 +110,29 @@ const filterOptions = {
   },
   outstanding: {
     label: "Outstanding",
+    allLabel: "All Outstanding",
     values: [
       ["Has Outstanding", "Has Outstanding"],
       ["No Outstanding", "No Outstanding"],
     ],
   },
+  status: {
+    label: "Status",
+    allLabel: "All Statuses",
+    values: [
+      ["active", "Active"],
+      ["inactive", "Inactive"],
+    ],
+  },
 };
 const columns = [
   ["customerCode", "Customer code"],
-  ["name", "Customer"],
   ["customerType", "Type"],
+  ["name", "Customer"],
   ["", "Tax ID / GSTIN"],
-  ["", "Contact"],
   ["outstandingBalance", "Outstanding"],
   ["status", "Status"],
+  ["", "Contact"],
   ["", "Actions"],
 ];
 
@@ -331,9 +337,10 @@ export function CustomerListPage() {
     Object.keys(filterOptions).some((key) => !!params[key]);
   return (
     <main className="customers-page">
-      <nav className="customers-breadcrumb" aria-label="Breadcrumb">
+      <Breadcrumbs className="customers-breadcrumb" aria-label="Breadcrumb">
+        <span>Billing</span>
         <strong aria-current="page">Customers</strong>
-      </nav>
+      </Breadcrumbs>
       <header className="customers-heading">
         <div>
           <h1>Customers</h1>
@@ -425,9 +432,6 @@ export function CustomerListPage() {
             </h2>
             <p>{cardView === "inactive" ? "Review each inactive profile, its recorded reason and deactivation details." : cardView === "outstanding" ? "Unpaid invoices are listed by due date, earliest first." : "Select a customer name to view their profile and transactions."}</p>
           </div>
-          <span className={`customer-result-count${query.isError ? ' unavailable' : ''}`} role="status">
-            {query.isLoading ? 'Loading customers...' : query.isError ? 'Directory unavailable' : query.isFetching ? 'Updating results...' : `${data?.totalCount ?? 0} ${params.search || params.taxId || Object.keys(filterOptions).some(key => params[key]) ? 'matching ' : ''}${data?.totalCount === 1 ? 'customer' : 'customers'}`}
-          </span>
         </div>
         <div className="customer-filters">
           <SearchField
@@ -442,26 +446,45 @@ export function CustomerListPage() {
             InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
           />
           <div className="customer-filter-row">
+            <FilterSelectField
+              select
+              size="small"
+              SelectProps={{ ...sortSelectProps, displayEmpty: true }}
+              inputProps={{ "aria-label": "Sort customers" }}
+              value={sortValue}
+              onChange={(event) => handleSortChange(event.target.value)}
+              className="customer-sort-select"
+            >
+              <MenuItem value="">Sort By</MenuItem>
+              {SORT_OPTIONS.map((option) => (
+                <MenuItem
+                  key={`${option.sortBy}:${option.sortOrder}`}
+                  value={`${option.sortBy}:${option.sortOrder}`}
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+            </FilterSelectField>
             {Object.entries(filterOptions).map(([key, option]) => (
-              <TextField
+              <FilterSelectField
                 select
                 size="small"
                 key={key}
                 inputProps={{ "aria-label": `Filter customers by ${option.label.toLowerCase()}` }}
-                SelectProps={{ displayEmpty: true }}
                 value={params[key] || ""}
                 onChange={(event) => change({ [key]: event.target.value, page: 1 })}
               >
-                <MenuItem value="">All</MenuItem>
-                {option.values.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
-              </TextField>
+                <MenuItem value="">{option.allLabel || "All"}</MenuItem>
+                {option.values.map(([value, label]) => (
+                  <MenuItem key={value} value={value}>
+                    {label}
+                  </MenuItem>
+                ))}
+              </FilterSelectField>
             ))}
-            <TextField select SelectProps={sortSelectProps} inputProps={{ "aria-label": "Sort customers" }}
-              size="small" value={sortValue} onChange={(event) => handleSortChange(event.target.value)} className="customer-sort-select">
-              <MenuItem value="">Sort By</MenuItem>
-              {SORT_OPTIONS.map((option) => <MenuItem key={`${option.sortBy}:${option.sortOrder}`} value={`${option.sortBy}:${option.sortOrder}`}>{option.label}</MenuItem>)}
-            </TextField>
-            <Button onClick={reset} disabled={!filtered && !search && !url.toString()}>Reset filters</Button>
+            <Button onClick={reset} disabled={!filtered && !search && !url.toString()}>
+              Reset filters
+            </Button>
           </div>
           {filtered && <div className="customer-filter-chips">
             {params.sortBy && <Chip size="small" label={`Sort: ${SORT_OPTIONS.find((option) => option.sortBy === params.sortBy && option.sortOrder === params.sortOrder)?.label || `${params.sortBy} (${params.sortOrder || "asc"})`}`} onDelete={() => change({ sortBy: "", sortOrder: "", page: 1 })} />}
@@ -561,6 +584,11 @@ export function CustomerListPage() {
                           {(customer.customerCode || "").trim() || "NA"}
                         </span>
                       </TableCell>
+                      <TableCell data-label="Type">
+                        <span className="customer-type">
+                          {(customer.customerType || customer.CustomerType || "").trim() || "NA"}
+                        </span>
+                      </TableCell>
                       <TableCell data-label="Customer">
                         <div className="customer-identity">
                           <Avatar
@@ -585,33 +613,23 @@ export function CustomerListPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell data-label="Type">
-                        <span className="customer-type">
-                          {(customer.customerType || "").trim() || "NA"}
-                        </span>
-                      </TableCell>
                       <TableCell data-label="Tax ID">
                         <div className="customer-tax">
-                          <small>
-                            {(customer.gstin || "").trim()
-                              ? "GSTIN"
-                              : (customer.taxId || "").trim()
-                              ? "PAN / Tax ID"
-                              : "NA"}
-                          </small>
-                          {(customer.gstin || "").trim() ||
-                            (customer.taxId || "").trim() ||
-                            "NA"}
-                        </div>
-                      </TableCell>
-                      <TableCell data-label="Contact">
-                        <div className="customer-contact">
-                          {(customer.email || "").trim() ? (
-                            <CustomerEmailLink email={customer.email} />
+                          {(customer.gstin || "").trim() || (customer.taxId || "").trim() ? (
+                            <>
+                              <small>
+                                {(customer.gstin || "").trim()
+                                  ? "GSTIN"
+                                  : "PAN / Tax ID"}
+                              </small>
+                              <span>
+                                {(customer.gstin || "").trim() ||
+                                  (customer.taxId || "").trim()}
+                              </span>
+                            </>
                           ) : (
                             <span>NA</span>
                           )}
-                          <small>{(customer.mobile || "").trim() || "NA"}</small>
                         </div>
                       </TableCell>
                       <TableCell data-label="Outstanding" align="left">
@@ -652,6 +670,18 @@ export function CustomerListPage() {
                               View outstanding
                             </Button>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell data-label="Contact">
+                        <div className="customer-contact">
+                          {(customer.email || "").trim() ? (
+                            <CustomerEmailLink email={customer.email} />
+                          ) : (
+                            <span>NA</span>
+                          )}
+                          {(customer.mobile || "").trim() && (customer.mobile || "").trim() !== "NA" ? (
+                            <small>{(customer.mobile || "").trim()}</small>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell data-label="Actions" align="center">

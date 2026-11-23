@@ -19,11 +19,14 @@ export function hasRecognizedEmailDomain(value) {
   return result.isIcann === true && Boolean(result.domain);
 }
 
+export const EMAIL_REGEX = /^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.(?:[a-zA-Z]{2,}|xn--[a-zA-Z0-9-]+)$/;
+
 export function workEmailSchema() {
   return yup.string().trim()
+    .required('Work email is required')
+    .matches(EMAIL_REGEX, { message: 'Please enter a valid work email', excludeEmptyString: true })
     .email('Please enter a valid work email')
-    .test('recognized-email-domain', 'Please enter a valid work email', hasRecognizedEmailDomain)
-    .required('Work email is required');
+    .test('recognized-email-domain', 'Please enter a valid work email', hasRecognizedEmailDomain);
 }
 
 

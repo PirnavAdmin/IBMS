@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { lookupIndiaPincode } from '../../../services/postalService';
+import { INDIA_PIN_REGEX } from '../validation/customerValidation';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import SyncOutlined from '@mui/icons-material/SyncOutlined';
 import { CustomerSelectField } from './CustomerSelectField';
@@ -131,6 +132,29 @@ export const AddressSection = ({
     [prefix, setValue, trigger, onChange, currentCountry]
   );
 
+  const handleCountryChange = (selectedCountry) => {
+    const postal = (getValues ? getValues(`${prefix}.postalCode`) : currentPostalCode) || '';
+    const isIndianPin = INDIA_PIN_REGEX.test(String(postal).trim());
+    const isSelectedIndia = String(selectedCountry || '').trim().toLowerCase() === 'india';
+
+    if (isIndianPin && !isSelectedIndia) {
+      setLookupState('error');
+      setLookupMessage('Selected country is inconsistent with the entered PIN code.');
+      setAvailableLocations([]);
+    } else if (!isIndianPin) {
+      setLookupState('idle');
+      setLookupMessage('');
+      setAvailableLocations([]);
+    }
+
+    if (setValue) {
+      setValue(`${prefix}.country`, selectedCountry, { shouldValidate: true, shouldDirty: true });
+    }
+    if (trigger) {
+      trigger([`${prefix}.country`, `${prefix}.postalCode`]);
+    }
+  };
+
   const handlePostalCodeChange = (e) => {
     if (disabled) return;
     const rawVal = e.target.value;
@@ -142,7 +166,7 @@ export const AddressSection = ({
         onChange('postalCode', cleanPin);
       }
 
-      if (cleanPin.length === 6 && /^[1-9][0-9]{5}$/.test(cleanPin)) {
+      if (cleanPin.length === 6 && INDIA_PIN_REGEX.test(cleanPin)) {
         performPincodeLookup(cleanPin, { autoFill: true });
       } else if (cleanPin.length < 6) {
         setLookupState('idle');
@@ -156,6 +180,9 @@ export const AddressSection = ({
         onChange('postalCode', rawVal);
       }
     }
+    if (trigger) {
+      trigger([`${prefix}.country`, `${prefix}.postalCode`]);
+    }
   };
 
   // Auto-trigger lookup if 6 digits are already present (e.g. from state or paste) but not yet looked up
@@ -163,12 +190,12 @@ export const AddressSection = ({
     if (disabled) return;
     if (!isIndia) return;
     const cleanPin = String(currentPostalCode || '').trim().replace(/\D/g, '');
-    if (cleanPin.length === 6 && /^[1-9][0-9]{5}$/.test(cleanPin)) {
-      if (lastQueriedPinRef.current !== cleanPin) {
+    if (cleanPin.length === 6 && INDIA_PIN_REGEX.test(cleanPin)) {
+      if (lastQueriedPinRef.current !== cleanPin || lookupState !== 'success') {
         performPincodeLookup(cleanPin, { autoFill: true });
       }
     }
-  }, [disabled, isIndia, currentPostalCode, performPincodeLookup]);
+  }, [disabled, isIndia, currentPostalCode, lookupState, performPincodeLookup]);
 
   const handleSelectLocality = (locality) => {
     if (!locality || disabled) return;
@@ -300,11 +327,14 @@ export const AddressSection = ({
               onBlur={() => {
                 if (isIndia) {
                   const cleanPin = String(currentPostalCode || '').trim().replace(/\D/g, '');
-                  if (cleanPin.length === 6 && /^[1-9][0-9]{5}$/.test(cleanPin)) {
+                  if (cleanPin.length === 6 && INDIA_PIN_REGEX.test(cleanPin)) {
                     if (lastQueriedPinRef.current !== cleanPin || lookupState !== 'success') {
                       performPincodeLookup(cleanPin, { autoFill: true });
                     }
                   }
+                }
+                if (trigger) {
+                  trigger([`${prefix}.country`, `${prefix}.postalCode`]);
                 }
               }}
               onKeyDown={(e) => {
@@ -345,8 +375,11 @@ export const AddressSection = ({
                   } else if (onChange) {
                     onChange('postalCode', pasted);
                   }
-                  if (pasted.length === 6 && /^[1-9][0-9]{5}$/.test(pasted)) {
+                  if (pasted.length === 6 && INDIA_PIN_REGEX.test(pasted)) {
                     performPincodeLookup(pasted, { autoFill: true });
+                  }
+                  if (trigger) {
+                    trigger([`${prefix}.country`, `${prefix}.postalCode`]);
                   }
                 }
               }}
@@ -452,11 +485,7 @@ export const AddressSection = ({
               disabled={disabled}
               ariaLabel="Country"
               invalid={Boolean(countryError)}
-              onValueChange={() => {
-                setLookupState('idle');
-                setLookupMessage('');
-                setAvailableLocations([]);
-              }}
+              onValueChange={handleCountryChange}
               options={countryOptions}
             />
           ) : (
@@ -467,18 +496,14 @@ export const AddressSection = ({
               aria-describedby={countryError ? `${getFieldId('country')}-err` : undefined}
               {...(register
                 ? register(`${prefix}.country`, {
-                    onChange: () => {
-                      setLookupState('idle');
-                      setLookupMessage('');
-                      setAvailableLocations([]);
+                    onChange: (e) => {
+                      handleCountryChange(e.target.value);
                     },
                   })
                 : {
                     value: currentCountry || '',
                     onChange: (e) => {
-                      setLookupState('idle');
-                      setLookupMessage('');
-                      setAvailableLocations([]);
+                      handleCountryChange(e.target.value);
                       if (onChange) onChange('country', e.target.value);
                     },
                   })}

@@ -960,5 +960,57 @@ public class CustomerServiceTests
         outboxMock.Verify(o => o.PublishEventAsync(2, "customer.created", Moq.It.IsAny<object>(), Moq.It.IsAny<string?>()), Moq.Times.Once);
     }
 
+    [Theory]
+    [InlineData("www.em/<>ail.co.in")]
+    [InlineData("http://www.em/<>ail.co.in")]
+    [InlineData("www.<test>.com")]
+    [InlineData("www.test^.com")]
+    [InlineData("http://example.com/path<invalid>")]
+    [InlineData("http://")]
+    [InlineData("https://")]
+    [InlineData("ftp://example.com")]
+    public async Task CreateCustomer_WithInvalidWebsiteUrl_ReturnsValidationError(string invalidWebsite)
+    {
+        // Arrange
+        var request = new CreateCustomerRequest
+        {
+            Name = "Website Test Cust",
+            Email = "web@test.com",
+            Website = invalidWebsite
+        };
+
+        // Act
+        var result = await _service.CreateCustomerAsync(request, tenantId: 1);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Contains(result.ValidationErrors, e => e.Contains("Please enter a valid website URL."));
+    }
+
+    [Theory]
+    [InlineData("www.example.com")]
+    [InlineData("https://example.com")]
+    [InlineData("http://example.com")]
+    [InlineData("deccantech.in")]
+    [InlineData("https://deccantech.in/about")]
+    [InlineData("https://example.com:8080/path?q=1#sec")]
+    public async Task CreateCustomer_WithValidWebsiteUrl_Succeeds(string validWebsite)
+    {
+        // Arrange
+        var request = new CreateCustomerRequest
+        {
+            Name = "Website Valid Cust",
+            Email = "webvalid@test.com",
+            Website = validWebsite
+        };
+
+        // Act
+        var result = await _service.CreateCustomerAsync(request, tenantId: 1);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(validWebsite, result.Data!.Website);
+    }
+
     #endregion
 }

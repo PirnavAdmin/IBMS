@@ -31,6 +31,8 @@ builder.Services.AddScoped<ICurrentUserService, WorkerCurrentUserService>();
 // Core infrastructure services
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddSingleton<ISmtpSecurityValidator, SmtpSecurityValidator>();
+builder.Services.AddScoped<ITenantEmailSettingService, TenantEmailSettingService>();
 builder.Services.AddSingleton<IInvoicePdfEngine, QuestPdfInvoiceEngine>();
 builder.Services.AddSingleton<IQuotationPdfEngine, QuestPdfQuotationEngine>();
 builder.Services.AddScoped<IDocumentStorageService, LocalStorageService>();
@@ -102,6 +104,7 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 builder.Services.AddScoped<ICountrySettingRepository, CountrySettingRepository>();
 builder.Services.AddScoped<IReminderSettingRepository, ReminderSettingRepository>();
+builder.Services.AddScoped<ITenantEmailSettingRepository, TenantEmailSettingRepository>();
 builder.Services.AddScoped<IQuotationRepository, QuotationRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IInvoiceCommunicationRepository, InvoiceCommunicationRepository>();

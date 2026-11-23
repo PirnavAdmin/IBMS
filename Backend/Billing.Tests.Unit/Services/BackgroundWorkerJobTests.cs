@@ -374,7 +374,7 @@ public class BackgroundWorkerJobTests
         Assert.True(result.Success);
         Assert.Equal(1, result.ProcessedCount);
         Assert.Equal("Sent", queuedLog.Status);
-        emailService.Verify(e => e.SendEmailAsync("test@example.com", "Subject", "Message", null, null), Times.Once);
+        emailService.Verify(e => e.SendEmailForTenantAsync(TenantId, "test@example.com", "Subject", "Message", null, null, It.IsAny<CancellationToken>()), Times.Once);
         logRepo.Verify(r => r.UpdateAsync(queuedLog), Times.Once);
     }
 

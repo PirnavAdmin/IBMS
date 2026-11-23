@@ -8,12 +8,64 @@ namespace Billing.Application.Services;
 public class CustomerService : ICustomerService
 {
     private static readonly Regex EmailRegex = new(
-        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        @"^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private static readonly Regex PhoneRegex = new(
         @"^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$",
         RegexOptions.Compiled);
+
+    private static readonly Regex NameSpecialCharactersRegex = new(
+        @"[.,!@#$%^&*()_+=\[\]{};:""\\|<>?/~`]",
+        RegexOptions.Compiled);
+
+    private static readonly Regex StreetAddressRegex = new(
+        @"^[\p{L}\p{M}0-9\s,.\-/#':()]+$",
+        RegexOptions.Compiled);
+
+    private static readonly Regex ConsecutiveAddressSymbolsRegex = new(
+        @"[,\-/#':().]{2,}",
+        RegexOptions.Compiled);
+
+    private static readonly Regex CompanyNameRegex = new(
+        @"^[\p{L}\p{M}0-9\s.,&'\-()]+$",
+        RegexOptions.Compiled);
+
+    private static readonly Regex ConsecutiveCompanySymbolsRegex = new(
+        @"[.,&'\-()]{2,}",
+        RegexOptions.Compiled);
+
+    private static readonly Regex WebsiteUrlRegex = new(
+        @"^(https?:\/\/)?(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})(:\d{1,5})?(\/[a-zA-Z0-9\-._~%!$&'()*+,;=:@/?#]*)?$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex IllegalUrlCharactersRegex = new(
+        @"[<>"'\\^|{}\s]",
+        RegexOptions.Compiled);
+
+    private static bool IsValidWebsiteUrl(string? website)
+    {
+        if (string.IsNullOrWhiteSpace(website)) return true;
+        var trimmed = website.Trim();
+        if (trimmed.Length > 256) return false;
+        if (IllegalUrlCharactersRegex.IsMatch(trimmed)) return false;
+        if (!WebsiteUrlRegex.IsMatch(trimmed)) return false;
+
+        var urlToTest = Regex.IsMatch(trimmed, @"^https?:\/\/", RegexOptions.IgnoreCase)
+            ? trimmed
+            : "https://" + trimmed;
+
+        if (!Uri.TryCreate(urlToTest, UriKind.Absolute, out var uri)) return false;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return false;
+        if (string.IsNullOrWhiteSpace(uri.Host) || !uri.Host.Contains('.')) return false;
+
+        var parts = uri.Host.Split('.');
+        if (parts.Any(p => string.IsNullOrWhiteSpace(p) || p.StartsWith('-') || p.EndsWith('-'))) return false;
+        var tld = parts[^1];
+        if (tld.Length < 2 || !tld.All(char.IsLetter)) return false;
+
+        return true;
+    }
 
     private static IEnumerable<Invoice> BillableInvoices(Customer customer) => customer.Invoices.Where(i =>
         i.TenantId == customer.TenantId && !new[] { "Draft", "Cancelled", "Void" }.Contains(i.Status, StringComparer.OrdinalIgnoreCase));
@@ -48,6 +100,15 @@ public class CustomerService : ICustomerService
             return ApiResponse<CustomerDto>.Fail("Customer with this email already exists", "A customer with the email address '" + normalizedEmail + "' already exists.");
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            var existingWithPhone = await _customerRepository.GetByPhoneAsync(request.Phone, tenantId);
+            if (existingWithPhone != null)
+            {
+                return ApiResponse<CustomerDto>.Fail("This phone number is already associated with an existing customer.", "This phone number is already associated with an existing customer.", "PHONE_ALREADY_EXISTS");
+            }
+        }
+
         var customerCode = string.IsNullOrWhiteSpace(request.CustomerCode)
             ? await _customerRepository.GetNextCustomerCodeAsync(tenantId, "CUST-")
             : request.CustomerCode.Trim().ToUpperInvariant();
@@ -67,7 +128,10 @@ public class CustomerService : ICustomerService
             Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
             CompanyName = string.IsNullOrWhiteSpace(request.CompanyName) ? null : request.CompanyName.Trim(),
             CustomerType = !string.IsNullOrWhiteSpace(request.CustomerType)
-                ? request.CustomerType.Trim()
+                ? (request.CustomerType.Trim().Equals("organization", StringComparison.OrdinalIgnoreCase) ? "Organization"
+                  : request.CustomerType.Trim().Equals("business", StringComparison.OrdinalIgnoreCase) ? "Business"
+                  : request.CustomerType.Trim().Equals("individual", StringComparison.OrdinalIgnoreCase) ? "Individual"
+                  : request.CustomerType.Trim())
                 : (!string.IsNullOrWhiteSpace(request.CompanyName) ? "Business" : "Individual"),
             TaxId = string.IsNullOrWhiteSpace(request.TaxId) ? null : request.TaxId.Trim(),
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
@@ -247,7 +311,16 @@ public class CustomerService : ICustomerService
 
         if (request.Phone != null)
         {
-            customer.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+            var cleanPhone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+            if (!string.IsNullOrWhiteSpace(cleanPhone) && !string.Equals(customer.Phone, cleanPhone, StringComparison.OrdinalIgnoreCase))
+            {
+                var existingWithPhone = await _customerRepository.GetByPhoneAsync(cleanPhone, targetTenantId);
+                if (existingWithPhone != null && existingWithPhone.Id != id)
+                {
+                    return ApiResponse<CustomerDto>.Fail("This phone number is already associated with an existing customer.", "This phone number is already associated with an existing customer.", "PHONE_ALREADY_EXISTS");
+                }
+            }
+            customer.Phone = cleanPhone;
         }
 
         if (request.CompanyName != null)
@@ -257,9 +330,13 @@ public class CustomerService : ICustomerService
 
         if (request.CustomerType != null)
         {
-            customer.CustomerType = string.IsNullOrWhiteSpace(request.CustomerType)
+            var rawType = request.CustomerType.Trim();
+            customer.CustomerType = string.IsNullOrWhiteSpace(rawType)
                 ? (!string.IsNullOrWhiteSpace(customer.CompanyName) ? "Business" : "Individual")
-                : request.CustomerType.Trim();
+                : (rawType.Equals("organization", StringComparison.OrdinalIgnoreCase) ? "Organization"
+                  : rawType.Equals("business", StringComparison.OrdinalIgnoreCase) ? "Business"
+                  : rawType.Equals("individual", StringComparison.OrdinalIgnoreCase) ? "Individual"
+                  : rawType);
         }
 
         if (request.TaxId != null)
@@ -551,6 +628,10 @@ public class CustomerService : ICustomerService
         {
             errors.Add("Customer name must not exceed 256 characters.");
         }
+        else if (NameSpecialCharactersRegex.IsMatch(request.Name))
+        {
+            errors.Add("Customer Name should not contain special characters.");
+        }
 
         if (string.IsNullOrWhiteSpace(request.Email))
         {
@@ -582,14 +663,90 @@ public class CustomerService : ICustomerService
             }
         }
 
-        if (request.CompanyName?.Length > 256) errors.Add("Company name must not exceed 256 characters.");
+        if (!string.IsNullOrWhiteSpace(request.CompanyName))
+        {
+            var company = request.CompanyName.Trim();
+            if (company.Length < 2 || company.Length > 256)
+            {
+                errors.Add("Company name must be between 2 and 256 characters.");
+            }
+            else if (!CompanyNameRegex.IsMatch(company))
+            {
+                errors.Add("Company name can only contain letters, numbers, spaces, and standard characters (., &, ', -, ()).");
+            }
+            else if (ConsecutiveCompanySymbolsRegex.IsMatch(company))
+            {
+                errors.Add("Company name cannot contain consecutive special characters.");
+            }
+            else if (!Regex.IsMatch(company, @"[\p{L}0-9]"))
+            {
+                errors.Add("Company name must contain letters or numbers.");
+            }
+        }
         if (request.TaxId?.Length > 64) errors.Add("Tax ID must not exceed 64 characters.");
-        if (request.Address?.Length > 512) errors.Add("Address must not exceed 512 characters.");
+        if (!string.IsNullOrWhiteSpace(request.Address))
+        {
+            var address = request.Address.Trim();
+            if (address.Length < 3 || address.Length > 512)
+            {
+                errors.Add("Address must be between 3 and 512 characters.");
+            }
+            else if (!StreetAddressRegex.IsMatch(address))
+            {
+                errors.Add("Please enter a valid street address. Unsupported special characters are not allowed.");
+            }
+            else if (ConsecutiveAddressSymbolsRegex.IsMatch(address))
+            {
+                errors.Add("Street address cannot contain consecutive special characters.");
+            }
+            else if (!Regex.IsMatch(address, @"[\p{L}0-9]"))
+            {
+                errors.Add("Street address must contain letters or numbers.");
+            }
+        }
+
+        if (request.Addresses != null && request.Addresses.Any())
+        {
+            foreach (var addr in request.Addresses)
+            {
+                if (!string.IsNullOrWhiteSpace(addr.AddressLine1))
+                {
+                    var line1 = addr.AddressLine1.Trim();
+                    if (line1.Length < 3 || line1.Length > 512)
+                    {
+                        errors.Add("Street address must be between 3 and 512 characters.");
+                    }
+                    else if (!StreetAddressRegex.IsMatch(line1))
+                    {
+                        errors.Add("Please enter a valid street address. Unsupported special characters are not allowed.");
+                    }
+                    else if (ConsecutiveAddressSymbolsRegex.IsMatch(line1))
+                    {
+                        errors.Add("Street address cannot contain consecutive special characters.");
+                    }
+                    else if (!Regex.IsMatch(line1, @"[\p{L}0-9]"))
+                    {
+                        errors.Add("Street address must contain letters or numbers.");
+                    }
+                }
+            }
+        }
         if (request.City?.Length > 128) errors.Add("City must not exceed 128 characters.");
         if (request.State?.Length > 128) errors.Add("State must not exceed 128 characters.");
         if (request.PostalCode?.Length > 32) errors.Add("Postal code must not exceed 32 characters.");
         if (request.Country?.Length > 128) errors.Add("Country must not exceed 128 characters.");
-        if (request.Website?.Length > 256) errors.Add("Website must not exceed 256 characters.");
+        if (!string.IsNullOrWhiteSpace(request.Website))
+        {
+            var trimmedWebsite = request.Website.Trim();
+            if (trimmedWebsite.Length > 256)
+            {
+                errors.Add("Website must not exceed 256 characters.");
+            }
+            else if (!IsValidWebsiteUrl(trimmedWebsite))
+            {
+                errors.Add("Please enter a valid website URL.");
+            }
+        }
         if (request.Notes?.Length > 1000) errors.Add("Notes must not exceed 1000 characters.");
         if (request.Currency?.Length > 10) errors.Add("Currency code must not exceed 10 characters.");
         if (request.PaymentTerms?.Length > 64) errors.Add("Payment terms must not exceed 64 characters.");
@@ -610,6 +767,10 @@ public class CustomerService : ICustomerService
             else if (request.Name.Trim().Length > 256)
             {
                 errors.Add("Customer name must not exceed 256 characters.");
+            }
+            else if (NameSpecialCharactersRegex.IsMatch(request.Name))
+            {
+                errors.Add("Customer Name should not contain special characters.");
             }
         }
 
@@ -639,14 +800,90 @@ public class CustomerService : ICustomerService
             }
         }
 
-        if (request.CompanyName?.Length > 256) errors.Add("Company name must not exceed 256 characters.");
+        if (!string.IsNullOrWhiteSpace(request.CompanyName))
+        {
+            var company = request.CompanyName.Trim();
+            if (company.Length < 2 || company.Length > 256)
+            {
+                errors.Add("Company name must be between 2 and 256 characters.");
+            }
+            else if (!CompanyNameRegex.IsMatch(company))
+            {
+                errors.Add("Company name can only contain letters, numbers, spaces, and standard characters (., &, ', -, ()).");
+            }
+            else if (ConsecutiveCompanySymbolsRegex.IsMatch(company))
+            {
+                errors.Add("Company name cannot contain consecutive special characters.");
+            }
+            else if (!Regex.IsMatch(company, @"[\p{L}0-9]"))
+            {
+                errors.Add("Company name must contain letters or numbers.");
+            }
+        }
         if (request.TaxId?.Length > 64) errors.Add("Tax ID must not exceed 64 characters.");
-        if (request.Address?.Length > 512) errors.Add("Address must not exceed 512 characters.");
+        if (!string.IsNullOrWhiteSpace(request.Address))
+        {
+            var address = request.Address.Trim();
+            if (address.Length < 3 || address.Length > 512)
+            {
+                errors.Add("Address must be between 3 and 512 characters.");
+            }
+            else if (!StreetAddressRegex.IsMatch(address))
+            {
+                errors.Add("Please enter a valid street address. Unsupported special characters are not allowed.");
+            }
+            else if (ConsecutiveAddressSymbolsRegex.IsMatch(address))
+            {
+                errors.Add("Street address cannot contain consecutive special characters.");
+            }
+            else if (!Regex.IsMatch(address, @"[\p{L}0-9]"))
+            {
+                errors.Add("Street address must contain letters or numbers.");
+            }
+        }
+
+        if (request.Addresses != null && request.Addresses.Any())
+        {
+            foreach (var addr in request.Addresses)
+            {
+                if (!string.IsNullOrWhiteSpace(addr.AddressLine1))
+                {
+                    var line1 = addr.AddressLine1.Trim();
+                    if (line1.Length < 3 || line1.Length > 512)
+                    {
+                        errors.Add("Street address must be between 3 and 512 characters.");
+                    }
+                    else if (!StreetAddressRegex.IsMatch(line1))
+                    {
+                        errors.Add("Please enter a valid street address. Unsupported special characters are not allowed.");
+                    }
+                    else if (ConsecutiveAddressSymbolsRegex.IsMatch(line1))
+                    {
+                        errors.Add("Street address cannot contain consecutive special characters.");
+                    }
+                    else if (!Regex.IsMatch(line1, @"[\p{L}0-9]"))
+                    {
+                        errors.Add("Street address must contain letters or numbers.");
+                    }
+                }
+            }
+        }
         if (request.City?.Length > 128) errors.Add("City must not exceed 128 characters.");
         if (request.State?.Length > 128) errors.Add("State must not exceed 128 characters.");
         if (request.PostalCode?.Length > 32) errors.Add("Postal code must not exceed 32 characters.");
         if (request.Country?.Length > 128) errors.Add("Country must not exceed 128 characters.");
-        if (request.Website?.Length > 256) errors.Add("Website must not exceed 256 characters.");
+        if (!string.IsNullOrWhiteSpace(request.Website))
+        {
+            var trimmedWebsite = request.Website.Trim();
+            if (trimmedWebsite.Length > 256)
+            {
+                errors.Add("Website must not exceed 256 characters.");
+            }
+            else if (!IsValidWebsiteUrl(trimmedWebsite))
+            {
+                errors.Add("Please enter a valid website URL.");
+            }
+        }
         if (request.Notes?.Length > 1000) errors.Add("Notes must not exceed 1000 characters.");
         if (request.Currency?.Length > 10) errors.Add("Currency code must not exceed 10 characters.");
         if (request.PaymentTerms?.Length > 64) errors.Add("Payment terms must not exceed 64 characters.");

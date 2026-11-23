@@ -58,9 +58,20 @@ export const createCustomerRequest = (data = {}) => {
     formattedWebsite = `https://${formattedWebsite}`;
   }
 
+  const rawCustomerType = String(
+    data.customerType ?? data.CustomerType ?? ''
+  ).trim().toLowerCase();
+  const normalizedCustomerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
+    ? rawCustomerType
+    : (data.companyName?.trim() ? 'business' : (rawCustomerType ? 'business' : null));
+  const titleCaseCustomerType = normalizedCustomerType
+    ? normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1)
+    : null;
+
   return {
     customerCode: data.customerCode?.trim() || null,
     name: data.name?.trim() || '',
+    customerType: titleCaseCustomerType,
     email: data.email?.trim() || '',
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
@@ -293,7 +304,7 @@ export const parseCustomerResponse = (response) => {
     email: raw.email ?? raw.Email ?? '',
     phone: raw.phone ?? raw.Phone ?? '',
     companyName: raw.companyName ?? raw.CompanyName ?? '',
-    customerType,
+    customerType: customerTypeTitleCase,
     CustomerType: customerTypeTitleCase,
     creditLimit,
     CreditLimit: creditLimit,

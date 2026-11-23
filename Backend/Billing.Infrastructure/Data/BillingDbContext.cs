@@ -90,6 +90,7 @@ public class BillingDbContext : DbContext
     public DbSet<ReminderSetting> ReminderSettings { get; set; }
     public DbSet<PlatformSetting> PlatformSettings { get; set; }
     public DbSet<PaymentGatewaySetting> PaymentGatewaySettings { get; set; }
+    public DbSet<TenantEmailSetting> TenantEmailSettings { get; set; }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -117,7 +118,8 @@ public class BillingDbContext : DbContext
                 if (property.IsTemporary) continue;
 
                 string propertyName = property.Metadata.Name;
-                var isProtectedSecret = entry.Entity is PaymentGatewaySetting && propertyName.EndsWith("Protected", StringComparison.Ordinal);
+                var isProtectedSecret = (entry.Entity is PaymentGatewaySetting || entry.Entity is TenantEmailSetting)
+                    && (propertyName.EndsWith("Protected", StringComparison.Ordinal) || propertyName.Contains("Password", StringComparison.OrdinalIgnoreCase));
 
                 switch (entry.State)
                 {
@@ -1120,6 +1122,8 @@ public class BillingDbContext : DbContext
             entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
 
+
+
         modelBuilder.Entity<PaymentGatewaySetting>(entity =>
         {
             entity.ToTable("paymentgatewaysettings");
@@ -1137,6 +1141,29 @@ public class BillingDbContext : DbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(128);
             entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<TenantEmailSetting>(entity =>
+        {
+            entity.ToTable("tenantemailsettings");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TenantId).IsUnique();
+            entity.Property(e => e.Provider).HasMaxLength(64).HasDefaultValue("Custom").IsRequired();
+            entity.Property(e => e.SmtpHost).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.SmtpPort).HasDefaultValue(587).IsRequired();
+            entity.Property(e => e.Username).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.PasswordProtected).HasMaxLength(2048);
+            entity.Property(e => e.FromEmail).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.FromName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.EncryptionMode).HasMaxLength(32).HasDefaultValue("StartTls").IsRequired();
+            entity.Property(e => e.IsEnabled).HasDefaultValue(true);
+            entity.Property(e => e.IsVerified).HasDefaultValue(false);
+            entity.Property(e => e.LastTestStatus).HasMaxLength(64);
+            entity.Property(e => e.LastTestError).HasMaxLength(2048);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(128);
+            entity.HasOne(e => e.Tenant).WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+
 
         var dateTimeConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
             v => v,

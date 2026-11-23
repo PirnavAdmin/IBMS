@@ -3,6 +3,7 @@ using Billing.Domain.Entities;
 using Billing.Domain.Enums;
 using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Billing.Infrastructure.Services;
@@ -10,11 +11,19 @@ namespace Billing.Infrastructure.Services;
 public class TenantProvisioningService : ITenantProvisioningService
 {
     private readonly BillingDbContext _context;
+    private readonly IConfiguration? _configuration;
+    private readonly ISecretEncryptionService? _encryptionService;
     private readonly ILogger<TenantProvisioningService>? _logger;
 
-    public TenantProvisioningService(BillingDbContext context, ILogger<TenantProvisioningService>? logger = null)
+    public TenantProvisioningService(
+        BillingDbContext context,
+        IConfiguration? configuration = null,
+        ISecretEncryptionService? encryptionService = null,
+        ILogger<TenantProvisioningService>? logger = null)
     {
         _context = context;
+        _configuration = configuration;
+        _encryptionService = encryptionService;
         _logger = logger;
     }
 
@@ -270,6 +279,51 @@ public class TenantProvisioningService : ITenantProvisioningService
                 CreatedBy = "System"
             };
             await _context.TemplateVersions.AddAsync(templateVersion, cancellationToken);
+        }
+
+        // 6. Default Tenant Email Setting (SMTP configuration with registered email and company name)
+        if (!await _context.TenantEmailSettings.AnyAsync(s => s.TenantId == tenantId, cancellationToken))
+        {
+            var tenant = await _context.Tenants
+                .Include(t => t.Users)
+                .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+
+            var companyName = !string.IsNullOrWhiteSpace(tenant?.Name) ? tenant.Name.Trim() : "Organization";
+            var registeredEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail)
+                ? tenant.CompanyEmail.Trim()
+                : tenant?.Users?.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u.Email))?.Email?.Trim();
+
+            var fallbackEmail = _configuration?["EmailSettings:Email"]?.Trim() ?? registeredEmail ?? "admin@organization.com";
+            var fallbackPass = _configuration?["EmailSettings:AppPassword"]?.Trim();
+            string? protectedPassword = null;
+            if (!string.IsNullOrWhiteSpace(fallbackPass))
+            {
+                var cleanPass = fallbackPass.Replace(" ", "");
+                protectedPassword = _encryptionService != null ? _encryptionService.Protect(cleanPass) : cleanPass;
+            }
+
+            var fromEmail = !string.IsNullOrWhiteSpace(registeredEmail) ? registeredEmail : fallbackEmail;
+
+            var defaultEmailSetting = new TenantEmailSetting
+            {
+                TenantId = tenantId,
+                Provider = "Gmail",
+                SmtpHost = _configuration?["EmailSettings:Host"] ?? "smtp.gmail.com",
+                SmtpPort = int.TryParse(_configuration?["EmailSettings:Port"], out var p) ? p : 587,
+                Username = fallbackEmail,
+                PasswordProtected = protectedPassword,
+                FromEmail = fromEmail,
+                FromName = companyName,
+                EncryptionMode = "StartTls",
+                IsEnabled = true,
+                IsVerified = true,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+                UpdatedBy = "System"
+            };
+
+            await _context.TenantEmailSettings.AddAsync(defaultEmailSetting, cancellationToken);
+            _logger?.LogInformation("Provisioned default TenantEmailSetting for tenant {TenantId} (Company: '{Company}', Sender: '{Email}')", tenantId, companyName, fromEmail);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

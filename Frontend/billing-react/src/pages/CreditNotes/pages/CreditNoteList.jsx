@@ -17,6 +17,7 @@ import ScheduleOutlined from '@mui/icons-material/ScheduleOutlined';
 import Autorenew from '@mui/icons-material/Autorenew';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
+import PaymentsOutlined from '@mui/icons-material/PaymentsOutlined';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -197,6 +198,11 @@ export function CreditNoteList() {
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} PaperProps={{ className: 'ibms-row-actions-menu' }} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}`} onClick={closeMenu}><ListItemIcon><VisibilityOutlined fontSize="small" /></ListItemIcon>View details</MenuItem>
         {menuNote?.status === 'Draft' && <MenuItem component={Link} to={`/credit-notes/${menuNote.id}/edit`} onClick={closeMenu}><ListItemIcon><EditOutlined fontSize="small" /></ListItemIcon>Edit draft</MenuItem>}
+        {['Issued', 'Partially Refunded'].includes(menuNote?.status) && Number(menuNote?.remainingRefundable || 0) > 0 && (
+          <MenuItem component={Link} to={`/credit-notes/${menuNote?.id}/refund`} onClick={closeMenu}>
+            <ListItemIcon><PaymentsOutlined fontSize="small" /></ListItemIcon>Record refund
+          </MenuItem>
+        )}
         <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/preview`); }}><ListItemIcon><LocalPrintshopOutlined fontSize="small" /></ListItemIcon>Preview / print</MenuItem>
         <MenuItem onClick={() => { closeMenu(); navigate(`/credit-notes/${menuNote?.id}/export`); }}><ListItemIcon><PictureAsPdfOutlined fontSize="small" /></ListItemIcon>Export PDF</MenuItem>
       </Menu>

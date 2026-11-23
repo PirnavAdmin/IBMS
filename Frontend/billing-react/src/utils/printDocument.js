@@ -19,8 +19,8 @@ export function printDocument(report, id = 'billing-print-document') {
 
 export const escapeReportText = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 export const reportTable = (headers, rows) => `<table><thead><tr>${headers.map(value=>`<th>${escapeReportText(value)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(value=>`<td>${escapeReportText(value)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-export function reportDocument(title, body, extraStyles = '', landscape = true) {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeReportText(title)}</title><style>
+export function reportDocument(title, body, extraStyles = '', landscape = true, docTitle = '') {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeReportText(docTitle)}</title><style>
   @page{size:${landscape ? 'landscape' : 'A4'};margin:12mm}
   body{margin:0;background:white;color:#35231C;font:12px Arial,sans-serif}
   h1{font-size:20px;margin:0 0 12px;color:#633D28}h2{font-size:15px;color:#633D28}

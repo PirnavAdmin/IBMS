@@ -28,8 +28,11 @@ test('Customer list matches Product/Payment print colors and preserves escaped d
   for(const report of [html,buildProductListReport([]),buildPaymentListReport([])]) {
     assert.match(report,/Arial,sans-serif/);assert.match(report,/#F0E2D0/);assert.match(report,/#BBA58C/);assert.match(report,/#633D28/);
     assert.doesNotMatch(report,/<script|<svg|window.open/);
+    assert.match(report,/<title><\/title>/);
   }
   for(const text of ['C-1','Company','TAX-1','test@example.test','12.50','Active','&lt;script&gt;unsafe&lt;/script&gt;']) assert.ok(html.includes(text));
+  assert.match(html, /<h1>Customers<\/h1>/);
+  assert.equal((html.match(/Customers/g) || []).length, 1);
 });
 
 test('Customer details retains all existing print sections in a plain themed document',()=>{

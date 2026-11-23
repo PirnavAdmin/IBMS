@@ -37,7 +37,10 @@ export function RecordPayment() {
   const current=balance.error?null:balance.data;
   useEffect(()=>{if(preselected.current || !location.state?.invoiceId || !invoices.data)return;const target=invoices.data.find(row=>String(row.invoiceId)===String(location.state.invoiceId));if(target){setSelected(target);setForm(previous=>({...previous,invoice:String(target.invoiceId)}));}else{setMessage('The selected invoice is not currently eligible for a payment. Refresh the invoice balance before proceeding.');}preselected.current=true;},[invoices.data,location.state]);
   const change = key => event => {
-    const value = event.target.value;
+    let value = event.target.value;
+    if (key === 'notes' && value && value.length > 1000) {
+      value = value.slice(0, 1000);
+    }
     setForm(previous => ({ ...previous, [key]: value, ...(key === 'method' ? Object.fromEntries(Object.keys(labels).map(k => [k, ''])) : {}) }));
     setErrors(previous => ({ ...previous, [key]: '' }));
     setConfirmation(null);
@@ -88,7 +91,7 @@ export function RecordPayment() {
         <TextField required type="number" placeholder="Payment Amount" inputProps={{min:0.01,step:0.01,"aria-label":"Payment Amount"}} value={form.amount} onChange={change('amount')} error={Boolean(errors.amount)} helperText={errors.amount} />
         <TextField select required placeholder="Payment Method" inputProps={{ "aria-label": "Payment Method" }} SelectProps={{ displayEmpty: true }} value={form.method} onChange={change('method')} error={Boolean(errors.method)} helperText={errors.method}><MenuItem value="">Select payment method</MenuItem>{PAYMENT_METHODS.map(method=><MenuItem key={method} value={method}>{methodLabel(method)}</MenuItem>)}</TextField>
         {(methodFields[form.method] || []).map(field)}
-        <TextField className="payment-full" placeholder="Notes" inputProps={{ "aria-label": "Notes" }} multiline minRows={3} value={form.notes} onChange={change('notes')} error={Boolean(errors.notes)} helperText={errors.notes || 'Maximum 1000 characters. Never enter card numbers, CVV, PIN, OTP or secrets.'} />
+        <TextField className="payment-full" placeholder="Notes" inputProps={{ maxLength: 1000, "aria-label": "Notes" }} multiline minRows={3} value={form.notes} onChange={change('notes')} error={Boolean(errors.notes)} helperText={errors.notes || 'Maximum 1000 characters. Never enter card numbers, CVV, PIN, OTP or secrets.'} />
       </div>{message && <Alert severity="error">{message}</Alert>}
       {!user.isPending && !user.permissions.create && <Alert severity="warning">Sign in with an authorized account to record a payment.</Alert>}
       <div className="payment-actions"><Button component={Link} to="/payments" onClick={() => draft.clear()} disabled={busy}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || balance.isFetching || invoices.isPending || !user.permissions.create}>Review Payment</Button></div>

@@ -40,6 +40,7 @@ export function CustomerSelectField({
           required={required}
           SelectDisplayProps={{ 'aria-required': required || undefined }}
           aria-invalid={invalid}
+          error={invalid}
           value={field.value ?? ''}
           name={field.name}
           onBlur={field.onBlur}

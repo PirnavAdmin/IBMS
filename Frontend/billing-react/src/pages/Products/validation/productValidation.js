@@ -3,6 +3,8 @@ import { CURRENCY_CODES } from '../../../utils/currencies.js';
 
 const CODE_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
+export const PRODUCT_NAME_REGEX = /^[a-zA-Z0-9\s.,\-_/()'+]+$/;
+export const CONSECUTIVE_SYMBOLS_REGEX = /[.,\-_/()'+]{2,}/;
 
 export function normalizeProductTax(value) {
   const text = String(value ?? '').trim();
@@ -31,7 +33,21 @@ export const productValidationSchema = yup.object({
     .trim()
     .required('Product name is required')
     .min(2, 'Product name must be at least 2 characters')
-    .max(256, 'Product name must not exceed 256 characters'),
+    .max(256, 'Product name must not exceed 256 characters')
+    .matches(
+      PRODUCT_NAME_REGEX,
+      "Product name can only contain letters, numbers, spaces, and standard characters (- _ . / ( ) ' +)"
+    )
+    .test(
+      'no-consecutive-symbols',
+      'Product name cannot contain consecutive special characters',
+      value => !CONSECUTIVE_SYMBOLS_REGEX.test(value || '')
+    )
+    .test(
+      'has-alphanumeric',
+      'Product name must contain letters or numbers',
+      value => /[a-zA-Z0-9]/.test(value || '')
+    ),
 
   type: yup
     .string()

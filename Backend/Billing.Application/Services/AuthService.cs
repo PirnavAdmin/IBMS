@@ -35,6 +35,8 @@ public class AuthService
 
     private readonly IPlatformAdministrationService? _platformService;
 
+    private readonly ITenantProvisioningService? _tenantProvisioningService;
+
 
 
     // Temporary OTP storage
@@ -68,7 +70,9 @@ public class AuthService
 
         ITenantRepository? tenantRepository = null,
 
-        IPlatformAdministrationService? platformService = null)
+        IPlatformAdministrationService? platformService = null,
+
+        ITenantProvisioningService? tenantProvisioningService = null)
 
     {
 
@@ -83,6 +87,8 @@ public class AuthService
         _tenantRepository = tenantRepository;
 
         _platformService = platformService;
+
+        _tenantProvisioningService = tenantProvisioningService;
 
     }
 
@@ -1973,6 +1979,28 @@ public class AuthService
         {
 
             await _tenantRepository.CreateAsync(tenant);
+
+        }
+
+        if (_tenantProvisioningService != null && tenant.Id > 0)
+
+        {
+
+            try
+
+            {
+
+                await _tenantProvisioningService.ProvisionTenantDefaultsAsync(tenant.Id);
+
+            }
+
+            catch
+
+            {
+
+                // Provisioning errors should not fail company registration
+
+            }
 
         }
 

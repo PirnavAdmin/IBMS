@@ -34,7 +34,7 @@
 .product-panel-heading .product-result-count { background: #f5efea; color: #5d4037; border: 1px solid #e8ddd7; border-radius: 20px; padding: 5px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .product-panel-heading h2 { font-size: 16px; margin: 0; }
 .product-panel-heading > span { color: #756763; font-size: 12px; }
-.product-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) minmax(120px, 145px) minmax(170px, 210px) auto; gap: 12px; padding: 16px; align-items: center; }
+.product-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 210px) minmax(140px, 180px) minmax(120px, 145px) auto; gap: 12px; padding: 16px; align-items: center; }
 .product-filters .product-search .MuiFormHelperText-root { display: none !important; }
 .product-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #8d6e63; }
 .product-table { max-width: 100%; overflow-x: auto; }
@@ -78,7 +78,7 @@
 .product-state p { color: #756763; font-size: 14px; margin-bottom: 20px; }
 .product-page :focus-visible { outline: 2px solid #8d6e63; outline-offset: 3px; }
 .product-page .product-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #eadfd2; border-width: 1px; }
-.product-page .product-search .MuiOutlinedInput-input:focus-visible { outline: none; }
+.product-page :is(.product-search, .category-search) .MuiOutlinedInput-input:focus-visible { outline: none; }
 @media (max-width: 1100px) { .product-filters { grid-template-columns: 1fr 1fr; } .product-summary { gap: 10px; } .product-summary-card { padding: 12px 10px; gap: 8px; } }
 @media (max-width: 600px) { .product-page { padding: 20px 12px; } .product-heading { align-items: flex-start; flex-direction: column; } .product-summary { grid-template-columns: 1fr 1fr; } .product-summary-card { flex-direction: column; } .product-filters { grid-template-columns: 1fr; padding: 20px 14px; } .product-panel-heading { padding: 18px 14px; flex-wrap: wrap; } .product-pagination { gap: 18px 12px; padding: 20px 12px; } .product-pagination nav { width: 100%; } .product-pagination .MuiPagination-ul { justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { .product-page *, .product-page *::before, .product-page *::after { transition: none !important; } }

@@ -32,7 +32,7 @@ test('Registration rejects excessive repeated letters and invalid or blank names
   assert.throws(() => schema.validateSync('qqqqqqqqqqqqqqqqqqqq'), /Full Name contains invalid repeated characters/);
 });
 test('Registration requires policy-compliant matching passwords and explicit consent', () => {
-  const valid = { fullName: ' Mary Anne ', email: ' admin@example.com ', password: 'Password@123', confirmPassword: 'Password@123', terms: true };
+  const valid = { fullName: ' Mary Anne ', companyName: 'Acme Corp', email: ' admin@example.com ', password: 'Password@123', confirmPassword: 'Password@123', terms: true };
   assert.equal(registrationSchema.validateSync(valid).fullName, 'Mary Anne');
   for (const patch of [{ terms: false }, { terms: undefined }, { password: 'short' }, { password: 'password@123' }, { password: 'PASSWORD@123' }, { password: 'Password123' }, { password: 'Password@abc' }, { confirmPassword: 'Different@123' }]) assert.equal(registrationSchema.isValidSync({ ...valid, ...patch }), false);
 });

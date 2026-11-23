@@ -314,6 +314,21 @@ export function InvoiceList() {
           You do not have permission to view invoices.
         </Alert>
       )}
+      {user.permissions.view && summary.isError && (
+        <Alert
+          severity="error"
+          action={
+            <Button
+              disabled={summary.isFetching}
+              onClick={() => summary.refetch()}
+            >
+              Retry summary
+            </Button>
+          }
+        >
+          Invoice summary could not be loaded. {invoiceError(summary.error)}
+        </Alert>
+      )}
       {user.permissions.view && !summary.isError && (() => {
         const summaryGroups = billingCurrencyGroups(summary.data || []);
         const currentGroup = summaryGroups.find((g) => g.currency === activeCurrency) || {
@@ -355,15 +370,15 @@ export function InvoiceList() {
             progress:
               totalInvoicedNum > 0
                 ? Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      Math.round((totalPaidNum / totalInvoicedNum) * 100)
-                    )
+                  100,
+                  Math.max(
+                    0,
+                    Math.round((totalPaidNum / totalInvoicedNum) * 100)
                   )
+                )
                 : totalPaidNum > 0
-                ? 100
-                : 0,
+                  ? 100
+                  : 0,
           },
           {
             label: "Total Outstanding",
@@ -375,14 +390,14 @@ export function InvoiceList() {
             progress:
               totalInvoicedNum > 0
                 ? Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      Math.round(
-                        (totalOutstandingNum / totalInvoicedNum) * 100
-                      )
+                  100,
+                  Math.max(
+                    0,
+                    Math.round(
+                      (totalOutstandingNum / totalInvoicedNum) * 100
                     )
                   )
+                )
                 : 0,
           },
           {
@@ -396,12 +411,12 @@ export function InvoiceList() {
             progress:
               totalInvoicedNum > 0
                 ? Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      Math.round((overdueAmountNum / totalInvoicedNum) * 100)
-                    )
+                  100,
+                  Math.max(
+                    0,
+                    Math.round((overdueAmountNum / totalInvoicedNum) * 100)
                   )
+                )
                 : 0,
           },
           {
@@ -415,15 +430,15 @@ export function InvoiceList() {
             progress:
               totalPortfolio > 0
                 ? Math.min(
-                    100,
-                    Math.max(
-                      0,
-                      Math.round((draftAmountNum / totalPortfolio) * 100)
-                    )
+                  100,
+                  Math.max(
+                    0,
+                    Math.round((draftAmountNum / totalPortfolio) * 100)
                   )
+                )
                 : draftAmountNum > 0
-                ? 100
-                : 0,
+                  ? 100
+                  : 0,
           },
         ];
 
@@ -452,23 +467,22 @@ export function InvoiceList() {
                     (label === "Total Invoiced"
                       ? filters.paymentState === "Invoiced" && !filters.status
                       : label === "Total Paid"
-                      ? filters.paymentState === "Paid" && !filters.status
-                      : label === "Total Outstanding"
-                      ? filters.paymentState === "Outstanding" && !filters.status
-                      : label === "Overdue Amount"
-                      ? filters.paymentState === "Overdue" && !filters.status
-                      : label === "Draft Amount"
-                      ? filters.status === "Draft" && !filters.paymentState
-                      : false);
+                        ? filters.paymentState === "Paid" && !filters.status
+                        : label === "Total Outstanding"
+                          ? filters.paymentState === "Outstanding" && !filters.status
+                          : label === "Overdue Amount"
+                            ? filters.paymentState === "Overdue" && !filters.status
+                            : label === "Draft Amount"
+                              ? filters.status === "Draft" && !filters.paymentState
+                              : false);
 
                   return (
                     <button
                       aria-label={`Filter invoices by ${label} (${currentGroup.currency})`}
                       key={label}
                       type="button"
-                      className={`invoice-summary-card invoice-kpi-circular-card ${tone} ${
-                        isActive ? "is-active" : ""
-                      }`}
+                      className={`invoice-summary-card invoice-kpi-circular-card ${tone} ${isActive ? "is-active" : ""
+                        }`}
                       onClick={() =>
                         setFilters((previous) => ({
                           ...previous,
@@ -507,7 +521,7 @@ export function InvoiceList() {
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              
+
               change("page", 1);
             }}
             type="search"
@@ -615,7 +629,18 @@ export function InvoiceList() {
               setCustomer(value);
               change("customerId", value?.id || "");
             }}
-            renderInput={(params) => <TextField {...params} size="small" label="Customer" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                placeholder="All Customers"
+                InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                inputProps={{
+                  ...params.inputProps,
+                  "aria-label": "Filter invoices by customer",
+                }}
+              />
+            )}
           />
           <InvoiceDateRangeFilter
             iconOnly={true}
@@ -642,6 +667,21 @@ export function InvoiceList() {
             <span className="visually-hidden">Reset Filters</span>
           </Button>
         </div>
+        {user.permissions.view && customers.isError && (
+          <Alert
+            severity="error"
+            action={
+              <Button
+                disabled={customers.isFetching}
+                onClick={() => customers.refetch()}
+              >
+                Retry customers
+              </Button>
+            }
+          >
+            Customer filter options could not be loaded. {invoiceError(customers.error)}
+          </Alert>
+        )}
         {invalidDates && (
           <Alert severity="error">
             End date must be on or after start date.
@@ -714,62 +754,86 @@ export function InvoiceList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((invoice) => (
-                    <tr key={invoice.id}>
-                      <td>
-                        <Link to={`/invoices/${invoice.id}`}>
-                          {identifier(invoice)}
-                        </Link>
-                      </td>
-                      <td>{invoice.customer?.name || "\u2014"}</td>
-                      <td>{date(invoice.invoiceDate)}</td>
-                      <td>{date(invoice.dueDate)}</td>
-                      <td>{invoice.currency}</td>
-                      {[
-                        "subtotal",
-                        "discountAmount",
-                        "taxAmount",
-                        "chargesAmount",
-                        "roundingAmount",
-                        "totalAmount",
-                        "paidAmount",
-                        "balanceAmount",
-                      ].map((key) => (
-                        <td
-                          key={key}
-                          className={
-                            key === "totalAmount" || key === "balanceAmount"
-                              ? "invoice-amount-highlight"
-                              : "invoice-amount-cell"
-                          }
-                        >
-                          {money(invoice[key], invoice.currency)}
+                  {rows.length > 0 ? (
+                    rows.map((invoice) => (
+                      <tr key={invoice.id}>
+                        <td>
+                          <Link to={`/invoices/${invoice.id}`}>
+                            {identifier(invoice)}
+                          </Link>
                         </td>
-                      ))}
-                      <td>
-                        <InvoiceStatus status={invoice.status} />
-                      </td>
-                      <td className="invoice-actions-cell">
-                        <InvoiceActions
-                          invoice={invoice}
-                          permissions={user.permissions}
-                        />
+                        <td>{invoice.customer?.name || "\u2014"}</td>
+                        <td>{date(invoice.invoiceDate)}</td>
+                        <td>{date(invoice.dueDate)}</td>
+                        <td>{invoice.currency}</td>
+                        {[
+                          "subtotal",
+                          "discountAmount",
+                          "taxAmount",
+                          "chargesAmount",
+                          "roundingAmount",
+                          "totalAmount",
+                          "paidAmount",
+                          "balanceAmount",
+                        ].map((key) => (
+                          <td
+                            key={key}
+                            className={
+                              key === "totalAmount" || key === "balanceAmount"
+                                ? "invoice-amount-highlight"
+                                : "invoice-amount-cell"
+                            }
+                          >
+                            {money(invoice[key], invoice.currency)}
+                          </td>
+                        ))}
+                        <td>
+                          <InvoiceStatus status={invoice.status} />
+                        </td>
+                        <td className="invoice-actions-cell">
+                          <InvoiceActions
+                            invoice={invoice}
+                            permissions={user.permissions}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  ) : !list.isFetching ? (
+                    <tr className="invoice-table-empty-row">
+                      <td colSpan={15} className="invoice-table-empty-cell">
+                        <div className="invoice-table-empty">
+                          <ReceiptLongOutlined className="invoice-table-empty-icon" />
+                          <h3 className="invoice-table-empty-title">No invoices found</h3>
+                          <p className="invoice-table-empty-desc">
+                            {querySearch
+                              ? `No invoices match "${querySearch}". Check for typos or try clearing your filters.`
+                              : "No invoices found. Create an invoice or adjust your filters."}
+                          </p>
+                          {(Boolean(querySearch) || Boolean(filters.status) || Boolean(filters.customerId) || Boolean(filters.paymentState) || Boolean(filters.startDate) || Boolean(filters.endDate)) && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              className="invoice-empty-clear-btn"
+                              onClick={() => {
+                                setSearch("");
+                                setCustomerSearch("");
+                                setCustomer(null);
+                                setFilters(initialFilters);
+                              }}
+                            >
+                              Reset Filters
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : null}
                 </tbody>
               </table>
             </div>
           </div>
         )}
-        <InvoiceState
-          empty={
-            canLoadList && !list.isFetching && !list.error && list.data && !rows.length
-              ? "No invoices found. Create an invoice or adjust your filters."
-              : ""
-          }
-        />
-        {canLoadList && !list.error && list.data && <WorkspacePagination
+        {canLoadList && !list.error && list.data && list.data.totalCount > 0 && <WorkspacePagination
           page={list.data.pageNumber}
           pageSize={list.data.pageSize}
           totalCount={list.data.totalCount}

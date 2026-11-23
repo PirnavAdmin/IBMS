@@ -5,6 +5,7 @@ import { FormDraftProvider } from '../context/FormDraftContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PlatformRoute, DashboardEntry } from '../pages/Platform/PlatformRoute';
 import { PermissionRoute } from './PermissionRoute';
+import { AppLayout } from '../layouts/AppLayout';
 
 // Keep the shell mounted while the selected page loads; unrelated modules stay unloaded.
 const lazyPage = (load, exportName) => {
@@ -27,7 +28,6 @@ const ForgotPassword = lazyPage(() => import('../pages/ForgotPassword/ForgotPass
 const VerifyOtp = lazyPage(() => import('../pages/VerifyOtp/VerifyOtp'), 'VerifyOtp');
 const ResetPassword = lazyPage(() => import('../pages/ResetPassword/ResetPassword'), 'ResetPassword');
 const Dashboard = lazyPage(() => import('../pages/Dashboard/Dashboard'), 'Dashboard');
-const AppLayout = lazyPage(() => import('../layouts/AppLayout'), 'AppLayout');
 const ModulePlaceholder = lazyPage(() => import('../pages/ModulePlaceholder/ModulePlaceholder'), 'ModulePlaceholder');
 const AuditActivity = lazyPage(() => import('../pages/AuditActivity/AuditActivity'), 'AuditActivity');
 const SettingsWorkspace = lazyPage(() => import('../pages/Settings/SettingsWorkspace'), 'SettingsWorkspace');
@@ -39,6 +39,7 @@ const DiscountConfiguration = lazyPage(() => import('../pages/Settings/DiscountC
 const ChargesConfiguration = lazyPage(() => import('../pages/Settings/ChargesConfiguration'), 'ChargesConfiguration');
 const CountryConfiguration = lazyPage(() => import('../pages/Settings/CountryConfiguration'), 'CountryConfiguration');
 const ReminderSettings = lazyPage(() => import('../pages/Settings/ReminderSettings'), 'ReminderSettings');
+const EmailConfiguration = lazyPage(() => import('../pages/Settings/EmailConfiguration'), 'EmailConfiguration');
 const ProfileSettings = lazyPage(() => import('../pages/Settings/ProfileSettings'), 'ProfileSettings');
 const Payments = lazyPage(() => import('../pages/Payments/Payments'), 'Payments');
 const RecordPayment = lazyPage(() => import('../pages/Payments/RecordPayment'), 'RecordPayment');
@@ -180,6 +181,7 @@ export const AppRoutes = () => (
       <Route path="/settings/notifications/:id/edit" element={<PermissionRoute permission="settings.manage"><SettingsWorkspace><NotificationTemplateForm /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/notifications/history" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><NotificationHistory /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/reminders" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><ReminderSettings /></SettingsWorkspace></PermissionRoute>} />
+      <Route path="/settings/email" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><EmailConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/countries" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><CountryConfiguration /></SettingsWorkspace></PermissionRoute>} />
       <Route path="/settings/country" element={<Navigate to="/settings/countries" replace />} />
       <Route path="/settings/taxes/*" element={<PermissionRoute permission={['settings.view', 'settings.manage']}><SettingsWorkspace><Taxes embedded /></SettingsWorkspace></PermissionRoute>} />

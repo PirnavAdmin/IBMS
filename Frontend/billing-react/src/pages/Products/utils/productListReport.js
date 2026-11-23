@@ -3,7 +3,7 @@ const reportPrice = product => `${product.currency || 'INR'} ${Number(product.pr
 
 export function buildProductListReport(products, categories = []) {
   const rows = products.map(product => `<tr>${[product.productCode, product.name, product.type, product.category || categories.find(category => String(category.id) === String(product.categoryId))?.name || '-', product.unit || '-', reportPrice(product), product.taxCategory || '-', product.hsnSac || '-', product.status].map(value => `<td>${escapeHtml(value)}</td>`).join('')}</tr>`).join('');
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Products &amp; Services</title><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><title></title><style>
     @page{size:landscape;margin:12mm}
     body{margin:0;background:white;color:#35231C;font:12px Arial,sans-serif}
     h1{font-size:20px;margin:0 0 12px;color:#633D28}

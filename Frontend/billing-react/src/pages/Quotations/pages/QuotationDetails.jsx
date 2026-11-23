@@ -1,7 +1,10 @@
 import VerifiedOutlined from '@mui/icons-material/VerifiedOutlined';
 import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
 import EventAvailableOutlined from '@mui/icons-material/EventAvailableOutlined';
+import EmailOutlined from '@mui/icons-material/EmailOutlined';
+import LanguageOutlined from '@mui/icons-material/LanguageOutlined';
 import LinkOutlined from '@mui/icons-material/LinkOutlined';
+import LocationOnOutlined from '@mui/icons-material/LocationOnOutlined';
 import NotesOutlined from '@mui/icons-material/NotesOutlined';
 import GavelOutlined from '@mui/icons-material/GavelOutlined';
 import LocalOfferOutlined from '@mui/icons-material/LocalOfferOutlined';
@@ -15,6 +18,7 @@ import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import PersonOutline from '@mui/icons-material/PersonOutline';
+import PhoneOutlined from '@mui/icons-material/PhoneOutlined';
 import PrintOutlined from '@mui/icons-material/PrintOutlined';
 import SaveOutlined from '@mui/icons-material/SaveOutlined';
 import UndoOutlined from '@mui/icons-material/UndoOutlined';
@@ -375,11 +379,36 @@ export function QuotationDetails({ quotation, tenantProfile = {}, onBack, onActi
         </div>
         <div className="invoice-brand-contact">
           <strong>{sellerCompanyName}</strong>
-          {sellerAddress && <div className="invoice-contact-row"><span className="invoice-contact-symbol">●</span>{sellerAddress}</div>}
-          {sellerPhone && <div className="invoice-contact-row"><span className="invoice-contact-symbol">☎</span>Ph: {sellerPhone}</div>}
-          {sellerEmail && <div className="invoice-contact-row"><span className="invoice-contact-symbol">✉</span>Email: {sellerEmail}</div>}
-          {sellerTaxId && <div className="invoice-contact-row"><span className="invoice-contact-symbol">▣</span>GSTIN: {sellerTaxId}</div>}
-          {sellerWebsite && <div className="invoice-contact-row"><span className="invoice-contact-symbol">◎</span>{sellerWebsite}</div>}
+          {sellerAddress && (
+            <div className="invoice-contact-row">
+              <span className="invoice-contact-symbol" aria-hidden="true"><LocationOnOutlined /></span>
+              <span className="invoice-contact-text">{sellerAddress}</span>
+            </div>
+          )}
+          {sellerPhone && (
+            <div className="invoice-contact-row">
+              <span className="invoice-contact-symbol" aria-hidden="true"><PhoneOutlined /></span>
+              <span className="invoice-contact-text">Ph: {sellerPhone}</span>
+            </div>
+          )}
+          {sellerEmail && (
+            <div className="invoice-contact-row">
+              <span className="invoice-contact-symbol" aria-hidden="true"><EmailOutlined /></span>
+              <span className="invoice-contact-text">Email: {sellerEmail}</span>
+            </div>
+          )}
+          {sellerTaxId && (
+            <div className="invoice-contact-row">
+              <span className="invoice-contact-symbol" aria-hidden="true"><ReceiptLongOutlined /></span>
+              <span className="invoice-contact-text">GSTIN: {sellerTaxId}</span>
+            </div>
+          )}
+          {sellerWebsite && (
+            <div className="invoice-contact-row">
+              <span className="invoice-contact-symbol" aria-hidden="true"><LanguageOutlined /></span>
+              <span className="invoice-contact-text">{sellerWebsite}</span>
+            </div>
+          )}
         </div>
       </header>
 

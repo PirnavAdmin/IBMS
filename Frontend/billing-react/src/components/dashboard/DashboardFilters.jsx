@@ -69,8 +69,16 @@ export const DashboardFilters = ({ values, onChange, onRefresh, isRefreshing, cu
 
     <div className="premium-filter-actions">
     <button type="button" onClick={reset}><RestartAlt fontSize="small" />Reset</button>
-    <button type="button" className="primary" onClick={onRefresh} disabled={isRefreshing} aria-busy={isRefreshing}>
-      <Refresh fontSize="small" className={isRefreshing ? 'bd-spin' : ''} />Refresh
+    <button
+      type="button"
+      className="primary"
+      onClick={onRefresh}
+      disabled={isRefreshing}
+      aria-busy={isRefreshing}
+      aria-label={isRefreshing ? 'Refreshing dashboard data' : 'Refresh dashboard data'}
+    >
+      <Refresh fontSize="small" className={isRefreshing ? 'bd-spin' : ''} />
+      {isRefreshing ? 'Refreshing...' : 'Refresh'}
     </button>
     </div>
   </section>;

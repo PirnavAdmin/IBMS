@@ -121,7 +121,12 @@
 .quote-picker { position: relative; min-width: 0; width: 100%; box-sizing: border-box; }
 .quote-picker-input { display: flex; align-items: center; width: 100%; min-height: 40px; border: 1px solid #d9cec5; border-radius: 7px; background: #fff; box-sizing: border-box; }
 .quote-picker-input:focus-within { border-color: #d9cec5; box-shadow: none; }
+.quote-picker-input.has-error,
+.quote-picker-input:has([aria-invalid="true"]) { border-color: #b42318 !important; }
 .quote-picker-input > input { flex: 1; min-width: 0; width: 100%; }
+.quote-picker-clear { display: grid; flex: 0 0 auto; place-items: center; align-self: stretch; width: 32px; height: auto; margin: 0; padding: 0; border: 0; background: transparent; color: #8d817b; font-size: 19px; line-height: 1; cursor: pointer; }
+.quote-picker-clear:hover { color: var(--primary); }
+.quote-picker-clear:focus { outline: none; }
 .quote-picker-chevron { display: grid; flex: 0 0 auto; place-items: center; align-self: stretch; width: 42px; height: auto; margin: 0 2px 0 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-primary); cursor: pointer; }
 .quote-picker-chevron-icon { width: 0; height: 0; margin-top: 4px; border-top: 7px solid var(--primary); border-right: 6px solid transparent; border-left: 6px solid transparent; }
 .quote-picker-chevron:focus { outline: none; box-shadow: none; }
@@ -697,15 +702,47 @@
 .invoice-brand-tagline { margin-top: 10px; color: #143b6d; font-size: 11px; white-space: nowrap; }
 .invoice-brand-contact {
   width: 47%;
-  grid-template-columns: 1fr;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   padding-left: 20px;
   color: #fff;
-  font-size: 12px;
+  font-size: 11.5px;
+  line-height: 1.4;
 }
-.invoice-brand-contact > strong { font-size: 14px; }
-.invoice-contact-row { gap: 8px; }
-.invoice-contact-symbol { width: 18px; flex: 0 0 18px; text-align: center; color: #fff; font-weight: 700; }
+.invoice-brand-contact > strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  display: block;
+}
+.invoice-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+}
+.invoice-contact-symbol {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+.invoice-contact-symbol svg {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  display: block;
+  flex-shrink: 0;
+}
+.invoice-contact-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
 .invoice-title-row { grid-template-columns: 1.1fr .9fr 1fr; gap: 8px; padding: 14px 8px 8px; background: #fff; border-bottom: 1px solid #3599e8; }
 .invoice-title-row h1 { color: #17477d; font-size: clamp(26px, 3vw, 38px); letter-spacing: 0; }
 .invoice-title-copy p { margin-top: 4px; color: #17477d; font-size: 11px; white-space: nowrap; }
@@ -1140,6 +1177,9 @@
   .quotation-print-sheet .invoice-brand-tagline { margin-top: 1mm; font-size: 5pt; }
   .quotation-print-sheet .invoice-brand-contact { gap: .5mm; font-size: 5.5pt; }
   .quotation-print-sheet .invoice-brand-contact > strong { font-size: 7pt; }
+  .quotation-print-sheet .invoice-contact-row { gap: 1.5mm !important; align-items: center !important; }
+  .quotation-print-sheet .invoice-contact-symbol { width: 3mm !important; height: 3mm !important; flex: 0 0 3mm !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; }
+  .quotation-print-sheet .invoice-contact-symbol svg { width: 2.5mm !important; height: 2.5mm !important; font-size: 2.5mm !important; }
   .quotation-print-sheet .invoice-title-row { gap: 1.5mm; padding: 2mm; }
   .quotation-print-sheet .invoice-title-row h1 { font-size: 14pt; }
   .quotation-print-sheet .invoice-title-copy p { font-size: 5pt; }
@@ -1442,7 +1482,7 @@
 .quote-items-table{min-width:1180px}
 .quote-items-table th:nth-child(1),.quote-items-table td:nth-child(1){width:16%}
 .quote-items-table th:nth-child(2),.quote-items-table td:nth-child(2){width:30%}
-.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%}
+.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%;min-width:65px}
 .quote-items-table th:nth-child(4),.quote-items-table td:nth-child(4){width:10%}
 .quote-items-table th:nth-child(5),.quote-items-table td:nth-child(5){width:14%}
 .quote-items-table th:nth-child(6),.quote-items-table td:nth-child(6){width:14%}
@@ -1467,7 +1507,7 @@
 .quote-items-table td.quote-item-discount>input,.quote-items-table td>.quote-item-tax{box-sizing:border-box;width:100%;max-width:none}
 .quote-items-table th:nth-child(1),.quote-items-table td:nth-child(1){width:15%}
 .quote-items-table th:nth-child(2),.quote-items-table td:nth-child(2){width:27%}
-.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%}
+.quote-items-table th:nth-child(3),.quote-items-table td:nth-child(3){width:6%;min-width:65px}
 .quote-items-table th:nth-child(4),.quote-items-table td:nth-child(4){width:10%}
 .quote-items-table th:nth-child(5),.quote-items-table td:nth-child(5){width:13%}
 .quote-items-table th:nth-child(6),.quote-items-table td:nth-child(6){width:12%}
@@ -1513,7 +1553,21 @@
 }
 .quote-filter-dropdown .date-range-filter.ant-btn > span:not(.ant-btn-icon) {
   min-width: 0;
-  white-space: normal;
+  white-space: nowrap !important;
+}
+
+.quote-filter-dropdown .date-range-filter.date-range-icon-only {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.quote-filter-dropdown .date-range-filter.date-range-icon-only::after {
+  display: none !important;
 }
 
 /* Create/edit quotation: aligned sections and a compact financial summary. */
