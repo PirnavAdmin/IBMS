@@ -656,6 +656,121 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Updated {Count} default InvoiceSent notification templates to 'Click Here to Pay Online'", legacyInvoiceTemplates.Count);
             }
+
+            // Ensure all seeded/default NotificationTemplates contain Help & Contact details and direct communication links
+            const string defaultHelpAndContactBlock = @"
+<div style=""margin-top:24px;padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155;"">
+    <div style=""font-weight:700;color:#0f172a;margin-bottom:4px;"">&#128172; Need Help or Have Questions?</div>
+    <div style=""margin:2px 0 8px;font-size:12px;color:#64748b;"">Our support team is here to help you. Reach out to us directly:</div>
+    <div>&#9993; <strong>Email:</strong> <a href=""{{HelpEmailLink}}"" style=""color:#2563eb;text-decoration:none;font-weight:600;"">{{SupportEmail}}</a></div>
+    <div>&#9742; <strong>Phone / Helpline:</strong> <a href=""{{HelpPhoneLink}}"" style=""color:#2563eb;text-decoration:none;font-weight:600;"">{{SupportPhone}}</a></div>
+    <div style=""margin-top:4px;font-size:12px;color:#64748b;"">&#127970; <strong>Address:</strong> {{CompanyAddress}}</div>
+</div>";
+
+            var templatesNeedingHelpSection = await context.NotificationTemplates
+                .Where(t => t.CreatedBy == "System" &&
+                            !t.BodyTemplate.Contains("Need Help or Have Questions") &&
+                            !t.BodyTemplate.Contains("Help & Contact"))
+                .ToListAsync();
+
+            if (templatesNeedingHelpSection.Count > 0)
+            {
+                foreach (var tpl in templatesNeedingHelpSection)
+                {
+                    // If there's a closing signoff paragraph (e.g. <p>Warm regards... or <p>Thank you...), insert before it; else append
+                    var signoffIdx = tpl.BodyTemplate.LastIndexOf("<p>Warm regards,", StringComparison.OrdinalIgnoreCase);
+                    if (signoffIdx < 0) signoffIdx = tpl.BodyTemplate.LastIndexOf("<p>Regards,", StringComparison.OrdinalIgnoreCase);
+                    if (signoffIdx < 0) signoffIdx = tpl.BodyTemplate.LastIndexOf("<p>Thank you,", StringComparison.OrdinalIgnoreCase);
+                    if (signoffIdx < 0) signoffIdx = tpl.BodyTemplate.LastIndexOf("<p>Best regards,", StringComparison.OrdinalIgnoreCase);
+                    if (signoffIdx < 0) signoffIdx = tpl.BodyTemplate.LastIndexOf("<p>Sincerely,", StringComparison.OrdinalIgnoreCase);
+
+                    if (signoffIdx >= 0)
+                    {
+                        tpl.BodyTemplate = tpl.BodyTemplate.Insert(signoffIdx, defaultHelpAndContactBlock + "\n");
+                    }
+                    else
+                    {
+                        tpl.BodyTemplate += defaultHelpAndContactBlock;
+                    }
+
+                    tpl.UpdatedAtUtc = DateTime.UtcNow;
+                }
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Enriched {Count} system notification templates with Help & Contact details and direct communication links", templatesNeedingHelpSection.Count);
+            }
+            // Seed default TenantEmailSettings for all workspaces (using their company name and registered email)
+            try
+            {
+                var secretService = scope.ServiceProvider.GetService<ISecretEncryptionService>();
+                var configEmail = configuration["EmailSettings:Email"] ?? "sandeep11.singampalli@gmail.com";
+                var configAppPassword = configuration["EmailSettings:AppPassword"] ?? "ygzewickkcyidsrr";
+                var cleanAppPassword = string.Concat(configAppPassword.Where(c => !char.IsWhiteSpace(c)));
+
+                var allTenants = await context.Tenants.Include(t => t.Users).ToListAsync();
+                foreach (var t in allTenants)
+                {
+                    var existingEmailSetting = await context.TenantEmailSettings
+                        .FirstOrDefaultAsync(s => s.TenantId == t.Id);
+
+                    var registeredEmail = !string.IsNullOrWhiteSpace(t.CompanyEmail)
+                        ? t.CompanyEmail.Trim()
+                        : t.Users.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u.Email))?.Email?.Trim();
+
+                    var fromName = !string.IsNullOrWhiteSpace(t.Name) ? t.Name.Trim() : (t.Id == 2 ? "Acme Technologies" : "Default Organization");
+                    var senderEmail = !string.IsNullOrWhiteSpace(registeredEmail) ? registeredEmail : configEmail;
+
+                    if (existingEmailSetting == null)
+                    {
+                        var passwordEnc = secretService != null ? secretService.Protect(cleanAppPassword) : cleanAppPassword;
+
+                        var newSetting = new TenantEmailSetting
+                        {
+                            TenantId = t.Id,
+                            Provider = "Gmail",
+                            SmtpHost = configuration["EmailSettings:Host"] ?? "smtp.gmail.com",
+                            SmtpPort = int.TryParse(configuration["EmailSettings:Port"], out var p) ? p : 587,
+                            Username = configEmail,
+                            PasswordProtected = passwordEnc,
+                            FromEmail = senderEmail,
+                            FromName = fromName,
+                            EncryptionMode = "StartTls",
+                            IsEnabled = true,
+                            IsVerified = true,
+                            CreatedAtUtc = DateTime.UtcNow,
+                            UpdatedAtUtc = DateTime.UtcNow,
+                            UpdatedBy = "System"
+                        };
+
+                        await context.TenantEmailSettings.AddAsync(newSetting);
+                        await context.SaveChangesAsync();
+                        logger?.LogInformation("Seeded default TenantEmailSetting for tenant {TenantId} ({Name}) with sender {FromEmail}", t.Id, fromName, senderEmail);
+                    }
+                    else
+                    {
+                        bool updated = false;
+                        if (string.IsNullOrWhiteSpace(existingEmailSetting.FromName))
+                        {
+                            existingEmailSetting.FromName = fromName;
+                            updated = true;
+                        }
+                        if (string.IsNullOrWhiteSpace(existingEmailSetting.FromEmail) || (existingEmailSetting.FromEmail == configEmail && !string.IsNullOrWhiteSpace(registeredEmail) && registeredEmail != configEmail))
+                        {
+                            existingEmailSetting.FromEmail = senderEmail;
+                            updated = true;
+                        }
+                        if (updated)
+                        {
+                            existingEmailSetting.UpdatedAtUtc = DateTime.UtcNow;
+                            await context.SaveChangesAsync();
+                            logger?.LogInformation("Synchronized TenantEmailSetting for tenant {TenantId} to Company: '{Name}', Sender: '{Email}'", t.Id, fromName, senderEmail);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed to seed default TenantEmailSettings: {Message}", ex.Message);
+            }
         }
         catch (Exception ex)
         {

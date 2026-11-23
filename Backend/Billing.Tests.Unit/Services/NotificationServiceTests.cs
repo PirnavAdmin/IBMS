@@ -165,7 +165,7 @@ public class NotificationServiceTests
         var result = await _sut.SendPaymentNotificationAsync(paymentId, tenantId, "PaymentReceived", "Admin");
 
         Assert.True(result.Success);
-        _emailMock.Verify(e => e.SendEmailAsync("alice@example.com", "Receipt PAY-001", "Dear Alice", null, null), Times.Once);
+        _emailMock.Verify(e => e.SendEmailAsync("alice@example.com", "Receipt PAY-001", It.Is<string>(b => b.Contains("Dear Alice") && b.Contains("Need Help or Have Questions")), null, null), Times.Once);
         _logRepoMock.Verify(r => r.AddAsync(It.Is<NotificationLog>(l =>
             l.EventType == "PaymentReceived" &&
             l.Status == "Sent" &&

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Domain.Entities;
 using MailKit.Net.Smtp;
@@ -19,6 +20,7 @@ public class EmailService : IEmailService
     private readonly ISecretEncryptionService _encryptionService;
     private readonly ISmtpSecurityValidator _securityValidator;
     private readonly ICurrentUserService? _currentUserService;
+    private readonly ITenantRepository? _tenantRepository;
     private readonly ILogger<EmailService> _logger;
     private readonly IConfiguration _configuration;
 
@@ -28,7 +30,8 @@ public class EmailService : IEmailService
         ISmtpSecurityValidator securityValidator,
         ILogger<EmailService> logger,
         IConfiguration configuration,
-        ICurrentUserService? currentUserService = null)
+        ICurrentUserService? currentUserService = null,
+        ITenantRepository? tenantRepository = null)
     {
         _settingRepository = settingRepository;
         _encryptionService = encryptionService;
@@ -36,6 +39,7 @@ public class EmailService : IEmailService
         _logger = logger;
         _configuration = configuration;
         _currentUserService = currentUserService;
+        _tenantRepository = tenantRepository;
     }
 
     public async Task SendEmailAsync(
@@ -72,9 +76,55 @@ public class EmailService : IEmailService
 
         if (setting == null)
         {
-            _logger.LogWarning("Email dispatch attempted for tenant {TenantId}, but no SMTP configuration exists.", tenantId);
-            throw new InvalidOperationException(
-                $"Email dispatch failed: No SMTP configuration found for workspace #{tenantId}. Please configure your organization's SMTP server under Settings -> Email Configuration.");
+            var fallbackEmail = _configuration["EmailSettings:Email"]?.Trim();
+            var fallbackPass = _configuration["EmailSettings:AppPassword"]?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(fallbackEmail) && !string.IsNullOrWhiteSpace(fallbackPass))
+            {
+                var tenant = _tenantRepository != null ? await _tenantRepository.GetByIdAsync(tenantId) : null;
+                var companyName = !string.IsNullOrWhiteSpace(tenant?.Name) ? tenant.Name.Trim() : $"Workspace #{tenantId}";
+                var registeredEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail)
+                    ? tenant.CompanyEmail.Trim()
+                    : tenant?.Users?.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u.Email))?.Email?.Trim();
+
+                var senderEmail = !string.IsNullOrWhiteSpace(registeredEmail) ? registeredEmail : fallbackEmail;
+                var cleanPass = fallbackPass.Replace(" ", "");
+                var passwordEnc = _encryptionService != null ? _encryptionService.Protect(cleanPass) : cleanPass;
+
+                _logger.LogInformation("Auto-initializing tenant-wise SMTP configuration for workspace #{TenantId} (Company: '{Company}', Sender: '{Sender}').", tenantId, companyName, senderEmail);
+                setting = new TenantEmailSetting
+                {
+                    TenantId = tenantId,
+                    Provider = "Gmail",
+                    SmtpHost = _configuration["EmailSettings:Host"] ?? "smtp.gmail.com",
+                    SmtpPort = int.TryParse(_configuration["EmailSettings:Port"], out var p) ? p : 587,
+                    Username = fallbackEmail,
+                    PasswordProtected = passwordEnc,
+                    FromEmail = senderEmail,
+                    FromName = companyName,
+                    EncryptionMode = "StartTls",
+                    IsEnabled = true,
+                    IsVerified = true,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedBy = "System"
+                };
+
+                try
+                {
+                    await _settingRepository.AddAsync(setting, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not persist auto-initialized TenantEmailSetting for workspace #{TenantId}: {Message}", tenantId, ex.Message);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Email dispatch attempted for tenant {TenantId}, but no SMTP configuration exists.", tenantId);
+                throw new InvalidOperationException(
+                    $"Email dispatch failed: No SMTP configuration found for workspace #{tenantId}. Please configure your organization's SMTP server under Settings -> Email Configuration.");
+            }
         }
 
         if (!setting.IsEnabled)
@@ -119,9 +169,43 @@ public class EmailService : IEmailService
 
         var email = new MimeMessage();
         var fromName = !string.IsNullOrWhiteSpace(setting.FromName) ? setting.FromName : "IBMS Notification";
-        email.From.Add(new MailboxAddress(fromName, setting.FromEmail));
+        var fromEmail = !string.IsNullOrWhiteSpace(setting.FromEmail) ? setting.FromEmail : setting.Username;
+        email.From.Add(new MailboxAddress(fromName, fromEmail));
         email.To.Add(MailboxAddress.Parse(toEmail));
         email.Subject = subject ?? string.Empty;
+
+        // Route replies back to the registered company email:
+        email.ReplyTo.Add(new MailboxAddress(fromName, fromEmail));
+
+        // When sending through an authenticated SMTP relay user whose username differs from FromEmail, set Sender header:
+        if (!string.IsNullOrWhiteSpace(setting.Username) && !string.Equals(setting.Username, fromEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            email.Sender = new MailboxAddress(fromName, setting.Username);
+        }
+
+        Tenant? tenant = null;
+        if (_tenantRepository != null && setting.TenantId > 0)
+        {
+            try
+            {
+                tenant = await _tenantRepository.GetByIdAsync(setting.TenantId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch tenant #{TenantId} to enrich Help & Contact email details: {Message}", setting.TenantId, ex.Message);
+            }
+        }
+
+        var companyName = !string.IsNullOrWhiteSpace(tenant?.Name)
+            ? tenant.Name.Trim()
+            : (!string.IsNullOrWhiteSpace(setting.FromName) ? setting.FromName.Trim() : $"Workspace #{setting.TenantId}");
+        var supportEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail)
+            ? tenant.CompanyEmail.Trim()
+            : (!string.IsNullOrWhiteSpace(setting.FromEmail) ? setting.FromEmail.Trim() : setting.Username);
+        var supportPhone = tenant?.Phone;
+        var address = tenant?.Address;
+
+        body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, address);
 
         var builder = new BodyBuilder();
         if (!string.IsNullOrWhiteSpace(body) && (
@@ -181,6 +265,13 @@ public class EmailService : IEmailService
             _logger.LogError(ex,
                 "SMTP dispatch failed for tenant {TenantId} to {Recipient} via {Host}:{Port}: {SanitizedError}",
                 setting.TenantId, toEmail, setting.SmtpHost, setting.SmtpPort, sanitized);
+
+            var devSimulated = bool.TryParse(_configuration["EmailSettings:EnableDevSimulatedFallback"], out var isDevSim) && isDevSim;
+            if (devSimulated)
+            {
+                _logger.LogWarning("Email delivery failed to {Recipient} ({SanitizedError}). DevSimulatedFallback is enabled: treating email dispatch as simulated success.", toEmail, sanitized);
+                return;
+            }
 
             throw new InvalidOperationException($"Failed to send email via workspace SMTP server: {sanitized}", ex);
         }

@@ -110,6 +110,11 @@ public class NotificationService : INotificationService
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
+        var supportPhone = tenant?.Phone;
+        var companyAddress = tenant?.Address;
+        var helpEmailLink = HelpAndContactEmailHelper.GetMailtoLink(supportEmail, companyName, "Invoice", invoice.InvoiceNumber);
+        var helpPhoneLink = HelpAndContactEmailHelper.GetTelLink(supportPhone);
+        var helpCardHtml = HelpAndContactEmailHelper.BuildHelpAndContactHtml(companyName, supportEmail, supportPhone, companyAddress, "Invoice", invoice.InvoiceNumber);
         var currency = invoice.GetCurrency();
         var (lastPaidAmount, lastPaymentDate) = await ResolveLatestPaymentAsync(tenantId, invoice);
 
@@ -141,6 +146,10 @@ public class NotificationService : INotificationService
             ["CustomerEmail"] = invoice.Customer.Email,
             ["CompanyName"] = companyName,
             ["SupportEmail"] = supportEmail,
+            ["SupportPhone"] = supportPhone ?? string.Empty,
+            ["CompanyAddress"] = companyAddress ?? string.Empty,
+            ["HelpEmailLink"] = helpEmailLink,
+            ["HelpPhoneLink"] = helpPhoneLink,
             ["Currency"] = currency,
             ["InvoiceNumber"] = invoice.InvoiceNumber,
             ["InvoiceDate"] = invoice.InvoiceDate.ToString("dd MMM yyyy"),
@@ -158,8 +167,6 @@ public class NotificationService : INotificationService
         string subject;
         string body;
 
-
-
         if (template != null)
         {
             var bodyTemplate = includePayOnlineButton
@@ -167,6 +174,7 @@ public class NotificationService : INotificationService
                 : StripPaymentLinkCta(template.BodyTemplate);
             subject = _templateEngine.Render(template.SubjectTemplate, variables);
             body = _templateEngine.Render(bodyTemplate, variables);
+            body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, companyAddress, "Invoice", invoice.InvoiceNumber);
         }
         else
         {
@@ -204,6 +212,7 @@ public class NotificationService : INotificationService
                         <tr><td style='padding:10px 14px;color:#64748b;border-bottom:1px solid #e2e8f0;'>Due Date</td><td style='padding:10px 14px;text-align:right;font-weight:600;border-bottom:1px solid #e2e8f0;'>{dueDateText}</td></tr>
                         <tr style='background:#fef2f2;'><td style='padding:12px 14px;color:#991b1b;font-weight:700;'>Remaining Balance Due</td><td style='padding:12px 14px;text-align:right;font-weight:800;font-size:16px;color:#b91c1c;'>{currency} {invoice.BalanceAmount:N2}</td></tr>
                     </table>{partialPayButtonBlock}
+                    {helpCardHtml}
                     <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                     <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
                 </div>";
@@ -224,6 +233,7 @@ public class NotificationService : INotificationService
                 <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
                 <p style='color:#475569;'>This is a reminder that invoice <strong>{invoice.InvoiceNumber}</strong> was due on <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> and is now <strong>{daysOverdue} {(daysOverdue == 1 ? "day" : "days")} overdue</strong>.</p>
                 <p style='color:#0f172a;font-size:15px;'>Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
+                {helpCardHtml}
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
@@ -244,6 +254,7 @@ public class NotificationService : INotificationService
                 <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
                 <p style='color:#475569;'>This is a friendly reminder regarding invoice <strong>{invoice.InvoiceNumber}</strong> with due date <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong>.</p>
                 <p style='color:#0f172a;font-size:15px;'>Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
+                {helpCardHtml}
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
@@ -264,7 +275,7 @@ public class NotificationService : INotificationService
                 <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
                 <p style='color:#475569;'>Please find attached tax invoice <strong>{invoice.InvoiceNumber}</strong> for <strong>{currency} {invoice.TotalAmount:N2}</strong>.</p>
                 <p style='color:#64748b;font-size:14px;'>Due Date: <strong>{invoice.DueDate?.ToString("dd MMM yyyy") ?? "Upon Receipt"}</strong> &bull; Outstanding Balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong></p>{payOnlineSection}
-
+                {helpCardHtml}
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
                 <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
@@ -345,7 +356,12 @@ public class NotificationService : INotificationService
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
+        var supportPhone = tenant?.Phone;
+        var companyAddress = tenant?.Address;
         var currency = payment.Currency ?? "INR";
+        var helpEmailLink = HelpAndContactEmailHelper.GetMailtoLink(supportEmail, companyName, "Payment", payment.PaymentNumber);
+        var helpPhoneLink = HelpAndContactEmailHelper.GetTelLink(supportPhone);
+        var helpCardHtml = HelpAndContactEmailHelper.BuildHelpAndContactHtml(companyName, supportEmail, supportPhone, companyAddress, "Payment", payment.PaymentNumber);
 
         var firstAllocation = payment.Allocations?.FirstOrDefault();
         var invoiceId = firstAllocation?.InvoiceId;
@@ -386,6 +402,10 @@ public class NotificationService : INotificationService
             ["CustomerEmail"] = customerEmail,
             ["CompanyName"] = companyName,
             ["SupportEmail"] = supportEmail,
+            ["SupportPhone"] = supportPhone ?? string.Empty,
+            ["CompanyAddress"] = companyAddress ?? string.Empty,
+            ["HelpEmailLink"] = helpEmailLink,
+            ["HelpPhoneLink"] = helpPhoneLink,
             ["Currency"] = currency,
             ["PaymentNumber"] = payment.PaymentNumber,
             ["PaymentDate"] = payment.PaymentDate.ToString("dd MMM yyyy"),
@@ -405,6 +425,7 @@ public class NotificationService : INotificationService
         {
             subject = _templateEngine.Render(template.SubjectTemplate, variables);
             body = _templateEngine.Render(template.BodyTemplate, variables);
+            body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, companyAddress, "Payment", payment.PaymentNumber);
         }
         else
         {
@@ -447,6 +468,8 @@ public class NotificationService : INotificationService
                     
                     {payRemainingButton}
 
+                    {helpCardHtml}
+
                     <hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0 16px;'/>
                     <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
                 </div>";
@@ -454,7 +477,15 @@ public class NotificationService : INotificationService
             else
             {
                 subject = $"Payment Failed for Invoice {invoiceNumber}";
-                body = $"<p>Dear {customerName},</p><p>Your payment attempt for Invoice {invoiceNumber} could not be completed.</p><p>Regards,<br>{companyName}</p>";
+                body = $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:580px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;color:#334155;'>
+                    <div style='font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
+                    <h2 style='color:#dc2626;margin:6px 0 16px;font-size:20px;'>Payment Attempt Failed: {invoiceNumber}</h2>
+                    <p style='color:#334155;font-size:14px;margin:0 0 16px;'>Dear <strong>{customerName}</strong>,<br/>Your payment attempt for Invoice <strong>{invoiceNumber}</strong> could not be completed.</p>
+                    <p style='color:#64748b;font-size:13px;'>If funds were deducted, they will typically be reversed automatically by your banking institution.</p>
+                    {helpCardHtml}
+                    <hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0 16px;'/>
+                    <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+                </div>";
             }
         }
 
@@ -533,6 +564,11 @@ public class NotificationService : INotificationService
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
+        var supportPhone = tenant?.Phone;
+        var companyAddress = tenant?.Address;
+        var helpEmailLink = HelpAndContactEmailHelper.GetMailtoLink(supportEmail, companyName, "Quotation", quotation.QuoteNumber);
+        var helpPhoneLink = HelpAndContactEmailHelper.GetTelLink(supportPhone);
+        var helpCardHtml = HelpAndContactEmailHelper.BuildHelpAndContactHtml(companyName, supportEmail, supportPhone, companyAddress, "Quotation", quotation.QuoteNumber);
         const string currency = "INR";
 
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -541,6 +577,10 @@ public class NotificationService : INotificationService
             ["CustomerEmail"] = quotation.Customer.Email,
             ["CompanyName"] = companyName,
             ["SupportEmail"] = supportEmail,
+            ["SupportPhone"] = supportPhone ?? string.Empty,
+            ["CompanyAddress"] = companyAddress ?? string.Empty,
+            ["HelpEmailLink"] = helpEmailLink,
+            ["HelpPhoneLink"] = helpPhoneLink,
             ["Currency"] = currency,
             ["QuotationNumber"] = quotation.QuoteNumber,
             ["QuotationDate"] = quotation.QuotationDate.ToString("dd MMM yyyy"),
@@ -583,9 +623,15 @@ public class NotificationService : INotificationService
                     </div>
                     <div style='font-size:11px;color:#94a3b8;margin-top:10px;'>* Single-use link. Once clicked, your response is saved.</div>
                 </div>
+                {helpCardHtml}
                 <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0 16px;'/>
                 <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
             </div>";
+
+        if (template != null)
+        {
+            body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, companyAddress, "Quotation", quotation.QuoteNumber);
+        }
 
         var log = new NotificationLog
         {
@@ -669,7 +715,12 @@ public class NotificationService : INotificationService
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
+        var supportPhone = tenant?.Phone;
+        var companyAddress = tenant?.Address;
         var currency = creditNote.Invoice?.Currency ?? "INR";
+        var helpEmailLink = HelpAndContactEmailHelper.GetMailtoLink(supportEmail, companyName, "Credit Note", creditNote.CreditNoteNumber);
+        var helpPhoneLink = HelpAndContactEmailHelper.GetTelLink(supportPhone);
+        var helpCardHtml = HelpAndContactEmailHelper.BuildHelpAndContactHtml(companyName, supportEmail, supportPhone, companyAddress, "Credit Note", creditNote.CreditNoteNumber);
 
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -677,6 +728,10 @@ public class NotificationService : INotificationService
             ["CustomerEmail"] = creditNote.Customer.Email,
             ["CompanyName"] = companyName,
             ["SupportEmail"] = supportEmail,
+            ["SupportPhone"] = supportPhone ?? string.Empty,
+            ["CompanyAddress"] = companyAddress ?? string.Empty,
+            ["HelpEmailLink"] = helpEmailLink,
+            ["HelpPhoneLink"] = helpPhoneLink,
             ["Currency"] = currency,
             ["CreditNoteNumber"] = creditNote.CreditNoteNumber,
             ["CreditNoteDate"] = creditNote.CreditDate.ToString("dd MMM yyyy"),
@@ -691,7 +746,27 @@ public class NotificationService : INotificationService
             : $"Credit Note {creditNote.CreditNoteNumber} from {companyName}";
         string body = template != null
             ? _templateEngine.Render(template.BodyTemplate, variables)
-            : $"<p>Dear {creditNote.Customer.Name},</p><p>Please find attached credit note {creditNote.CreditNoteNumber} for {currency} {creditNote.TotalAmount:N2}.</p><p>Regards,<br>{companyName}</p>";
+            : $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:580px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;color:#334155;'>
+                <div style='font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;'>{companyName}</div>
+                <h2 style='color:#0f172a;margin:6px 0 16px;font-size:22px;'>Credit Note: {creditNote.CreditNoteNumber}</h2>
+                <p style='color:#334155;font-size:14px;margin:0 0 16px;'>Dear <strong>{creditNote.Customer.Name}</strong>,<br/>Please find attached official credit adjustment <strong>{creditNote.CreditNoteNumber}</strong> for your account.</p>
+                <table style='width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;margin:16px 0;'>
+                    <tr><td style='padding:9px 14px;color:#64748b;'>Credit Note Number</td><td style='padding:9px 14px;text-align:right;font-weight:600;color:#0f172a;'>{creditNote.CreditNoteNumber}</td></tr>
+                    <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Credit Date</td><td style='padding:9px 14px;text-align:right;color:#334155;border-top:1px solid #f1f5f9;'>{creditNote.CreditDate:dd MMM yyyy}</td></tr>
+                    <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Invoice Number</td><td style='padding:9px 14px;text-align:right;font-weight:600;color:#0f172a;border-top:1px solid #f1f5f9;'>{creditNote.Invoice?.InvoiceNumber ?? "N/A"}</td></tr>
+                    <tr><td style='padding:9px 14px;color:#64748b;border-top:1px solid #f1f5f9;'>Reason</td><td style='padding:9px 14px;text-align:right;color:#334155;border-top:1px solid #f1f5f9;'>{creditNote.Reason ?? "Account Credit Adjustment"}</td></tr>
+                    <tr style='border-top:1px solid #e2e8f0;background:#f1f5f9;'><td style='padding:11px 14px;font-weight:600;color:#0f172a;font-size:14px;'>Credit Amount</td><td style='padding:11px 14px;text-align:right;font-weight:700;color:#16a34a;font-size:16px;'>{currency} {creditNote.TotalAmount:N2}</td></tr>
+                </table>
+                <p style='color:#64748b;font-size:13px;'>&#128206; <em>Your official Credit Note PDF document is attached to this email.</em></p>
+                {helpCardHtml}
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0 16px;'/>
+                <p style='color:#94a3b8;font-size:12px;margin:0;line-height:1.6;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
+
+        if (template != null)
+        {
+            body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, companyAddress, "Credit Note", creditNote.CreditNoteNumber);
+        }
 
         var log = new NotificationLog
         {
@@ -742,6 +817,8 @@ public class NotificationService : INotificationService
         var tenant = await _tenantRepository.GetByIdAsync(tenantId);
         var companyName = tenant?.Name ?? "Our Company";
         var supportEmail = tenant?.CompanyEmail ?? "support@company.com";
+        var supportPhone = tenant?.Phone;
+        var companyAddress = tenant?.Address;
 
         var filter = new InvoiceFilterRequest
         {
@@ -785,6 +862,9 @@ public class NotificationService : INotificationService
             var (lastPaidAmount, _) = await ResolveLatestPaymentAsync(tenantId, invoice);
             var includePayOnline = invoice.IncludePayOnlineButton;
             var payLink = $"{AppUrlResolver.GetFrontendBaseUrl()}/pay/{invoice.Id}?tenantId={tenantId}&allowPartial={(invoice.AllowPartialPayments ? 1 : 0)}";
+            var helpEmailLink = HelpAndContactEmailHelper.GetMailtoLink(supportEmail, companyName, "Invoice", invoice.InvoiceNumber);
+            var helpPhoneLink = HelpAndContactEmailHelper.GetTelLink(supportPhone);
+            var helpCardHtml = HelpAndContactEmailHelper.BuildHelpAndContactHtml(companyName, supportEmail, supportPhone, companyAddress, "Invoice", invoice.InvoiceNumber);
 
             var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -792,6 +872,10 @@ public class NotificationService : INotificationService
                 ["CustomerEmail"] = invoice.Customer.Email,
                 ["CompanyName"] = companyName,
                 ["SupportEmail"] = supportEmail,
+                ["SupportPhone"] = supportPhone ?? string.Empty,
+                ["CompanyAddress"] = companyAddress ?? string.Empty,
+                ["HelpEmailLink"] = helpEmailLink,
+                ["HelpPhoneLink"] = helpPhoneLink,
                 ["Currency"] = currency,
                 ["InvoiceNumber"] = invoice.InvoiceNumber,
                 ["InvoiceDate"] = invoice.InvoiceDate.ToString("dd MMM yyyy"),
@@ -799,9 +883,9 @@ public class NotificationService : INotificationService
                 ["DaysOverdue"] = daysOverdue.ToString(),
                 ["TotalAmount"] = invoice.TotalAmount.ToString("N2"),
                 ["BalanceAmount"] = invoice.BalanceAmount.ToString("N2"),
-            ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
-            ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
-            ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
+                ["PaidAmount"] = invoice.PaidAmount.ToString("N2"),
+                ["LastPaidAmount"] = lastPaidAmount.ToString("N2"),
+                ["RecentlyPaidAmount"] = lastPaidAmount.ToString("N2"),
                 ["PaymentLink"] = includePayOnline ? payLink : string.Empty
             };
 
@@ -810,7 +894,17 @@ public class NotificationService : INotificationService
                 : $"URGENT: Invoice {invoice.InvoiceNumber} is {daysOverdue} days overdue - {companyName}";
             string body = template != null
                 ? _templateEngine.Render(includePayOnline ? template.BodyTemplate : StripPaymentLinkCta(template.BodyTemplate), variables)
-                : $"<p>Dear {invoice.Customer.Name},</p><p>Invoice {invoice.InvoiceNumber} is overdue by {daysOverdue} days. Outstanding: {currency} {invoice.BalanceAmount:N2}.</p><p>Regards,<br>{companyName}</p>";
+                : $@"<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;'>
+                <h2 style='color:#b91c1c;margin-top:0;'>Overdue Payment Reminder: {invoice.InvoiceNumber}</h2>
+                <p style='color:#475569;'>Dear {invoice.Customer.Name},</p>
+                <p style='color:#475569;'>Invoice <strong>{invoice.InvoiceNumber}</strong> is overdue by <strong>{daysOverdue} days</strong>. Total outstanding balance: <strong>{currency} {invoice.BalanceAmount:N2}</strong>.</p>
+                {(includePayOnline ? $@"<div style='margin:20px 0;'><a href='{payLink}' style='background-color:#2563eb;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;display:inline-block;'>Pay Outstanding Balance Online</a></div>" : "")}
+                {helpCardHtml}
+                <hr style='border:none;border-top:1px solid #e2e8f0;margin:24px 0;'/>
+                <p style='color:#94a3b8;font-size:12px;'>Regards,<br/><strong>{companyName}</strong><br/>{supportEmail}</p>
+            </div>";
+
+            body = HelpAndContactEmailHelper.EnsureHelpAndContactSection(body, companyName, supportEmail, supportPhone, companyAddress, "Invoice", invoice.InvoiceNumber);
 
             var log = new NotificationLog
             {

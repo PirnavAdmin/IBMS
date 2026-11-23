@@ -45,6 +45,10 @@ public class TemplateEngineService : ITemplateEngineService
             new() { Name = "Customer Email", Token = "{{CustomerEmail}}", Description = "Billing email of the recipient", ExampleValue = "billing@acme.com" },
             new() { Name = "Company Name", Token = "{{CompanyName}}", Description = "Tenant / Sender company name", ExampleValue = "Default Company" },
             new() { Name = "Support Email", Token = "{{SupportEmail}}", Description = "Contact / support email address", ExampleValue = "support@company.com" },
+            new() { Name = "Support Phone", Token = "{{SupportPhone}}", Description = "Contact / support telephone number", ExampleValue = "+91 98765 43210" },
+            new() { Name = "Company Address", Token = "{{CompanyAddress}}", Description = "Registered company business address", ExampleValue = "Plot 42, Hitech City, Hyderabad, Telangana 500081" },
+            new() { Name = "Help Email Link", Token = "{{HelpEmailLink}}", Description = "Clickable mailto direct support link", ExampleValue = "mailto:support@company.com" },
+            new() { Name = "Help Phone Link", Token = "{{HelpPhoneLink}}", Description = "Clickable telephone direct link", ExampleValue = "tel:+919876543210" },
             new() { Name = "Currency", Token = "{{Currency}}", Description = "Transaction currency symbol or code", ExampleValue = "INR" },
         };
 
@@ -130,6 +134,10 @@ public class TemplateEngineService : ITemplateEngineService
             ["CustomerEmail"] = "finance@globaltech.com",
             ["CompanyName"] = "Apex Solutions Pvt Ltd",
             ["SupportEmail"] = "support@apexsolutions.com",
+            ["SupportPhone"] = "+91 98765 43210",
+            ["CompanyAddress"] = "Plot 42, Hitech City, Hyderabad, Telangana 500081",
+            ["HelpEmailLink"] = "mailto:support@apexsolutions.com?subject=Support%20Inquiry%20-%20Apex%20Solutions%20Pvt%20Ltd",
+            ["HelpPhoneLink"] = "tel:+919876543210",
             ["Currency"] = "INR",
             ["InvoiceNumber"] = "INV-2026-0042",
             ["InvoiceDate"] = DateTime.UtcNow.ToString("dd MMM yyyy"),

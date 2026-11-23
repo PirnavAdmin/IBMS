@@ -23,6 +23,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
     private readonly IAuditLogRepository? _auditLogRepo;
     private readonly ITaxRepository? _taxRepository;
     private readonly IQuotationRepository? _quotationRepository;
+    private readonly ITenantRepository? _tenantRepository;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -39,7 +40,8 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         IDocumentStorageService storageService,
         IAuditLogRepository? auditLogRepo = null,
         ITaxRepository? taxRepository = null,
-        IQuotationRepository? quotationRepository = null)
+        IQuotationRepository? quotationRepository = null,
+        ITenantRepository? tenantRepository = null)
     {
         _templateRepository = templateRepository;
         _snapshotRepository = snapshotRepository;
@@ -50,6 +52,7 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         _auditLogRepo = auditLogRepo;
         _taxRepository = taxRepository;
         _quotationRepository = quotationRepository;
+        _tenantRepository = tenantRepository;
     }
 
     public async Task<PagedResult<InvoiceTemplateDto>> GetTemplatesAsync(TemplateFilterRequest filter, int tenantId, CancellationToken ct = default)
@@ -721,6 +724,129 @@ public class InvoiceTemplateService : IInvoiceTemplateService
         }
 
         return result;
+    }
+
+    public async Task<CompanyBrandingDto> GetCompanyBrandingAsync(int tenantId, CancellationToken ct = default)
+    {
+        if (tenantId > 0)
+        {
+            await EnsurePirnavTemplatesAsync(tenantId, ct);
+        }
+
+        var template = await _templateRepository.GetDefaultTemplateAsync(tenantId)
+            ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, DomainStatus.Active, 1, 1)).Items?.FirstOrDefault()
+            ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, null, 1, 1)).Items?.FirstOrDefault();
+
+        if (template == null)
+        {
+            var fallback = BuildDefaultVersionDto();
+            return new CompanyBrandingDto
+            {
+                TemplateId = 0,
+                TemplateName = "Default",
+                Style = "Standard",
+                Branding = fallback.Branding,
+                CompanyDetails = fallback.CompanyDetails
+            };
+        }
+
+        var dto = MapToDto(template);
+        var activeVersion = dto.ActiveVersion ?? BuildDefaultVersionDto();
+
+        return new CompanyBrandingDto
+        {
+            TemplateId = dto.Id,
+            TemplateName = dto.Name,
+            Style = dto.Style.ToString(),
+            Branding = activeVersion.Branding,
+            CompanyDetails = activeVersion.CompanyDetails
+        };
+    }
+
+    public async Task<CompanyBrandingDto> UpdateCompanyBrandingAsync(UpdateCompanyBrandingRequest request, int tenantId, string user, CancellationToken ct = default)
+    {
+        if (tenantId > 0)
+        {
+            await EnsurePirnavTemplatesAsync(tenantId, ct);
+        }
+
+        var template = await _templateRepository.GetDefaultTemplateAsync(tenantId)
+            ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, DomainStatus.Active, 1, 1)).Items?.FirstOrDefault()
+            ?? (await _templateRepository.GetPagedListAsync(tenantId, null, null, null, 1, 1)).Items?.FirstOrDefault();
+
+        if (template == null)
+        {
+            throw new KeyNotFoundException("No template found for the current workspace.");
+        }
+
+        var dto = MapToDto(template);
+        var activeVersion = dto.ActiveVersion ?? BuildDefaultVersionDto();
+
+        var mergedBranding = request.Branding ?? activeVersion.Branding;
+        var layout = activeVersion.Layout;
+        if (!string.IsNullOrWhiteSpace(mergedBranding.LogoUrl))
+        {
+            layout.ShowLogo = true;
+        }
+
+        var updateRequest = new UpdateTemplateRequest
+        {
+            Name = dto.Name,
+            Description = dto.Description,
+            Style = dto.Style,
+            ChangeDescription = "Updated company logo and branding",
+            Branding = mergedBranding,
+            CompanyDetails = request.CompanyDetails ?? activeVersion.CompanyDetails,
+            Layout = layout,
+            PaymentInstructions = activeVersion.PaymentInstructions,
+            Terms = activeVersion.Terms,
+            Sections = activeVersion.Layout?.Sections ?? new Dictionary<string, bool>()
+        };
+
+        var updated = await UpdateTemplateAsync(dto.Id, updateRequest, tenantId, user, ct);
+
+        var newestVersion = updated.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
+        if (newestVersion != null && !newestVersion.IsCurrent)
+        {
+            updated = await ActivateTemplateAsync(updated.Id, newestVersion.VersionNumber, tenantId, user, ct);
+        }
+
+        if (_tenantRepository != null && request.CompanyDetails != null)
+        {
+            try
+            {
+                var tenant = await _tenantRepository.GetByIdAsync(tenantId);
+                if (tenant != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(request.CompanyDetails.CompanyName))
+                        tenant.Name = request.CompanyDetails.CompanyName.Trim();
+                    if (!string.IsNullOrWhiteSpace(request.CompanyDetails.Email))
+                        tenant.CompanyEmail = request.CompanyDetails.Email.Trim();
+                    if (!string.IsNullOrWhiteSpace(request.CompanyDetails.Phone))
+                        tenant.Phone = request.CompanyDetails.Phone.Trim();
+                    if (!string.IsNullOrWhiteSpace(request.CompanyDetails.TaxId))
+                        tenant.TaxId = request.CompanyDetails.TaxId.Trim();
+                    if (!string.IsNullOrWhiteSpace(request.CompanyDetails.AddressLine1))
+                        tenant.Address = request.CompanyDetails.AddressLine1.Trim();
+                    tenant.UpdatedAtUtc = DateTime.UtcNow;
+                    await _tenantRepository.UpdateAsync(tenant);
+                }
+            }
+            catch
+            {
+                // Non-blocking tenant sync
+            }
+        }
+
+        var updatedVersion = updated.ActiveVersion ?? activeVersion;
+        return new CompanyBrandingDto
+        {
+            TemplateId = updated.Id,
+            TemplateName = updated.Name,
+            Style = updated.Style.ToString(),
+            Branding = updatedVersion.Branding,
+            CompanyDetails = updatedVersion.CompanyDetails
+        };
     }
 
     private async Task RecordAuditAsync(int tenantId, string action, string entityName, string entityId, string user, string changes, CancellationToken ct)

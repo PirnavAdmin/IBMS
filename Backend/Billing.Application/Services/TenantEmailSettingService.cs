@@ -43,16 +43,26 @@ public class TenantEmailSettingService : ITenantEmailSettingService
         var setting = await _settingRepository.GetByTenantIdAsync(tenantId, cancellationToken);
         if (setting == null)
         {
+            var tenant = await _tenantRepository.GetByIdAsync(tenantId);
+            var companyName = tenant?.Name ?? string.Empty;
+            var registeredEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail)
+                ? tenant.CompanyEmail.Trim()
+                : tenant?.Users?.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u.Email))?.Email?.Trim() ?? string.Empty;
+
             return ApiResponse<TenantEmailSettingDto>.Ok(new TenantEmailSettingDto
             {
                 TenantId = tenantId,
-                Provider = "Custom",
+                Provider = "Gmail",
+                SmtpHost = "smtp.gmail.com",
                 SmtpPort = 587,
                 EncryptionMode = "StartTls",
-                IsEnabled = false,
+                FromName = companyName,
+                FromEmail = registeredEmail,
+                Username = registeredEmail,
+                IsEnabled = true,
                 IsVerified = false,
                 HasPasswordConfigured = false
-            }, "No email configuration found for this workspace. Default settings returned.");
+            }, "Default email configuration initialized with company details.");
         }
 
         return ApiResponse<TenantEmailSettingDto>.Ok(MapToDto(setting), "Email configuration retrieved successfully.");
@@ -356,12 +366,24 @@ public class TenantEmailSettingService : ITenantEmailSettingService
         var setting = await _settingRepository.GetByTenantIdAsync(tenantId, cancellationToken);
         if (setting == null)
         {
+            var tenant = await _tenantRepository.GetByIdAsync(tenantId);
+            var companyName = tenant?.Name ?? string.Empty;
+            var registeredEmail = !string.IsNullOrWhiteSpace(tenant?.CompanyEmail)
+                ? tenant.CompanyEmail.Trim()
+                : tenant?.Users?.FirstOrDefault(u => !string.IsNullOrWhiteSpace(u.Email))?.Email?.Trim() ?? string.Empty;
+
             return ApiResponse<EmailSettingStatusDto>.Ok(new EmailSettingStatusDto
             {
                 IsConfigured = false,
-                IsEnabled = false,
-                IsVerified = false
-            }, "Email settings status retrieved.");
+                IsEnabled = true,
+                IsVerified = false,
+                Provider = "Gmail",
+                FromEmail = registeredEmail,
+                FromName = companyName,
+                SmtpHost = "smtp.gmail.com",
+                SmtpPort = 587,
+                EncryptionMode = "StartTls"
+            }, "Email settings status initialized with workspace defaults.");
         }
 
         return ApiResponse<EmailSettingStatusDto>.Ok(new EmailSettingStatusDto

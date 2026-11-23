@@ -63,6 +63,7 @@ export const API_ENDPOINTS = {
     DEFAULT: (id) => `/api/v1/invoice-templates/${id}/default`,
     DEACTIVATE: (id) => `/api/v1/invoice-templates/${id}/deactivate`,
     LOGO_UPLOAD: '/api/v1/invoice-templates/logo-upload',
+    COMPANY_BRANDING: '/api/v1/invoice-templates/company-branding',
     AUDIT: '/api/v1/invoice-templates/audit',
     GENERATE_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/generate-pdf`,
     DOWNLOAD_PDF: (invoiceId) => `/api/v1/invoices/${invoiceId}/pdf`,

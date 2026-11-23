@@ -187,6 +187,7 @@ const requestFromConfig = (config, extra = {}) => ({ name: config.name.trim(), d
 function TemplateNavigation() {
   return <nav className="template-nav" aria-label="Template management">
     <NavLink to="/templates-branding" end>Template list</NavLink>
+    <NavLink to="/templates-branding/branding">Branding &amp; Logo</NavLink>
     <NavLink to="/templates-branding/preview">Template preview</NavLink>
     <NavLink to="/templates-branding/versions">Version history</NavLink>
     <NavLink to="/templates-branding/audit">Audit & traceability</NavLink>
@@ -1207,11 +1208,27 @@ function TemplateColorControl({ label, value, onChange, onBlur }) {
   </div>;
 }
 
-function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, onLogoError }) {
+function BrandingFields({ value, onChange, onBlur, errors = {}, onLogoChange, onLogoError, onRemoveLogo }) {
   const text = (key) => ({ value: value[key], onChange: (event) => onChange(key, event.target.value), onBlur: () => onBlur?.(key, value[key]) });
   return <>
     <h3>Company details</h3><div className="template-fields"><TextField label="Company or organization name" {...text('company')} fullWidth /><TextField label="Address" {...text('address')} multiline minRows={2} fullWidth /><TextField label="Email address" type="email" required error={Boolean(errors.email)} helperText={errors.email} {...text('email')} fullWidth /><TextField label="Phone number" type="tel" required error={Boolean(errors.phone)} helperText={errors.phone} {...text('phone')} fullWidth /><TextField label="Website (optional)" type="url" error={Boolean(errors.website)} helperText={errors.website} {...text('website')} fullWidth /></div>
-    <h3>Logo and colors</h3><label className="template-upload"><ImageOutlined /><span>{value.logoName || 'Choose image for sample preview'}</span><input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" onChange={onLogoChange} aria-label="Choose an image for sample preview" /></label>{value.logoUrl && <img className="template-logo-preview" style={{ width: value.logoWidth, objectPosition: value.logoPosition }} src={value.logoUrl} alt="Selected logo sample preview" onError={onLogoError} />}
+    <h3>Logo and colors</h3>
+    <label className="template-upload">
+      <ImageOutlined />
+      <span>{value.logoName || 'Choose image for sample preview'}</span>
+      <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={onLogoChange} aria-label="Choose an image for sample preview" />
+    </label>
+    <p style={{ margin: '4px 0 12px', fontSize: '0.8rem', color: '#64748b' }}>Supported image formats: PNG, JPG, JPEG, WebP. Maximum file size: 2 MB.</p>
+    {value.logoUrl && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '8px 0 16px' }}>
+        <img className="template-logo-preview" style={{ width: value.logoWidth, objectPosition: value.logoPosition }} src={value.logoUrl} alt="Selected logo sample preview" onError={onLogoError} />
+        {onRemoveLogo && (
+          <Button variant="outlined" color="error" size="small" onClick={onRemoveLogo}>
+            Remove Logo
+          </Button>
+        )}
+      </div>
+    )}
     <div className="template-fields template-logo-controls"><TextField label="Logo position" select {...text('logoPosition')}><MenuItem value="left">Left</MenuItem><MenuItem value="center">Center</MenuItem><MenuItem value="right">Right</MenuItem></TextField><TextField label="Logo preview width (px)" type="number" inputProps={{ min: 48, max: 240 }} value={value.logoWidth} onChange={(event) => onChange('logoWidth', Math.min(240, Math.max(48, Number(event.target.value) || 48)))} /></div>
     <section className="template-colors-section" aria-labelledby="template-colors-heading"><h3 id="template-colors-heading">Template Colors</h3><div className="template-color-fields"><TemplateColorControl label="Primary Color" value={value.primary} onChange={(nextColor) => onChange('primary', nextColor)} onBlur={() => onBlur?.('primary', value.primary)} /><TemplateColorControl label="Accent Color" value={value.secondary} onChange={(nextColor) => onChange('secondary', nextColor)} onBlur={() => onBlur?.('secondary', value.secondary)} /></div></section>
     {colorContrast(value.primary) < 4.5 && <Alert severity="warning" role="status">This primary color may have low contrast against white. Review the sample preview for readability.</Alert>}
@@ -1357,6 +1374,7 @@ export function EditTemplate() { return <EditorScreen mode="edit" />; }
 export function BrandingSettings() {
   const location = useLocation();
   const templateId = location.state?.templateId;
+  const [activeTemplateId, setActiveTemplateId] = useState(templateId);
   const draft = useFormDraft(`template:${templateId || 'new'}`);
   const navigate = useNavigate();
   const [config, setConfig] = useDraftState(`template:${templateId || 'new'}`, 'config', () => ({ ...emptyConfig, ...location.state?.config, sections: { ...DEFAULT_SECTIONS, ...location.state?.config?.sections } }));
@@ -1365,6 +1383,7 @@ export function BrandingSettings() {
   const [apiError, setApiError] = useState('');
   const [saving, setSaving] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(!location.state?.config);
   const [notice, setNotice] = useState('');
   const creationFlow = location.state?.creationFlow === true;
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -1375,6 +1394,43 @@ export function BrandingSettings() {
         ...location.state.config,
         sections: { ...DEFAULT_SECTIONS, ...(location.state.config.sections || current.sections || {}) }
       }));
+    } else {
+      setInitialLoading(true);
+      templateApi.getCompanyBranding()
+        .then((brandingData) => {
+          if (brandingData) {
+            const tId = brandingData.templateId || brandingData.TemplateId;
+            if (tId) setActiveTemplateId(tId);
+            if (tId) {
+              templateApi.get(tId).then((fullTmpl) => {
+                setConfig(configFromTemplate(fullTmpl));
+              }).catch(() => {
+                setConfig((current) => ({
+                  ...current,
+                  name: brandingData.templateName || 'Default Company Template',
+                  style: brandingData.style || 'Standard',
+                  company: brandingData.companyDetails?.companyName || '',
+                  address: brandingData.companyDetails?.addressLine1 || '',
+                  email: brandingData.companyDetails?.email || '',
+                  phone: brandingData.companyDetails?.phone || '',
+                  website: brandingData.companyDetails?.website || '',
+                  primary: brandingData.branding?.primaryColor || current.primary,
+                  secondary: brandingData.branding?.secondaryColor || current.secondary,
+                  logoUrl: brandingData.branding?.logoUrl || '',
+                  logoName: brandingData.branding?.logoName || '',
+                  logoPosition: brandingData.branding?.logoPosition || 'left',
+                  logoWidth: brandingData.branding?.logoWidth || 96
+                }));
+              });
+            }
+          }
+        })
+        .catch((err) => {
+          setApiError(asError(err));
+        })
+        .finally(() => {
+          setInitialLoading(false);
+        });
     }
   }, [location.state?.config]);
   const update = (key, value) => {
@@ -1421,7 +1477,7 @@ export function BrandingSettings() {
     // Clear the input so choosing the same file again still fires a change event.
     event.target.value = '';
     setLogoError('');
-    if (file && !['image/png', 'image/jpeg'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name)) setLogoError('Choose a JPG or PNG image.');
+    if (file && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) && !/\.(png|jpe?g|webp)$/i.test(file.name)) setLogoError('Choose a PNG, JPG, or WebP image.');
     else if (file && file.size > 2 * 1024 * 1024) setLogoError('The logo must be no larger than 2 MB.');
     else if (file) {
       setLogoBusy(true);
@@ -1447,6 +1503,10 @@ export function BrandingSettings() {
       finally { setLogoBusy(false); }
     }
   };
+  const onRemoveLogo = () => {
+    setConfig((current) => ({ ...current, logoName: '', logoUrl: '' }));
+    setLogoError('');
+  };
   const onLogoError = () => {
     setLogoError('This image could not be rendered in the preview. Other form values were kept.');
     setConfig((current) => ({ ...current, logoName: '', logoUrl: '' }));
@@ -1465,10 +1525,11 @@ export function BrandingSettings() {
     setSaving(true); setApiError('');
     try {
       const request = requestFromConfig(config);
-      const result = templateId
-        ? await templateApi.update(templateId, { ...request, changeDescription: saveAsDraft ? 'Saved draft template changes' : 'Completed template branding settings' })
+      const targetId = templateId || activeTemplateId;
+      const result = targetId
+        ? await templateApi.update(targetId, { ...request, changeDescription: saveAsDraft ? 'Saved draft template changes' : 'Completed template branding settings' })
         : await templateApi.create(request);
-      const savedTemplateId = templateId || result?.id || result?.Id;
+      const savedTemplateId = targetId || result?.id || result?.Id;
       if (activate) await templateApi.activate(savedTemplateId);
       const successMessage = activate ? 'Template saved and activated successfully.' : saveAsDraft ? 'Template saved as draft.' : 'Template branding saved.';
       draft.clear();
@@ -1479,10 +1540,14 @@ export function BrandingSettings() {
   };
   return <TemplatePage title="Branding settings" description={creationFlow ? 'Complete the branding details for this template.' : 'Configure company identity and brand defaults for the sample preview.'} hideNavigation={creationFlow}>
     <div className="template-form-card">{creationFlow && <TemplateCreationSteps step={2} />}<div className="template-section-title"><div><h2>{creationFlow ? 'Step 2 – Branding Settings' : 'Organization branding'}</h2></div><Chip label="Unsaved sample" size="small" /></div>
-      <BrandingFields value={config} onChange={update} onBlur={validateField} errors={fieldErrors} onLogoChange={onLogoChange} onLogoError={onLogoError} />
+      {initialLoading ? (
+        <div className="template-empty" style={{ padding: '32px 0' }}><CircularProgress size={24} /> Loading company branding and logo…</div>
+      ) : (
+        <BrandingFields value={config} onChange={update} onBlur={validateField} errors={fieldErrors} onLogoChange={onLogoChange} onLogoError={onLogoError} onRemoveLogo={onRemoveLogo} />
+      )}
       {logoBusy && <Alert severity="info">Uploading logo…</Alert>}{apiError && <Alert severity="error" onClose={() => setApiError('')}>{apiError}</Alert>}<TemplateSuccessNotice message={notice} onClose={() => setNotice('')} />
       {logoError && <Alert severity="error" role="alert">{logoError}</Alert>}
-      <div className="template-actions">{creationFlow && <Button variant="outlined" onClick={backToDetails} disabled={saving || logoBusy}>Back</Button>}{creationFlow && <Button variant="outlined" disabled={saving || logoBusy} onClick={() => save({ saveAsDraft: true })}>{saving ? 'Saving…' : 'Save as Draft'}</Button>}<Button variant="outlined" startIcon={<VisibilityOutlined />} onClick={() => setPreviewOpen(true)} disabled={logoBusy}>Preview</Button><Button variant="contained" disabled={saving || logoBusy} onClick={() => save(creationFlow ? { activate: true } : {})}>{saving ? 'Saving…' : creationFlow ? 'Save & Activate' : 'Save branding'}</Button></div>
+      <div className="template-actions">{creationFlow && <Button variant="outlined" onClick={backToDetails} disabled={saving || logoBusy}>Back</Button>}{creationFlow && <Button variant="outlined" disabled={saving || logoBusy} onClick={() => save({ saveAsDraft: true })}>{saving ? 'Saving…' : 'Save as Draft'}</Button>}<Button variant="outlined" startIcon={<VisibilityOutlined />} onClick={() => setPreviewOpen(true)} disabled={logoBusy || initialLoading}>Preview</Button><Button variant="contained" disabled={saving || logoBusy || initialLoading} onClick={() => save(creationFlow ? { activate: true } : {})}>{saving ? 'Saving…' : creationFlow ? 'Save & Activate' : 'Save branding'}</Button></div>
     </div>
     <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="lg" fullWidth>
       <DialogTitle>{config.name || 'Template'} preview</DialogTitle>

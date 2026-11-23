@@ -130,6 +130,22 @@ export const templateApi = {
   },
 
   /**
+   * Fetch current organization company branding and logo configuration.
+   */
+  getCompanyBranding: async () => {
+    const res = await apiClient.get(API_ENDPOINTS.TEMPLATES.COMPANY_BRANDING);
+    return unwrap(res);
+  },
+
+  /**
+   * Update organization company branding and logo configuration across templates.
+   */
+  updateCompanyBranding: async (data) => {
+    const res = await apiClient.put(API_ENDPOINTS.TEMPLATES.COMPANY_BRANDING, data);
+    return unwrap(res);
+  },
+
+  /**
    * Generate official PDF document and immutable snapshot for an invoice.
    */
   generateInvoicePdf: async (invoiceId, request = {}) => {

@@ -442,4 +442,19 @@ public class ChargeSnapshotDto
     public decimal Amount { get; set; }
 }
 
+public class CompanyBrandingDto
+{
+    public int TemplateId { get; set; }
+    public string TemplateName { get; set; } = string.Empty;
+    public string Style { get; set; } = "Standard";
+    public BrandingConfigDto Branding { get; set; } = new();
+    public CompanyDetailsConfigDto CompanyDetails { get; set; } = new();
+}
+
+public class UpdateCompanyBrandingRequest
+{
+    public BrandingConfigDto? Branding { get; set; }
+    public CompanyDetailsConfigDto? CompanyDetails { get; set; }
+}
+
 #endregion

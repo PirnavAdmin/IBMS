@@ -18,6 +18,7 @@ public class EmailServiceTests
     private readonly Mock<ISecretEncryptionService> _encryptionServiceMock = new();
     private readonly ISmtpSecurityValidator _securityValidator = new SmtpSecurityValidator();
     private readonly Mock<ICurrentUserService> _currentUserServiceMock = new();
+    private readonly Mock<ITenantRepository> _tenantRepoMock = new();
     private readonly Mock<IConfiguration> _configMock = new();
 
     private EmailService CreateEmailService()
@@ -28,7 +29,8 @@ public class EmailServiceTests
             _securityValidator,
             NullLogger<EmailService>.Instance,
             _configMock.Object,
-            _currentUserServiceMock.Object
+            _currentUserServiceMock.Object,
+            _tenantRepoMock.Object
         );
     }
 
@@ -110,5 +112,38 @@ public class EmailServiceTests
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             service.SendEmailForTenantAsync(-5, "customer@domain.com", "Invoice", "Body"));
+    }
+
+    [Fact]
+    public async Task SendEmailForTenantAsync_AutoInitializesWithTenantCompanyAndRegisteredEmail_WhenFallbackAvailable()
+    {
+        var service = CreateEmailService();
+        _settingRepoMock.Setup(r => r.GetByTenantIdAsync(2, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((TenantEmailSetting?)null);
+
+        _tenantRepoMock.Setup(r => r.GetByIdAsync(2))
+            .ReturnsAsync(new Tenant
+            {
+                Id = 2,
+                Name = "Dinakar Enterprises",
+                CompanyEmail = "dinakar@dinakarenterprises.com"
+            });
+
+        _configMock.Setup(c => c["EmailSettings:Email"]).Returns("smtp-relay@gmail.com");
+        _configMock.Setup(c => c["EmailSettings:AppPassword"]).Returns("apppassword123");
+        _configMock.Setup(c => c["EmailSettings:Host"]).Returns("smtp.gmail.com");
+        _configMock.Setup(c => c["EmailSettings:Port"]).Returns("587");
+        _configMock.Setup(c => c["EmailSettings:EnableDevSimulatedFallback"]).Returns("true");
+
+        await service.SendEmailForTenantAsync(2, "recipient@example.com", "Invoice INV-001", "Please find attached.");
+
+        _settingRepoMock.Verify(r => r.AddAsync(It.Is<TenantEmailSetting>(s =>
+            s.TenantId == 2 &&
+            s.FromName == "Dinakar Enterprises" &&
+            s.FromEmail == "dinakar@dinakarenterprises.com" &&
+            s.Username == "smtp-relay@gmail.com" &&
+            s.IsEnabled &&
+            s.IsVerified
+        ), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
