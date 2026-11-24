@@ -36,6 +36,7 @@
 .quote-filter-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
 .quote-filter-close:hover { background: #fbf3ed; color: var(--primary); }
 .quote-filter-dropdown .quote-filter-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.quote-filter-dropdown .quote-filter-cancel, .quote-filter-dropdown .quote-filter-back-button { margin-right: auto; }
 @media (max-width: 700px) { .quote-list-toolbar { grid-template-columns: 1fr; align-items: stretch; } .quote-list-toolbar .quote-search { max-width: none; } .quote-running-button, .quote-audit-menu > .quote-btn, .quote-filter-menu > .quote-btn { width: 100%; } .quote-audit-dropdown { left: auto; right: 0; width: min(300px, 100%); } .quote-filter-dropdown { left: 0; right: auto; width: 100%; } .quote-filter-dropdown .quote-filter-grid { grid-template-columns: 1fr; } }
 
 /* Quotation list search and compact action controls. */

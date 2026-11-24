@@ -120,22 +120,23 @@ public class CreditNote
                                string.Equals(Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase)) &&
                                RemainingRefundableAmount > 0m;
 
-    public void RecalculateRefundableBalance()
+    public void RecalculateRefundableBalance(decimal? refundableCap = null)
     {
         var total = Math.Max(0m, Math.Round(TotalAmount, 2, MidpointRounding.AwayFromZero));
         var refunded = Math.Max(0m, Math.Round(RefundedAmount, 2, MidpointRounding.AwayFromZero));
+        var cappedTotal = Math.Min(total, Math.Max(0m, Math.Round(refundableCap ?? total, 2, MidpointRounding.AwayFromZero)));
 
         if (string.Equals(Status, "Issued", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Status, "PartiallyRefunded", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Status, "Refunded", StringComparison.OrdinalIgnoreCase))
         {
-            RemainingRefundableAmount = Math.Max(0m, Math.Round(total - refunded, 2, MidpointRounding.AwayFromZero));
+            RemainingRefundableAmount = Math.Max(0m, Math.Round(cappedTotal - refunded, 2, MidpointRounding.AwayFromZero));
 
-            if (RemainingRefundableAmount == 0m && total > 0m)
+            if (refunded >= total && total > 0m)
             {
                 Status = "Refunded";
             }
-            else if (refunded > 0m && RemainingRefundableAmount > 0m)
+            else if (refunded > 0m)
             {
                 Status = "PartiallyRefunded";
             }

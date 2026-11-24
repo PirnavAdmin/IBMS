@@ -984,7 +984,11 @@ public class CreditNoteService : ICreditNoteService
             creditNote.IssuedAtUtc = DateTime.UtcNow;
             creditNote.UpdatedAtUtc = DateTime.UtcNow;
             creditNote.RowVersion = DateTime.UtcNow;
-            creditNote.RecalculateRefundableBalance();
+            var previouslyRefunded = issuedCredits.Sum(existingCredit => Math.Max(0m, existingCredit.RefundedAmount));
+            var refundableCap = Math.Min(
+                creditNote.TotalAmount,
+                Math.Max(0m, invoice.PaidAmount - previouslyRefunded));
+            creditNote.RecalculateRefundableBalance(refundableCap);
 
             await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
 
@@ -1172,7 +1176,13 @@ public class CreditNoteService : ICreditNoteService
             return ApiResponse<CreditNoteDetailDto>.Fail($"Invalid or unsupported refund payment method '{request.PaymentMethod}'.");
         }
 
-        var lockKey = $"{tenantId}:CreditNoteRefund:{id}";
+        var existingCreditNote = await _creditNoteRepository.GetByIdAsync(id, tenantId, cancellationToken);
+        if (existingCreditNote == null)
+        {
+            return ApiResponse<CreditNoteDetailDto>.Fail("Credit note not found.");
+        }
+
+        var lockKey = $"{tenantId}:InvoiceCredit:{existingCreditNote.InvoiceId}";
         var semaphore = ConcurrencyLocks.GetOrAdd(lockKey, _ => new SemaphoreSlim(1, 1));
 
         await semaphore.WaitAsync(cancellationToken);
@@ -1193,12 +1203,29 @@ public class CreditNoteService : ICreditNoteService
                 return ApiResponse<CreditNoteDetailDto>.Fail($"Refund cannot be processed for credit note in '{creditNote.Status}' status. It must be 'Issued' or 'PartiallyRefunded' with a positive remaining refundable balance.");
             }
 
-            var authoritativeRemainingRefundable = Math.Max(0m, Math.Round(creditNote.TotalAmount - creditNote.RefundedAmount, 2, MidpointRounding.AwayFromZero));
+            var invoice = await _invoiceRepository.GetByIdForUpdateAsync(creditNote.InvoiceId, tenantId);
+            if (invoice == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return ApiResponse<CreditNoteDetailDto>.Fail("Associated invoice not found.");
+            }
+
+            var invoiceCredits = await _creditNoteRepository.GetByInvoiceIdAsync(invoice.Id, tenantId, cancellationToken);
+            var refundedOnOtherCredits = invoiceCredits
+                .Where(item => item.Id != creditNote.Id && IsIssuedCredit(item))
+                .Sum(item => Math.Max(0m, item.RefundedAmount));
+            var refundableCap = Math.Min(
+                creditNote.TotalAmount,
+                Math.Max(0m, invoice.PaidAmount - refundedOnOtherCredits));
+            var authoritativeRemainingRefundable = Math.Max(0m, Math.Round(
+                Math.Min(creditNote.TotalAmount, refundableCap) - creditNote.RefundedAmount,
+                2,
+                MidpointRounding.AwayFromZero));
             var roundedRefund = Math.Round(request.RefundAmount, 2, MidpointRounding.AwayFromZero);
             if (roundedRefund > authoritativeRemainingRefundable)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return ApiResponse<CreditNoteDetailDto>.Fail($"Refund amount ({roundedRefund:F2}) exceeds remaining refundable amount ({authoritativeRemainingRefundable:F2}).");
+                return ApiResponse<CreditNoteDetailDto>.Fail($"Refund amount ({roundedRefund:F2}) exceeds the amount paid and still refundable ({authoritativeRemainingRefundable:F2}).");
             }
 
             var normalizedRef = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim();
@@ -1260,7 +1287,7 @@ public class CreditNoteService : ICreditNoteService
             }
 
             creditNote.RefundedAmount = Math.Round(creditNote.RefundedAmount + roundedRefund, 2, MidpointRounding.AwayFromZero);
-            creditNote.RecalculateRefundableBalance();
+            creditNote.RecalculateRefundableBalance(refundableCap);
 
             await _creditNoteRepository.UpdateAsync(creditNote, cancellationToken);
 
@@ -1362,7 +1389,22 @@ public class CreditNoteService : ICreditNoteService
         }
 
         var invoice = await _invoiceRepository.GetByIdAsync(creditNote.InvoiceId, tenantId, cancellationToken);
-        return ApiResponse<CreditNoteDetailDto>.Ok(MapToDetailDto(creditNote, invoice));
+        var detail = MapToDetailDto(creditNote, invoice);
+        if (invoice != null && IsIssuedCredit(creditNote))
+        {
+            var invoiceCredits = await _creditNoteRepository.GetByInvoiceIdAsync(invoice.Id, tenantId, cancellationToken);
+            var refundedOnOtherCredits = invoiceCredits
+                .Where(item => item.Id != creditNote.Id && IsIssuedCredit(item))
+                .Sum(item => Math.Max(0m, item.RefundedAmount));
+            var refundableCap = Math.Min(
+                creditNote.TotalAmount,
+                Math.Max(0m, invoice.PaidAmount - refundedOnOtherCredits));
+            detail.RemainingRefundableAmount = Math.Max(0m, Math.Round(
+                Math.Min(creditNote.TotalAmount, refundableCap) - creditNote.RefundedAmount,
+                2,
+                MidpointRounding.AwayFromZero));
+        }
+        return ApiResponse<CreditNoteDetailDto>.Ok(detail);
     }
 
     private async Task<string?> ValidateExistingCreditNoteEligibilityAsync(
@@ -2179,7 +2221,7 @@ public class CreditNoteService : ICreditNoteService
         var rawTotal = Math.Round(cn.Subtotal + cn.TaxAmount, 2, MidpointRounding.AwayFromZero);
         var rounding = cn.RoundingAmount != 0m ? cn.RoundingAmount : Math.Round(cn.TotalAmount - rawTotal, 2, MidpointRounding.AwayFromZero);
         var remainingRefundable = IsIssuedCredit(cn)
-            ? Math.Max(0m, Math.Round(cn.TotalAmount - cn.RefundedAmount, 2, MidpointRounding.AwayFromZero))
+            ? Math.Max(0m, Math.Round(cn.RemainingRefundableAmount, 2, MidpointRounding.AwayFromZero))
             : 0m;
 
         return new CreditNoteDetailDto

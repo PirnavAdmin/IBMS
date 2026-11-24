@@ -136,7 +136,7 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
       <label>Sort by<ThemedSelect label="Sort by" value={filters.sortBy} onChange={sortBy=>setFilters({...filters,sortBy})} options={[{value:'newest',label:'Newest to Oldest'},{value:'oldest',label:'Oldest to Newest'}]}/></label>
      </div>
      <div className="quote-filter-buttons">
-      <button type="button" className="quote-btn secondary quote-filter-cancel" onClick={()=>{setFilters({...applied});setFiltersOpen(false);}}>Cancel</button>
+      <button type="button" className="quote-btn secondary quote-filter-cancel quote-filter-back-button" onClick={()=>{setFilters({...applied});setFiltersOpen(false);}}>Cancel</button>
       <button type="button" className="quote-btn secondary" onClick={()=>{const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setFilters(reset);setApplied(reset);setSort({key:'quoteNumber',direction:'asc'});setSearch('');setFilterNotice('Filters reset.')}}>Reset Filters</button>
       <button type="button" className="quote-btn primary" onClick={()=>{setApplied({...filters});setSort({key:'createdAtUtc',direction:filters.sortBy==='oldest'?'asc':'desc'});setPage(1);setQuotationsOpen(true);setFiltersOpen(false);setFilterNotice('Filters applied.'+(filters.from&&filters.to?' Date range: '+displayDate(filters.from)+' – '+displayDate(filters.to):''))}}>Apply Filters</button>
      </div>

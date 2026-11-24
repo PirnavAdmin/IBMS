@@ -206,13 +206,17 @@
 .premium-records td a { color: #67432b; font-weight: 650; text-decoration: none; }
 .premium-records td a:hover { text-decoration: underline; }
 .premium-records td small { display: block; max-width: 155px; margin-top: 4px; color: #816950; font-size: 9px; overflow: hidden; text-overflow: ellipsis; }
-.premium-status { display: inline-flex; align-items: center; justify-content: center; min-width: 88px; padding: 3px 8px; border: 1px solid #e3d3bc; border-radius: 20px; background: #eee2d2; color: #75563c; font-size: 11px; font-weight: 600; line-height: 1.3; text-align: center; box-sizing: border-box; }
-.app-layout .premium-records .premium-recent-table-scroll:has(> table):not(.invoice-document *) { max-height: none; overflow: hidden; margin: 2px 10px 10px; padding: 0; }
-.app-layout .premium-records .premium-recent-table { width: 100%; table-layout: fixed; white-space: normal; font-size: 12.5px; }
+.premium-status { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; padding: 2px 5px; border: 1px solid #e3d3bc; border-radius: 20px; background: #eee2d2; color: #75563c; font-size: 8px; font-weight: 600; line-height: 1.25; text-align: center; box-sizing: border-box; }
+.app-layout .premium-records .premium-recent-table-scroll:has(> table):not(.invoice-document *) { max-height: none; overflow: hidden !important; margin: 2px 10px 10px; padding: 0; border: 1px solid var(--dashboard-border, #e6d8c8); border-radius: 16px !important; background: var(--dashboard-surface, #fffdf9); clip-path: inset(0 round 16px); }
+.app-layout .premium-records .premium-recent-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; border-radius: 14px; overflow: hidden; background: var(--dashboard-surface, #fffdf9); white-space: normal; font-size: 12.5px; }
 .app-layout .premium-records .premium-recent-table th,
 .app-layout .premium-records .premium-recent-table td { box-sizing: border-box; padding: 7px 8px; white-space: normal; overflow-wrap: anywhere; font-size: 12.5px; }
 .app-layout .premium-records .premium-recent-table th { box-sizing: border-box; padding: 7px 8px; white-space: normal; overflow-wrap: anywhere; }
 .app-layout .premium-records .premium-recent-table th { line-height: 1.3; }
+.app-layout .premium-records .premium-recent-table th:first-child { border-top-left-radius: 15px !important; background-clip: padding-box; }
+.app-layout .premium-records .premium-recent-table th:last-child { border-top-right-radius: 15px !important; background-clip: padding-box; }
+.app-layout .premium-records .premium-recent-table tbody tr:last-child td:first-child { border-bottom-left-radius: 15px !important; background-clip: padding-box; }
+.app-layout .premium-records .premium-recent-table tbody tr:last-child td:last-child { border-bottom-right-radius: 15px !important; background-clip: padding-box; }
 .app-layout .premium-records .premium-recent-table col:nth-child(1) { width: 34%; }
 .app-layout .premium-records .premium-recent-table col:nth-child(2) { width: 22%; }
 .app-layout .premium-records .premium-recent-table col:nth-child(3) { width: 22%; }
@@ -222,7 +226,7 @@
 .app-layout .premium-records .premium-recent-table :is(th, td):nth-child(4) { text-align: center !important; white-space: nowrap; }
 .app-layout .premium-records .premium-recent-table td:first-child a { display: block; font-size: 11px; line-height: 1.35; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .app-layout .premium-records .premium-recent-table td small { max-width: 100%; min-width: 0; white-space: normal; overflow: hidden; text-overflow: ellipsis; }
-.app-layout .premium-records .premium-recent-table .premium-status { display: block; width: 100%; min-width: 0; max-width: 120px; margin-inline: auto; padding: 3px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; box-sizing: border-box; }
+.app-layout .premium-records .premium-recent-table .premium-status { display: inline-flex; width: auto; min-width: 64px; max-width: 100%; margin-inline: auto; padding: 2px 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-size: 8px; box-sizing: border-box; }
 .premium-status:is(.status-paid, .status-completed) { border-color: #d1dec2; background: #e5edd9; color: #506640; }
 .premium-status:is(.status-overdue, .status-failed) { border-color: #e6c6b2; background: #f1dece; color: #925438; }
 .premium-status:is(.status-draft, .status-pending, .status-reversed) { border-color: #daceDB; background: #ece3ed; color: #78617a; }
