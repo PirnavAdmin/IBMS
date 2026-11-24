@@ -31,7 +31,11 @@
 .quote-audit-dropdown small { color: var(--text-secondary); font-size: .72rem; }
 .quote-filter-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 5; width: min(680px, calc(100vw - 56px)); padding: 16px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 14px 28px rgba(60, 37, 24, .16); }
 .quote-filter-dropdown .quote-filter-grid { grid-template-columns: repeat(3, minmax(145px, 1fr)); margin-bottom: 0; }
-.quote-filter-dropdown .quote-filter-buttons { justify-content: flex-end; margin-top: 14px; }
+.quote-filter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.quote-filter-title { font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
+.quote-filter-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+.quote-filter-close:hover { background: #fbf3ed; color: var(--primary); }
+.quote-filter-dropdown .quote-filter-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 @media (max-width: 700px) { .quote-list-toolbar { grid-template-columns: 1fr; align-items: stretch; } .quote-list-toolbar .quote-search { max-width: none; } .quote-running-button, .quote-audit-menu > .quote-btn, .quote-filter-menu > .quote-btn { width: 100%; } .quote-audit-dropdown { left: auto; right: 0; width: min(300px, 100%); } .quote-filter-dropdown { left: 0; right: auto; width: 100%; } .quote-filter-dropdown .quote-filter-grid { grid-template-columns: 1fr; } }
 
 /* Quotation list search and compact action controls. */

@@ -22,6 +22,7 @@ function text(node){if(node==null||typeof node==='boolean')return '';if(typeof n
 test('date range, product, quantity and non-negative amounts are validated',()=>{
  assert.deepEqual(validateQuotation(form()),{});
  assert.deepEqual(validateQuotation({...form(),items:[{...form().items[0],description:''}]}),{});
+ assert.equal(validateQuotation({...form(),validUntil:'2026-09-27'}).validUntil, 'Valid Until date must be greater than or equal to the Quotation Date.');
  for(const change of [{customerId:''},{quotationDate:''},{validUntil:'2026-09-27'},{items:[]}])assert.ok(Object.keys(validateQuotation({...form(),...change})).length);
  for(const change of [{productId:''},{quantity:-1},{quantity:1.01},{unitPrice:-1},{discountRate:-1},{taxRate:-1},{taxRate:101}])assert.ok(Object.keys(validateQuotation({...form(),items:[{...form().items[0],...change}]})).length);
  for(const quantity of [0,1,2,1000000])assert.deepEqual(validateQuotation({...form(),items:[{...form().items[0],quantity}]}),{});

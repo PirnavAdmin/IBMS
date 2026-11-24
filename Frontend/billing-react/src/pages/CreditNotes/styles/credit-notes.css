@@ -65,6 +65,14 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-filter-bar:has(.date-range-inline-panel) { flex-wrap: wrap; align-items: flex-start; }
 .cn-filter-bar:has(.date-range-inline-panel) > .date-range-control-inline { flex: 1 1 100%; }
 .cn-status-options-menu { max-height: 240px !important; overflow-y: auto !important; }
+.cn-status-options-menu .MuiMenuItem-root {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  line-height: 1.5;
+  font-size: 0.875rem;
+  padding: 6px 16px;
+}
 .cn-search { flex: 1 1 420px; max-width: 620px; }
 .cn-search .MuiInputBase-root { min-height: 42px; }
 .cn-search .MuiOutlinedInput-root,
@@ -74,7 +82,7 @@ button.cn-summary-card:hover { transform: translateY(-2px); box-shadow: 0 9px 20
 .cn-search-icon { width: 19px; height: 19px; margin-right: 9px; color: #a18d7b; }
 .cn-status-filter { width: 205px; }
 .cn-status-filter .MuiSelect-select { display: flex; align-items: center; gap: 7px; }
-.cn-status-filter-compact { font-size: .75rem; white-space: nowrap; }
+.cn-status-filter-compact { font-size: inherit; white-space: nowrap; }
 .cn-date-filter { width: 174px; min-width: 160px; flex: 0 0 174px; }
 .cn-date-filter .MuiOutlinedInput-root { min-height: 42px; background: #fffaf3; }
 .cn-date-filter .MuiInputLabel-root { color: #806852; }

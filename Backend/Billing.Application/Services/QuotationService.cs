@@ -74,6 +74,15 @@ public class QuotationService : IQuotationService
             return ApiResponse<QuotationDetailResponse>.Fail("Validation error", "At least one line item is required in the quotation.");
         }
 
+        var effectiveQuotationDate = (request.QuotationDate ?? DateTime.UtcNow).Date;
+        if (request.ValidUntil.Date < effectiveQuotationDate)
+        {
+            return ApiResponse<QuotationDetailResponse>.Fail(
+                "Validation error",
+                "Valid Until date must be greater than or equal to the Quotation Date.",
+                errorCode: "INVALID_VALID_UNTIL_DATE");
+        }
+
         // Validate Customer
         var customer = await _customerRepository.GetByIdAsync(request.CustomerId, tenantId);
         if (customer == null)
@@ -268,6 +277,14 @@ public class QuotationService : IQuotationService
         if (request.Items == null || !request.Items.Any())
         {
             return ApiResponse<QuotationDetailResponse>.Fail("Validation error", "At least one line item is required in the quotation.");
+        }
+
+        if (request.ValidUntil.Date < request.QuotationDate.Date)
+        {
+            return ApiResponse<QuotationDetailResponse>.Fail(
+                "Validation error",
+                "Valid Until date must be greater than or equal to the Quotation Date.",
+                errorCode: "INVALID_VALID_UNTIL_DATE");
         }
 
         // Update fields

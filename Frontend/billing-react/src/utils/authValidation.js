@@ -30,8 +30,92 @@ export function workEmailSchema() {
 }
 
 
+export function validateFullName(name) {
+  const trimmed = String(name ?? '').trim();
+  if (!trimmed || trimmed.length < 2) {
+    return 'Enter a name with at least 2 characters.';
+  }
+  if (trimmed.length > 100) {
+    return 'Full Name cannot exceed 100 characters.';
+  }
+  const hasDigits = /\d/.test(trimmed);
+  const hasSpecialChars = /[^\p{L}\p{M}\d\s.'\u2019\u02bc\p{Pd}-]/u.test(trimmed);
+  const startsWithLetter = /^[\p{L}\p{M}]/u.test(trimmed);
+
+  if (hasDigits && (hasSpecialChars || (!startsWithLetter && /[\p{L}\p{M}]/u.test(trimmed)))) {
+    return 'Full Name should not contain numbers or special characters.';
+  }
+  if (hasDigits && hasSpecialChars) {
+    return 'Full Name should not contain numbers or special characters.';
+  }
+  if (hasDigits) {
+    return 'Full Name must not contain numbers.';
+  }
+  if (hasSpecialChars || !startsWithLetter) {
+    return 'Full Name should not contain special characters.';
+  }
+  if (hasExcessiveNameRepetition(trimmed)) {
+    return 'Full Name contains invalid repeated characters.';
+  }
+  return '';
+}
+
 export function hasExcessiveNameRepetition(value = '') {
   return /([\p{L}\p{M}])\1{7,}/u.test(value.normalize('NFC').toLocaleLowerCase());
+}
+
+export const ROLE_NAME_REGEX = /^[\p{L}\p{M}0-9\s\-_]+$/u;
+
+export function validateRoleName(name) {
+  const trimmed = String(name ?? '').trim();
+  if (!trimmed) {
+    return 'Role name is required.';
+  }
+  if (trimmed.length < 2) {
+    return 'Role name must be at least 2 characters.';
+  }
+  if (trimmed.length > 50) {
+    return 'Role name cannot exceed 50 characters.';
+  }
+  if (!ROLE_NAME_REGEX.test(trimmed)) {
+    return 'Role name can only contain letters, numbers, spaces, hyphens, and underscores.';
+  }
+  if (!/^[\p{L}\p{M}0-9]/u.test(trimmed)) {
+    return 'Role name must start with a letter or number.';
+  }
+  if (/[-_]{2,}/.test(trimmed)) {
+    return 'Role name cannot contain consecutive hyphens or underscores.';
+  }
+  return '';
+}
+
+export function validateUserEmail(value) {
+  const trimmed = String(value ?? '').trim();
+  if (!trimmed) {
+    return 'Enter a valid email address, such as name@example.com.';
+  }
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex === -1 || atIndex !== trimmed.lastIndexOf('@')) {
+    return 'Enter a valid email address, such as name@example.com.';
+  }
+  const localPart = trimmed.slice(0, atIndex);
+
+  // Check for unsupported special characters in local part (such as $, %, ^, &, *, ~, !, #, etc.)
+  if (/[^a-zA-Z0-9._+-]/.test(localPart)) {
+    return 'Special characters are not allowed in the email address format.';
+  }
+
+  // Check for invalid dot usage in local part
+  if (localPart.startsWith('.') || localPart.endsWith('.') || /\.{2,}/.test(localPart)) {
+    return 'Special characters are not allowed in the email address format.';
+  }
+
+  // Check full structure against EMAIL_REGEX and recognized domain
+  if (!EMAIL_REGEX.test(trimmed) || !hasRecognizedEmailDomain(trimmed)) {
+    return 'Enter a valid email address, such as name@example.com.';
+  }
+
+  return '';
 }
 
 export const registrationSchema = yup.object({

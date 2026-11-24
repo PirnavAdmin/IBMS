@@ -711,7 +711,7 @@ export const CustomerForm = ({
                   <p className="cust-step-subtitle">{currentStepData.subtitle}</p>
                 </div>
               </div>
-              {currentStep < STEPS.length - 1 && (
+              {currentStep < STEPS.length - 1 && currentStepData.label !== 'Review & Confirm' && (
                 <div className="cust-required-pill">
                   <InfoOutlined fontSize="small" />
                   <span>

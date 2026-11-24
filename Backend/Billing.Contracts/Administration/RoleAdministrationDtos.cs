@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Billing.Contracts.Administration;
 
 public class RoleDto
@@ -14,7 +16,11 @@ public class RoleDto
 
 public class CreateRoleRequest
 {
+    [Required(ErrorMessage = "Role name is required.")]
+    [StringLength(50, MinimumLength = 2, ErrorMessage = "Role name must be between 2 and 50 characters.")]
+    [RegularExpression(@"^[\p{L}\p{M}0-9\s\-_]+$", ErrorMessage = "Role name can only contain letters, numbers, spaces, hyphens, and underscores.")]
     public string Name { get; set; } = string.Empty;
+
     public string Description { get; set; } = string.Empty;
     public int? TenantId { get; set; }
     public List<string> Permissions { get; set; } = new();
@@ -22,7 +28,11 @@ public class CreateRoleRequest
 
 public class UpdateRoleRequest
 {
+    [Required(ErrorMessage = "Role name is required.")]
+    [StringLength(50, MinimumLength = 2, ErrorMessage = "Role name must be between 2 and 50 characters.")]
+    [RegularExpression(@"^[\p{L}\p{M}0-9\s\-_]+$", ErrorMessage = "Role name can only contain letters, numbers, spaces, hyphens, and underscores.")]
     public string Name { get; set; } = string.Empty;
+
     public string Description { get; set; } = string.Empty;
     public List<string> Permissions { get; set; } = new();
 }

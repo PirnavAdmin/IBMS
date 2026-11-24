@@ -42,6 +42,11 @@ public class RolesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         var (success, message, role) = await _roleService.CreateRoleAsync(request);
         if (!success)
         {
@@ -55,6 +60,11 @@ public class RolesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateRole(int id, [FromBody] UpdateRoleRequest request)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         var (success, message, role) = await _roleService.UpdateRoleAsync(id, request);
         if (!success)
         {

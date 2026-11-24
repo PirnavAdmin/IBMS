@@ -386,6 +386,17 @@ public class CustomersController : ControllerBase
             return Forbid();
         }
 
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            var (isValid, errorMessage) = ValidateDeactivationReason(reason);
+            if (!isValid)
+            {
+                return BadRequest(ApiResponse<CustomerDto>.Fail(
+                    errorMessage,
+                    errorCode: "INVALID_DEACTIVATION_REASON"));
+            }
+        }
+
         var result = await _customerService.DeactivateCustomerAsync(id, tenantId);
 
         if (!result.Success)

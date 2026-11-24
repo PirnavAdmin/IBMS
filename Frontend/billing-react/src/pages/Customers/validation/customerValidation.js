@@ -573,3 +573,38 @@ export function isDuplicatePhoneNumber(inputPhone, existingPhone) {
 
   return false;
 }
+
+export function validateDeactivationReason(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return { valid: false, error: 'Deactivation reason is required.' };
+  }
+  if (raw.length < 5) {
+    return { valid: false, error: 'Deactivation reason must be at least 5 characters.' };
+  }
+  if (raw.length > 500) {
+    return { valid: false, error: 'Deactivation reason cannot exceed 500 characters.' };
+  }
+  if (!/[a-zA-Z]/.test(raw)) {
+    return { valid: false, error: 'Deactivation reason cannot contain only numbers or special characters.' };
+  }
+  const letters = raw.match(/[a-zA-Z]/g) || [];
+  if (letters.length < 3) {
+    return { valid: false, error: 'Deactivation reason must contain meaningful text with letters.' };
+  }
+  if (/[\^~$\\|<>{}`]/.test(raw)) {
+    return { valid: false, error: 'Deactivation reason contains unsupported special characters.' };
+  }
+  const normalized = raw.replace(/\.{2,3}/g, ' ').replace(/-{2}/g, ' ');
+  if (/[!@#$%^&*()_+=\-[\]{};':"\\|,.<>/?~`]{3,}/.test(normalized)) {
+    return { valid: false, error: 'Deactivation reason contains excessive special characters.' };
+  }
+  const specialMatches = raw.match(/[^a-zA-Z0-9\s]/g) || [];
+  if (raw.length >= 8 && (specialMatches.length / raw.length) > 0.25) {
+    return { valid: false, error: 'Deactivation reason contains too many special characters.' };
+  }
+  if (/(.)\1{4,}/.test(raw)) {
+    return { valid: false, error: 'Deactivation reason cannot contain repetitive meaningless characters.' };
+  }
+  return { valid: true, error: '' };
+}

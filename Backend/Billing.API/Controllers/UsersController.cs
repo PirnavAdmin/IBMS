@@ -80,6 +80,24 @@ public class UsersController : ControllerBase
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            var (isValid, errorMessage) = ValidateFullName(request.Name);
+            if (!isValid)
+            {
+                return BadRequest(new { success = false, message = errorMessage });
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var (isValidEmail, emailErrorMessage) = UserAdministrationService.ValidateEmailAddress(request.Email);
+            if (!isValidEmail)
+            {
+                return BadRequest(new { success = false, message = emailErrorMessage });
+            }
+        }
+
         var (success, message, user) = await _userService.CreateUserAsync(request);
         if (!success)
         {
@@ -112,6 +130,24 @@ public class UsersController : ControllerBase
             if (request.Roles != null && request.Roles.Any(r => r.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest(new { success = false, message = "Tenant administrators cannot assign SuperAdmin role." });
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            var (isValid, errorMessage) = ValidateFullName(request.Name);
+            if (!isValid)
+            {
+                return BadRequest(new { success = false, message = errorMessage });
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var (isValidEmail, emailErrorMessage) = UserAdministrationService.ValidateEmailAddress(request.Email);
+            if (!isValidEmail)
+            {
+                return BadRequest(new { success = false, message = emailErrorMessage });
             }
         }
 
@@ -273,4 +309,71 @@ public class UsersController : ControllerBase
         }
         return null;
     }
+    private static (bool IsValid, string ErrorMessage) ValidateFullName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length < 2)
+        {
+            return (false, "Enter a name with at least 2 characters.");
+        }
+
+        var trimmed = name.Trim();
+        if (trimmed.Length > 100)
+        {
+            return (false, "Full Name cannot exceed 100 characters.");
+        }
+
+        var hasDigits = trimmed.Any(char.IsDigit);
+        var hasSpecialChars = Regex.IsMatch(trimmed, @"[^\p{L}\p{M}\d\s.'\u2019\u02bc\p{Pd}-]");
+        var startsWithLetter = Regex.IsMatch(trimmed, @"^[\p{L}\p{M}]");
+
+        if (hasDigits && (hasSpecialChars || (!startsWithLetter && Regex.IsMatch(trimmed, @"[\p{L}\p{M}]"))))
+        {
+            return (false, "Full Name should not contain numbers or special characters.");
+        }
+
+        if (hasDigits && hasSpecialChars)
+        {
+            return (false, "Full Name should not contain numbers or special characters.");
+        }
+
+        if (hasDigits)
+        {
+            return (false, "Full Name must not contain numbers.");
+        }
+
+        if (hasSpecialChars || !startsWithLetter)
+        {
+            return (false, "Full Name should not contain special characters.");
+        }
+
+        return (true, string.Empty);
+    }
+
+        var trimmed = name.Trim();
+        if (trimmed.Length > 100)
+        {
+            return (false, "Full Name cannot exceed 100 characters.");
+        }
+
+        var hasDigits = trimmed.Any(char.IsDigit);
+        var hasSpecialChars = Regex.IsMatch(trimmed, @"[^\p{L}\p{M}\d\s.'\u2019\u02bc\p{Pd}-]") || !Regex.IsMatch(trimmed, @"^[\p{L}\p{M}]");
+
+        if (hasDigits && hasSpecialChars)
+        {
+            return (false, "Full Name should not contain numbers or special characters.");
+        }
+
+        if (hasDigits)
+        {
+            return (false, "Full Name must not contain numbers.");
+        }
+
+        if (hasSpecialChars)
+        {
+            return (false, "Full Name should not contain special characters.");
+        }
+
+        return (true, string.Empty);
+    }
+
 }

@@ -29,7 +29,7 @@ public class CreateQuotationItemRequest
     public string? HSNSAC { get; set; }
 }
 
-public class CreateQuotationRequest
+public class CreateQuotationRequest : IValidatableObject
 {
     public string? QuoteNumber { get; set; }
 
@@ -57,9 +57,20 @@ public class CreateQuotationRequest
     [Required(ErrorMessage = "At least one item is required.")]
     [MinLength(1, ErrorMessage = "At least one item is required in the quotation.")]
     public List<CreateQuotationItemRequest> Items { get; set; } = new();
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        var quotationDate = (QuotationDate ?? DateTime.UtcNow).Date;
+        if (ValidUntil.Date < quotationDate)
+        {
+            yield return new ValidationResult(
+                "Valid Until date must be greater than or equal to the Quotation Date.",
+                new[] { nameof(ValidUntil) });
+        }
+    }
 }
 
-public class UpdateQuotationRequest
+public class UpdateQuotationRequest : IValidatableObject
 {
     [Required(ErrorMessage = "CustomerId is required.")]
     [Range(1, int.MaxValue, ErrorMessage = "Valid CustomerId is required.")]
@@ -88,6 +99,17 @@ public class UpdateQuotationRequest
     public List<CreateQuotationItemRequest> Items { get; set; } = new();
 
     public string? RowVersion { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (ValidUntil.Date < QuotationDate.Date)
+        {
+            yield return new ValidationResult(
+                "Valid Until date must be greater than or equal to the Quotation Date.",
+                new[] { nameof(ValidUntil) });
+        }
+    }
+}
 }
 
 public class QuotationItemDto

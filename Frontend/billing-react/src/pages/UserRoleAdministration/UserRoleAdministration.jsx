@@ -42,6 +42,7 @@ import { FeedbackSnackbar } from '../../components/FeedbackSnackbar';
 import { WorkspacePagination } from '../../components/WorkspacePagination';
 import { DashboardErrorState } from '../../components/dashboard/DashboardStates';
 import { PasswordVisibilityToggle } from '../../components/PasswordVisibilityToggle';
+import { validateFullName, validateRoleName, validateUserEmail } from '../../utils/authValidation';
 import './user-role-administration.css';
 
 const root = '/user-role-administration';
@@ -71,7 +72,7 @@ const statusValue = (item) => item?.status ?? item?.Status ?? (item?.isActive ??
 const recordValue = (item, key, pascalKey) => item?.[key] ?? item?.[pascalKey];
 const protectedAssignmentRoles = new Set(['superadmin', 'tenantadmin']);
 const isAssignableRole = (roleName) => !protectedAssignmentRoles.has(String(roleName ?? '').trim().replace(/[\s_-]/g, '').toLowerCase());
-const isValidEmail = (value) => /^[^\s@]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(value.trim());
+const isValidEmail = (value) => !validateUserEmail(value);
 const permissionModuleOrder = [
   'Dashboard', 'Invoices', 'Quotation Management', 'Payments', 'Customers',
   'Products & Services', 'Credit Notes', 'Background Jobs', 'Export Jobs',
@@ -380,7 +381,7 @@ function UserForm({ userId, onCancel, onSaved }) {
     const email = event.target.value;
     setValues((current) => ({ ...current, email, username: email }));
     if (attempted || emailTouched) {
-      setErrors((current) => ({ ...current, email: isValidEmail(email) ? '' : 'Enter a valid email address, such as name@example.com.' }));
+      setErrors((current) => ({ ...current, email: validateUserEmail(email) }));
     }
   };
 const selectRole = (event) => {
@@ -397,7 +398,7 @@ const selectRole = (event) => {
   const originalIdentityIsHost = String(recordValue(userQuery.data, 'identityType', 'IdentityType') ?? 'Platform').toLowerCase() === 'host';
   const passwordRequired = values.identityType === 'Platform' && (!editing || originalIdentityIsHost);
   const passwordValid = passwordRequired ? values.password.length >= 8 : !(editing && values.password && values.password.length < 8);
-  const canSave = values.name.trim().length >= 2
+  const canSave = !validateFullName(values.name)
     && values.username.trim().length >= 2
     && values.username.trim().length <= 256
     && !/\s/.test(values.username.trim())
@@ -411,9 +412,11 @@ const selectRole = (event) => {
     && !rolesQuery.isError;
   const validate = () => {
     const next = {};
-    if (!values.name.trim() || values.name.trim().length < 2) next.name = 'Enter a name with at least 2 characters.';
+    const nameError = validateFullName(values.name);
+    if (nameError) next.name = nameError;
     if (!values.username.trim() || values.username.trim().length < 2 || values.username.trim().length > 256 || /\s/.test(values.username.trim())) next.username = 'Enter a unique username with 2 to 256 characters and no spaces.';
-    if (!isValidEmail(values.email)) next.email = 'Enter a valid email address, such as name@example.com.';
+    const emailError = validateUserEmail(values.email);
+    if (emailError) next.email = emailError;
     const switchingHostToPlatform = editing && originalIdentityIsHost && values.identityType === 'Platform';
     if ((!editing && values.identityType === 'Platform' || switchingHostToPlatform) && values.password.length < 8) next.password = 'Enter a password with at least 8 characters.';
     if (editing && values.identityType === 'Platform' && values.password && values.password.length < 8) next.password = 'Password must be at least 8 characters.';
@@ -467,8 +470,8 @@ const selectRole = (event) => {
     <section className="ura-user-form-section" aria-labelledby="ura-user-profile-heading">
       <header className="ura-user-section-heading"><span>01 / 04</span><div><h3 id="ura-user-profile-heading">Personal details</h3><p>Who will be using this account?</p></div><BadgeOutlined aria-hidden="true" /></header>
       <div className="ura-form-grid">
-      <TextField label="Full Name" placeholder="e.g. Alex Kumar" InputLabelProps={{ shrink: true }} required value={values.name} onChange={(event) => { const name = event.target.value; setValues((current) => ({ ...current, name })); if (nameTouched) setErrors((current) => ({ ...current, name: name.trim().length < 2 ? 'Enter a name with at least 2 characters.' : '' })); }} onBlur={() => { setNameTouched(true); setErrors((current) => ({ ...current, name: values.name.trim().length < 2 ? 'Enter a name with at least 2 characters.' : '' })); }} error={(attempted || nameTouched) && !!errors.name} helperText={(attempted || nameTouched) && errors.name ? errors.name : 'Required; enter at least 2 characters.'} inputProps={{ autoComplete: 'name' }} fullWidth />
-      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={updateEmail} onBlur={() => { setEmailTouched(true); setErrors((current) => ({ ...current, email: isValidEmail(values.email) ? '' : 'Enter a valid email address, such as name@example.com.' })); }} error={(attempted || emailTouched) && !!errors.email} helperText={(attempted || emailTouched) && errors.email ? errors.email : 'Required; use an address such as name@company.com.'} inputProps={{ autoComplete: 'email' }} fullWidth />
+      <TextField label="Full Name" placeholder="e.g. Alex Kumar" InputLabelProps={{ shrink: true }} required value={values.name} onChange={(event) => { const name = event.target.value; setValues((current) => ({ ...current, name })); if (attempted || nameTouched) setErrors((current) => ({ ...current, name: validateFullName(name) })); }} onBlur={() => { setNameTouched(true); setErrors((current) => ({ ...current, name: validateFullName(values.name) })); }} error={(attempted || nameTouched) && !!errors.name} helperText={(attempted || nameTouched) && errors.name ? errors.name : 'Required; enter at least 2 characters.'} inputProps={{ autoComplete: 'name' }} fullWidth />
+      <TextField label="Email" placeholder="name@company.com" InputLabelProps={{ shrink: true }} required type="email" value={values.email} onChange={updateEmail} onBlur={() => { setEmailTouched(true); setErrors((current) => ({ ...current, email: validateUserEmail(values.email) })); }} error={(attempted || emailTouched) && !!errors.email} helperText={(attempted || emailTouched) && errors.email ? errors.email : 'Required; use an address such as name@company.com.'} inputProps={{ autoComplete: 'email' }} fullWidth />
       </div>
     </section>
     <section className="ura-user-form-section" aria-labelledby="ura-user-signin-heading">
@@ -580,6 +583,7 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   const [values, setValues] = useState(emptyRole);
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
+  const [touched, setTouched] = useState({});
   const [serverError, setServerError] = useState('');
   const [openPermissionGroups, setOpenPermissionGroups] = useState(() => new Set());
   const togglePermissionGroup = (module) => {
@@ -609,10 +613,24 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   const modules = useMemo(() => groupPermissionDefinitions(permissions), [permissions]);
   const excludedPermissionCodes = useMemo(() => getExcludedPermissionCodes(permissions), [permissions]);
   const change = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
+  const handleNameChange = (event) => {
+    const nextName = event.target.value;
+    setValues((current) => ({ ...current, name: nextName }));
+    if (attempted || touched.name) {
+      const err = validateRoleName(nextName);
+      setErrors((prev) => ({ ...prev, name: err }));
+    }
+  };
+  const handleNameBlur = () => {
+    setTouched((prev) => ({ ...prev, name: true }));
+    const err = validateRoleName(values.name);
+    setErrors((prev) => ({ ...prev, name: err }));
+  };
   const togglePermission = (code) => setValues((current) => ({ ...current, permissions: current.permissions.includes(code) ? current.permissions.filter((item) => item !== code) : [...current.permissions, code] }));
   const save = () => {
     const next = {};
-    if (!values.name.trim()) next.name = 'Role name is required.';
+    const roleNameError = validateRoleName(values.name);
+    if (roleNameError) next.name = roleNameError;
     if (editing && values.tenantId && (!/^\d+$/.test(String(values.tenantId)) || Number(values.tenantId) < 1)) next.tenantId = 'Enter a valid tenant ID.';
     setErrors(next);
     setAttempted(true);
@@ -627,7 +645,7 @@ function RoleForm({ roleId, onCancel, onSaved }) {
   return <>
     {editing && permissionsQuery.isError && <Alert severity="error" className="ura-inline-alert">Unable to load permission definitions: {getError(permissionsQuery.error)}</Alert>}
     <div className={`ura-form-grid ura-role-form-grid ${editing ? 'ura-role-edit-grid' : 'ura-role-create-grid'}`}>
-      <TextField label="Role Name" InputLabelProps={{ shrink: true }} required value={values.name} disabled={systemRole} onChange={change('name')} error={attempted && !!errors.name} helperText={systemRole ? 'System roles cannot be renamed by this API.' : attempted ? errors.name : ' '} fullWidth />
+      <TextField label="Role Name" InputLabelProps={{ shrink: true }} required value={values.name} disabled={systemRole} onChange={handleNameChange} onBlur={handleNameBlur} error={(attempted || touched.name) && !!errors.name} helperText={systemRole ? 'System roles cannot be renamed by this API.' : (attempted || touched.name) ? errors.name : ' '} fullWidth inputProps={{ maxLength: 50 }} />
       <TextField className="ura-role-description" label="Description" InputLabelProps={{ shrink: true }} value={values.description} onChange={change('description')} helperText=" " multiline minRows={2} fullWidth />
       {editing && <section className="ura-permission-assignment">
         <div className="ura-subheading">

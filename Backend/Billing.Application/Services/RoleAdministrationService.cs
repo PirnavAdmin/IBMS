@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Billing.Application.Interfaces;
 using Billing.Contracts.Administration;
 using Billing.Domain.Entities;
@@ -34,6 +35,21 @@ public class RoleAdministrationService : IRoleAdministrationService
         }
 
         var normalizedName = request.Name.Trim();
+        if (normalizedName.Length < 2)
+        {
+            return (false, "Role name must be at least 2 characters.", null);
+        }
+
+        if (normalizedName.Length > 50)
+        {
+            return (false, "Role name cannot exceed 50 characters.", null);
+        }
+
+        if (!Regex.IsMatch(normalizedName, @"^[\p{L}\p{M}0-9\s\-_]+$"))
+        {
+            return (false, "Role name can only contain letters, numbers, spaces, hyphens, and underscores.", null);
+        }
+
         var existing = await _roleRepository.GetByNameAsync(normalizedName, request.TenantId);
         if (existing != null)
         {
@@ -78,6 +94,21 @@ public class RoleAdministrationService : IRoleAdministrationService
         }
 
         var normalizedName = request.Name.Trim();
+        if (normalizedName.Length < 2)
+        {
+            return (false, "Role name must be at least 2 characters.", null);
+        }
+
+        if (normalizedName.Length > 50)
+        {
+            return (false, "Role name cannot exceed 50 characters.", null);
+        }
+
+        if (!Regex.IsMatch(normalizedName, @"^[\p{L}\p{M}0-9\s\-_]+$"))
+        {
+            return (false, "Role name can only contain letters, numbers, spaces, hyphens, and underscores.", null);
+        }
+
         if (!string.Equals(role.Name, normalizedName, StringComparison.OrdinalIgnoreCase))
         {
             if (role.IsSystemRole)

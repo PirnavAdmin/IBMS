@@ -8,6 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Add from '@mui/icons-material/Add';
 import ArrowBack from '@mui/icons-material/ArrowBack';
 import CancelOutlined from '@mui/icons-material/CancelOutlined';
+import Close from '@mui/icons-material/Close';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
 import EditOutlined from '@mui/icons-material/EditOutlined';
@@ -75,6 +76,27 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
  const [search,setSearch]=useState(initialViewState?.search||''); const [emptySearchSubmitted,setEmptySearchSubmitted]=useState(false); const searchError=searchInputError(search); const [filters,setFilters]=useState(initialViewState?.filters||{status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'}); const [applied,setApplied]=useState(initialViewState?.applied||filters); const [filtersOpen,setFiltersOpen]=useState(false); const [auditOpen,setAuditOpen]=useState(false); const [auditCategory,setAuditCategory]=useState(initialViewState?.auditCategory||auditCategories[0]); const [quotationsOpen,setQuotationsOpen]=useState(initialViewState?.quotationsOpen||false); const [sort,setSort]=useState(initialViewState?.sort||{key:'quoteNumber',direction:'asc'}); const [page,setPage]=useState(initialViewState?.page||1); const [pageSize,setPageSize]=useState(initialViewState?.pageSize||5); const [actionAnchor,setActionAnchor]=useState(null); const [actionQuote,setActionQuote]=useState(null);
  useNavbarSearch(search, setSearch, 'Search quotations');
  const auditMenuRef=useRef(null);
+ const filterMenuRef=useRef(null);
+ useExclusiveDropdown(filtersOpen, setFiltersOpen);
+ useEffect(()=>{
+  if(!filtersOpen)return undefined;
+  const closeOutside=event=>{
+   if(!filterMenuRef.current?.contains(event.target) && !event.target.closest?.('.ant-picker-dropdown, .quote-themed-select-menu')){
+    setFilters({...applied});setFiltersOpen(false);
+   }
+  };
+  const handleKeyDown=event=>{
+   if(event.key==='Escape'){
+    setFilters({...applied});setFiltersOpen(false);
+   }
+  };
+  document.addEventListener('pointerdown',closeOutside);
+  document.addEventListener('keydown',handleKeyDown);
+  return()=>{
+   document.removeEventListener('pointerdown',closeOutside);
+   document.removeEventListener('keydown',handleKeyDown);
+  };
+ },[filtersOpen,applied]);
  useExclusiveDropdown(auditOpen, setAuditOpen);
  useEffect(()=>{
    if(!auditOpen)return undefined;
@@ -101,7 +123,11 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
     <div className="quote-search-group"><label className="quote-search"><Search/><input aria-label="Search quotations" aria-invalid={Boolean(searchError)} aria-describedby={"quotation-search-hint" + (searchError || emptySearchSubmitted && !search.trim() ? " quotation-search-feedback" : "")} placeholder="Search quotations" value={search} onChange={e=>{setEmptySearchSubmitted(false);setSearch(e.target.value)}} onKeyDown={e=>{if(e.key==="Enter" && !e.nativeEvent?.isComposing){e.preventDefault();setEmptySearchSubmitted(!search.trim())}}}/></label><small className="quote-search-guidance" id="quotation-search-hint">Search by quote number, customer name, code, email or mobile.</small>{(searchError || emptySearchSubmitted && !search.trim()) && <small id="quotation-search-feedback" className={searchError ? "quote-error" : "quote-search-guidance"} role={searchError ? "alert" : "status"}>{searchError || EMPTY_SEARCH_GUIDANCE}</small>}</div>
     <button aria-label={quotationsOpen?'Hide quotations':'Show quotations'} type="button" className={`quote-btn secondary quote-running-button${quotationsOpen?' active':''}`} aria-pressed={quotationsOpen}  onClick={toggleQuotations}><DescriptionOutlined /> Quotations</button>
     <div className="quote-audit-menu" ref={auditMenuRef}><button className={`quote-btn secondary ${auditOpen ? 'active' : ''}`} aria-expanded={auditOpen} onClick={()=>{setAuditOpen(open=>!open);setFiltersOpen(false);}}><History /> Audit</button>{auditOpen&&<div className="quote-audit-dropdown">{auditCategories.map(category=><button key={category} type="button" className={auditCategory===category ? 'active' : ''} onClick={()=>{setAuditCategory(category);setAuditOpen(false);}}><span>{category}</span><small>{category==='All' ? quotations.length : quotations.filter(q=>matchesAuditCategory(q, category)).length}</small></button>)}<button type="button" className="quote-audit-back" onClick={()=>setAuditOpen(false)}><ArrowBack /> Back</button></div>}</div>
-    <div className="quote-filter-menu"><button className={`quote-btn secondary ${filtersOpen ? 'active' : ''}`} aria-expanded={filtersOpen} onClick={()=>{setFiltersOpen(open=>!open);setAuditOpen(false);}}><FilterList /> Filters</button>{filtersOpen&&<div className="quote-filter-dropdown">
+    <div className="quote-filter-menu" ref={filterMenuRef}><button className={`quote-btn secondary ${filtersOpen ? 'active' : ''}`} aria-expanded={filtersOpen} onClick={()=>{if(filtersOpen){setFilters({...applied});setFiltersOpen(false);}else{setFiltersOpen(true);setAuditOpen(false);}}}><FilterList /> Filters</button>{filtersOpen&&<div className="quote-filter-dropdown" role="region" aria-label="Quotation filters">
+     <div className="quote-filter-header">
+      <span className="quote-filter-title">Filters</span>
+      <button type="button" className="quote-filter-close" aria-label="Close filters" title="Close filters" onClick={()=>{setFilters({...applied});setFiltersOpen(false);}}><Close fontSize="small" /></button>
+     </div>
      <div className="quote-filter-grid">
       <label>Status<ThemedSelect label="Status" value={filters.status} onChange={status=>setFilters({...filters,status})} options={['All','Draft','Sent','Approved','Cancelled','Converted'].map(v=>({value:v,label:v}))}/></label>
       <label>Customer<ThemedSelect label="Customer" value={filters.customer} onChange={customer=>setFilters({...filters,customer})} options={[{value:'',label:'All customers'},...customers.map(c=>({value:c.id,label:c.name}))]}/></label>
@@ -109,7 +135,11 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
       <label>Validity<ThemedSelect label="Validity" value={filters.validity} onChange={validity=>setFilters({...filters,validity})} options={['All','Active','Expiring Soon','Expired'].map(v=>({value:v,label:v}))}/></label>
       <label>Sort by<ThemedSelect label="Sort by" value={filters.sortBy} onChange={sortBy=>setFilters({...filters,sortBy})} options={[{value:'newest',label:'Newest to Oldest'},{value:'oldest',label:'Oldest to Newest'}]}/></label>
      </div>
-     <div className="quote-filter-buttons"><button className="quote-btn primary" onClick={()=>{setApplied({...filters});setSort({key:'createdAtUtc',direction:filters.sortBy==='oldest'?'asc':'desc'});setPage(1);setQuotationsOpen(true);setFiltersOpen(false);setFilterNotice('Filters applied.'+(filters.from&&filters.to?' Date range: '+displayDate(filters.from)+' – '+displayDate(filters.to):''))}}>Apply Filters</button><button className="quote-btn secondary" onClick={()=>{const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setFilters(reset);setApplied(reset);setSort({key:'quoteNumber',direction:'asc'});setSearch('');setFilterNotice('Filters reset.')}}>Reset Filters</button></div>
+     <div className="quote-filter-buttons">
+      <button type="button" className="quote-btn secondary quote-filter-cancel" onClick={()=>{setFilters({...applied});setFiltersOpen(false);}}>Cancel</button>
+      <button type="button" className="quote-btn secondary" onClick={()=>{const reset={status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'};setFilters(reset);setApplied(reset);setSort({key:'quoteNumber',direction:'asc'});setSearch('');setFilterNotice('Filters reset.')}}>Reset Filters</button>
+      <button type="button" className="quote-btn primary" onClick={()=>{setApplied({...filters});setSort({key:'createdAtUtc',direction:filters.sortBy==='oldest'?'asc':'desc'});setPage(1);setQuotationsOpen(true);setFiltersOpen(false);setFilterNotice('Filters applied.'+(filters.from&&filters.to?' Date range: '+displayDate(filters.from)+' – '+displayDate(filters.to):''))}}>Apply Filters</button>
+     </div>
     </div>}</div>
    </div>
    {filterNotice && <p className="quote-filter-feedback" role="status">{filterNotice}</p>}

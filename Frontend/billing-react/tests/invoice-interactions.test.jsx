@@ -1369,34 +1369,14 @@ test("Invoice customer lookup adapts the shared API array to dropdown items", as
 });
 
 
-test('Invoice CSV export keeps current filters, guards duplicate clicks and discloses the 10,000-row cap', async () => {
-  const original = { get: apiClient.get, create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
-  const calls = []; const downloads = []; let finish;
-  apiClient.get = (url, options) => { calls.push({url, options}); return new Promise(resolve => {finish = resolve;}); };
-  URL.createObjectURL = () => 'blob:test-export'; URL.revokeObjectURL = () => {};
-  HTMLAnchorElement.prototype.click = function () { downloads.push(this.download); };
-  try {
-    await mock(invoiceService, {list: async () => page([]), customers: async () => ({items: []}), summary: async () => []}, async () => {
-      const mounted = await mount(<InvoiceList />, '/invoices?currency=INR&paymentState=Overdue&startDate=2026-10-01&endDate=2026-10-24');
-      try {
-        const exportButton = button('Export CSV');
-        await act(async () => { exportButton.click(); exportButton.click(); });
-        assert.equal(calls.length, 1); assert.equal(calls[0].url, '/api/v1/invoices/export');
-        assert.equal(calls[0].options.params.currency, 'INR'); assert.equal(calls[0].options.params.paymentState, 'Overdue');
-        assert.equal(calls[0].options.params.startDate, '2026-10-01T00:00:00Z');
-        assert.equal(calls[0].options.params.endDate, '2026-10-24T23:59:59.999Z');
-        assert.equal(calls[0].options.params.page, undefined);
-        assert.equal(downloads.length, 0); assert.equal(button('Exporting CSV...').disabled, true);
-        await act(async () => finish(new Blob(['InvoiceNumber,Date\n'], {type:'text/csv'}))); await flush();
-        assert.equal(downloads.length, 1); assert.match(mounted.host.textContent, /at most the first 10,000/);
-        assert.match(mounted.host.textContent, /completeness is not verified/);
-        apiClient.get = async () => { throw new Error('CSV unavailable'); };
-        await click(button('Export CSV')); await flush();
-        assert.match(mounted.host.textContent, /CSV unavailable/); assert.equal(downloads.length, 1);
-        assert.equal(button('Export CSV').disabled, false);
-      } finally { await mounted.close(); }
-    });
-  } finally { apiClient.get = original.get; URL.createObjectURL = original.create; URL.revokeObjectURL = original.revoke; HTMLAnchorElement.prototype.click = original.click; }
+test('Invoice list header does not render Export CSV button (delegated to Export Jobs)', async () => {
+  await mock(invoiceService, {list: async () => page([]), customers: async () => ({items: []}), summary: async () => []}, async () => {
+    const mounted = await mount(<InvoiceList />, '/invoices?currency=INR&paymentState=Overdue&startDate=2026-10-01&endDate=2026-10-24');
+    try {
+      assert.equal(button('Export CSV'), undefined);
+      assert.equal(Boolean(button('Refresh')), true);
+    } finally { await mounted.close(); }
+  });
 });
 
 // Exercise the real shared customer parser: editor data is nested, unlike the

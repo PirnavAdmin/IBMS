@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Billing.Contracts.Tax;
 using Billing.Domain.Entities;
 
@@ -23,18 +24,34 @@ public static class TaxValidator
         {
             errors.Add("Tax rate name is required.");
         }
+        else if (request.Name.Trim().Length < 2)
+        {
+            errors.Add("Tax rate name must be at least 2 characters.");
+        }
         else if (request.Name.Trim().Length > 128)
         {
             errors.Add("Tax rate name must not exceed 128 characters.");
+        }
+        else if (!Regex.IsMatch(request.Name.Trim(), @"^[\p{L}\p{M}0-9\s\-_()]+$"))
+        {
+            errors.Add("Tax rate name can only contain letters, numbers, spaces, hyphens, and parentheses.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Code))
         {
             errors.Add("Tax rate code is required.");
         }
+        else if (request.Code.Trim().Length < 2)
+        {
+            errors.Add("Tax rate code must be at least 2 characters.");
+        }
         else if (request.Code.Trim().Length > 64)
         {
             errors.Add("Tax rate code must not exceed 64 characters.");
+        }
+        else if (!Regex.IsMatch(request.Code.Trim(), @"^[a-zA-Z0-9\-_]+$"))
+        {
+            errors.Add("Tax rate code can only contain letters, numbers, hyphens, and underscores.");
         }
 
         if (string.IsNullOrWhiteSpace(request.TaxType) || !ValidTaxTypes.Contains(request.TaxType.Trim()))
@@ -73,16 +90,24 @@ public static class TaxValidator
         {
             if (string.IsNullOrWhiteSpace(request.Name))
                 errors.Add("Tax rate name cannot be empty.");
+            else if (request.Name.Trim().Length < 2)
+                errors.Add("Tax rate name must be at least 2 characters.");
             else if (request.Name.Trim().Length > 128)
                 errors.Add("Tax rate name must not exceed 128 characters.");
+            else if (!Regex.IsMatch(request.Name.Trim(), @"^[\p{L}\p{M}0-9\s\-_()]+$"))
+                errors.Add("Tax rate name can only contain letters, numbers, spaces, hyphens, and parentheses.");
         }
 
         if (request.Code != null)
         {
             if (string.IsNullOrWhiteSpace(request.Code))
                 errors.Add("Tax rate code cannot be empty.");
+            else if (request.Code.Trim().Length < 2)
+                errors.Add("Tax rate code must be at least 2 characters.");
             else if (request.Code.Trim().Length > 64)
                 errors.Add("Tax rate code must not exceed 64 characters.");
+            else if (!Regex.IsMatch(request.Code.Trim(), @"^[a-zA-Z0-9\-_]+$"))
+                errors.Add("Tax rate code can only contain letters, numbers, hyphens, and underscores.");
         }
 
         if (request.TaxType != null)

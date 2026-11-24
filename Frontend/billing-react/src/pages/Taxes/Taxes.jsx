@@ -27,7 +27,7 @@ import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
 import { taxService, taxError } from "../../services/taxService";
-import { TAX_TYPES, emptyTax, validateTax, calculatePreview } from "./taxModel";
+import { TAX_TYPES, emptyTax, validateTax, validateTaxName, validateTaxCode, calculatePreview } from "./taxModel";
 import "./TaxSettings.css";
 import { SettingsPageHeader } from "../Settings/SettingsPageHeader";
 import { useSearchDebounce } from "../../hooks/useSearchDebounce";
@@ -141,7 +141,7 @@ function Preview() {
             type="number"
             min="0"
             max="1000000000000"
-            step="0.01"
+            step="1"
             value={values.amount}
             onChange={change("amount")}
           />
@@ -543,12 +543,30 @@ function TaxForm({ initial, editing = false }) {
                 value={values[name]}
                 required={name !== "effectiveTo"}
                 error={errors[name]}
+                onBlur={() => {
+                  if (name === "name" && values.name) {
+                    const err = validateTaxName(values.name);
+                    if (err) setErrors((previous) => ({ ...previous, name: err }));
+                  } else if (name === "code" && values.code) {
+                    const err = validateTaxCode(values.code);
+                    if (err) setErrors((previous) => ({ ...previous, code: err }));
+                  }
+                }}
                 onChange={(event) => {
+                  const val = event.target.value;
                   setValues((previous) => ({
                     ...previous,
-                    [name]: event.target.value,
+                    [name]: val,
                   }));
-                  setErrors((previous) => ({ ...previous, [name]: undefined }));
+                  if (name === "name" && errors.name) {
+                    const err = validateTaxName(val);
+                    setErrors((previous) => ({ ...previous, name: err || undefined }));
+                  } else if (name === "code" && errors.code) {
+                    const err = validateTaxCode(val);
+                    setErrors((previous) => ({ ...previous, code: err || undefined }));
+                  } else {
+                    setErrors((previous) => ({ ...previous, [name]: undefined }));
+                  }
                 }}
                 {...(type === "number"
                   ? {

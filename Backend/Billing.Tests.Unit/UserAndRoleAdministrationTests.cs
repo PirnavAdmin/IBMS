@@ -298,10 +298,60 @@ public class UserAndRoleAdministrationTests
     }
 
     [Fact]
+    public async Task CreateRole_Rejects_Invalid_Role_Names_With_Special_Characters()
+    {
+        // 1. Role name with unsupported special characters (from ticket reproduction steps)
+        var (specialCharSuccess, specialCharMsg, _) = await _roleService.CreateRoleAsync(new CreateRoleRequest
+        {
+            Name = "sgdags%$656665^%^&%*",
+            Description = "Invalid role with symbols"
+        });
+        Assert.False(specialCharSuccess);
+        Assert.Equal("Role name can only contain letters, numbers, spaces, hyphens, and underscores.", specialCharMsg);
+
+        // 2. Pure symbol spam
+        var (symbolsSuccess, symbolsMsg, _) = await _roleService.CreateRoleAsync(new CreateRoleRequest
+        {
+            Name = "@#$%^&*()",
+            Description = "Symbols only"
+        });
+        Assert.False(symbolsSuccess);
+        Assert.Equal("Role name can only contain letters, numbers, spaces, hyphens, and underscores.", symbolsMsg);
+
+        // 3. Empty role name
+        var (emptySuccess, emptyMsg, _) = await _roleService.CreateRoleAsync(new CreateRoleRequest
+        {
+            Name = "   ",
+            Description = "Empty name"
+        });
+        Assert.False(emptySuccess);
+        Assert.Equal("Role name is required.", emptyMsg);
+
+        // 4. Single character role name
+        var (shortSuccess, shortMsg, _) = await _roleService.CreateRoleAsync(new CreateRoleRequest
+        {
+            Name = "A",
+            Description = "Short name"
+        });
+        Assert.False(shortSuccess);
+        Assert.Equal("Role name must be at least 2 characters.", shortMsg);
+
+        // 5. Valid role name with alphanumeric, spaces, hyphens, and underscores
+        var (validSuccess, _, validRole) = await _roleService.CreateRoleAsync(new CreateRoleRequest
+        {
+            Name = "Billing_Manager-01",
+            Description = "Valid custom role"
+        });
+        Assert.True(validSuccess);
+        Assert.NotNull(validRole);
+        Assert.Equal("Billing_Manager-01", validRole.Name);
+    }
+
+    [Fact]
     public async Task GetUsers_PaginationAndFilters_Work()
     {
-        await _userService.CreateUserAsync(new CreateUserRequest { Name = "Filter User 1", Email = "filter1@test.com", Password = "Password@123", Roles = new List<string> { "User" } });
-        await _userService.CreateUserAsync(new CreateUserRequest { Name = "Filter User 2", Email = "filter2@test.com", Password = "Password@123", Roles = new List<string> { "Admin" } });
+        await _userService.CreateUserAsync(new CreateUserRequest { Name = "Filter User One", Email = "filter1@test.com", Password = "Password@123", Roles = new List<string> { "User" } });
+        await _userService.CreateUserAsync(new CreateUserRequest { Name = "Filter User Two", Email = "filter2@test.com", Password = "Password@123", Roles = new List<string> { "Admin" } });
 
         var (users, total) = await _userService.GetUsersAsync(new UserQueryParameters
         {
@@ -379,5 +429,43 @@ public class UserAndRoleAdministrationTests
         var (lastAdminDeleteSuccess, lastAdminDeleteMessage) = await _userService.DeleteUserAsync(tenantAdmin.Id, callerUserId: 999);
         Assert.False(lastAdminDeleteSuccess);
         Assert.Contains("last active Tenant Admin", lastAdminDeleteMessage);
+    }
+
+    [Fact]
+    public async Task CreateUser_Rejects_Invalid_Special_Characters_In_Email()
+    {
+        // 1. Ticket reproduction sample: varshitha$%^$^^&145tm@gmail.com
+        var (invalidEmailSuccess, invalidEmailMsg, _) = await _userService.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "Varshitha M",
+            Email = "varshitha$%^$^^&145tm@gmail.com",
+            Password = "Password@123",
+            Roles = new List<string> { "User" }
+        });
+        Assert.False(invalidEmailSuccess);
+        Assert.Equal("Special characters are not allowed in the email address format.", invalidEmailMsg);
+
+        // 2. Pure symbols in local part
+        var (symbolSuccess, symbolMsg, _) = await _userService.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "Symbol User",
+            Email = "$%^&*@gmail.com",
+            Password = "Password@123",
+            Roles = new List<string> { "User" }
+        });
+        Assert.False(symbolSuccess);
+        Assert.Equal("Special characters are not allowed in the email address format.", symbolMsg);
+
+        // 3. Valid email succeeds
+        var (validSuccess, _, validUser) = await _userService.CreateUserAsync(new CreateUserRequest
+        {
+            Name = "Valid User",
+            Email = "valid.user+test@company.com",
+            Password = "Password@123",
+            Roles = new List<string> { "User" }
+        });
+        Assert.True(validSuccess);
+        Assert.NotNull(validUser);
+        Assert.Equal("valid.user+test@company.com", validUser.Email);
     }
 }

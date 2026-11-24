@@ -25,7 +25,6 @@ import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { invoiceService, invoiceQuery, invoiceError, INVOICE_STATUSES } from "./services/invoiceService";
-import { downloadInvoiceCsv } from './services/invoiceExport';
 import { billingCurrencyGroups, CURRENCY_CODES, getCurrencySymbol } from '../../utils/currencies';
 import { useRegionalSettings } from '../../services/regionalSettingsService';
 import { InvoiceActions } from "./components/InvoiceActions";
@@ -106,10 +105,7 @@ export function InvoiceList() {
   const [paymentMenuMaxHeight, setPaymentMenuMaxHeight] = useState(320);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customer, setCustomer] = useState(null);
-  const exportLock = useRef(false);
-  const [exporting, setExporting] = useState(false);
   const [manualRefreshing, setManualRefreshing] = useState(false);
-  const [exportMessage, setExportMessage] = useState(null);
   const user = useInvoiceUser();
   const { selectedCountries = [] } = useRegionalSettings();
 
@@ -216,21 +212,6 @@ export function InvoiceList() {
     const lastPage = Math.max(1, Math.ceil(list.data.totalCount / filters.pageSize));
     if (filters.page > lastPage) setFilters(previous => ({ ...previous, page: lastPage }));
   }, [canLoadList, list.isSuccess, list.data, filters.page, filters.pageSize]);
-  const exportCsv = async () => {
-    if (exportLock.current || !user.permissions.view || invalidDates || searchError) return;
-    exportLock.current = true;
-    setExporting(true);
-    setExportMessage(null);
-    try {
-      await downloadInvoiceCsv(invoiceQuery({ ...filters, search: querySearch }));
-      setExportMessage({ severity: 'info', text: 'CSV downloaded. The server exports at most the first 10,000 matching invoices; export completeness is not verified. Refine filters for larger result sets.' });
-    } catch (error) {
-      setExportMessage({ severity: 'error', text: invoiceError(error) });
-    } finally {
-      exportLock.current = false;
-      setExporting(false);
-    }
-  };
   return (
     <InvoiceShell
       title="Invoices"
@@ -283,9 +264,6 @@ export function InvoiceList() {
               ))}
             </Select>
           </div>
-          <Button variant="outlined" disabled={exporting || !user.permissions.view || Boolean(invalidDates) || Boolean(searchError)} onClick={exportCsv}>
-            {exporting ? 'Exporting CSV...' : 'Export CSV'}
-          </Button>
           <Button
             variant="outlined"
             startIcon={<Refresh className={refreshing ? 'bd-spin' : undefined} />}
@@ -843,7 +821,6 @@ export function InvoiceList() {
           onPageSizeChange={(pageSize) => change("pageSize", pageSize)}
         />}
       </section>
-      {exportMessage && <Alert severity={exportMessage.severity} role="status">{exportMessage.text}</Alert>}
     </InvoiceShell>
   );
 }

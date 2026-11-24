@@ -1,8 +1,14 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Billing.Contracts.Tax;
 
 public class UpdateTaxRateRequest
 {
+    [StringLength(128, MinimumLength = 2, ErrorMessage = "Tax rate name must be between 2 and 128 characters.")]
+    [RegularExpression(@"^[\p{L}\p{M}0-9\s\-_()]+$", ErrorMessage = "Tax rate name can only contain letters, numbers, spaces, hyphens, and parentheses.")]
     public string? Name { get; set; }
+    [StringLength(64, MinimumLength = 2, ErrorMessage = "Tax rate code must be between 2 and 64 characters.")]
+    [RegularExpression(@"^[a-zA-Z0-9\-_]+$", ErrorMessage = "Tax rate code can only contain letters, numbers, hyphens, and underscores.")]
     public string? Code { get; set; }
     public string? TaxType { get; set; }
     public decimal? Rate { get; set; }

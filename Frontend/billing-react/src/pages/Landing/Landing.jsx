@@ -42,8 +42,8 @@ const PAYMENT_ICONS = {
 
 const CHANNEL_ICONS = {
   whatsapp: <WhatsApp sx={{ fontSize: 24, color: '#25d366' }} />,
-  email: <Email sx={{ fontSize: 24, color: '#ec4899' }} />,
-  sms: <Smartphone sx={{ fontSize: 24, color: '#8b5cf6' }} />,
+  email: <Email sx={{ fontSize: 24, color: '#9A4F2F' }} />,
+  sms: <Smartphone sx={{ fontSize: 24, color: '#74371F' }} />,
 };
 
 export const Landing = () => {
@@ -77,6 +77,7 @@ export const Landing = () => {
     <Box id="top" className={`landing-root ${isExiting ? 'page-exit-active' : 'page-enter-active'}`}>
       {/* Dynamic Fintech Ambient Background */}
       <div className="landing-bg-container" aria-hidden="true">
+        <div className="landing-bg-photo" />
         <div className="landing-bg-grid" />
         <div className="landing-bg-orb orb-primary" />
         <div className="landing-bg-orb orb-cyan" />
@@ -281,15 +282,15 @@ export const Landing = () => {
 
               <div className="feature-points-list">
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Sub-second reconciliation with 99.99% ledger accuracy</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Instant UPI Dynamic QR code printed on every bill</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Automatic payment receipt sent immediately upon settlement</span>
                 </div>
               </div>
@@ -303,7 +304,7 @@ export const Landing = () => {
                   <div className="inv-badge-group">
                     <span className="inv-label">Invoice #8942</span>
                     <span className="inv-verified-pill">
-                      <CheckCircle sx={{ fontSize: 14, color: '#10b981' }} />
+                      <CheckCircle sx={{ fontSize: 14, color: '#236C39' }} />
                       <span>Ready to Collect</span>
                     </span>
                   </div>
@@ -369,15 +370,15 @@ export const Landing = () => {
 
               <div className="feature-points-list">
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>WhatsApp Business API delivery with branded invoice cards</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Automated payment reminders reduce overdue bills by 40%</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Track when the recipient opens, downloads, or pays the invoice</span>
                 </div>
               </div>
@@ -402,15 +403,15 @@ export const Landing = () => {
 
               <div className="feature-points-list">
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Sub-second matching of bank credits directly to unpaid invoices</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>One-click export of GSTR-1, GSTR-3B, and financial audit files</span>
                 </div>
                 <div className="point-item">
-                  <CheckCircle sx={{ color: '#10b981', fontSize: 20 }} />
+                  <CheckCircle sx={{ color: '#236C39', fontSize: 20 }} />
                   <span>Eliminate revenue leakage and manual bank statement cross-checking</span>
                 </div>
               </div>

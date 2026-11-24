@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Billing.Contracts.Administration;
 
 public class UserDto
@@ -24,7 +26,11 @@ public class UserDto
 
 public class CreateUserRequest
 {
+    [Required(ErrorMessage = "Full name is required.")]
     public string Name { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "A valid email address is required.")]
+    [RegularExpression(@"^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$", ErrorMessage = "Special characters are not allowed in the email address format.")]
     public string Email { get; set; } = string.Empty;
     public string? Password { get; set; }
     public int? TenantId { get; set; } = 1;
@@ -41,6 +47,8 @@ public class CreateUserRequest
 public class UpdateUserRequest
 {
     public string Name { get; set; } = string.Empty;
+
+    [RegularExpression(@"^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$", ErrorMessage = "Special characters are not allowed in the email address format.")]
     public string Email { get; set; } = string.Empty;
     public string? Password { get; set; }
     public int? TenantId { get; set; }

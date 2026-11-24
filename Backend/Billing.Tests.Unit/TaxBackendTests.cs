@@ -121,6 +121,82 @@ public class TaxBackendTests
     }
 
     [Fact]
+    public void CreateTaxRate_SpecialCharactersInName_FailsValidation()
+    {
+        // 1. Ticket reproduction sample: dyediuwy7373872839$#$^^%$7
+        var req = new CreateTaxRateRequest
+        {
+            Name = "dyediuwy7373872839$#$^^%$7",
+            Code = "TX-01",
+            TaxType = "GST",
+            Rate = 18.00m
+        };
+
+        var errors = TaxValidator.ValidateCreateRate(req);
+        Assert.Contains(errors, e => e.Contains("can only contain letters, numbers, spaces, hyphens, and parentheses"));
+
+        // 2. Pure symbols
+        var symbolReq = new CreateTaxRateRequest
+        {
+            Name = "@#$%^&*()",
+            Code = "TX-02",
+            TaxType = "GST",
+            Rate = 18.00m
+        };
+        var symbolErrors = TaxValidator.ValidateCreateRate(symbolReq);
+        Assert.Contains(symbolErrors, e => e.Contains("can only contain letters, numbers, spaces, hyphens, and parentheses"));
+
+        // 3. Valid tax rate name passes
+        var validReq = new CreateTaxRateRequest
+        {
+            Name = "GST 18 (Standard)",
+            Code = "TX-03",
+            TaxType = "GST",
+            Rate = 18.00m
+        };
+        var validErrors = TaxValidator.ValidateCreateRate(validReq);
+        Assert.DoesNotContain(validErrors, e => e.Contains("name"));
+    }
+
+    [Fact]
+    public void CreateTaxRate_SpecialCharactersInCode_FailsValidation()
+    {
+        // 1. Ticket reproduction sample: GST11.@$$
+        var req = new CreateTaxRateRequest
+        {
+            Name = "SGST",
+            Code = "GST11.@$$",
+            TaxType = "SGST",
+            Rate = 9.00m
+        };
+
+        var errors = TaxValidator.ValidateCreateRate(req);
+        Assert.Contains(errors, e => e.Contains("can only contain letters, numbers, hyphens, and underscores"));
+
+        // 2. Pure symbols
+        var symbolReq = new CreateTaxRateRequest
+        {
+            Name = "SGST",
+            Code = "@#$%^&*()",
+            TaxType = "SGST",
+            Rate = 9.00m
+        };
+        var symbolErrors = TaxValidator.ValidateCreateRate(symbolReq);
+        Assert.Contains(symbolErrors, e => e.Contains("can only contain letters, numbers, hyphens, and underscores"));
+
+        // 3. Valid tax rate code passes
+        var validReq = new CreateTaxRateRequest
+        {
+            Name = "SGST",
+            Code = "GST_11-A",
+            TaxType = "SGST",
+            Rate = 9.00m
+        };
+        var validErrors = TaxValidator.ValidateCreateRate(validReq);
+        Assert.DoesNotContain(validErrors, e => e.Contains("code"));
+    }
+
+    [Fact]
     public void CreateTaxRate_InvalidTaxType_FailsValidation()
     {
         var req = new CreateTaxRateRequest

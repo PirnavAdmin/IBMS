@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { printDocument } from '../src/utils/printDocument';
 import { buildCustomerListReport, buildCustomerDetailsReport } from '../src/pages/Customers/utils/customerReports';
 import { buildProductListReport } from '../src/pages/Products/utils/productListReport';
-import { buildPaymentListReport, printPaymentDocument } from '../src/pages/Payments/paymentReports';
+import { buildPaymentListReport, buildPaymentReceiptReport, printPaymentDocument } from '../src/pages/Payments/paymentReports';
 
 test('all reports print in an iframe without opening a tab or changing the route', () => {
   const original=global.window; const calls=[]; let afterPrint; let frame;
@@ -54,3 +54,68 @@ test('print entry points stay on the current page and use Print labels',()=>{
   assert.doesNotMatch(payments,/navigate\([^\n]*print=true/);
   assert.match(payments,/getPaymentById\(p.id\)/);
 });
+
+test('Payments reports do not duplicate title in document header and content', () => {
+  const samplePayments = [
+    {
+      id: 'PAY-2026-0053',
+      paymentNumber: 'PAY-2026-0053',
+      paymentDate: '2026-11-13T00:00:00Z',
+      customerName: 'techslang',
+      invoiceDisplay: 'INV-2026-11-000023',
+      methodDisplay: 'UPI',
+      amount: 50.0,
+      allocatedAmount: 50.0,
+      currency: 'INR',
+      status: 'Completed',
+    },
+  ];
+  const listReport = buildPaymentListReport(samplePayments);
+  assert.match(listReport, /<title><\/title>/);
+  assert.doesNotMatch(listReport, /<title>Payments<\/title>/);
+  assert.match(listReport, /<h1>Payments<\/h1>/);
+  assert.equal((listReport.match(/<h1>Payments<\/h1>/g) || []).length, 1);
+
+  const sampleReceipt = {
+    id: 'PAY-2026-0053',
+    paymentNumber: 'PAY-2026-0053',
+    paymentDate: '2026-11-13T00:00:00Z',
+    customerName: 'techslang',
+    methodDisplay: 'UPI',
+    status: 'Completed',
+    amount: 50.0,
+    allocatedAmount: 50.0,
+    currency: 'INR',
+    createdBy: 'admin',
+    createdAtUtc: '2026-11-13T08:30:00Z',
+  };
+  const receiptReport = buildPaymentReceiptReport(sampleReceipt);
+  assert.match(receiptReport, /<title><\/title>/);
+  assert.doesNotMatch(receiptReport, /<title>Payment Receipt<\/title>/);
+  assert.match(receiptReport, /<h1>Payment Receipt<\/h1>/);
+  assert.equal((receiptReport.match(/<h1>Payment Receipt<\/h1>/g) || []).length, 1);
+});
+
+test('Products & Services reports do not duplicate title in document header and content', () => {
+  const sampleProducts = [
+    {
+      productCode: 'PRD-24',
+      name: 'laptop dell125',
+      type: 'Service',
+      category: 'Software Installation',
+      unit: 'Set',
+      price: 5500.0,
+      currency: 'SGD',
+      taxCategory: 'GST 5%',
+      hsnSac: '987456',
+      status: 'Active',
+    },
+  ];
+  const report = buildProductListReport(sampleProducts);
+  assert.match(report, /<title><\/title>/);
+  assert.doesNotMatch(report, /<title>Products/);
+  assert.match(report, /<h1>Products &amp; Services<\/h1>/);
+  assert.equal((report.match(/<h1>Products &amp; Services<\/h1>/g) || []).length, 1);
+});
+
+

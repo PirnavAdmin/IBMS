@@ -54,6 +54,7 @@ import {
   useCustomerStatus,
   useCustomerSummary,
 } from "../hooks/useCustomers";
+import { validateDeactivationReason } from "../validation/customerValidation";
 
 import { customerCapabilities } from "../api/customerContract";
 import { useSearchCommit } from "../../../hooks/useSearchDebounce";
@@ -307,6 +308,7 @@ export function CustomerListPage() {
   const [confirm, setConfirm] = useState(null);
   const [inactiveDetails, setInactiveDetails] = useState(null);
   const [reason, setReason] = useState("");
+  const [reasonTouched, setReasonTouched] = useState(false);
   const [outstandingDetails, setOutstandingDetails] = useState(null);
   const cardView = params.outstanding === "Has Outstanding" ? "outstanding" : params.status || "total";
   const customerTableRef = useRef(null);
@@ -690,6 +692,7 @@ export function CustomerListPage() {
                           onDeactivate={(c) => {
                             mutation.reset();
                             setReason("");
+                            setReasonTouched(false);
                             setConfirm(c);
                           }}
                           onViewReason={(c) => setInactiveDetails(c)}
@@ -768,12 +771,37 @@ export function CustomerListPage() {
             The customer will become inactive. Existing invoices, payments and
             historical records will be preserved.
           </p>
-          <TextField autoFocus fullWidth required multiline minRows={2} margin="normal" placeholder="Reason for deactivation" value={reason} inputProps={{ maxLength: 500, "aria-label": "Reason for deactivation" }} onChange={(event) => setReason(event.target.value)} />
-          {mutation.isError && (
-            <Alert severity="error">
-              Unable to update customer. {mutation.error?.message}
-            </Alert>
-          )}
+          {(() => {
+            const deactivationValidation = validateDeactivationReason(reason);
+            const reasonError = (reasonTouched || reason.length > 0) && !deactivationValidation.valid ? deactivationValidation.error : "";
+            return (
+              <>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  required
+                  multiline
+                  minRows={2}
+                  margin="normal"
+                  placeholder="Reason for deactivation"
+                  value={reason}
+                  inputProps={{ maxLength: 500, "aria-label": "Reason for deactivation" }}
+                  error={Boolean(reasonError)}
+                  helperText={reasonError}
+                  onChange={(event) => {
+                    setReason(event.target.value);
+                    setReasonTouched(true);
+                  }}
+                  onBlur={() => setReasonTouched(true)}
+                />
+                {mutation.isError && (
+                  <Alert severity="error">
+                    Unable to update customer. {mutation.error?.message}
+                  </Alert>
+                )}
+              </>
+            );
+          })()}
         </DialogContent>
         <DialogActions>
           <Button
@@ -784,9 +812,11 @@ export function CustomerListPage() {
           </Button>
           <Button
             variant="contained"
-            disabled={mutation.isPending || !reason.trim()}
+            disabled={mutation.isPending || !validateDeactivationReason(reason).valid}
             onClick={() => {
-              if (!confirm || statusLock.current) return;
+              setReasonTouched(true);
+              const validation = validateDeactivationReason(reason);
+              if (!confirm || statusLock.current || !validation.valid) return;
               statusLock.current = true;
               mutation.mutate({ ...confirm, reason: reason.trim() }, {
                 onSuccess: () => {

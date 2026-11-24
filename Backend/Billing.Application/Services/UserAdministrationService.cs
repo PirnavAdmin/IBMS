@@ -44,14 +44,16 @@ public class UserAdministrationService : IUserAdministrationService
 
     public async Task<(bool Success, string Message, UserDto? User)> CreateUserAsync(CreateUserRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length < 2)
+        var nameValidation = ValidateFullName(request.Name);
+        if (!nameValidation.IsValid)
         {
-            return (false, "A valid user name (at least 2 characters) is required.", null);
+            return (false, nameValidation.ErrorMessage, null);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Email) || !Regex.IsMatch(request.Email.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        var emailValidation = ValidateEmailAddress(request.Email);
+        if (!emailValidation.IsValid)
         {
-            return (false, "A valid email address is required.", null);
+            return (false, emailValidation.ErrorMessage, null);
         }
 
         var normalizedEmail = request.Email.Trim().ToLower();
@@ -174,11 +176,22 @@ public class UserAdministrationService : IUserAdministrationService
 
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
+            var nameValidation = ValidateFullName(request.Name);
+            if (!nameValidation.IsValid)
+            {
+                return (false, nameValidation.ErrorMessage, null);
+            }
             user.Name = request.Name.Trim();
         }
 
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
+            var emailValidation = ValidateEmailAddress(request.Email);
+            if (!emailValidation.IsValid)
+            {
+                return (false, emailValidation.ErrorMessage, null);
+            }
+
             var normalizedEmail = request.Email.Trim().ToLower();
             if (!string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
             {
@@ -497,5 +510,78 @@ public class UserAdministrationService : IUserAdministrationService
             CreatedAtUtc = user.CreatedAtUtc,
             UpdatedAtUtc = user.UpdatedAtUtc
         };
+    }
+    private static (bool IsValid, string ErrorMessage) ValidateFullName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length < 2)
+        {
+            return (false, "Enter a name with at least 2 characters.");
+        }
+
+        var trimmed = name.Trim();
+        if (trimmed.Length > 100)
+        {
+            return (false, "Full Name cannot exceed 100 characters.");
+        }
+
+        var hasDigits = trimmed.Any(char.IsDigit);
+        var hasSpecialChars = Regex.IsMatch(trimmed, @"[^\p{L}\p{M}\d\s.'\u2019\u02bc\p{Pd}-]");
+        var startsWithLetter = Regex.IsMatch(trimmed, @"^[\p{L}\p{M}]");
+
+        if (hasDigits && (hasSpecialChars || (!startsWithLetter && Regex.IsMatch(trimmed, @"[\p{L}\p{M}]"))))
+        {
+            return (false, "Full Name should not contain numbers or special characters.");
+        }
+
+        if (hasDigits && hasSpecialChars)
+        {
+            return (false, "Full Name should not contain numbers or special characters.");
+        }
+
+        if (hasDigits)
+        {
+            return (false, "Full Name must not contain numbers.");
+        }
+
+        if (hasSpecialChars || !startsWithLetter)
+        {
+            return (false, "Full Name should not contain special characters.");
+        }
+
+        return (true, string.Empty);
+    }
+
+    public static (bool IsValid, string ErrorMessage) ValidateEmailAddress(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return (false, "A valid email address is required.");
+        }
+
+        var trimmed = email.Trim();
+        var atIndex = trimmed.IndexOf('@');
+        if (atIndex <= 0 || atIndex != trimmed.LastIndexOf('@'))
+        {
+            return (false, "A valid email address is required.");
+        }
+
+        var localPart = trimmed.Substring(0, atIndex);
+
+        if (Regex.IsMatch(localPart, @"[^a-zA-Z0-9._+-]"))
+        {
+            return (false, "Special characters are not allowed in the email address format.");
+        }
+
+        if (localPart.StartsWith('.') || localPart.EndsWith('.') || localPart.Contains(".."))
+        {
+            return (false, "Special characters are not allowed in the email address format.");
+        }
+
+        if (!Regex.IsMatch(trimmed, @"^[a-zA-Z0-9]+([._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$"))
+        {
+            return (false, "A valid email address is required.");
+        }
+
+        return (true, string.Empty);
     }
 }

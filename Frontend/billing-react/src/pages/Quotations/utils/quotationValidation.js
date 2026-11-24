@@ -10,7 +10,7 @@ export function validateQuotation(form, customers) {
   }
   if (!form.quotationDate || !Number.isFinite(Date.parse(form.quotationDate))) errors.quotationDate = 'Quotation date is required.';
   if (!form.validUntil || !Number.isFinite(Date.parse(form.validUntil))) errors.validUntil = 'Valid until date is required.';
-  if (form.quotationDate && form.validUntil && form.validUntil < form.quotationDate) errors.validUntil = 'Valid until must be on or after quotation date.';
+  if (form.quotationDate && form.validUntil && form.validUntil < form.quotationDate) errors.validUntil = 'Valid Until date must be greater than or equal to the Quotation Date.';
   if (!form.items?.length) errors.items = 'Add at least one quotation item.';
   form.items?.forEach((item, index) => {
     const key = `item-${index}`;
