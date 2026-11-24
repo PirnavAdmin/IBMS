@@ -273,7 +273,7 @@ public class ExportJobService : IExportJobService
                             note.InvoiceNumber,
                             note.CustomerId,
                             note.CustomerName,
-                            CreditDate = note.CreditDate.ToString("yyyy-MM-dd"),
+                            CreditDate = $"=\"{note.CreditDate:dd/MM/yyyy}\"",
                             note.Type,
                             note.Subtotal,
                             note.TaxAmount,
@@ -283,7 +283,7 @@ public class ExportJobService : IExportJobService
                             note.Status,
                             note.Reason,
                             note.Currency,
-                            CreatedAtUtc = note.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                            CreatedAtUtc = $"=\"{note.CreatedAtUtc:dd/MM/yyyy HH:mm:ss}\""
                         });
                         recordCount = allCreditNotes.Count;
                         fileBytes = GenerateRecordExport(rows, job.ExportFormat);
@@ -318,8 +318,8 @@ public class ExportJobService : IExportJobService
                             quotation.CustomerId,
                             CustomerName = quotation.Customer?.Name,
                             CustomerEmail = quotation.Customer?.Email,
-                            QuotationDate = quotation.QuotationDate.ToString("yyyy-MM-dd"),
-                            ValidUntil = quotation.ValidUntil.ToString("yyyy-MM-dd"),
+                            QuotationDate = $"=\"{quotation.QuotationDate:dd/MM/yyyy}\"",
+                            ValidUntil = $"=\"{quotation.ValidUntil:dd/MM/yyyy}\"",
                             quotation.Reference,
                             Status = quotation.Status.ToString(),
                             quotation.Subtotal,
@@ -329,7 +329,7 @@ public class ExportJobService : IExportJobService
                             quotation.TotalAmount,
                             ItemCount = quotation.Items?.Count ?? 0,
                             quotation.ConvertedInvoiceId,
-                            CreatedAtUtc = quotation.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                            CreatedAtUtc = $"=\"{quotation.CreatedAtUtc:dd/MM/yyyy HH:mm:ss}\""
                         });
                         recordCount = allQuotations.Count;
                         fileBytes = GenerateRecordExport(rows, job.ExportFormat);
@@ -373,7 +373,7 @@ public class ExportJobService : IExportJobService
                             product.DiscountAllowed,
                             product.DiscountPercent,
                             product.Status,
-                            CreatedAtUtc = product.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                            CreatedAtUtc = $"=\"{product.CreatedAtUtc:dd/MM/yyyy HH:mm:ss}\""
                         });
                         recordCount = allProducts.Count;
                         fileBytes = GenerateRecordExport(rows, job.ExportFormat);
@@ -632,10 +632,11 @@ public class ExportJobService : IExportJobService
         sb.AppendLine("Id,PaymentNumber,PaymentDate,CustomerId,Amount,Currency,AllocatedAmount,Method,Reference,Status");
         foreach (var p in payments)
         {
+            var paymentDateStr = $"=\"{p.PaymentDate:dd/MM/yyyy}\"";
             sb.AppendLine(string.Join(",",
                 p.Id,
                 EscapeCsv(p.PaymentNumber),
-                ExcelTextDate(p.PaymentDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)),
+                p.PaymentDate.ToString("yyyy-MM-dd"),
                 p.CustomerId.ToString(),
                 p.Amount.ToString("F2", CultureInfo.InvariantCulture),
                 EscapeCsv(p.Currency),
@@ -681,7 +682,7 @@ public class ExportJobService : IExportJobService
                 EscapeCsv(c.CompanyName ?? ""),
                 EscapeCsv(c.TaxId ?? ""),
                 EscapeCsv(c.Status),
-                ExcelTextDate(c.CreatedAtUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture))
+                c.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
             ));
         }
 
@@ -711,7 +712,7 @@ public class ExportJobService : IExportJobService
         {
             sb.AppendLine(string.Join(",",
                 a.Id,
-                ExcelTextDate(a.Timestamp.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)),
+                a.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"),
                 EscapeCsv(a.Action),
                 EscapeCsv(a.EntityName),
                 EscapeCsv(a.EntityId),
@@ -758,6 +759,18 @@ public class ExportJobService : IExportJobService
     {
         if (string.IsNullOrEmpty(value)) return "";
 
+        // If already formatted as an Excel string formula (e.g., ="23/11/2026"), pass through directly
+        if (value.StartsWith("=\"") && value.EndsWith("\""))
+        {
+            return value;
+        }
+
+        // Auto-detect Date/DateTime strings so they never render as '########' in Excel
+        if (IsDateOrTimestampString(value, out var formattedDateFormula))
+        {
+            return formattedDateFormula;
+        }
+
         var sanitized = value;
         var trimmed = sanitized.TrimStart(' ', '\t', '\r', '\n');
         var firstChar = sanitized[0];
@@ -776,6 +789,45 @@ public class ExportJobService : IExportJobService
             return $"\"{sanitized.Replace("\"", "\"\"")}\"";
         }
         return sanitized;
+    }
+
+    private static bool IsDateOrTimestampString(string value, out string formatted)
+    {
+        formatted = string.Empty;
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 8 || value.Length > 35)
+            return false;
+
+        if (!value.Contains('-') && !value.Contains('/') && !value.Contains(':'))
+            return false;
+
+        string[] formats =
+        {
+            "yyyy-MM-dd",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ssZ",
+            "yyyy-MM-ddTHH:mm:ss.fffZ",
+            "dd-MM-yyyy",
+            "dd-MM-yyyy HH:mm:ss",
+            "dd/MM/yyyy",
+            "dd/MM/yyyy HH:mm:ss"
+        };
+
+        if (DateTime.TryParseExact(value, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ||
+            (value.Length >= 10 && (value[4] == '-' || value[2] == '-' || value[2] == '/') && DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out dt)))
+        {
+            if (value.Length <= 10 && !value.Contains(':'))
+            {
+                formatted = $"=\"{dt:dd/MM/yyyy}\"";
+            }
+            else
+            {
+                formatted = $"=\"{dt:dd/MM/yyyy HH:mm:ss}\"";
+            }
+            return true;
+        }
+
+        return false;
     }
 
     // CSV has no column-width or cell-type metadata. Excel otherwise converts these

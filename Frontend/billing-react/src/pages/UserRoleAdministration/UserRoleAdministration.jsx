@@ -253,7 +253,7 @@ function UserList({ onCreate, onOpenUser, onEditUser, onToggleStatus, onDeleteUs
     placeholderData: (previous) => previous,
   });
   const users = usersQuery.data?.items ?? [];
-  const roles = rolesQuery.data ?? [];
+  const roles = (rolesQuery.data ?? []).filter((item) => isAssignableRole(recordValue(item, 'name', 'Name')));
   const dataError = usersQuery.isError || rolesQuery.isError;
   const errorQuery = usersQuery.isError ? usersQuery : rolesQuery;
   const changeSearch = (event) => { setSearchInput(event.target.value); setPage(0); };
