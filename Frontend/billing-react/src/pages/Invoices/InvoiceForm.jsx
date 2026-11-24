@@ -1135,7 +1135,6 @@ export function InvoiceForm() {
                 <div className="invoice-section-heading">
                   <div>
                     <h2>Discounts &amp; additional charges</h2>
-                    <p>Configure invoice-level discounts and applicable charges.</p>
                   </div>
                   <Button
                     size="small"
@@ -1250,13 +1249,6 @@ export function InvoiceForm() {
                       Apply charge
                     </Button>
                   </div>
-                  <TextField
-                    placeholder="Additional Charges Total"
-                    value={form.chargesAmount}
-                    InputProps={{ readOnly: true }}
-                    inputProps={{ "aria-label": "Additional Charges Total" }}
-                    helperText={`Total additional charges applied in ${form.currency}.`}
-                  />
                 </div>
               </section>
               <section className="invoice-panel invoice-notes-panel">

@@ -108,7 +108,7 @@ export function InvoiceActions({ invoice, permissions }) {
       return;
     }
     if (action === "credit") {
-      navigate("/credit-notes/new", { state: { invoiceId: invoice.id } });
+      navigate(`/credit-notes/new?invoiceId=${encodeURIComponent(invoice.id)}`, { state: { invoiceId: invoice.id } });
       return;
     }
     if (!lock.current.acquire()) return;

@@ -110,6 +110,7 @@ export function InvoiceDocument({ invoice, calculation, customer }) {
           invoice={invoice}
           calculation={calculation}
           currency={currency}
+          readOnlyStyle
         />
       </div>
     </article>

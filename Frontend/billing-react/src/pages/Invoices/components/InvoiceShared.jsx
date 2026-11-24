@@ -115,8 +115,9 @@ export function InvoiceValues({ values }) {
     </dl>
   );
 }
-export function InvoiceTotals({ invoice, calculation, currency }) {
+export function InvoiceTotals({ invoice, calculation, currency, readOnlyStyle = false }) {
   const isCalc = Boolean(calculation);
+  const hasReadOnlyStyle = isCalc || readOnlyStyle;
   const activeCurrency = currency || invoice?.currency || "INR";
   const formatSummaryAmount = value => value == null || value === "" ? "N/A" : money(value, activeCurrency);
   const calculatedDiscount = (Number(calculation?.totalLineDiscounts) || 0) + (Number(calculation?.invoiceDiscountAmount) || 0);
@@ -148,16 +149,17 @@ export function InvoiceTotals({ invoice, calculation, currency }) {
   const grandTotal = isCalc ? calculation.grandTotal : invoice?.totalAmount;
 
   return (
-    <section className="invoice-total-panel">
+    <section className={`invoice-total-panel${hasReadOnlyStyle ? " invoice-total-panel-calculated" : ""}`}>
       <div className="invoice-total-header">
         <h2>Financial Summary</h2>
         <span className="invoice-preview-tag">
           {isCalc ? "Authoritative Preview" : "Persisted totals"}
         </span>
       </div>
+      {isCalc && <p className="invoice-calculated-note">Calculated automatically from line items, taxes and adjustments.</p>}
       <dl className="invoice-summary-list">
         {baseRows.map(([label, value]) => (
-          <div key={label} className="invoice-summary-row">
+          <div key={label} className={`invoice-summary-row${hasReadOnlyStyle && label !== "Discount" ? " invoice-calculated-row" : ""}`}>
             <dt>{label}</dt>
             <dd>{formatSummaryAmount(value)}</dd>
           </div>

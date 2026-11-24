@@ -57,11 +57,11 @@ export function InvoicePreview() {
       subtitle="Review the saved invoice. Open the server PDF for the final branding and document snapshot."
       actions={
         <>
-          <Button component={Link} to={`/invoices/${id}`} variant="outlined" className="workspace-back-button" startIcon={<ArrowBack />}>
+          <Button component={Link} to={`/invoices/${id}`} variant="outlined" className="workspace-back-button invoice-preview-action" startIcon={<ArrowBack />}>
             Back to invoice
           </Button>
           {invoice.data?.status === "Draft" && (
-            <Button variant="outlined" component={Link} to={`/invoices/${id}/edit`}>
+            <Button className="invoice-preview-action" variant="outlined" component={Link} to={`/invoices/${id}/edit`}>
               Edit draft
             </Button>
           )}

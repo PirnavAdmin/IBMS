@@ -72,6 +72,7 @@
 .payments-page .payment-list-table .MuiTableRow-root > :nth-child(7) { width: 10%; }
 .payments-page .payment-list-table .MuiTableRow-root > :nth-child(8) { width: 11%; }
 .payments-page .payment-list-table .MuiTableCell-head { vertical-align: middle; line-height: 1.25; white-space: normal; overflow-wrap: normal; }
+.payments-page .payment-list-table :is(.MuiTableCell-head, .MuiTableCell-body):nth-child(4) { text-align: center; }
 .payments-page .payment-list-table .MuiTableCell-head:last-child { text-align: center; white-space: nowrap; }
 .payments-page .payment-list-table .MuiTableCell-head:last-child { overflow: visible; text-overflow: clip; }
 .payments-page .payment-list-table .MuiTableCell-head .MuiTableSortLabel-root { display: inline-flex; align-items: center; gap: 3px; white-space: normal; }

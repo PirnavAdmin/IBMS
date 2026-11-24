@@ -75,7 +75,19 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
  const [search,setSearch]=useState(initialViewState?.search||''); const [emptySearchSubmitted,setEmptySearchSubmitted]=useState(false); const searchError=searchInputError(search); const [filters,setFilters]=useState(initialViewState?.filters||{status:'All',customer:'',from:'',to:'',validity:'All',sortBy:'newest'}); const [applied,setApplied]=useState(initialViewState?.applied||filters); const [filtersOpen,setFiltersOpen]=useState(false); const [auditOpen,setAuditOpen]=useState(false); const [auditCategory,setAuditCategory]=useState(initialViewState?.auditCategory||auditCategories[0]); const [quotationsOpen,setQuotationsOpen]=useState(initialViewState?.quotationsOpen||false); const [sort,setSort]=useState(initialViewState?.sort||{key:'quoteNumber',direction:'asc'}); const [page,setPage]=useState(initialViewState?.page||1); const [pageSize,setPageSize]=useState(initialViewState?.pageSize||5); const [actionAnchor,setActionAnchor]=useState(null); const [actionQuote,setActionQuote]=useState(null);
  useNavbarSearch(search, setSearch, 'Search quotations');
  const auditMenuRef=useRef(null);
+ const filterMenuRef=useRef(null);
  useExclusiveDropdown(auditOpen, setAuditOpen);
+ useEffect(()=>{
+   if(!filtersOpen)return undefined;
+   const closeOutside=event=>{
+     if(filterMenuRef.current?.contains(event.target))return;
+     // These menus render in a portal, but are still part of the open filter panel.
+     if(event.target.closest?.('.quote-themed-select-menu, .date-range-popover'))return;
+     setFiltersOpen(false);
+   };
+   document.addEventListener('pointerdown',closeOutside);
+   return()=>document.removeEventListener('pointerdown',closeOutside);
+ },[filtersOpen]);
  useEffect(()=>{
    if(!auditOpen)return undefined;
    const closeOutside=event=>{if(!auditMenuRef.current?.contains(event.target))setAuditOpen(false);};
@@ -101,7 +113,7 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
     <div className="quote-search-group"><label className="quote-search"><Search/><input aria-label="Search quotations" aria-invalid={Boolean(searchError)} aria-describedby={"quotation-search-hint" + (searchError || emptySearchSubmitted && !search.trim() ? " quotation-search-feedback" : "")} placeholder="Search quotations" value={search} onChange={e=>{setEmptySearchSubmitted(false);setSearch(e.target.value)}} onKeyDown={e=>{if(e.key==="Enter" && !e.nativeEvent?.isComposing){e.preventDefault();setEmptySearchSubmitted(!search.trim())}}}/></label><small className="quote-search-guidance" id="quotation-search-hint">Search by quote number, customer name, code, email or mobile.</small>{(searchError || emptySearchSubmitted && !search.trim()) && <small id="quotation-search-feedback" className={searchError ? "quote-error" : "quote-search-guidance"} role={searchError ? "alert" : "status"}>{searchError || EMPTY_SEARCH_GUIDANCE}</small>}</div>
     <button aria-label={quotationsOpen?'Hide quotations':'Show quotations'} type="button" className={`quote-btn secondary quote-running-button${quotationsOpen?' active':''}`} aria-pressed={quotationsOpen}  onClick={toggleQuotations}><DescriptionOutlined /> Quotations</button>
     <div className="quote-audit-menu" ref={auditMenuRef}><button className={`quote-btn secondary ${auditOpen ? 'active' : ''}`} aria-expanded={auditOpen} onClick={()=>{setAuditOpen(open=>!open);setFiltersOpen(false);}}><History /> Audit</button>{auditOpen&&<div className="quote-audit-dropdown">{auditCategories.map(category=><button key={category} type="button" className={auditCategory===category ? 'active' : ''} onClick={()=>{setAuditCategory(category);setAuditOpen(false);}}><span>{category}</span><small>{category==='All' ? quotations.length : quotations.filter(q=>matchesAuditCategory(q, category)).length}</small></button>)}<button type="button" className="quote-audit-back" onClick={()=>setAuditOpen(false)}><ArrowBack /> Back</button></div>}</div>
-    <div className="quote-filter-menu"><button className={`quote-btn secondary ${filtersOpen ? 'active' : ''}`} aria-expanded={filtersOpen} onClick={()=>{setFiltersOpen(open=>!open);setAuditOpen(false);}}><FilterList /> Filters</button>{filtersOpen&&<div className="quote-filter-dropdown">
+    <div className="quote-filter-menu" ref={filterMenuRef}><button className={`quote-btn secondary ${filtersOpen ? 'active' : ''}`} aria-expanded={filtersOpen} onClick={()=>{setFiltersOpen(open=>!open);setAuditOpen(false);}}><FilterList /> Filters</button>{filtersOpen&&<div className="quote-filter-dropdown">
      <div className="quote-filter-grid">
       <label>Status<ThemedSelect label="Status" value={filters.status} onChange={status=>setFilters({...filters,status})} options={['All','Draft','Sent','Approved','Cancelled','Converted'].map(v=>({value:v,label:v}))}/></label>
       <label>Customer<ThemedSelect label="Customer" value={filters.customer} onChange={customer=>setFilters({...filters,customer})} options={[{value:'',label:'All customers'},...customers.map(c=>({value:c.id,label:c.name}))]}/></label>

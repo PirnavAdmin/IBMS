@@ -290,7 +290,7 @@ public class CreditNoteService : ICreditNoteService
                 RowVersion = DateTime.UtcNow
             };
 
-            var remainingCreditable = GetEffectiveRemainingCreditableAmount(invoice, issuedCredits);
+            var remainingCreditable = GetEffectiveCreditAmountLimit(invoice, issuedCredits, normalizedType);
             if (remainingCreditable <= 0m)
             {
                 await _unitOfWork.RollbackTransactionAsync();
@@ -516,7 +516,7 @@ public class CreditNoteService : ICreditNoteService
                 return ApiResponse<CreditNoteDetailDto>.Fail("At least one line item must be selected for partial credit.");
             }
 
-            var remainingCreditable = GetEffectiveRemainingCreditableAmount(invoice, issuedCredits);
+            var remainingCreditable = GetEffectiveCreditAmountLimit(invoice, issuedCredits, creditNote.Type);
             var calculationError = PopulateCreditNoteItems(
                 creditNote,
                 invoice,
@@ -962,6 +962,14 @@ public class CreditNoteService : ICreditNoteService
                 Math.Max(0m, Math.Round(invoice.CreditedAmount, 2, MidpointRounding.AwayFromZero)),
                 Math.Max(0m, Math.Round(currentIssuedCreditsRepo, 2, MidpointRounding.AwayFromZero)));
             var remainingCreditable = Math.Max(0m, Math.Round(invoice.TotalAmount - effectiveCurrentIssuedCredits, 2, MidpointRounding.AwayFromZero));
+            if (string.Equals(creditNote.Type, "Partial", StringComparison.OrdinalIgnoreCase))
+            {
+                var outstandingAfterIssuedCredits = Math.Max(0m, Math.Round(
+                    invoice.TotalAmount - invoice.PaidAmount - effectiveCurrentIssuedCredits,
+                    2,
+                    MidpointRounding.AwayFromZero));
+                remainingCreditable = Math.Min(remainingCreditable, outstandingAfterIssuedCredits);
+            }
 
             if (creditNote.TotalAmount > remainingCreditable)
             {
@@ -1433,7 +1441,7 @@ public class CreditNoteService : ICreditNoteService
             }
         }
 
-        var remainingCreditable = GetEffectiveRemainingCreditableAmount(invoice, issuedCredits);
+        var remainingCreditable = GetEffectiveCreditAmountLimit(invoice, issuedCredits, creditNote.Type);
         if (creditNote.TotalAmount > remainingCreditable + 0.50m)
         {
             return $"Credit note amount ({creditNote.TotalAmount:F2}) exceeds the invoice's remaining creditable amount ({remainingCreditable:F2}).";
@@ -1549,6 +1557,21 @@ public class CreditNoteService : ICreditNoteService
             Math.Max(0m, Math.Round(issuedSum, 2, MidpointRounding.AwayFromZero)));
         var total = Math.Max(0m, Math.Round(invoice.TotalAmount, 2, MidpointRounding.AwayFromZero));
         return Math.Max(0m, Math.Round(total - effectiveCredited, 2, MidpointRounding.AwayFromZero));
+    }
+
+    private static decimal GetEffectiveCreditAmountLimit(Invoice invoice, IReadOnlyCollection<CreditNote> issuedCredits, string? creditType)
+    {
+        var remainingCreditable = GetEffectiveRemainingCreditableAmount(invoice, issuedCredits);
+        if (!string.Equals(creditType, "Partial", StringComparison.OrdinalIgnoreCase)) return remainingCreditable;
+
+        var issuedSum = issuedCredits.Sum(credit => credit.TotalAmount);
+        var effectiveCredited = Math.Max(
+            Math.Max(0m, Math.Round(invoice.CreditedAmount, 2, MidpointRounding.AwayFromZero)),
+            Math.Max(0m, Math.Round(issuedSum, 2, MidpointRounding.AwayFromZero)));
+        var total = Math.Max(0m, Math.Round(invoice.TotalAmount, 2, MidpointRounding.AwayFromZero));
+        var paid = Math.Max(0m, Math.Round(invoice.PaidAmount, 2, MidpointRounding.AwayFromZero));
+        var outstanding = Math.Max(0m, Math.Round(total - paid - effectiveCredited, 2, MidpointRounding.AwayFromZero));
+        return Math.Min(remainingCreditable, outstanding);
     }
 
     private static Dictionary<int, decimal> GetPreviouslyCreditedQuantities(
