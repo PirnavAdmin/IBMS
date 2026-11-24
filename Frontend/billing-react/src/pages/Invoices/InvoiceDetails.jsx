@@ -596,7 +596,7 @@ export function InvoiceDetails() {
                           fullWidth
                           startIcon={<ReceiptLongOutlined />}
                           onClick={() =>
-                            navigate("/credit-notes/new", {
+                            navigate(`/credit-notes/new?invoiceId=${encodeURIComponent(row.id)}`, {
                               state: { invoiceId: row.id },
                             })
                           }
@@ -925,7 +925,7 @@ export function InvoiceDetails() {
                       variant="contained"
                       startIcon={<ReceiptLongOutlined />}
                       onClick={() =>
-                        navigate("/credit-notes/new", {
+                        navigate(`/credit-notes/new?invoiceId=${encodeURIComponent(row.id)}`, {
                           state: { invoiceId: row.id },
                         })
                       }
@@ -956,7 +956,7 @@ export function InvoiceDetails() {
                             variant="contained"
                             startIcon={<ReceiptLongOutlined />}
                             onClick={() =>
-                              navigate("/credit-notes/new", {
+                              navigate(`/credit-notes/new?invoiceId=${encodeURIComponent(row.id)}`, {
                                 state: { invoiceId: row.id },
                               })
                             }

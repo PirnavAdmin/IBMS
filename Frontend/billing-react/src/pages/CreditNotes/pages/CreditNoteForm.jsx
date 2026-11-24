@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
@@ -19,7 +19,7 @@ import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import SavingsOutlined from '@mui/icons-material/SavingsOutlined';
 import { creditNoteService } from '../services/creditNoteService';
-import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, money, reconcileFullCredit, roundCurrency, validateCreditQuantity, validateReasonDetails } from '../utils/creditNoteCalculations';
+import { calculateCredit, creditBalance, creditLineAmounts, creditQuantitiesForScope, eligibleCredit, invoiceLineWarnings, money, reconcileFullCredit, roundCurrency, validateCreditQuantity } from '../utils/creditNoteCalculations';
 import { CreditNoteStatusBadge } from '../components/CreditNoteStatusBadge';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { WorkspacePagination } from '../../../components/WorkspacePagination';
@@ -55,7 +55,10 @@ export function CreditNoteForm() {
   const draftKey = `credit-note:${id || 'new'}`;
   const draft = useFormDraft(draftKey);
   const location = useLocation();
-  const sourceInvoiceId = !id && location.state?.invoiceId ? String(location.state.invoiceId) : '';
+  const [searchParams] = useSearchParams();
+  const sourceInvoiceId = !id
+    ? String(searchParams.get('invoiceId') || location.state?.invoiceId || '')
+    : '';
   const navigate = useNavigate();
   const client = useQueryClient();
   const [step, setStep] = useDraftState(draftKey, 'step', 0);
@@ -69,15 +72,19 @@ export function CreditNoteForm() {
   const [reason, setReason] = useDraftState(draftKey, 'reason', '');
   const [reasonNote, setReasonNote] = useDraftState(draftKey, 'reasonNote', '');
   const [quantities, setQuantities] = useDraftState(draftKey, 'quantities', {});
+  const initializedSourceInvoice = useRef('');
 
   useEffect(() => {
-    if (!sourceInvoiceId || String(invoiceId) === sourceInvoiceId) return;
+    if (!sourceInvoiceId || initializedSourceInvoice.current === sourceInvoiceId) return;
+    initializedSourceInvoice.current = sourceInvoiceId;
     setInvoiceId(sourceInvoiceId);
+    setStep(0);
     setType('Partial');
     setQuantities({});
     setReason('');
     setReasonNote('');
-  }, [sourceInvoiceId, invoiceId, setInvoiceId, setType, setQuantities, setReason, setReasonNote]);
+    setError('');
+  }, [sourceInvoiceId, setInvoiceId, setStep, setType, setQuantities, setReason, setReasonNote]);
 
   const noteQuery = useQuery({ queryKey: ['creditNotes', id], queryFn: () => creditNoteService.get(id), enabled: Boolean(id) });
   useEffect(() => {
@@ -126,7 +133,12 @@ export function CreditNoteForm() {
   const selectedItems = useMemo(() => (selectedInvoice?.items || [])
     .map((item) => ({ ...item, quantity: quantityValidation.get(item.id)?.quantity || 0 }))
     .filter((item) => item.quantity > 0), [selectedInvoice, quantityValidation]);
-  const eligibleAmount = eligibleCredit(selectedInvoice);
+  const remainingCreditableAmount = eligibleCredit(selectedInvoice);
+  const partialCreditLimit = Math.min(
+    remainingCreditableAmount,
+    Math.max(0, Number(selectedInvoice?.currentDue) || 0),
+  );
+  const eligibleAmount = type === 'Partial' ? partialCreditLimit : remainingCreditableAmount;
   const totals = reconcileFullCredit(
     calculateCredit(selectedItems),
     selectedItems,
@@ -139,7 +151,8 @@ export function CreditNoteForm() {
   const invoiceWarnings = useMemo(() => selectedItems
     .flatMap((item) => invoiceLineWarnings(item, selectedInvoice?.currency).map((warning, index) => ({ id: `${item.id}-${index}`, description: item.description, warning }))), [selectedItems, selectedInvoice?.currency]);
   const isEditing = Boolean(id);
-  const reasonStepValid = Boolean(reason && reasonNote.trim().length >= 8);
+  const reasonDetailsValid = hasMeaningfulReasonDetails(reasonNote);
+  const reasonStepValid = Boolean(reason && reasonDetailsValid);
 
   useEffect(() => {
     const note = noteQuery.data;
@@ -227,15 +240,20 @@ export function CreditNoteForm() {
       if (!selectedItems.length || totals.total <= 0) return setError('Select at least one credit line with a quantity greater than zero.');
       if (totals.total > eligibleAmount) return setError('Credit total exceeds the invoice’s remaining eligible credit. Reduce the selected quantities.');
     }
-    if (step === 2 && (!reason || reasonNote.trim().length < 8)) return setError('Choose a reason and enter at least 8 characters of supporting detail.');
+    if (step === 2 && (!reason || !reasonDetailsValid)) return setError(`Choose a reason and enter at least ${MIN_REASON_WORDS} meaningful words. Repeated or random text is not accepted.`);
     setStep((current) => Math.min(current + 1, steps.length - 1));
   };
 
   const save = (submit) => {
     setError('');
-    if (!invoiceId || !reason || reasonNote.trim().length < 8 || hasQuantityErrors || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount) {
+    if (hasCustomerContext && (!selectedInvoice || String(selectedInvoice.customerId) !== String(customerContextId))) {
+      setStep(0);
+      setError('Choose an invoice belonging to the selected customer.');
+      return;
+    }
+    if (!invoiceId || !reason || !reasonDetailsValid || hasQuantityErrors || !selectedItems.length || totals.total <= 0 || totals.total > eligibleAmount) {
       setStep(!invoiceId ? 0 : hasQuantityErrors || !selectedItems.length || totals.total > eligibleAmount ? 1 : 2);
-      setError(!invoiceId ? 'Choose an issued invoice.' : hasQuantityErrors ? 'Correct the invalid credit quantities.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount ? 'Credit total exceeds the remaining eligible amount.' : 'Add a reason and supporting detail before saving.');
+      setError(!invoiceId ? 'Choose an issued invoice.' : hasQuantityErrors ? 'Correct the invalid credit quantities.' : !selectedItems.length || totals.total <= 0 ? 'Add a valid credit line.' : totals.total > eligibleAmount ? 'Credit total exceeds the remaining eligible amount.' : `Enter at least ${MIN_REASON_WORDS} meaningful words explaining the credit. Repeated or random text is not accepted.`);
       return;
     }
     mutation.mutate({ submit });
@@ -275,12 +293,12 @@ export function CreditNoteForm() {
                 <div><small>Customer paid</small><strong>{money(selectedInvoice?.paid, selectedInvoice?.currency)}</strong></div>
                 <div><small>Remaining credit</small><strong>{money(creditAmounts.remainingCredit, selectedInvoice?.currency)}</strong></div>
               </div>
-              {totals.total > eligibleAmount && <span className="cn-eligibility-warning-detail">Credit exceeds invoice eligibility by {money(totals.total - eligibleAmount, selectedInvoice?.currency)}.</span>}
+              {totals.total > eligibleAmount && <span className="cn-eligibility-warning-detail">{type === 'Partial' ? 'Partial credit exceeds the current amount due by' : 'Credit exceeds invoice eligibility by'} {money(totals.total - eligibleAmount, selectedInvoice?.currency)}.</span>}
             </div>
           </div>}
 
           {step === 2 && <div className="cn-form-section"><div className="cn-section-title"><span className="cn-section-icon"><DescriptionOutlined /></span><div><h2>Reason &amp; supporting details</h2><p>Keep a clear audit explanation for the customer and finance team.</p></div></div>
-            <div className="cn-form-fields"><TextField select required inputProps={{ 'aria-label': 'Credit reason' }} value={reason} onChange={(event) => setReason(event.target.value)} error={Boolean(error && !reason)} helperText={error && !reason ? 'Select a reason.' : 'Choose the closest matching reason.'}>{reasons.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField label="Internal reference (optional)" placeholder="e.g. RMA-2026-1048" value={reference} onChange={(event) => setReference(event.target.value)} className="cn-reference-field" /><TextField required multiline minRows={4} label="Reason details" placeholder="Describe what changed, why this credit is required, and any agreement with the customer." value={reasonNote} onChange={(event) => setReasonNote(event.target.value)} inputProps={{ maxLength: 600 }} helperText={`${reasonNote.length}/600 · minimum 8 characters`} className="cn-notes-field" /></div>
+            <div className="cn-form-fields"><TextField select required inputProps={{ 'aria-label': 'Credit reason' }} value={reason} onChange={(event) => setReason(event.target.value)} error={Boolean(error && !reason)} helperText={error && !reason ? 'Select a reason.' : 'Choose the closest matching reason.'} SelectProps={{ displayEmpty: true, renderValue: (value) => value || <span>Credit reason *</span>, MenuProps: { variant: 'menu', anchorOrigin: { vertical: 'bottom', horizontal: 'left' }, transformOrigin: { vertical: 'top', horizontal: 'left' }, marginThreshold: 8, PaperProps: { className: 'cn-reason-options-menu', sx: { maxHeight: 260 } } } }}>{reasons.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField><TextField required multiline minRows={4} placeholder="Reason details * — Describe what changed, why this credit is required, and any agreement with the customer." value={reasonNote} onChange={(event) => setReasonNote(event.target.value)} helperText={`${descriptiveReasonWordCount(reasonNote)}/${MIN_REASON_WORDS} words minimum.`} className="cn-notes-field" /></div>
             <div className="cn-info-callout"><strong>Financial history stays traceable</strong><span>This creates a credit record linked to {selectedInvoice?.number || 'the invoice'}. It does not itself record a cash refund.</span></div>
           </div>}
 
@@ -313,7 +331,7 @@ export function CreditNoteForm() {
             <div className="cn-invoice-calc-row"><span>Payments received</span><strong>{money(selectedInvoice.paid, selectedInvoice.currency)}</strong></div>
             <div className="cn-invoice-calc-row"><span>Previous credits</span><strong>{money(selectedInvoice.previousCredits, selectedInvoice.currency)}</strong></div>
             <div className="cn-invoice-calc-row"><span>Current amount due</span><strong>{money(selectedInvoice.currentDue, selectedInvoice.currency)}</strong></div>
-            <div className="cn-invoice-calc-row cn-invoice-calc-available"><span>Remaining creditable</span><strong>{money(eligibleAmount, selectedInvoice.currency)}</strong></div>
+            <div className="cn-invoice-calc-row cn-invoice-calc-available"><span>Remaining creditable</span><strong>{money(remainingCreditableAmount, selectedInvoice.currency)}</strong></div>
           </> : <div className="cn-invoice-calc-empty">Select an invoice to view its total, payments, and remaining credit eligibility.</div>}
         </aside>}
 

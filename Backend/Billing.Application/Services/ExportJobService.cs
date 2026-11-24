@@ -636,7 +636,7 @@ public class ExportJobService : IExportJobService
             sb.AppendLine(string.Join(",",
                 p.Id,
                 EscapeCsv(p.PaymentNumber),
-                paymentDateStr,
+                p.PaymentDate.ToString("yyyy-MM-dd"),
                 p.CustomerId.ToString(),
                 p.Amount.ToString("F2", CultureInfo.InvariantCulture),
                 EscapeCsv(p.Currency),
@@ -682,7 +682,7 @@ public class ExportJobService : IExportJobService
                 EscapeCsv(c.CompanyName ?? ""),
                 EscapeCsv(c.TaxId ?? ""),
                 EscapeCsv(c.Status),
-                $"=\"{c.CreatedAtUtc:dd/MM/yyyy HH:mm:ss}\""
+                c.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
             ));
         }
 
@@ -712,7 +712,7 @@ public class ExportJobService : IExportJobService
         {
             sb.AppendLine(string.Join(",",
                 a.Id,
-                $"=\"{a.Timestamp:dd/MM/yyyy HH:mm:ss}\"",
+                a.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"),
                 EscapeCsv(a.Action),
                 EscapeCsv(a.EntityName),
                 EscapeCsv(a.EntityId),
@@ -747,7 +747,7 @@ public class ExportJobService : IExportJobService
                     if (!row.TryGetProperty(header, out var value) || value.ValueKind == JsonValueKind.Null)
                         return string.Empty;
                     var text = value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value.ToString();
-                    return EscapeCsv(text);
+                    return IsDateColumn(header) ? ExcelTextDate(text) : EscapeCsv(text);
                 })));
             }
         }
@@ -829,6 +829,17 @@ public class ExportJobService : IExportJobService
 
         return false;
     }
+
+    // CSV has no column-width or cell-type metadata. Excel otherwise converts these
+    // values to date serials and may render them as ######## in its default-width columns.
+    // Match the explicit text-date encoding already used by invoice exports.
+    private static string ExcelTextDate(string value) => $"=\"{value.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+
+    private static bool IsDateColumn(string name) =>
+        name.EndsWith("Date", StringComparison.OrdinalIgnoreCase) ||
+        name.EndsWith("AtUtc", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("Timestamp", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("ValidUntil", StringComparison.OrdinalIgnoreCase);
 
     private static string GetContentType(string format) => format.ToUpperInvariant() switch
     {

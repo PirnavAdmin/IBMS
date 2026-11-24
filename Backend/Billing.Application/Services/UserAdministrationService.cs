@@ -44,6 +44,11 @@ public class UserAdministrationService : IUserAdministrationService
 
     public async Task<(bool Success, string Message, UserDto? User)> CreateUserAsync(CreateUserRequest request)
     {
+        if (!string.IsNullOrWhiteSpace(request.ApplicationId) && !IsValidApplicationId(request.ApplicationId))
+        {
+            return (false, "Application ID can contain letters and numbers only.", null);
+        }
+
         var nameValidation = ValidateFullName(request.Name);
         if (!nameValidation.IsValid)
         {
@@ -120,6 +125,11 @@ public class UserAdministrationService : IUserAdministrationService
 
     public async Task<(bool Success, string Message, UserDto? User)> UpdateUserAsync(int id, UpdateUserRequest request)
     {
+        if (!string.IsNullOrWhiteSpace(request.ApplicationId) && !IsValidApplicationId(request.ApplicationId))
+        {
+            return (false, "Application ID can contain letters and numbers only.", null);
+        }
+
         var user = await _userRepository.GetByIdAsync(id);
         if (user == null)
         {
@@ -316,6 +326,11 @@ public class UserAdministrationService : IUserAdministrationService
 
     public async Task<(bool Success, string Message, UserDto? User)> AssignTenantAndAppAsync(int id, int? tenantId, string applicationId)
     {
+        if (!string.IsNullOrWhiteSpace(applicationId) && !IsValidApplicationId(applicationId))
+        {
+            return (false, "Application ID can contain letters and numbers only.", null);
+        }
+
         var user = await _userRepository.GetByIdAsync(id);
         if (user == null)
         {
@@ -334,6 +349,11 @@ public class UserAdministrationService : IUserAdministrationService
 
     public async Task<(bool Success, string Message, UserDto? User)> MapHostIdentityAsync(HostIdentityMappingRequest request)
     {
+        if (!string.IsNullOrWhiteSpace(request.ApplicationId) && !IsValidApplicationId(request.ApplicationId))
+        {
+            return (false, "Application ID can contain letters and numbers only.", null);
+        }
+
         if (string.IsNullOrWhiteSpace(request.Email))
         {
             return (false, "Email is required for host identity mapping.", null);
@@ -486,6 +506,8 @@ public class UserAdministrationService : IUserAdministrationService
 
         return resolvedPermissions.ToList();
     }
+
+    private static bool IsValidApplicationId(string value) => Regex.IsMatch(value.Trim(), @"^[A-Za-z0-9]+$");
 
     private static UserDto MapToUserDto(User user)
     {

@@ -81,7 +81,7 @@ export function QuotationList({ quotations, customers, onCreate, onView, onEdit,
  useEffect(()=>{
   if(!filtersOpen)return undefined;
   const closeOutside=event=>{
-   if(!filterMenuRef.current?.contains(event.target) && !event.target.closest?.('.ant-picker-dropdown, .quote-themed-select-menu')){
+   if(!filterMenuRef.current?.contains(event.target) && !event.target.closest?.('.ant-picker-dropdown, .quote-themed-select-menu, .date-range-popover')){
     setFilters({...applied});setFiltersOpen(false);
    }
   };

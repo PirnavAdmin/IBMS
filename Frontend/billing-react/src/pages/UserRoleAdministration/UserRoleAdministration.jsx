@@ -52,6 +52,7 @@ const tabs = [
   { id: 'roles', label: 'Roles', icon: ShieldOutlined },
 ];
 const emptyUser = { name: '', username: '', email: '', password: '', roles: [], permissions: [], tenantId: '', applicationId: '', status: 'Active', identityType: 'Platform', externalProvider: '', externalSubjectId: '', externalScopes: '' };
+const applicationIdPattern = /^[A-Za-z0-9]+$/;
 const emptyRole = { name: '', description: '', tenantId: '', permissions: [] };
 const categoryPermissionDefinitions = [
   { code: 'categories.view', name: 'View Categories', module: 'Products & Services', description: 'View product and service categories.' },
@@ -329,6 +330,8 @@ function UserForm({ userId, onCancel, onSaved }) {
   const [attempted, setAttempted] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [applicationIdTouched, setApplicationIdTouched] = useState(false);
   const [serverError, setServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [openPermissionGroups, setOpenPermissionGroups] = useState(() => new Set());
@@ -376,7 +379,20 @@ function UserForm({ userId, onCancel, onSaved }) {
   const permissionGroups = useMemo(() => groupPermissionDefinitions(permissions), [permissions]);
   const allPermissionGroupsOpen = permissionGroups.length > 0 && permissionGroups.every(([module]) => openPermissionGroups.has(module));
   const excludedPermissionCodes = useMemo(() => getExcludedPermissionCodes(permissions), [permissions]);
-  const update = (key) => (event) => setValues((current) => ({ ...current, [key]: event.target.value }));
+  const originalIdentityIsHost = String(recordValue(userQuery.data, 'identityType', 'IdentityType') ?? 'Platform').toLowerCase() === 'host';
+  const update = (key) => (event) => {
+    const value = event.target.value;
+    setValues((current) => ({ ...current, [key]: value }));
+    if (key === 'applicationId' && (attempted || applicationIdTouched)) {
+      const normalized = value.trim();
+      setErrors((current) => ({ ...current, applicationId: !normalized ? 'Application ID is required.' : applicationIdPattern.test(normalized) ? '' : 'Use letters and numbers only for the Application ID.' }));
+    }
+    if (key === 'password' && (attempted || passwordTouched)) {
+      const requiresPassword = !editing || originalIdentityIsHost;
+      const invalid = values.identityType === 'Platform' && (requiresPassword ? value.length < 8 : Boolean(value) && value.length < 8);
+      setErrors((current) => ({ ...current, password: invalid ? (requiresPassword ? 'Enter a password with at least 8 characters.' : 'Password must be at least 8 characters.') : '' }));
+    }
+  };
   const updateEmail = (event) => {
     const email = event.target.value;
     setValues((current) => ({ ...current, email, username: email }));
@@ -395,7 +411,6 @@ const selectRole = (event) => {
     }));
   };
   const togglePermission = (code) => setValues((current) => ({ ...current, permissions: current.permissions.includes(code) ? current.permissions.filter((item) => item !== code) : [...current.permissions, code] }));
-  const originalIdentityIsHost = String(recordValue(userQuery.data, 'identityType', 'IdentityType') ?? 'Platform').toLowerCase() === 'host';
   const passwordRequired = values.identityType === 'Platform' && (!editing || originalIdentityIsHost);
   const passwordValid = passwordRequired ? values.password.length >= 8 : !(editing && values.password && values.password.length < 8);
   const canSave = !validateFullName(values.name)
@@ -407,7 +422,7 @@ const selectRole = (event) => {
     && values.roles.length > 0
     && /^\d+$/.test(String(values.tenantId))
     && Number(values.tenantId) >= 1
-    && Boolean(values.applicationId.trim())
+    && applicationIdPattern.test(values.applicationId.trim())
     && !rolesQuery.isPending
     && !rolesQuery.isError;
   const validate = () => {
@@ -423,6 +438,7 @@ const selectRole = (event) => {
     if (!values.roles.length) next.roles = 'Assign at least one role.';
     if (!/^\d+$/.test(String(values.tenantId)) || Number(values.tenantId) < 1) next.tenantId = 'Enter a valid tenant ID supplied by your administrator.';
     if (!values.applicationId.trim()) next.applicationId = 'Application ID is required.';
+    else if (!applicationIdPattern.test(values.applicationId.trim())) next.applicationId = 'Use letters and numbers only for the Application ID.';
     setErrors(next);
     setAttempted(true);
     return Object.keys(next).length === 0;
@@ -479,7 +495,7 @@ const selectRole = (event) => {
       <div className="ura-form-grid">
       <TextField className="ura-readonly-field" label="Username" InputLabelProps={{ shrink: true }} required value={values.username} error={attempted && !!errors.username} helperText={attempted ? errors.username : 'Read-only; automatically matches the email address.'} inputProps={{ maxLength: 256, autoComplete: 'username', readOnly: true }} fullWidth />
       <FormControl fullWidth size="small"><InputLabel id="ura-identity-type-label" shrink>Identity type</InputLabel><Select MenuProps={selectMenuProps} labelId="ura-identity-type-label" label="Identity type" value={values.identityType} onChange={update('identityType')}><MenuItem value="Platform">Platform account</MenuItem><MenuItem value="Host">Host / SSO account</MenuItem></Select></FormControl>
-      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-password" label="Password" InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} error={attempted && !!errors.password} helperText={attempted ? errors.password : editing ? 'Required when changing a Host identity to Platform; minimum 8 characters.' : 'Required; minimum 8 characters.'} inputProps={{ autoComplete: 'new-password' }} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-password" label="password" /></InputAdornment> }} fullWidth />}
+      {values.identityType === 'Platform' && (!editing || originalIdentityIsHost) && <TextField id="ura-password" label="Password" InputLabelProps={{ shrink: true }} required={!editing || originalIdentityIsHost} type={showPassword ? 'text' : 'password'} value={values.password} onChange={update('password')} onBlur={() => { setPasswordTouched(true); setErrors((current) => ({ ...current, password: values.password.length < 8 ? 'Enter a password with at least 8 characters.' : '' })); }} error={(attempted || passwordTouched) && !!errors.password} helperText={(attempted || passwordTouched) && errors.password ? errors.password : editing ? 'Required when changing a Host identity to Platform; minimum 8 characters.' : 'Required; minimum 8 characters.'} inputProps={{ minLength: 8, autoComplete: 'new-password' }} InputProps={{ endAdornment: <InputAdornment position="end"><PasswordVisibilityToggle visible={showPassword} onToggle={() => setShowPassword((current) => !current)} inputId="ura-password" label="password" /></InputAdornment> }} fullWidth />}
       {values.identityType === 'Host' && <><TextField label="Identity provider (optional)" InputLabelProps={{ shrink: true }} placeholder="AzureAD, Google, HostPortal" value={values.externalProvider} onChange={update('externalProvider')} helperText="Can be added later when the identity provider is configured." fullWidth /><TextField label="External subject ID (optional)" InputLabelProps={{ shrink: true }} value={values.externalSubjectId} onChange={update('externalSubjectId')} helperText="Stable user identifier from the identity provider; can be added later." fullWidth /><TextField label="External scopes (optional)" InputLabelProps={{ shrink: true }} value={values.externalScopes} onChange={update('externalScopes')} helperText="Scopes returned by the host identity provider." fullWidth /></>}
       </div>
     </section>
@@ -487,7 +503,7 @@ const selectRole = (event) => {
       <header className="ura-user-section-heading"><span>03 / 04</span><div><h3 id="ura-user-workspace-heading">Workspace &amp; role</h3><p>Choose the workspace and starting level of access.</p></div><AccountTreeOutlined aria-hidden="true" /></header>
       <div className="ura-form-grid">
       <TextField className={!editing && Boolean(values.tenantId) ? 'ura-readonly-field' : ''} label="Tenant ID" InputLabelProps={{ shrink: true }} required type="number" value={values.tenantId} onChange={update('tenantId')} error={attempted && !!errors.tenantId} helperText={attempted ? errors.tenantId : !editing && values.tenantId ? 'Automatically filled from your current tenant; read-only.' : 'Use an existing tenant ID.'} InputProps={{ readOnly: !editing && Boolean(values.tenantId) }} inputProps={{ min: 1, step: 1 }} fullWidth />
-      <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} error={attempted && !!errors.applicationId} helperText={attempted ? errors.applicationId : 'Enter an application ID supported by your environment.'} fullWidth />
+      <TextField label="Application ID" InputLabelProps={{ shrink: true }} required value={values.applicationId} onChange={update('applicationId')} onBlur={() => { setApplicationIdTouched(true); setErrors((current) => ({ ...current, applicationId: applicationIdPattern.test(values.applicationId.trim()) ? '' : values.applicationId.trim() ? 'Use letters and numbers only for the Application ID.' : 'Application ID is required.' })); }} error={(attempted || applicationIdTouched) && !!errors.applicationId} helperText={(attempted || applicationIdTouched) && errors.applicationId ? errors.applicationId : 'Use letters and numbers only.'} inputProps={{ pattern: '[A-Za-z0-9]+' }} fullWidth />
       <FormControl fullWidth size="small" required error={attempted && !!errors.roles} disabled={rolesQuery.isPending || rolesQuery.isError}>
         <InputLabel id="ura-user-roles-label" shrink>Role assignment *</InputLabel>
 <Select MenuProps={selectMenuProps} labelId="ura-user-roles-label" label="Role assignment *" value={displayedRole} onChange={selectRole} displayEmpty aria-required="true" aria-describedby="ura-user-roles-helper">

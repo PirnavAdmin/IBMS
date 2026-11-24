@@ -1501,7 +1501,8 @@
 .quote-items-table{table-layout:fixed}
 .quote-items-table td:first-child,.quote-item-select{min-width:0}
 .quotation-form-page .quote-items-table td:first-child{min-width:230px}
-.quotation-form-page .quote-product-picker .quote-picker-chevron{width:34px}
+.quotation-form-page .quote-product-picker .quote-picker-chevron{width:28px}
+.quotation-form-page .quote-product-picker .quote-picker-input input{font-size:.9rem;padding-right:0!important}
 .quote-item-select .quote-themed-select-trigger{box-sizing:border-box;width:100%;height:38px;min-height:38px;overflow:hidden}
 .quote-items-table tbody td{vertical-align:middle}
 .quotation-form-page .quote-items-table td:has(>.quote-item-quantity),

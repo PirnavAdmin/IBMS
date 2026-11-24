@@ -111,6 +111,7 @@
   letter-spacing: -0.01em;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.invoice-page .invoice-preview-action.MuiButton-root { font-weight: 650; }
 
 .invoice-page .MuiButton-contained {
   background: var(--primary);
@@ -1987,6 +1988,37 @@
   margin: 0;
 }
 
+/* Calculated totals in the create/edit preview are read-only values, not inputs. */
+.invoice-total-panel-calculated .invoice-calculated-note {
+  margin: -3px 0 10px;
+  color: #786d62;
+  font-size: 12px;
+}
+
+.invoice-total-panel-calculated .invoice-calculated-row {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #e9dfd4;
+  border-radius: 7px;
+  background: #f6f2ed;
+}
+
+.invoice-total-panel-calculated .invoice-grand-total-row {
+  margin-top: 12px;
+  padding: 11px 10px;
+  border: 1px solid #e3d3c1;
+  border-radius: 8px;
+  background: #f1e9df;
+}
+
+.invoice-total-panel-calculated .invoice-tax-breakdown-row {
+  margin-top: 4px;
+  padding: 7px 10px;
+  border: 1px solid #e9dfd4;
+  border-radius: 7px;
+  background: #f6f2ed;
+}
+
 .invoice-grand-total-row {
   display: flex;
   justify-content: space-between;
@@ -2383,7 +2415,7 @@
 
 .invoice-charges-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: 14px;
   align-items: start;
 }
