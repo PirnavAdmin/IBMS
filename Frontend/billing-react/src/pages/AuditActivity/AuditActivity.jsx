@@ -76,6 +76,36 @@ export function AuditActivity() {
   };
   const reset = () => { setDraft({ ...emptyAuditFilters }); setFilters({ ...emptyAuditFilters }); setValidation(''); setPage(1); };
   const field = key => ({ value: draft[key], onChange: event => setDraft(current => ({ ...current, [key]: event.target.value })) });
+  const renderSelect = (key, label, optionKey, allLabel) => (
+    <TextField key={key} select size="small" label={label}
+      disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true,
+      onOpen: event => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const viewport = window.visualViewport;
+        const viewportTop = viewport?.offsetTop || 0;
+        const viewportHeight = viewport?.height || window.innerHeight;
+        const viewportBottom = viewportTop + viewportHeight;
+        const margin = 8;
+        const availableBelow = Math.max(0, viewportBottom - bounds.bottom - margin);
+        const availableAbove = Math.max(0, bounds.top - viewportTop - margin);
+        const extraValue = draft[key] && !options[optionKey].includes(draft[key]) ? 1 : 0;
+        const desiredHeight = Math.min((options[optionKey].length + extraValue + 1) * 48 + 16, viewportHeight - margin * 2);
+        const openAbove = availableBelow < desiredHeight && availableAbove > availableBelow && availableAbove >= 96;
+        const available = openAbove ? availableAbove : availableBelow;
+        setAuditMenuPosition({ openAbove, maxHeight: Math.max(48, Math.min(available, viewportHeight - margin * 2)) });
+      },
+      MenuProps: {
+        anchorOrigin: { vertical: auditMenuPosition.openAbove ? 'top' : 'bottom', horizontal: 'left' },
+        transformOrigin: { vertical: auditMenuPosition.openAbove ? 'bottom' : 'top', horizontal: 'left' },
+        marginThreshold: 8,
+        PaperProps: { sx: { maxHeight: `${auditMenuPosition.maxHeight}px`, overflowY: 'auto', overscrollBehavior: 'contain' } },
+      } }}
+      helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : undefined} {...field(key)}>
+      <MenuItem value="">{allLabel}</MenuItem>
+      {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{key === 'action' ? auditEventLabel(draft[key]) : draft[key]}</MenuItem>}
+      {options[optionKey].map(value => <MenuItem key={value} value={value}>{key === 'action' ? auditEventLabel(value) : value}</MenuItem>)}
+    </TextField>
+  );
   const rows = searchAuditPage(data?.items || [], searchQuery);
   const forbidden = error?.response?.status === 403;
   const unauthorized = error?.response?.status === 401;
@@ -91,44 +121,17 @@ export function AuditActivity() {
         </div>
       </header>
       <form className="audit-filters" aria-label="Filter audit activity" onSubmit={apply}>
-
-        <div className="audit-filter-grid">
-          {[
-            ['entityName', 'Module / entity', 'entityNames', 'All modules'],
-            ['action', 'Event name', 'actions', 'All events'],
-            ['userName', 'Performed by', 'userNames', 'All actors'],
-          ].map(([key, label, optionKey, allLabel]) => <TextField key={key} select size="small" label={label}
-           disabled={optionsLoading || Boolean(optionsError)} InputLabelProps={{ shrink: true }} SelectProps={{ displayEmpty: true,
-            onOpen: event => {
-              const bounds = event.currentTarget.getBoundingClientRect();
-              const viewport = window.visualViewport;
-              const viewportTop = viewport?.offsetTop || 0;
-              const viewportHeight = viewport?.height || window.innerHeight;
-              const viewportBottom = viewportTop + viewportHeight;
-              const margin = 8;
-              const availableBelow = Math.max(0, viewportBottom - bounds.bottom - margin);
-              const availableAbove = Math.max(0, bounds.top - viewportTop - margin);
-              const extraValue = draft[key] && !options[optionKey].includes(draft[key]) ? 1 : 0;
-              const desiredHeight = Math.min((options[optionKey].length + extraValue + 1) * 48 + 16, viewportHeight - margin * 2);
-              const openAbove = availableBelow < desiredHeight && availableAbove > availableBelow && availableAbove >= 96;
-              const available = openAbove ? availableAbove : availableBelow;
-              setAuditMenuPosition({ openAbove, maxHeight: Math.max(48, Math.min(available, viewportHeight - margin * 2)) });
-            },
-            MenuProps: {
-             anchorOrigin: { vertical: auditMenuPosition.openAbove ? 'top' : 'bottom', horizontal: 'left' },
-             transformOrigin: { vertical: auditMenuPosition.openAbove ? 'bottom' : 'top', horizontal: 'left' },
-             marginThreshold: 8,
-             PaperProps: { sx: { maxHeight: `${auditMenuPosition.maxHeight}px`, overflowY: 'auto', overscrollBehavior: 'contain' } },
-           } }}
-            helperText={optionsLoading ? 'Loading options...' : optionsError ? 'Options unavailable' : !options[optionKey].length ? 'No options recorded yet' : undefined} {...field(key)}>
-            <MenuItem value="">{allLabel}</MenuItem>
-            {draft[key] && !options[optionKey].includes(draft[key]) && <MenuItem value={draft[key]}>{key === 'action' ? auditEventLabel(draft[key]) : draft[key]}</MenuItem>}
-            {options[optionKey].map(value => <MenuItem key={value} value={value}>{key === 'action' ? auditEventLabel(value) : value}</MenuItem>)}
-          </TextField>)}
-          <DateRangeFilter popoverClassName="audit-activity-date-range-popover" startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
+        <div className="audit-filter-actions">
+          <Button onClick={reset} disabled={loading}>Clear filters</Button>
+          <Button type="submit" variant="contained" disabled={loading}>Apply filters</Button>
         </div>
-        {validation && <Alert severity="error">{validation}</Alert>}
-        <div className="audit-filter-actions"><span>Filters apply to the full activity history.</span><Button onClick={reset} disabled={loading}>Clear filters</Button><Button type="submit" variant="contained" disabled={loading}>Apply filters</Button></div>
+        {validation && <Alert severity="error" className="audit-validation-alert">{validation}</Alert>}
+        <div className="audit-filter-grid">
+          {renderSelect('action', 'Event name', 'actions', 'All events')}
+          <DateRangeFilter popoverClassName="audit-activity-date-range-popover" startDate={draft.startDate} endDate={draft.endDate} onApply={range => setDraft(current => ({ ...current, ...range }))} />
+          {renderSelect('userName', 'Performed by', 'userNames', 'All actors')}
+          {renderSelect('entityName', 'Module / entity', 'entityNames', 'All modules')}
+        </div>
       </form>
       <div className="audit-results" aria-label="Activity history" aria-busy={loading}>
       {searchQuery.trim() && <Alert severity="info">Header search shows matches on the current page only. Use the filters above to search the full history.</Alert>}

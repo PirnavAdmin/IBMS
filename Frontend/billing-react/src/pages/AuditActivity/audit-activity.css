@@ -5,7 +5,7 @@
 .audit-heading-icon { display:flex; padding:12px; border-radius:10px; background:#f5eee7; color:#8a6548; }
 .audit-heading-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex-wrap:wrap; }
 .audit-heading-actions .MuiChip-root { border-radius:6px; background:#f5eee7; border-color:#eee0d5; color:#674730; }
-.audit-filters { padding:20px 24px 16px; border-bottom:1px solid #eee7df; }
+.audit-filters { padding:16px 24px 20px; border-bottom:1px solid #eee7df; }
 .audit-heading p,.audit-results-heading p { margin:0; color:var(--text-secondary,#756354); }
 .audit-heading .audit-eyebrow { text-transform:uppercase; letter-spacing:.1em; font-size:11px; font-weight:700; color:var(--primary,#674730); }
 .audit-card { background:var(--surface,#fff); border:1px solid var(--border,#d5c6b5); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-card,0 3px 12px #35231c12); }
@@ -22,7 +22,8 @@
 .audit-activity-date-range-popover .date-range-actions { padding-top:4px; }
 .audit-activity-date-range-popover .date-range-actions .ant-btn { min-height:32px; }
 .audit-page .audit-filter-grid .date-range-filter.ant-btn:hover { border-color:var(--secondary,#8a6548); background:#fff; color:var(--text-primary,#35271f); }
-.audit-filter-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:18px; }
+.audit-filter-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:16px; }
+.audit-validation-alert { margin-bottom:16px; }
 .audit-filter-actions > span { margin-right:auto; color:var(--text-secondary,#756354); font-size:13px; }
 .audit-filter-actions .MuiButton-root:not(.MuiButton-contained) { background:#f5eee7; border:1px solid #d5c6b5; color:#674730; }
 .audit-filter-actions .MuiButton-root:not(.MuiButton-contained):hover { background:#eee0d5; border-color:#c8b49f; }

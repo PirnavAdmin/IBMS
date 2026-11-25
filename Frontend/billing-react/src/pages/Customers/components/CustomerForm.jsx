@@ -14,6 +14,7 @@ import {
   STEP_FIELDS,
   getNextCustomerCode,
   COUNTRY_PHONE_CONFIG,
+  isDuplicatePhoneNumber,
 } from '../validation/customerValidation';
 import { useRegionalSettings } from '../../../services/regionalSettingsService';
 import { isCurrencyEnabled } from '../../../utils/currencies';
@@ -243,6 +244,7 @@ export const CustomerForm = ({
     reset,
     trigger,
     clearErrors,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(customerValidationSchema),
