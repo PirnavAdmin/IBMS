@@ -75,6 +75,7 @@ export function ProductList() {
   };
 
   return <main className="product-page product-list-page">
+    <Breadcrumbs aria-label="Breadcrumb"><span>Products &amp; Services</span><span>Product List</span></Breadcrumbs>
     <Breadcrumbs aria-label="Breadcrumb"><span>Billing</span><span>Products &amp; Services</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button variant="outlined" className="billing-pdf-button" startIcon={<PrintOutlined />} disabled={exporting || loading || Boolean(error)} onClick={exportPdf}>{exporting ? 'Preparing Print...' : 'Print'}</Button>{(hasPermission('products.create') || hasPermission('products.manage')) && <Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button>}</div></header>
     <FeedbackSnackbar message={notice} onClose={() => setNotice('')} />

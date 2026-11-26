@@ -27,7 +27,7 @@ import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import RemoveCircleOutline from '@mui/icons-material/RemoveCircleOutline';
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
 import { taxService, taxError } from "../../services/taxService";
-import { TAX_TYPES, emptyTax, validateTax, validateTaxName, validateTaxCode, calculatePreview } from "./taxModel";
+import { TAX_TYPES, emptyTax, validateTax, validateTaxName, validateTaxCode, validateTaxRate, getLiveTaxRateError, calculatePreview } from "./taxModel";
 import "./TaxSettings.css";
 import { SettingsPageHeader } from "../Settings/SettingsPageHeader";
 import { useSearchDebounce } from "../../hooks/useSearchDebounce";
@@ -117,8 +117,14 @@ function Preview() {
     calculation: "Exclusive",
     transaction: "Intra-State",
   });
-  const change = (key) => (event) =>
+  const [rateBlurred, setRateBlurred] = useState(false);
+  const change = (key) => (event) => {
+    if (key === "rate") setRateBlurred(false);
     setValues((previous) => ({ ...previous, [key]: event.target.value }));
+  };
+  const previewRateError = String(values.rate ?? '').trim() === ''
+    ? ''
+    : (rateBlurred ? validateTaxRate(values.rate) : getLiveTaxRateError(values.rate));
   const result = calculatePreview(
     values.amount,
     values.rate,
@@ -155,11 +161,12 @@ function Preview() {
           <Field
             name="preview-rate"
             label="Tax Rate (%)"
-            type="number"
-            min="0"
-            max="100"
-            step="any"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             value={values.rate}
+            error={previewRateError}
+            onBlur={() => setRateBlurred(true)}
             onChange={change("rate")}
           />
           <Field
@@ -511,7 +518,7 @@ function TaxForm({ initial, editing = false }) {
     ["name", "Tax Name"],
     ["code", "Tax Code"],
     ["type", "Tax Type", TAX_TYPES],
-    ["rate", "Rate (%)", null, "number"],
+    ["rate", "Rate (%)", null, "text"],
     ["calculation", "Calculation Method", ["Inclusive", "Exclusive"]],
     ["priority", "Priority", null, "number"],
     ["effectiveFrom", "Effective From", null, "date"],
@@ -550,6 +557,9 @@ function TaxForm({ initial, editing = false }) {
                   } else if (name === "code" && values.code) {
                     const err = validateTaxCode(values.code);
                     if (err) setErrors((previous) => ({ ...previous, code: err }));
+                  } else if (name === "rate" && String(values.rate ?? '').trim() !== '') {
+                    const err = validateTaxRate(values.rate);
+                    if (err) setErrors((previous) => ({ ...previous, rate: err }));
                   }
                 }}
                 onChange={(event) => {
@@ -564,16 +574,17 @@ function TaxForm({ initial, editing = false }) {
                   } else if (name === "code" && errors.code) {
                     const err = validateTaxCode(val);
                     setErrors((previous) => ({ ...previous, code: err || undefined }));
+                  } else if (name === "rate") {
+                    const err = getLiveTaxRateError(val);
+                    setErrors((previous) => ({ ...previous, rate: err || undefined }));
                   } else {
                     setErrors((previous) => ({ ...previous, [name]: undefined }));
                   }
                 }}
-                {...(type === "number"
-                  ? {
-                      min: 0,
-                      step: name === "rate" ? "any" : 1,
-                      ...(name === "rate" ? { max: 100 } : {}),
-                    }
+                {...(name === "rate"
+                  ? { inputMode: "decimal", autoComplete: "off" }
+                  : type === "number"
+                  ? { min: 0, step: 1 }
                   : {})}
               />
             ))}

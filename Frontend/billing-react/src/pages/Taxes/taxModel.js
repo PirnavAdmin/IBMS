@@ -50,6 +50,43 @@ export function validateTaxCode(code) {
   return '';
 }
 
+export function validateTaxRate(rate) {
+  const raw = String(rate ?? '').trim();
+  if (!raw) {
+    return 'Tax rate is required.';
+  }
+  if (/[a-zA-Z]/.test(raw)) {
+    return 'Tax rate must be a valid numeric value without alphabetic characters.';
+  }
+  if (/^-\d+(?:\.\d+)?$/.test(raw)) {
+    return 'Enter a percentage from 0 to 100.';
+  }
+  if (!/^\d+(?:\.\d+)?$/.test(raw)) {
+    return 'Enter a valid numeric tax rate from 0 to 100.';
+  }
+  if (raw.includes('.') && raw.split('.')[1].length > 2) {
+    return 'Tax rate can have at most 2 decimal places.';
+  }
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 100) {
+    return 'Enter a percentage from 0 to 100.';
+  }
+  if (raw.split('.')[0].length > 3) {
+    return 'Enter a valid tax rate from 0 to 100.';
+  }
+  return '';
+}
+
+/** Validates rate while typing, deferring empty or mid-decimal ("18.") states until blur or submit. */
+export function getLiveTaxRateError(rate) {
+  const raw = String(rate ?? '').trim();
+  if (!raw) return '';
+  if (/^\d{1,3}\.$/.test(raw) && Number(raw.slice(0, -1)) <= 100) {
+    return '';
+  }
+  return validateTaxRate(raw);
+}
+
 export function validateTax(values) {
   const errors = {};
   const nameError = validateTaxName(values.name);
@@ -60,7 +97,8 @@ export function validateTax(values) {
     if (!String(values[key] ?? '').trim()) errors[key] = `${label} is required.`;
   }
   if (!TAX_TYPES.includes(values.type)) errors.type = 'Select a tax type.';
-  if (String(values.rate).trim() === '' || !Number.isFinite(Number(values.rate)) || Number(values.rate) < 0 || Number(values.rate) > 100) errors.rate = 'Enter a percentage from 0 to 100.';
+  const rateError = validateTaxRate(values.rate);
+  if (rateError) errors.rate = rateError;
   if (String(values.priority).trim() === '' || !Number.isSafeInteger(Number(values.priority)) || Number(values.priority) < 1) errors.priority = 'Enter a whole number starting from 1.';
   if (!['Inclusive', 'Exclusive'].includes(values.calculation)) errors.calculation = 'Select a calculation method.';
   if (!['Active', 'Inactive'].includes(values.status)) errors.status = 'Select a status.';
@@ -72,7 +110,7 @@ export function validateTax(values) {
 }
 
 export function calculatePreview(amount, rate, calculation, type, transaction) {
-  if (String(amount).trim() === '' || String(rate).trim() === '' || !Number.isFinite(Number(amount)) || Number(amount) < 0 || Number(amount) > 1e12 || !Number.isFinite(Number(rate)) || Number(rate) < 0 || Number(rate) > 100) return null;
+  if (String(amount).trim() === '' || validateTaxRate(rate) !== '' || !Number.isFinite(Number(amount)) || Number(amount) < 0 || Number(amount) > 1e12) return null;
   const round = value => Math.round((value + Number.EPSILON) * 100) / 100;
   const input = round(Number(amount));
   const percent = Number(rate);

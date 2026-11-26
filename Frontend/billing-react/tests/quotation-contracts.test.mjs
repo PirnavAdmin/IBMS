@@ -406,3 +406,43 @@ test('Item actions require a selected product, while Add item stays available',a
  const readonly=nodes(QuotationForm({initial:seeded,readOnly:true}));
  assert.equal(readonly.some(n=>n.props?.['aria-label']==='Items actions'),false);
 });
+
+test('QuotationForm displays auto-filled read-only HSN/SAC column from selected product',async()=>{
+ const imports={
+  '../utils/quotationCalculations':{applyAdditionalDiscounts,applyAdditionalTaxes,currency,lineTotals,quotationTotals},
+  '../utils/quotationValidation':{validateQuotation},
+  './SearchablePicker':{SearchablePicker:()=>null},
+  './ThemedSelect':{ThemedSelect:props=>({type:'ThemedSelect',props})},
+  './ThemedDatePicker':{ThemedDatePicker:()=>null},
+  '../../../context/FormDraftContext':{useFormDraft:()=>({clear:()=>{}}),useDraftState:(_key,_slot,initial)=>[typeof initial==='function'?initial():initial,()=>{}]},
+ };
+ const {QuotationForm}=await load('../src/pages/Quotations/components/QuotationForm.jsx',imports);
+ const collect=(node,pred,acc=[])=>{if(!node||typeof node!=='object')return acc;if(pred(node))acc.push(node);[node.props?.children].flat(Infinity).forEach(c=>collect(c,pred,acc));return acc;};
+ const products=[
+  {id:'2',name:'Laptop',hsnSac:'84713010',price:50000,taxCategory:'GST',taxRate:18},
+  {id:'3',name:'Support',hsnSac:'',price:1000,taxCategory:'GST',taxRate:18},
+ ];
+
+ const emptyTree=QuotationForm({products});
+ assert.match(text(emptyTree),/HSN\/SAC/);
+ const emptyHsnInput=collect(emptyTree,n=>n.type==='input'&&n.props?.['aria-label']==='HSN/SAC')[0];
+ assert.ok(emptyHsnInput);
+ assert.equal(emptyHsnInput.props.readOnly,true);
+ assert.equal(emptyHsnInput.props.value,'');
+ assert.equal(emptyHsnInput.props.placeholder,'Auto-filled');
+
+ const populatedTree=QuotationForm({
+  products,
+  initial:{
+   ...form(),
+   items:[
+    {id:'1',productId:'2',description:'Laptop',quantity:1,unitPrice:50000,discountType:'percentage',discountRate:0,taxRate:18,hsnSac:'84713010'},
+    {id:'2',productId:'3',description:'Support',quantity:1,unitPrice:1000,discountType:'percentage',discountRate:0,taxRate:18,hsnSac:''},
+   ],
+  },
+ });
+ const hsnInputs=collect(populatedTree,n=>n.type==='input'&&n.props?.['aria-label']==='HSN/SAC');
+ assert.equal(hsnInputs[0].props.value,'84713010');
+ assert.equal(hsnInputs[1].props.value,'');
+ assert.equal(hsnInputs[1].props.placeholder,'N/A');
+});

@@ -1721,6 +1721,31 @@
 .quote-search-group small { display: block; margin-top: 6px; font-size: 12px; line-height: 1.45; }
 .quote-search-guidance { color: var(--text-secondary); }
 
+/* 9-column quotation item layout including auto-filled HSN/SAC code. */
+.quotation-form-page .quote-items-table { min-width: 1240px; }
+.quotation-form-page .quote-items-table th:nth-child(1),
+.quotation-form-page .quote-items-table td:nth-child(1) { width: 18%; }
+.quotation-form-page .quote-items-table th:nth-child(2),
+.quotation-form-page .quote-items-table td:nth-child(2) { width: 19%; }
+.quotation-form-page .quote-items-table th:nth-child(3),
+.quotation-form-page .quote-items-table td:nth-child(3) { width: 10%; min-width: 96px; }
+.quotation-form-page .quote-items-table th:nth-child(4),
+.quotation-form-page .quote-items-table td:nth-child(4) { width: 7%; min-width: 65px; }
+.quotation-form-page .quote-items-table th:nth-child(5),
+.quotation-form-page .quote-items-table td:nth-child(5) { width: 10%; }
+.quotation-form-page .quote-items-table th:nth-child(6),
+.quotation-form-page .quote-items-table td:nth-child(6) { width: 10%; min-width: 100px; }
+.quotation-form-page .quote-items-table th:nth-child(7),
+.quotation-form-page .quote-items-table td:nth-child(7) { width: 10%; min-width: 100px; }
+.quotation-form-page .quote-items-table th:nth-child(8),
+.quotation-form-page .quote-items-table td:nth-child(8) { width: 10%; text-align: center; vertical-align: middle; }
+.quotation-form-page .quote-items-table th:nth-child(9),
+.quotation-form-page .quote-items-table td:nth-child(9) { width: 6%; text-align: center; vertical-align: middle; }
+.quotation-form-page .quote-items-table td.quote-item-description { min-width: 200px; }
+.quotation-form-page .quote-items-table td.quote-item-description input { width: 100%; min-width: 0; box-sizing: border-box; }
+.quotation-form-page .quote-items-table td.quote-item-hsn { min-width: 96px; }
+.quotation-form-page .quote-items-table td.quote-item-hsn input { width: 100%; min-width: 0; box-sizing: border-box; }
+
 /* Keep quotation item fields on screen at desktop widths; retain scroll on compact layouts. */
 @media (min-width: 1101px) {
   .quotation-form-page .quote-items-table {
@@ -1730,27 +1755,34 @@
   .quotation-form-page .quote-items-table th,
   .quotation-form-page .quote-items-table td {
     min-width: 0;
-    padding-inline: 7px;
+    padding-inline: 6px;
+  }
+  .quotation-form-page .quote-items-table td:first-child,
+  .quotation-form-page .quote-items-table td.quote-item-description,
+  .quotation-form-page .quote-items-table td.quote-item-hsn,
+  .quotation-form-page .quote-items-table td.quote-item-discount {
+    min-width: 0;
   }
   .quotation-form-page .quote-items-table th:nth-child(1),
-  .quotation-form-page .quote-items-table td:nth-child(1) { width: 18%; }
+  .quotation-form-page .quote-items-table td:nth-child(1) { width: 18%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(2),
-  .quotation-form-page .quote-items-table td:nth-child(2) { width: 25%; }
+  .quotation-form-page .quote-items-table td:nth-child(2) { width: 19%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(3),
-  .quotation-form-page .quote-items-table td:nth-child(3) { width: 7%; }
+  .quotation-form-page .quote-items-table td:nth-child(3) { width: 10%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(4),
-  .quotation-form-page .quote-items-table td:nth-child(4) { width: 11%; }
+  .quotation-form-page .quote-items-table td:nth-child(4) { width: 7%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(5),
-  .quotation-form-page .quote-items-table td:nth-child(5) { width: 11%; }
+  .quotation-form-page .quote-items-table td:nth-child(5) { width: 10%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(6),
-  .quotation-form-page .quote-items-table td:nth-child(6) { width: 11%; }
+  .quotation-form-page .quote-items-table td:nth-child(6) { width: 10%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(7),
-  .quotation-form-page .quote-items-table td:nth-child(7) { width: 11%; }
+  .quotation-form-page .quote-items-table td:nth-child(7) { width: 10%; min-width: 0; }
   .quotation-form-page .quote-items-table th:nth-child(8),
-  .quotation-form-page .quote-items-table td:nth-child(8) { width: 6%; }
-  .quotation-form-page .quote-items-table td.quote-item-description { min-width: 0; }
+  .quotation-form-page .quote-items-table td:nth-child(8) { width: 10%; min-width: 0; }
+  .quotation-form-page .quote-items-table th:nth-child(9),
+  .quotation-form-page .quote-items-table td:nth-child(9) { width: 6%; min-width: 0; }
   .quotation-form-page .quote-items-table td.quote-item-description input { min-width: 0; box-sizing: border-box; }
-  .quotation-form-page .quote-items-table td.quote-item-discount { min-width: 0; }
+  .quotation-form-page .quote-items-table td.quote-item-hsn input { min-width: 0; box-sizing: border-box; }
   .quotation-form-page .quote-items-table td.quote-item-discount > input,
   .quotation-form-page .quote-items-table td > .quote-item-tax,
   .quotation-form-page .quote-items-table td > input { box-sizing: border-box; }
